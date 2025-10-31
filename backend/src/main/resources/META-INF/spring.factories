@@ -1,0 +1,3 @@
+# Auto-register EnvironmentPostProcessor to configure Docker Compose file per profile
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.dcriar.config.DockerComposeEnvironmentPostProcessor

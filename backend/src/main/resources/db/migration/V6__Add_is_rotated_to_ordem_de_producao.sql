@@ -1,0 +1,2 @@
+ALTER TABLE ordens_de_producao ADD COLUMN is_rotated BOOLEAN NOT NULL DEFAULT FALSE;
+

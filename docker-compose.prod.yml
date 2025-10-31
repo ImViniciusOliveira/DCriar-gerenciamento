@@ -1,0 +1,89 @@
+services:
+  postgres-prod:
+    image: postgres:14-alpine
+    container_name: postgres-prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - dcriar-net
+    restart: always
+
+  minio-prod:
+    image: minio/minio:latest
+    container_name: minio-prod
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data_prod:/data
+    networks:
+      - dcriar-net
+    restart: always
+
+  minio-setup:
+    image: minio/mc
+    container_name: minio-setup
+    depends_on:
+      - minio-prod
+    networks:
+      - dcriar-net
+    volumes:
+      - ./policy.json:/config/policy.json
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Esperando o MinIO ficar online...';
+      until (/usr/bin/mc alias set dcriar-minio http://minio-prod:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}) do echo '...tentando novamente' && sleep 1; done;
+      echo 'MinIO está online. Configurando bucket...';
+      /usr/bin/mc mb dcriar-minio/${MINIO_BUCKET_NAME} || true;
+      echo 'Bucket criado ou já existente.';
+      /usr/bin/mc policy set-json /config/policy.json dcriar-minio/${MINIO_BUCKET_NAME};
+      echo 'Política do bucket definida com sucesso.';
+      exit 0;
+      "
+
+  backend:
+    # IMAGEM PUXADA DO SEU DOCKER HUB
+    image: imviniciusoliveira/dcriar-api:1.0.0
+    container_name: backend-api
+    depends_on:
+      - postgres-prod
+      - minio-setup
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-prod:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      MINIO_URL: http://minio-prod:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - dcriar-net
+    restart: always
+
+  frontend:
+    # IMAGEM PUXADA DO SEU DOCKER HUB
+    image: imviniciusoliveira/dcriar-frontend:1.0.0
+    container_name: frontend-app
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - dcriar-net
+    restart: always
+
+volumes:
+  postgres_data_prod:
+  minio_data_prod:
+
+networks:
+  dcriar-net:
+    driver: bridge

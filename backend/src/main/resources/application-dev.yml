@@ -1,0 +1,58 @@
+spring:
+  devtools:
+    livereload:
+      enabled: true
+  docker:
+    compose:
+      enabled: true
+      file:
+        - ${DOCKER_COMPOSE_DEV_FILE:docker-compose.dev.yml}
+  # --- DATABASE (POSTGRES) ---
+  datasource:
+    # As propriedades vêm do arquivo .env.dev que está ao lado do docker-compose.dev.yml
+    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  # --- JPA / HIBERNATE ---
+  jpa:
+    hibernate:
+      ddl-auto: none # Flyway vai gerenciar o schema
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+    open-in-view: false
+
+  # --- FLYWAY MIGRATIONS ---
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Permite que a estratégia de clean+migrate funcione em desenvolvimento
+    clean-disabled: false
+
+# --- MINIO CONFIGURATION ---
+minio:
+  url: http://localhost:9000
+  access-key: ${MINIO_ROOT_USER}
+  secret-key: ${MINIO_ROOT_PASSWORD}
+  bucket-name: ${MINIO_BUCKET_NAME}
+
+# Nível de log para desenvolvimento (ajustado para reduzir SQL no console)
+logging:
+  level:
+    # Mantém o nível geral do Hibernate em WARN (evita info detalhado)
+    org.hibernate: WARN
+    # Desativa especificamente o logger que imprime SQL formatado
+    org.hibernate.SQL: ERROR
+    # Desativa logs de valores de parâmetros SQL (pode vazar segredos)
+    org.hibernate.type.descriptor.sql: ERROR
+    # RequestLoggingFilter reduzido para WARN para evitar flood no console
+    com.dcriar.config.RequestLoggingFilter: WARN
+    # UploadController e Upload service logs reduzidos para INFO
+    com.dcriar.api.controller.upload.UploadController: INFO
+    com.dcriar.domain.upload.service.impl.FileStorageServiceImpl: INFO
+    com.dcriar.api.controller.product.ProdutoController: INFO
+    # Logs da aplicação em INFO por padrão
+    com.dcriar: INFO
