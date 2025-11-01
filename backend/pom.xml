@@ -109,6 +109,12 @@
             <version>${springdoc.version}</version>
         </dependency>
 
+        <!-- Actuator: health, metrics, info endpoints -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Mappers -->
         <dependency>
             <groupId>org.mapstruct</groupId>

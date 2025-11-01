@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/backend/dcriar-api.iml" filepath="$PROJECT_DIR$/backend/dcriar-api.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/dcriar-sistema-inventario.iml" filepath="$PROJECT_DIR$/.idea/dcriar-sistema-inventario.iml" />
     </modules>
   </component>

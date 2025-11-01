@@ -9,7 +9,7 @@ spring:
     compose:
       enabled: true
       file:
-        - ${DOCKER_COMPOSE_PROD_FILE:docker-compose.prod.yml}
+        - ${DOCKER_COMPOSE_PROD_FILE}
 
   # Em produção, as credenciais DEVEM ser fornecidas por variáveis de ambiente.
   datasource:

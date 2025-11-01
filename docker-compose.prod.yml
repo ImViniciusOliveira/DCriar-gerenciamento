@@ -2,6 +2,7 @@ services:
   postgres-prod:
     image: postgres:14-alpine
     container_name: postgres-prod
+    env_file: ${PROD_ENV_FILE:-/etc/dcriar/.env.prod}
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -15,6 +16,7 @@ services:
   minio-prod:
     image: minio/minio:latest
     container_name: minio-prod
+    env_file: ${PROD_ENV_FILE:-/etc/dcriar/.env.prod}
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -30,6 +32,7 @@ services:
     container_name: minio-setup
     depends_on:
       - minio-prod
+    env_file: ${PROD_ENV_FILE:-/etc/dcriar/.env.prod}
     networks:
       - dcriar-net
     volumes:
@@ -53,6 +56,7 @@ services:
     depends_on:
       - postgres-prod
       - minio-setup
+    env_file: ${PROD_ENV_FILE:-/etc/dcriar/.env.prod}
     ports:
       - "8080:8080"
     environment:

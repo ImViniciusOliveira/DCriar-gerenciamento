@@ -6,7 +6,7 @@ spring:
     compose:
       enabled: true
       file:
-        - ${DOCKER_COMPOSE_DEV_FILE:docker-compose.dev.yml}
+        - ${DOCKER_COMPOSE_DEV_FILE}
   # --- DATABASE (POSTGRES) ---
   datasource:
     # As propriedades vêm do arquivo .env.dev que está ao lado do docker-compose.dev.yml
@@ -56,3 +56,13 @@ logging:
     com.dcriar.api.controller.product.ProdutoController: INFO
     # Logs da aplicação em INFO por padrão
     com.dcriar: INFO
+
+# --- ATUATOR (DESENVOLVIMENTO) ---
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env
+  endpoint:
+    health:
+      show-details: always

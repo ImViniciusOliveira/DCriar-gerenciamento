@@ -1,0 +1,12 @@
+# Ignorar backups locais de arquivos .env que contenham segredos
+*.local.backup
+.env.local
+/.env.prod.local.backup
+/.env.dev.local.backup
+
+# Node modules
+frontend/node_modules/
+
+# Saídas de build
+backend/target/
+frontend/dist/

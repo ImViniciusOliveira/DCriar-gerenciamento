@@ -1,11 +1,16 @@
 # Este compose é para DESENVOLVIMENTO.
 # Ele sobe apenas os serviços (banco, MinIO), pois a API e o Front
 # serão executados diretamente da sua IDE/editor para agilizar o desenvolvimento.
+#
+# Variável opcional:
+#   DEV_ENV_FILE - caminho para o arquivo de variáveis de ambiente usado pelo compose.
+#                 Padrão: ./.env.dev (arquivo no diretório do projeto)
 
 services:
   postgres-dev:
     image: postgres:14-alpine
     container_name: postgres-dev
+    env_file: ${DEV_ENV_FILE:-./.env.dev}
     ports:
       - "5432:5432" # Expõe a porta do Postgres para a sua máquina local
     environment:
@@ -20,6 +25,7 @@ services:
   minio-dev:
     image: minio/minio:latest
     container_name: minio-dev
+    env_file: ${DEV_ENV_FILE:-./.env.dev}
     ports:
       - "9000:9000" # API do MinIO
       - "9001:9001" # Console Web do MinIO
@@ -32,30 +38,24 @@ services:
     networks:
       - dcriar-net
 
-  minio-mc:
-    image: minio/mc:latest
-    container_name: minio-mc-dev
+  # Init service que cria bucket e política usando 'mc' - roda uma única vez após minio-dev subir.
+  # Substitui o uso do script externo ./scripts/wait-for-minio.sh para evitar dependência de arquivo.
+  minio-init:
+    build:
+      context: ./docker/minio-init
+      dockerfile: Dockerfile
+    container_name: minio-init
     depends_on:
       - minio-dev
-    entrypoint: >
-      /bin/sh -c "
-      echo 'Aguardando o MinIO estar completamente pronto...'; 
-      /usr/bin/mc config host add minio http://minio-dev:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; 
-      until /usr/bin/mc ls minio > /dev/null 2>&1; do 
-        echo 'MinIO ainda não está pronto. Tentando novamente em 2 segundos...'; 
-        sleep 2; 
-      done; 
-      set -e; 
-      echo 'MinIO está pronto. Criando bucket ${MINIO_BUCKET_NAME}...'; 
-      /usr/bin/mc mb minio/${MINIO_BUCKET_NAME} --ignore-existing; 
-      echo 'Configurando política pública para o bucket ${MINIO_BUCKET_NAME}...'; 
-      /usr/bin/mc policy set public minio/${MINIO_BUCKET_NAME}; 
-      echo 'Configuração do MinIO concluída.'; 
-      exit 0;"
+    restart: "no"
+    env_file: ${DEV_ENV_FILE:-./.env.dev}
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+      MINIO_HOST: ${MINIO_HOST:-minio-dev}
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      WAIT_TIMEOUT: ${WAIT_TIMEOUT:-60}
     networks:
       - dcriar-net
 

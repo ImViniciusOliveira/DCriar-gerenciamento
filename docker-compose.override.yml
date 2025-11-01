@@ -1,0 +1,27 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend-dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres-dev
+      - minio-dev
+    env_file: ${DEV_ENV_FILE:-./.env.dev}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-dev:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      MINIO_URL: http://minio-dev:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+      SPRING_PROFILES_ACTIVE: dev
+    networks:
+      - dcriar-net
+
+networks:
+  dcriar-net:
+    external: false
