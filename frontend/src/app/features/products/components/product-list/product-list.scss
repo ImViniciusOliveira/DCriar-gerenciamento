@@ -1,0 +1,51 @@
+.page-card {
+  margin: 24px;
+  background-color: var(--mat-sys-surface-container-highest);
+}
+
+.page-card mat-card-header {
+  display: flex;
+  align-items: center;
+}
+
+.header-spacer {
+  flex: 1 1 auto;
+}
+
+.table-wrapper {
+  position: relative;
+}
+
+.spinner-container {
+  position: absolute;
+  inset: 0;
+  background: rgba(var(--mat-sys-surface-rgb), 0.8);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-container {
+  position: relative;
+  border-radius: 8px;
+  overflow-x: auto;
+
+  max-height: 70vh;
+}
+
+::ng-deep .mat-mdc-table tbody tr:hover {
+  background-color: var(--mat-sys-surface-container-high) !important;
+}
+
+.stock-info small {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.85rem;
+}
+
+.channel-stock-list {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+}

@@ -1,0 +1,49 @@
+package com.dcriar.api.hateoas.stock.model;
+
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonRootName;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.hateoas.RepresentationModel;
+import org.springframework.hateoas.server.core.Relation;
+
+import java.math.BigDecimal;
+import java.util.Map;
+
+/**
+ * Modelo de representação HATEOAS para um Lote de Matéria-Prima.
+ * <p>
+ * Expõe os dados de um lote físico de matéria-prima, seu saldo em estoque
+ * e links para recursos relacionados.
+ */
+@Getter
+@Setter
+@JsonRootName(value = "loteMateriaPrima")
+@Relation(collectionRelation = "lotes-materia-prima", itemRelation = "lote-materia-prima")
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class LoteMateriaPrimaModel extends RepresentationModel<LoteMateriaPrimaModel> {
+
+    @Schema(description = "ID único do lote de matéria-prima.", example = "1")
+    private Long id;
+
+    @Schema(description = "ID do tipo de matéria-prima ao qual o lote pertence.", example = "10")
+    private Long tipoMateriaPrimaId;
+
+    @Schema(description = "Nome do tipo de matéria-prima.", example = "Adesivo Vinil Branco Brilho")
+    private String nomeTipoMateriaPrima;
+
+    @Schema(description = "Unidade de medida em que o estoque deste lote é controlado.", example = "METRO_LINEAR")
+    private UnidadeDeMedida unidadeDeEstoque;
+
+    @Schema(description = "Saldo atual de material disponível neste lote.", example = "45.5000")
+    private BigDecimal saldoEstoque;
+
+    @Schema(description = "Atributos flexíveis do lote, como largura, fornecedor, etc.",
+            example = "{ \"larguraMm\": 1220, \"fornecedor\": \"Adesivos Premium\" }")
+    private Map<String, Object> atributos;
+
+    @Schema(description = "ID do lote de origem, se este for um lote de retalho/sobra.", nullable = true, example = "1")
+    private Long loteDeOrigemId;
+}
