@@ -348,24 +348,3 @@ sudo ./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml
 export PROD_ENV_FILE=/etc/dcriar/.env.prod
 PROD_ENV_FILE=$PROD_ENV_FILE docker compose -f /opt/dcriar/docker-compose.prod.yml up -d
 ```
-
-## Flags / opções rápidas (scripts de deploy)
-
-Os scripts sob `./scripts/deploy` e `./scripts/deploys` suportam algumas opções com `--`; aqui estão as mais úteis:
-
-- `./scripts/deploy/deploy-prod-local.sh`
-  - `--no-push` — não fará build/push das imagens; usará imagens locais se disponíveis e só instalará `/.env` e `docker-compose.prod.yml` e subirá o compose (útil para testes locais quando você já tem imagens locais).
-  - `--env=/caminho/.env.prod` — especifica um arquivo de ambiente diferente do padrão `./.env.prod`.
-  - Exemplo: `sudo ./scripts/deploy/deploy-prod-local.sh --no-push --env=./.env.prod.local`
-
-- `./scripts/deploy/push-images.sh`
-  - aceita um argumento posicional (arquivo `.env`) que contém `BACKEND_IMAGE` e `FRONTEND_IMAGE`. Não há flags `--` adicionais; apenas passe o caminho para o arquivo de ambiente.
-  - Exemplo: `./scripts/deploy/push-images.sh ./.env.prod.local`
-
-- `./scripts/deploy/install-prod-env.sh` e `./scripts/deploy/install-prod-compose.sh`
-  - não possuem flags `--`; ambos aceitam um argumento posicional (caminho do arquivo de origem) e precisam de `sudo` para copiar para `/etc/dcriar` e `/opt/dcriar`.
-  - Exemplo: `sudo ./scripts/deploy/install-prod-env.sh ./.env.prod.local`
-
-- `./scripts/deploys/deploy-prod.sh` (antigo)
-  - aceita um argumento posicional: caminho para `.env.prod` (que será copiado para `/etc/dcriar/.env.prod`) e faz `docker compose up -d --build` (usa `--env-file` internamente).
-  - Exemplo: `./scripts/deploys/deploy-prod.sh ./.env.prod`
