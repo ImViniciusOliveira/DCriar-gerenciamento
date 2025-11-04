@@ -90,3 +90,54 @@ docker run --rm -p 8080:8080 --env-file ./.env.dev.local dcriar-api:local
 export DEV_ENV_FILE=./.env.dev.local
 docker compose -f docker-compose.dev.yml -f docker-compose.override.yml down --remove-orphans
 ```
+
+## Scripts úteis (desenvolvimento)
+
+O projeto inclui alguns scripts prontos para facilitar levantar/derrubar e resetar o ambiente de desenvolvimento. Eles ficam em `./scripts/develop`.
+
+Principais scripts:
+
+- `./scripts/develop/up-dev.sh` — sobe os serviços de infraestrutura necessários (Postgres, MinIO) para desenvolvimento. Lê `DEV_ENV_FILE` (por padrão `./.env.dev.local`).
+- `./scripts/develop/down-dev.sh` — derruba os serviços de desenvolvimento levantados pelo compose.
+- `./scripts/develop/recreate-dev.sh` — reset total do ambiente de desenvolvimento: mata processos/containers que ocupam as portas conhecidas (8080, 4200, 9000, 9001, 5432), executa `down-dev.sh` e (por padrão) re-executa `up-dev.sh`.
+
+Flags e comportamento importantes do `recreate-dev.sh`:
+
+- `--no-start` — faz apenas a limpeza (mata containers/processos e roda `down-dev.sh`) e NÃO roda `up-dev.sh` no final.
+- Qualquer argumento adicional é repassado para `up-dev.sh`. Ex.: `./scripts/develop/recreate-dev.sh --no-build` irá repassar `--no-build` para o `up-dev.sh`.
+
+Exemplos rápidos:
+
+```bash
+# resetar e subir (padrão)
+./scripts/develop/recreate-dev.sh
+
+# apenas limpar (não subir)
+./scripts/develop/recreate-dev.sh --no-start
+
+# resetar e passar flag para up-dev.sh
+./scripts/develop/recreate-dev.sh --no-build
+```
+
+Observações:
+- O `recreate-dev.sh` agora detecta containers Docker que publicam as portas de dev e os para/remove automaticamente (útil quando um container de outra stack está ocupando a porta). Ele também tenta matar PIDs locais como fallback.
+- Tenha cuidado antes de rodar em uma máquina com outros serviços importantes que possam usar as portas listadas.
+
+## Scripts de deploy helper (no repositório)
+
+Para facilitar a instalação em servidor, o repositório contém auxiliares em `./scripts/deploy`:
+
+- `./scripts/deploy/install-prod-env.sh [caminho_para_.env.prod]` — copia o `.env.prod` do repositório (ou do caminho indicado) para `/etc/dcriar/.env.prod`, define owner root e `chmod 600`.
+- `./scripts/deploy/install-prod-compose.sh [caminho_para_docker-compose.prod.yml]` — copia `docker-compose.prod.yml` para `/opt/dcriar/docker-compose.prod.yml` e ajusta permissões (owner root, perm 644).
+
+Exemplo de uso no servidor:
+
+```bash
+# instalar .env.prod em /etc/dcriar
+sudo ./scripts/deploy/install-prod-env.sh ./.env.prod
+# instalar docker-compose em /opt/dcriar
+sudo ./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml
+# subir stack
+export PROD_ENV_FILE=/etc/dcriar/.env.prod
+PROD_ENV_FILE=$PROD_ENV_FILE docker compose -f /opt/dcriar/docker-compose.prod.yml up -d
+```

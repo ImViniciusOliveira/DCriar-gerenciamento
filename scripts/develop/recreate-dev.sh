@@ -40,9 +40,31 @@ kill_port() {
   local port=$1
   echo "[recriar-dev] Verificando porta $port..."
 
+  # Primeiro: detecta containers Docker que publicam essa porta
+  if command -v docker >/dev/null 2>&1; then
+    # lista containers que mostram a porta no campo PORTS (formato: 0.0.0.0:8080->8080/tcp)
+    mapfile -t containers < <(docker ps --format '{{.ID}} {{.Names}} {{.Ports}}' 2>/dev/null | grep -E ":[0-9]+:${port}|:${port}->" || true)
+    if [ ${#containers[@]} -gt 0 ]; then
+      echo "[recriar-dev] Encontrado container(s) Docker expondo a porta $port:"
+      for entry in "${containers[@]}"; do
+        echo "  $entry"
+        cid=$(awk '{print $1}' <<<"$entry") || cid=""
+        if [ -n "$cid" ]; then
+          echo "[recriar-dev] Parando container $cid (docker stop)..."
+          docker stop "$cid" >/dev/null 2>&1 || sudo docker stop "$cid" >/dev/null 2>&1 || true
+          echo "[recriar-dev] Removendo container $cid (docker rm)..."
+          docker rm -f "$cid" >/dev/null 2>&1 || sudo docker rm -f "$cid" >/dev/null 2>&1 || true
+        fi
+      done
+      # aguarda um instante para as portas serem liberadas
+      sleep 1
+    fi
+  fi
+
   # Tenta com lsof (mais comum em macOS e alguns Linux)
+  local pids=""
   if command -v lsof >/dev/null 2>&1; then
-    pids=$(lsof -ti tcp:"$port" || true)
+    pids=$(lsof -ti tcp:"$port" 2>/dev/null || true)
   else
     # Fallback para ss (moderno no Linux)
     pids=$(ss -ltnp 2>/dev/null | awk -v p=":$port" '$0~p {match($0, /pid=([0-9]+)/, a); if(a[1]) print a[1]}' || true)
@@ -50,14 +72,21 @@ kill_port() {
 
   if [ -n "$pids" ]; then
     echo "[recriar-dev] Matando processos na porta $port: $pids"
-    # Tenta matar (graceful)
-    for pid in $pids; do kill "$pid" 2>/dev/null || true; done
+    for pid in $pids; do
+      # Tenta primeiro sem sudo; se falhar, usa sudo para forçar
+      if kill "$pid" 2>/dev/null; then
+        echo "[recriar-dev] kill $pid ok"
+      else
+        echo "[recriar-dev] kill $pid falhou sem sudo, tentando com sudo..."
+        sudo kill "$pid" 2>/dev/null || true
+      fi
+    done
     sleep 1
-    # Tenta forçar (kill -9) se ainda estiverem vivos
+    # Força se ainda existirem
     for pid in $pids; do
       if kill -0 "$pid" 2>/dev/null; then
-        echo "[recriar-dev] Forçando parada (kill -9) do PID $pid"
-        kill -9 "$pid" 2>/dev/null || true
+        echo "[recriar-dev] Forçando parada (kill -9) do PID $pid..."
+        kill -9 "$pid" 2>/dev/null || sudo kill -9 "$pid" 2>/dev/null || true
       fi
     done
   else

@@ -128,9 +128,6 @@ MINIO_ROOT_USER=your_minio_user
 MINIO_ROOT_PASSWORD=your_minio_password
 MINIO_BUCKET_NAME=your_minio_bucket
 
-# JWT secret (preencha com um valor forte e único)
-JWT_SECRET=your_jwt_secret
-
 # Observação: este arquivo é somente um esqueleto. Proteja o arquivo real em produção (ex: /etc/dcriar/.env.prod com chmod 600).
 ```
 
@@ -331,3 +328,23 @@ Observações importantes
 - Não remova volumes do Postgres/MinIO sem backup (dados persistem em volumes).
 - Se uma imagem não existir no Docker Hub, verifique nome e tag.
 - Proteja `/etc/dcriar/.env.prod` com permissão `600` e propriedade `root`.
+
+# Adição: scripts helper do repositório
+
+## Scripts helper (instalação rápida em servidor)
+
+Para simplificar a instalação do ambiente de produção no servidor, este repositório inclui dois scripts utilitários em `./scripts/deploy`:
+
+- `install-prod-env.sh [caminho_para_.env.prod]` — copia o arquivo de ambiente para `/etc/dcriar/.env.prod`, configura `root:root` e `chmod 600`.
+- `install-prod-compose.sh [caminho_para_docker-compose.prod.yml]` — copia `docker-compose.prod.yml` para `/opt/dcriar/docker-compose.prod.yml` e ajusta permissões (owner root, perm 644).
+
+Uso recomendado no servidor (exemplo mínimo):
+
+```bash
+# executar a partir da raiz do repositório (ou informe caminhos absolutos)
+sudo ./scripts/deploy/install-prod-env.sh ./.env.prod
+sudo ./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml
+# subir a stack
+export PROD_ENV_FILE=/etc/dcriar/.env.prod
+PROD_ENV_FILE=$PROD_ENV_FILE docker compose -f /opt/dcriar/docker-compose.prod.yml up -d
+```
