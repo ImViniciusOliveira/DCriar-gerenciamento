@@ -141,3 +141,20 @@ sudo ./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml
 export PROD_ENV_FILE=/etc/dcriar/.env.prod
 PROD_ENV_FILE=$PROD_ENV_FILE docker compose -f /opt/dcriar/docker-compose.prod.yml up -d
 ```
+
+## Flags / opções rápidas (scripts de desenvolvimento)
+
+Aqui estão as opções com `--` suportadas pelos scripts em `./scripts/develop` (apenas as flags relevantes):
+
+- `./scripts/develop/up-dev.sh`
+  - `--no-backend` — não inclui `docker-compose.override.yml` no `docker compose up` (útil se você quiser subir apenas infra como Postgres/MinIO sem o backend no container).
+  - Exemplo: `./scripts/develop/up-dev.sh --no-backend`
+
+- `./scripts/develop/down-dev.sh`
+  - Não tem flags com `--` específicas; usa `./.env.dev.local` por padrão.
+
+- `./scripts/develop/recreate-dev.sh`
+  - `--no-start` — faz a limpeza e `down` (mata processos/containers e roda `down-dev.sh`), mas NÃO executa `up-dev.sh` no final.
+  - Qualquer argumento desconhecido é repassado para `up-dev.sh`. Por exemplo `./scripts/develop/recreate-dev.sh --no-build` passará `--no-build` para o `up-dev.sh`.
+  - Exemplo (apenas limpar): `./scripts/develop/recreate-dev.sh --no-start`
+  - Exemplo (recriar e passar flag para up-dev): `./scripts/develop/recreate-dev.sh --no-build`
