@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# scripts/down-dev.sh
+# scripts/develop/down-dev.sh
 # Destroi o ambiente de desenvolvimento Docker Compose.
 
 set -euo pipefail
+
+# Resolve project root (dois níveis acima -> repo root)
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+PROJECT_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
+cd "$PROJECT_ROOT" || exit 1
 
 # Define o nome do arquivo de segredos local
 ENV_FILE="./.env.dev.local"

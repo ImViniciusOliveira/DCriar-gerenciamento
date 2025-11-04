@@ -1,107 +1,107 @@
 # Guia de Deploy (Do Dev para a Produção)
 
-Este guia cobre o fluxo completo de deploy, dividido em duas partes:  
+Este guia cobre o fluxo completo de deploy, dividido em duas partes:
 
 Parte 1: O Workflow do Desenvolvedor (O que você faz no seu PC para construir e enviar as imagens para o Docker Hub).  
-Parte 2: O Workflow do Administrador (O que é feito no servidor Linux para baixar e rodar o sistema).  
+Parte 2: O Workflow do Administrador (O que é feito no servidor Linux para baixar e rodar o sistema).
 
-Parte 1: O Workflow do Desenvolvedor (Build e Push)  
+Parte 1: O Workflow do Desenvolvedor (Build e Push)
 
-O que: Esta parte é feita na sua máquina de desenvolvimento local. O objetivo é transformar seu código-fonte em imagens Docker prontas para produção e enviá-las para o Docker Hub.  
+O que: Esta parte é feita na sua máquina de desenvolvimento local. O objetivo é transformar seu código-fonte em imagens Docker prontas para produção e enviá-las para o Docker Hub.
 
-Pré-requisitos:  
-- Docker Desktop instalado e rodando.  
-- Código-fonte do projeto.  
-- Uma conta no Docker Hub (ou outro registry de containers).  
+Pré-requisitos:
+- Docker Desktop instalado e rodando.
+- Código-fonte do projeto.
+- Uma conta no Docker Hub (ou outro registry de containers).
 
-Passo 1.1: Login no Docker Hub  
+Passo 1.1: Login no Docker Hub
 
 Antes de enviar qualquer imagem, você precisa se autenticar.  
 Abra seu terminal.  
-Execute o comando de login. Ele pedirá seu nome de usuário e senha:  
+Execute o comando de login. Ele pedirá seu nome de usuário e senha:
 
 ```bash
 docker login
 ```
 
-Passo 1.2: Build e Tag das Imagens  
+Passo 1.2: Build e Tag das Imagens
 
-Agora, vamos construir as imagens a partir do seu código, usando os Dockerfiles. O comando docker build usa o Dockerfile da pasta e o -t aplica uma "tag" (etiqueta), que é o nome da imagem no Docker Hub.  
+Agora, vamos construir as imagens a partir do seu código, usando os Dockerfiles. O comando docker build usa o Dockerfile da pasta e o -t aplica uma "tag" (etiqueta), que é o nome da imagem no Docker Hub.
 
-Importante: Substitua your-registry pelo seu nome de usuário real do Docker Hub (ex: imviniciusoliveira).  
+Importante: Substitua your-registry pelo seu nome de usuário real do Docker Hub (ex: imviniciusoliveira).
 
-Construir o Backend:  
+Construir o Backend:
 
-Navegue até a pasta do seu backend:  
+Navegue até a pasta do seu backend:
 
 ```bash
 cd /caminho/para/o/projeto/backend
 ```
 
-Construa e "etiquete" a imagem (o . significa "use esta pasta"):  
+Construa e "etiquete" a imagem (o . significa "use esta pasta"):
 
 ```bash
 docker build -t your-registry/dcriar-api:1.0.0 .
 ```
 
-Construir o Frontend:  
+Construir o Frontend:
 
-Navegue até a pasta do seu frontend:  
+Navegue até a pasta do seu frontend:
 
 ```bash
 cd /caminho/para/o/projeto/frontend
 ```
 
-Construa e "etiquete" a imagem:  
+Construa e "etiquete" a imagem:
 
 ```bash
 docker build -t your-registry/dcriar-frontend:1.0.0 .
 ```
 
-Passo 1.3: Push (Upload) das Imagens  
+Passo 1.3: Push (Upload) das Imagens
 
-Com as imagens construídas e "etiquetadas" (taggeadas) localmente, o último passo é enviá-las para o Docker Hub.  
+Com as imagens construídas e "etiquetadas" (taggeadas) localmente, o último passo é enviá-las para o Docker Hub.
 
 ```bash
 docker push your-registry/dcriar-api:1.0.0
 docker push your-registry/dcriar-frontend:1.0.0
 ```
 
-Pronto! A "Parte 1" terminou. Agora suas imagens estão prontas na nuvem, e o administrador do sistema pode executar a "Parte 2".  
+Pronto! A "Parte 1" terminou. Agora suas imagens estão prontas na nuvem, e o administrador do sistema pode executar a "Parte 2".
 
-Parte 2: O Workflow do Administrador (Deploy no Servidor Linux)  
+Parte 2: O Workflow do Administrador (Deploy no Servidor Linux)
 
-O que: Este é o manual de operações simplificado para um administrador de sistema Linux. O deploy consiste em 2 arquivos e 3 comandos principais.  
+O que: Este é o manual de operações simplificado para um administrador de sistema Linux. O deploy consiste em 2 arquivos e 3 comandos principais.
 
-Pré-requisitos:  
-- Servidor Linux (ex: Ubuntu, Debian, CentOS) com Docker e Docker-Compose instalados.  
-- Acesso à internet para puxar as imagens do Docker Hub.  
-- Acesso de administrador (root/sudo) no servidor.  
+Pré-requisitos:
+- Servidor Linux (ex: Ubuntu, Debian, CentOS) com Docker e Docker-Compose instalados.
+- Acesso à internet para puxar as imagens do Docker Hub.
+- Acesso de administrador (root/sudo) no servidor.
 
-Os 2 Arquivos Essenciais  
+Os 2 Arquivos Essenciais
 
-O sistema inteiro é definido por apenas dois arquivos no servidor, em locais padronizados do Linux:  
+O sistema inteiro é definido por apenas dois arquivos no servidor, em locais padronizados do Linux:
 
-- `/etc/dcriar/.env.prod`: O arquivo de segredos (Senhas, chaves de API, etc.).  
-- `/opt/dcriar/docker-compose.prod.yml`: O arquivo de orquestração (quais containers rodar).  
+- `/etc/dcriar/.env.prod`: O arquivo de segredos (Senhas, chaves de API, etc.).
+- `/opt/dcriar/docker-compose.prod.yml`: O arquivo de orquestração (quais containers rodar).
 
-Passo 2.1: Criar o Arquivo de Segredos (no Servidor)  
+Passo 2.1: Criar o Arquivo de Segredos (no Servidor)
 
-Este passo é feito uma única vez. Os segredos devem ficar fora da pasta da aplicação por segurança.  
+Este passo é feito uma única vez. Os segredos devem ficar fora da pasta da aplicação por segurança.
 
-Crie o diretório seguro:  
+Crie o diretório seguro:
 
 ```bash
 sudo mkdir -p /etc/dcriar
 ```
 
-Crie e abra o arquivo de segredos com um editor (ex: nano):  
+Crie e abra o arquivo de segredos com um editor (ex: nano):
 
 ```bash
 sudo nano /etc/dcriar/.env.prod
 ```
 
-Cole o template de produção (o esqueleto do seu arquivo .env.prod do projeto) e preencha com as senhas reais:  
+Cole o template de produção (o esqueleto do seu arquivo .env.prod do projeto) e preencha com as senhas reais:
 
 ```dotenv
 # /etc/dcriar/.env.prod
@@ -134,29 +134,29 @@ JWT_SECRET=your_jwt_secret
 # Observação: este arquivo é somente um esqueleto. Proteja o arquivo real em produção (ex: /etc/dcriar/.env.prod com chmod 600).
 ```
 
-Defina as permissões corretas (só o root pode ler):  
+Defina as permissões corretas (só o root pode ler):
 
 ```bash
 sudo chmod 600 /etc/dcriar/.env.prod
 sudo chown root:root /etc/dcriar/.env.prod
 ```
 
-Passo 2.2: Criar o Arquivo docker-compose.prod.yml (no Servidor)  
+Passo 2.2: Criar o Arquivo docker-compose.prod.yml (no Servidor)
 
-Crie a pasta de operação:  
+Crie a pasta de operação:
 
 ```bash
 sudo mkdir -p /opt/dcriar
 cd /opt/dcriar
 ```
 
-Crie o arquivo docker-compose.prod.yml:  
+Crie o arquivo docker-compose.prod.yml:
 
 ```bash
 sudo nano docker-compose.prod.yml
 ```
 
-Cole o seguinte conteúdo dentro deste arquivo:  
+Cole o seguinte conteúdo dentro deste arquivo:
 
 ```yaml
 services:
@@ -248,11 +248,11 @@ volumes:
   minio_data_prod:
 ```
 
-Passo 2.3: Puxar as Imagens do Docker Hub (recomendado)  
+Passo 2.3: Puxar as Imagens do Docker Hub (recomendado)
 
-Agora, vamos baixar as imagens mais recentes do Docker Hub para o servidor. Isso garante que você tenha a versão mais atualizada antes de subir os containers.  
+Agora, vamos baixar as imagens mais recentes do Docker Hub para o servidor. Isso garante que você tenha a versão mais atualizada antes de subir os containers.
 
-Na pasta onde está o arquivo docker-compose.prod.yml (`/opt/dcriar`):  
+Na pasta onde está o arquivo docker-compose.prod.yml (`/opt/dcriar`):
 
 ```bash
 # opcional: carregar as variáveis e puxar manualmente
@@ -264,9 +264,9 @@ docker pull "${FRONTEND_IMAGE}"
 PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml pull
 ```
 
-Passo 2.4: Validar a Configuração do Compose  
+Passo 2.4: Validar a Configuração do Compose
 
-Antes de subir os containers, é bom validar se a configuração do Docker Compose está correta. Isso ajuda a evitar erros comuns de sintaxe ou configuração.  
+Antes de subir os containers, é bom validar se a configuração do Docker Compose está correta. Isso ajuda a evitar erros comuns de sintaxe ou configuração.
 
 ```bash
 PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml config
@@ -274,17 +274,17 @@ PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose
 
 Se houver erro, conserte `/etc/dcriar/.env.prod` ou o `docker-compose.prod.yml` antes de seguir.
 
-Passo 2.5: Subir o Sistema (modo detached)  
+Passo 2.5: Subir o Sistema (modo detached)
 
-Com tudo configurado e validado, é hora de subir os containers da aplicação. O parâmetro -d faz o Docker Compose rodar em segundo plano (detached mode).  
+Com tudo configurado e validado, é hora de subir os containers da aplicação. O parâmetro -d faz o Docker Compose rodar em segundo plano (detached mode).
 
 ```bash
 PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml up -d
 ```
 
-Passo 2.6: Verificações Pós-Deploy  
+Passo 2.6: Verificações Pós-Deploy
 
-Após o deploy, é importante verificar se tudo está funcionando como esperado.  
+Após o deploy, é importante verificar se tudo está funcionando como esperado.
 
 ```bash
 # listar containers do projeto
@@ -305,9 +305,9 @@ Testes rápidos:
 curl -f http://localhost:${FRONTEND_PORT}/health || echo 'frontend health failed'
 ```
 
-Passo 2.7: Parar e Atualizar (Redeploy)  
+Passo 2.7: Parar e Atualizar (Redeploy)
 
-Se precisar atualizar a aplicação (por exemplo, uma nova versão do código), siga estes passos:  
+Se precisar atualizar a aplicação (por exemplo, uma nova versão do código), siga estes passos:
 
 1. Pare e remova os containers atuais:
 

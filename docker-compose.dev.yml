@@ -50,19 +50,34 @@ services:
       MINIO_HOST: ${MINIO_HOST}
       MINIO_PORT: ${MINIO_PORT}
       WAIT_TIMEOUT: ${WAIT_TIMEOUT}
+      WAIT_INTERVAL: ${WAIT_INTERVAL}
     networks:
       - dcriar-net
-    entrypoint: >
-      /bin/sh -c "
-      echo 'Esperando o MinIO-dev ficar online...';
-      until (/usr/bin/mc alias set dcriar-minio-dev http://${MINIO_HOST}:${MINIO_PORT} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}) do echo '...tentando novamente' && sleep 1; done;
-      echo 'MinIO-dev está online. Configurando bucket...';
-      /usr/bin/mc mb dcriar-minio-dev/${MINIO_BUCKET_NAME} --ignore-existing;
-      echo 'Bucket criado ou já existente.';
-      /usr/bin/mc policy set public dcriar-minio-dev/${MINIO_BUCKET_NAME};
-      echo 'Política do bucket definida como public.';
-      exit 0;
-      "
+    entrypoint:
+      - "/bin/sh"
+      - "-c"
+      - |-
+        echo 'Esperando o MinIO-dev ficar online...';
+        # Tempo total de espera (segundos) e intervalo entre tentativas (segundos)
+        TIMEOUT=$${WAIT_TIMEOUT:-60};
+        INTERVAL=$${WAIT_INTERVAL:-5};
+        ATTEMPTS=0;
+        MAX=$$(( (TIMEOUT + INTERVAL - 1) / INTERVAL ));
+        until (/usr/bin/mc alias set dcriar-minio-dev http://$${MINIO_HOST}:$${MINIO_PORT} $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}); do
+          ATTEMPTS=$$((ATTEMPTS+1));
+          echo "...tentando novamente (tentativa: $${ATTEMPTS})";
+          if [ "$${ATTEMPTS}" -ge "$${MAX}" ]; then
+            echo "Timeout de $${TIMEOUT}s atingido ao tentar conectar ao MinIO-dev. Saindo com erro.";
+            exit 1;
+          fi;
+          sleep $${INTERVAL};
+        done;
+        echo 'MinIO-dev está online. Configurando bucket...';
+        /usr/bin/mc mb dcriar-minio-dev/$${MINIO_BUCKET_NAME} --ignore-existing;
+        echo 'Bucket criado ou já existente.';
+        /usr/bin/mc policy set public dcriar-minio-dev/$${MINIO_BUCKET_NAME};
+        echo 'Política do bucket definida como public.';
+        exit 0;
 
 volumes:
   postgres_data_dev:

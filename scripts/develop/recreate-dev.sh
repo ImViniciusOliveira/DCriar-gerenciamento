@@ -26,7 +26,7 @@ Opções do Script:
 
 Opções para 'up-dev.sh':
   Qualquer argumento desconhecido (ex: --no-build) será repassado
-  diretamente para o script './scripts/up-dev.sh'.
+  diretamente para o script './scripts/develop/up-dev.sh'.
 
 Exemplos:
   ./scripts/recriar-dev.sh            # Mata portas, 'down', 'up --build' (padrão do up-dev)
@@ -89,6 +89,11 @@ done
 
 # --- Execução Principal ---
 
+# Resolve project root and cd there to ensure compose files are found
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+PROJECT_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
+cd "$PROJECT_ROOT" || exit 1
+
 echo "[recriar-dev] Iniciando reset total do ambiente de desenvolvimento..."
 
 # 1. Matar processos nas portas
@@ -99,23 +104,23 @@ for p in "${DEV_PORTS[@]}"; do
 done
 
 # 2. Chamar o script 'down-dev.sh' (reutilização!)
-echo "[recriar-dev] Executando ./scripts/down-dev.sh para limpar containers..."
-if [ -x ./scripts/down-dev.sh ]; then
-  ./scripts/down-dev.sh
+echo "[recriar-dev] Executando ./scripts/develop/down-dev.sh para limpar containers..."
+if [ -x ./scripts/develop/down-dev.sh ]; then
+  ./scripts/develop/down-dev.sh
 else
-  echo "[recriar-dev] AVISO: ./scripts/down-dev.sh não encontrado. Tentando limpeza manual..."
+  echo "[recriar-dev] AVISO: ./scripts/develop/down-dev.sh não encontrado. Tentando limpeza manual..."
   # Fallback (caso o down-dev.sh não exista, tenta o comando direto)
   docker compose -f docker-compose.dev.yml -f docker-compose.override.yml down --remove-orphans || true
 fi
 
 # 3. Chamar o script 'up-dev.sh' (reutilização!)
 if [ "$NO_START" = false ]; then
-  echo "[recriar-dev] Executando ./scripts/up-dev.sh ${UP_ARGS[*]}..."
-  if [ -x ./scripts/up-dev.sh ]; then
+  echo "[recriar-dev] Executando ./scripts/develop/up-dev.sh ${UP_ARGS[*]}..."
+  if [ -x ./scripts/develop/up-dev.sh ]; then
     # Passa os argumentos extras (como --no-build)
-    ./scripts/up-dev.sh "${UP_ARGS[@]}"
+    ./scripts/develop/up-dev.sh "${UP_ARGS[@]}"
   else
-    echo "[recriar-dev] ERRO: ./scripts/up-dev.sh não encontrado. Não é possível subir o ambiente." >&2
+    echo "[recriar-dev] ERRO: ./scripts/develop/up-dev.sh não encontrado. Não é possível subir o ambiente." >&2
     exit 1
   fi
 else

@@ -35,17 +35,20 @@ services:
     env_file: ${PROD_ENV_FILE}
     networks:
       - dcriar-net
-    entrypoint: >
-      /bin/sh -c "
-      echo 'Esperando o MinIO ficar online...';
-      until (/usr/bin/mc alias set dcriar-minio http://minio-prod:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}) do echo '...tentando novamente' && sleep 1; done;
-      echo 'MinIO está online. Configurando bucket...';
-      /usr/bin/mc mb dcriar-minio/${MINIO_BUCKET_NAME} --ignore-existing;
-      echo 'Bucket criado ou já existente.';
-      /usr/bin/mc policy set public dcriar-minio/${MINIO_BUCKET_NAME};
-      echo 'Política do bucket definida como public (leitura pública).';
-      exit 0;
-      "
+    entrypoint:
+      - "/bin/sh"
+      - "-c"
+      - |-
+        echo 'Esperando o MinIO ficar online...';
+        until (/usr/bin/mc alias set dcriar-minio http://minio-prod:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}) do
+          echo '...tentando novamente' && sleep 1;
+        done;
+        echo 'MinIO está online. Configurando bucket...';
+        /usr/bin/mc mb dcriar-minio/$${MINIO_BUCKET_NAME} --ignore-existing;
+        echo 'Bucket criado ou já existente.';
+        /usr/bin/mc policy set public dcriar-minio/$${MINIO_BUCKET_NAME};
+        echo 'Política do bucket definida como public (leitura pública).';
+        exit 0;
 
   backend:
     image: ${BACKEND_IMAGE}
