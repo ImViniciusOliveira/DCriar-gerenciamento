@@ -1,19 +1,33 @@
-# Ignorar todos os arquivos com extensão .local (ex.: .env.dev.local)
-*.local
-
-# Ignorar backups comuns (boa prática)
-*.backup
-*.local.backup
-
-# Node modules
-frontend/node_modules/
-
-# Saídas de build
-backend/target/
-frontend/dist/
-
-# Ignorar arquivos de IDE e OS
+### IDEs & OS ###
+# As regras de IDE e SO devem ficar no arquivo raiz para evitar duplicação.
 .idea/
 .vscode/
 *.iml
 .DS_Store
+Thumbs.db
+
+### Logs ###
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### Local Environment ###
+# Nunca comite arquivos de ambiente local, pois podem conter senhas.
+*.local
+
+### Build artifacts ###
+# Maven build outputs (module-specific .gitignore existirá, mas listar aqui evita que artefatos subam acidentalmente)
+/backend/target/
+**/target/
+
+# JARs
+*.jar
+
+# Compiled classes
+*.class
+
+# Other generated files that shouldn't be committed
+*.log
+npm-debug.log*
+yarn-debug.log*

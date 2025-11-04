@@ -1,10 +1,11 @@
-HELP.md
+### Maven ###
+# É uma boa prática NÃO ignorar o maven-wrapper.jar para garantir builds consistentes.
+# Ignorar apenas o diretório de build principal.
 target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
 
-### STS ###
+### IDEs ###
+# Arquivos específicos de IDEs que não são cobertos pelo .gitignore raiz.
+# STS / Eclipse
 .apt_generated
 .classpath
 .factorypath
@@ -13,21 +14,14 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
+# IntelliJ
 *.iws
-*.iml
 *.ipr
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
 build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
