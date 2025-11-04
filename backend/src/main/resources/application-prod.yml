@@ -1,56 +1,46 @@
 # ===================================================================
-# PERFIL DE PRODUÇÃO (prod)
+# PERFIL DE PRODUÇÃO (prod) - CORRIGIDO
+# Este arquivo é lido QUANDO a API roda no container de produção.
 # ===================================================================
 spring:
   config:
     activate:
-      on-profile: prod # Ativa este perfil QUANDO a variável de ambiente for 'prod'
+      on-profile: prod
+
   docker:
     compose:
-      enabled: true
-      file:
-        - ${DOCKER_COMPOSE_PROD_FILE}
+      enabled: false
 
-  # Em produção, as credenciais DEVEM ser fornecidas por variáveis de ambiente.
   datasource:
-    url: jdbc:postgresql://${SPRING_DATASOURCE_HOST:db}:5432/${SPRING_DATASOURCE_DB:dcriar-db-prod}
-    username: postgres
-    password: ${SPRING_DATASOURCE_PASSWORD} # Lida do docker-compose
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: validate # Deixa o Flyway cuidar do schema
+      ddl-auto: validate
     show-sql: false
 
   flyway:
     enabled: true
     locations: classpath:db/migration
-    clean-disabled: true # Segurança em produção
+    clean-disabled: true
 
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
 
-# Configs do MinIO (lidas do docker-compose.prod.yml)
 minio:
   url: ${MINIO_URL}
   access-key: ${MINIO_ACCESS_KEY}
   secret-key: ${MINIO_SECRET_KEY}
-  bucket-name: ${MINIO_BUCKET_NAME} # SEM VALOR PADRÃO
+  bucket-name: ${MINIO_BUCKET_NAME}
 
-# Config do CORS (lida do docker-compose.prod.yml)
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGIN}
 
-# Outras configurações gerais de produção
 springdoc:
   api-docs: { enabled: true }
   swagger-ui: { enabled: true, url: /v3/api-docs }
-
-security:
-  jwt:
-    issuer: dcriar-api
-    expiration-hours: 24
-    secret-key: ${JWT_SECRET_KEY} # SEM VALOR PADRÃO

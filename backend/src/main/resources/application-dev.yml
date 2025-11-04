@@ -1,18 +1,16 @@
 spring:
-  devtools:
-    livereload:
-      enabled: true
   docker:
     compose:
       enabled: true
-      file:
-        - ${DOCKER_COMPOSE_DEV_FILE}
+  devtools:
+    livereload:
+      enabled: true
   # --- DATABASE (POSTGRES) ---
   datasource:
-    # As propriedades vêm do arquivo .env.dev que está ao lado do docker-compose.dev.yml
-    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
+    # As propriedades vêm do docker-compose.override.yml
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   # --- JPA / HIBERNATE ---
@@ -34,9 +32,9 @@ spring:
 
 # --- MINIO CONFIGURATION ---
 minio:
-  url: http://localhost:9000
-  access-key: ${MINIO_ROOT_USER}
-  secret-key: ${MINIO_ROOT_PASSWORD}
+  url: ${MINIO_URL}
+  access-key: ${MINIO_ACCESS_KEY}
+  secret-key: ${MINIO_SECRET_KEY}
   bucket-name: ${MINIO_BUCKET_NAME}
 
 # Nível de log para desenvolvimento (ajustado para reduzir SQL no console)
@@ -66,3 +64,4 @@ management:
   endpoint:
     health:
       show-details: always
+
