@@ -1,8 +1,9 @@
-# Ignorar backups locais de arquivos .env que contenham segredos
+# Ignorar todos os arquivos com extensão .local (ex.: .env.dev.local)
+*.local
+
+# Ignorar backups comuns (boa prática)
+*.backup
 *.local.backup
-.env.local
-/.env.prod.local.backup
-/.env.dev.local.backup
 
 # Node modules
 frontend/node_modules/
@@ -10,3 +11,9 @@ frontend/node_modules/
 # Saídas de build
 backend/target/
 frontend/dist/
+
+# Ignorar arquivos de IDE e OS
+.idea/
+.vscode/
+*.iml
+.DS_Store

@@ -5,11 +5,11 @@ services:
       dockerfile: Dockerfile
     container_name: backend-dev
     ports:
-      - "8080:8080"
+      - "${APP_PORT_DEV}:8080"
     depends_on:
       - postgres-dev
-      - minio-dev
-    env_file: ${DEV_ENV_FILE:-./.env.dev}
+      - minio-setup-dev
+    env_file: ${DEV_ENV_FILE}
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-dev:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}

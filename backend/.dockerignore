@@ -1,0 +1,20 @@
+# backend/.dockerignore
+
+# Ignorar saídas de build
+target/
+
+# Ignorar arquivos do Maven wrapper
+.mvn/
+mvnw
+mvnw.cmd
+
+# Ignorar arquivos de IDE e logs
+.idea/
+.vscode/
+*.iml
+*.log
+
+# Ignorar arquivos Git
+.git/
+.gitignore
+

@@ -1,24 +1,18 @@
 #!/usr/bin/env bash
 # scripts/up-dev.sh
-# Inicia o ambiente de desenvolvimento Docker Compose usando o arquivo de secrets apropriado.
-# Uso: ./scripts/up-dev.sh [serviços-ou-opções]
+# Inicia o ambiente de desenvolvimento usando o arquivo de segredos ./.env.dev.local
 
 set -euo pipefail
 
-# Prioridade: variável DEV_ENV_FILE -> /home/viniciusdev/dcriar/.secrets/.env.dev -> ./.env.dev
-ENV_CANDIDATE=${DEV_ENV_FILE:-}
-if [ -z "${ENV_CANDIDATE}" ]; then
-  if [ -f "/home/viniciusdev/dcriar/.secrets/.env.dev" ]; then
-    ENV_CANDIDATE="/home/viniciusdev/dcriar/.secrets/.env.dev"
-  else
-    ENV_CANDIDATE="./.env.dev"
-  fi
-fi
+# Define o nome do arquivo de segredos local
+ENV_FILE="./.env.dev.local"
 
-if [ ! -f "$ENV_CANDIDATE" ]; then
-  echo "Aviso: arquivo de variáveis não encontrado: $ENV_CANDIDATE" >&2
-  echo "Crie um arquivo .env dev ou exporte DEV_ENV_FILE apontando para o arquivo correto." >&2
-  exit 2
+# Verifica se o arquivo de segredos existe
+if [ ! -f "$ENV_FILE" ]; then
+  echo "ERRO: Arquivo de segredos '$ENV_FILE' não encontrado." >&2
+  echo "Por favor, copie o template '.env.dev' para '$ENV_FILE' e preencha seus segredos." >&2
+  echo "Exemplo: cp .env.dev .env.dev.local" >&2
+  exit 1
 fi
 
 # Se houver um override presente, inclua-o no comando compose
@@ -27,6 +21,9 @@ if [ -f "docker-compose.override.yml" ]; then
   COMPOSE_FILES+=("-f" "docker-compose.override.yml")
 fi
 
-echo "Usando arquivo de env: $ENV_CANDIDATE"
+echo "Usando arquivo de segredos: $ENV_FILE"
 
-docker compose --env-file "$ENV_CANDIDATE" "${COMPOSE_FILES[@]}" up --build "$@"
+# Define a variável DEV_ENV_FILE que os arquivos YML esperam
+export DEV_ENV_FILE="$ENV_FILE"
+
+docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" up --build "$@"

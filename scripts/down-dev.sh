@@ -1,24 +1,31 @@
 #!/usr/bin/env bash
 # scripts/down-dev.sh
-# Destroi o ambiente de desenvolvimento Docker Compose e remove containers órfãos.
+# Destroi o ambiente de desenvolvimento Docker Compose.
 
 set -euo pipefail
 
-# Usa o mesmo método de escolha de arquivo de env apenas por consistência (não estritamente necessário para down)
-ENV_CANDIDATE=${DEV_ENV_FILE:-}
-if [ -z "${ENV_CANDIDATE}" ]; then
-  if [ -f "/home/viniciusdev/dcriar/.secrets/.env.dev" ]; then
-    ENV_CANDIDATE="/home/viniciusdev/dcriar/.secrets/.env.dev"
-  else
-    ENV_CANDIDATE="./.env.dev"
+# Define o nome do arquivo de segredos local
+ENV_FILE="./.env.dev.local"
+
+# Prepara os argumentos do --env-file
+ENV_FILE_ARG=()
+if [ -f "$ENV_FILE" ]; then
+  echo "Usando arquivo de segredos: $ENV_FILE"
+  ENV_FILE_ARG=("--env-file" "$ENV_FILE")
+  export DEV_ENV_FILE="$ENV_FILE"
+else
+  echo "Aviso: Arquivo '$ENV_FILE' não encontrado. Tentando derrubar sem ele..." >&2
+  # Se não encontrar, tenta usar o .env.dev como fallback
+  if [ -f "./.env.dev" ]; then
+    echo "Usando template .env.dev como fallback..."
+    ENV_FILE_ARG=("--env-file" "./.env.dev")
+    export DEV_ENV_FILE="./.env.dev"
   fi
 fi
-
-echo "Usando arquivo de env (opcional): $ENV_CANDIDATE"
 
 COMPOSE_FILES=("-f" "docker-compose.dev.yml")
 if [ -f "docker-compose.override.yml" ]; then
   COMPOSE_FILES+=("-f" "docker-compose.override.yml")
 fi
 
-docker compose --env-file "$ENV_CANDIDATE" "${COMPOSE_FILES[@]}" down --remove-orphans
+docker compose "${ENV_FILE_ARG[@]}" "${COMPOSE_FILES[@]}" down --remove-orphans

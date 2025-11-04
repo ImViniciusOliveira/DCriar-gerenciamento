@@ -10,9 +10,9 @@ services:
   postgres-dev:
     image: postgres:14-alpine
     container_name: postgres-dev
-    env_file: ${DEV_ENV_FILE:-./.env.dev}
+    env_file: ${DEV_ENV_FILE}
     ports:
-      - "5432:5432" # Expõe a porta do Postgres para a sua máquina local
+      - "${POSTGRES_PORT_DEV}:5432" # Expõe a porta do Postgres para a sua máquina local
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -25,10 +25,10 @@ services:
   minio-dev:
     image: minio/minio:latest
     container_name: minio-dev
-    env_file: ${DEV_ENV_FILE:-./.env.dev}
+    env_file: ${DEV_ENV_FILE}
     ports:
-      - "9000:9000" # API do MinIO
-      - "9001:9001" # Console Web do MinIO
+      - "${MINIO_PORT_DEV}:9000" # API do MinIO
+      - "${MINIO_CONSOLE_PORT_DEV}:9001" # Console Web do MinIO
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -38,26 +38,31 @@ services:
     networks:
       - dcriar-net
 
-  # Init service que cria bucket e política usando 'mc' - roda uma única vez após minio-dev subir.
-  # Substitui o uso do script externo ./scripts/wait-for-minio.sh para evitar dependência de arquivo.
-  minio-init:
-    build:
-      context: ./docker/minio-init
-      dockerfile: Dockerfile
-    container_name: minio-init
+  # Serviço de inicialização renomeado para consistência com 'minio-setup' de prod
+  minio-setup-dev:
+    image: minio/mc
+    container_name: minio-setup-dev
     depends_on:
       - minio-dev
     restart: "no"
-    env_file: ${DEV_ENV_FILE:-./.env.dev}
+    env_file: ${DEV_ENV_FILE}
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
-      MINIO_HOST: ${MINIO_HOST:-minio-dev}
-      MINIO_PORT: ${MINIO_PORT:-9000}
-      WAIT_TIMEOUT: ${WAIT_TIMEOUT:-60}
+      MINIO_HOST: ${MINIO_HOST}
+      MINIO_PORT: ${MINIO_PORT}
+      WAIT_TIMEOUT: ${WAIT_TIMEOUT}
     networks:
       - dcriar-net
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Esperando o MinIO-dev ficar online...';
+      until (/usr/bin/mc alias set dcriar-minio-dev http://${MINIO_HOST}:${MINIO_PORT} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}) do echo '...tentando novamente' && sleep 1; done;
+      echo 'MinIO-dev está online. Configurando bucket...';
+      /usr/bin/mc mb dcriar-minio-dev/${MINIO_BUCKET_NAME} --ignore-existing;
+      echo 'Bucket criado ou já existente.';
+      /usr/bin/mc policy set public dcriar-minio-dev/${MINIO_BUCKET_NAME};
+      echo 'Política do bucket definida como public.';
+      exit 0;
+      "
 
 volumes:
   postgres_data_dev:
