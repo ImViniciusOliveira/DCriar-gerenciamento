@@ -127,13 +127,13 @@ Observações:
 
 Para facilitar a instalação em servidor, o repositório contém auxiliares em `./scripts/deploy`:
 
-- `./scripts/deploy/install-prod-env.sh [caminho_para_.env.prod]` — copia o `.env.prod` do repositório (ou do caminho indicado) para `/etc/dcriar/.env.prod`, define owner root e `chmod 600`.
+- `./scripts/deploy/install-prod-env.sh [caminho_para_.env.prod]` — copia o `.env.prod` (arquivo preenchido com valores reais) para `/etc/dcriar/.env.prod`, define owner root e `chmod 600`.
 - `./scripts/deploy/install-prod-compose.sh [caminho_para_docker-compose.prod.yml]` — copia `docker-compose.prod.yml` para `/opt/dcriar/docker-compose.prod.yml` e ajusta permissões (owner root, perm 644).
 
 Exemplo de uso no servidor:
 
 ```bash
-# instalar .env.prod em /etc/dcriar
+# instalar .env.prod (arquivo REAL, não o esqueleto) em /etc/dcriar
 sudo ./scripts/deploy/install-prod-env.sh ./.env.prod
 # instalar docker-compose em /opt/dcriar
 sudo ./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml

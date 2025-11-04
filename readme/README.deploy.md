@@ -356,16 +356,32 @@ Os scripts sob `./scripts/deploy` e `./scripts/deploys` suportam algumas opçõe
 - `./scripts/deploy/deploy-prod-local.sh`
   - `--no-push` — não fará build/push das imagens; usará imagens locais se disponíveis e só instalará `/.env` e `docker-compose.prod.yml` e subirá o compose (útil para testes locais quando você já tem imagens locais).
   - `--env=/caminho/.env.prod` — especifica um arquivo de ambiente diferente do padrão `./.env.prod`.
-  - Exemplo: `sudo ./scripts/deploy/deploy-prod-local.sh --no-push --env=./.env.prod.local`
+  - Exemplo: `sudo ./scripts/deploy/deploy-prod-local.sh --no-push --env=./.env.prod`
 
 - `./scripts/deploy/push-images.sh`
-  - aceita um argumento posicional (arquivo `.env`) que contém `BACKEND_IMAGE` e `FRONTEND_IMAGE`. Não há flags `--` adicionais; apenas passe o caminho para o arquivo de ambiente.
-  - Exemplo: `./scripts/deploy/push-images.sh ./.env.prod.local`
+  - aceita um argumento posicional (arquivo `.env`) que contém `BACKEND_IMAGE` e `FRONTEND_IMAGE`. Não há flags `--` adicionais; apenas passe o caminho para o arquivo de ambiente. Use um arquivo local preenchido com valores reais (não o esqueleto do repositório).
+  - Exemplo: `./scripts/deploy/push-images.sh ./.env.prod`
 
 - `./scripts/deploy/install-prod-env.sh` e `./scripts/deploy/install-prod-compose.sh`
   - não possuem flags `--`; ambos aceitam um argumento posicional (caminho do arquivo de origem) e precisam de `sudo` para copiar para `/etc/dcriar` e `/opt/dcriar`.
-  - Exemplo: `sudo ./scripts/deploy/install-prod-env.sh ./.env.prod.local`
+  - Exemplo: `sudo ./scripts/deploy/install-prod-env.sh ./.env.prod`
 
 - `./scripts/deploys/deploy-prod.sh` (antigo)
   - aceita um argumento posicional: caminho para `.env.prod` (que será copiado para `/etc/dcriar/.env.prod`) e faz `docker compose up -d --build` (usa `--env-file` internamente).
   - Exemplo: `./scripts/deploys/deploy-prod.sh ./.env.prod`
+
+# Atualizado: o script legado foi movido para `./scripts/deploy/deploy-prod.sh`.
+# Use:
+#   ./scripts/deploy/deploy-prod.sh ./.env.prod
+
+
+# Nota importante
+O arquivo `./.env.prod` no repositório é comumente um esqueleto com placeholders — antes de usar os scripts acima, crie e edite um arquivo local com valores reais (senhas, nomes de imagem) e NÃO o comite. Por exemplo:
+
+```bash
+cp .env.prod .env.prod.local  # cria uma cópia local
+# editar .env.prod.local (preencher BACKEND_IMAGE, FRONTEND_IMAGE, senhas, etc.)
+# então usar .env.prod.local como argumento nos scripts, ex:
+./scripts/deploy/push-images.sh .env.prod.local
+sudo ./scripts/deploy/install-prod-env.sh .env.prod.local
+```
