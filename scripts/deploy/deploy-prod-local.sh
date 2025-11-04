@@ -22,8 +22,22 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 2
 fi
 
-# 1) build imagens localmente
-./scripts/deploy/push-images.sh "$ENV_FILE"
+# load variables for sanity checks (do not export globally)
+# shellcheck disable=SC1090
+set -a; source "$ENV_FILE"; set +a
+
+# sanity check for image names
+if [[ -z "${BACKEND_IMAGE:-}" || -z "${FRONTEND_IMAGE:-}" ]]; then
+  echo "AVISO: BACKEND_IMAGE e/ou FRONTEND_IMAGE não estão definidas em $ENV_FILE." >&2
+  echo "Verifique se você está usando o arquivo correto (o esqueleto no repositório normalmente contém placeholders)." >&2
+fi
+
+# 1) build imagens localmente (e push se PUSH=true)
+if [ "$PUSH" = true ]; then
+  ./scripts/deploy/push-images.sh "$ENV_FILE"
+else
+  echo "Skipping build+push step (--no-push).";
+fi
 
 # 2) instalar .env e compose em /etc e /opt (requer sudo)
 sudo ./scripts/deploy/install-prod-env.sh "$ENV_FILE"
@@ -33,6 +47,8 @@ sudo ./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml
 if [ "$PUSH" = true ]; then
   echo "Pulling images declared in $ENV_FILE on host..."
   sudo PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml pull
+else
+  echo "Skipping pull (no-push path); compose will use local images if available.";
 fi
 
 # 4) subir serviços
