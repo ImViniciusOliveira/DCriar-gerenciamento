@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
-# scripts/deploys/deploy-prod.sh
-# Copia um arquivo .env.prod para /etc/dcriar/.env.prod e sobe o docker compose de produção
-
 set -euo pipefail
 
-# Resolve project root (dois níveis acima deste script)
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-PROJECT_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
+# scripts/deploy/deploy-prod.sh
+# Wrapper simples para instalar .env.prod e docker-compose.prod.yml e subir a stack.
+# Uso: sudo ./scripts/deploy/deploy-prod.sh /caminho/para/.env.prod
 
 ENV_SRC="$1"
 if [ -z "${ENV_SRC:-}" ]; then
@@ -14,48 +11,26 @@ if [ -z "${ENV_SRC:-}" ]; then
   exit 2
 fi
 
-DEST_DIR="/etc/dcriar"
-DEST_FILE="$DEST_DIR/.env.prod"
-
-# Cria o diretório se não existir (requiere sudo)
-if [ ! -d "$DEST_DIR" ]; then
-  echo "Criando $DEST_DIR (precisa de sudo)..."
-  sudo mkdir -p "$DEST_DIR"
-  sudo chown "$USER":"$USER" "$DEST_DIR"
-fi
-
-# Verifica se o arquivo fonte existe
+# Verifica arquivos
 if [ ! -f "$ENV_SRC" ]; then
   echo "Arquivo de origem '$ENV_SRC' não encontrado." >&2
   exit 3
 fi
 
-# Copia o arquivo para /etc/dcriar/.env.prod (preserva permissões)
-echo "Copiando $ENV_SRC para $DEST_FILE (precisa de sudo)..."
-sudo cp "$ENV_SRC" "$DEST_FILE"
-sudo chmod 640 "$DEST_FILE"
+# 1) instalar env e compose (usa os helpers que ajustam permissões corretamente)
+# install-prod-env.sh e install-prod-compose.sh usam sudo internamente quando necessário
+./scripts/deploy/install-prod-env.sh "$ENV_SRC"
+./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml
 
-# Exporta variável para o docker compose
-export PROD_ENV_FILE="$DEST_FILE"
+# 2) definir variável e subir
+export PROD_ENV_FILE=/etc/dcriar/.env.prod
 
-# Caminho absoluto do docker-compose prod
-COMPOSE_FILE="$PROJECT_ROOT/docker-compose.prod.yml"
-if [ ! -f "$COMPOSE_FILE" ]; then
-  echo "Arquivo $COMPOSE_FILE não encontrado. Execute este script a partir do repositório correto." >&2
-  exit 4
-fi
+echo "Fazendo pull das imagens (se disponíveis)..."
+PROD_ENV_FILE=$PROD_ENV_FILE docker compose -f /opt/dcriar/docker-compose.prod.yml pull --ignore-pull-failures || true
 
-# (Opcional) Puxar imagens
-if [ "${NO_PULL:-0}" -eq 0 ]; then
-  echo "Pull das imagens (se disponíveis)..."
-  docker compose -f "$COMPOSE_FILE" --env-file "$DEST_FILE" pull --ignore-pull-failures || true
-fi
+echo "Subindo stack de produção (detached, com --pull)..."
+PROD_ENV_FILE=$PROD_ENV_FILE docker compose -f /opt/dcriar/docker-compose.prod.yml up -d --pull always
 
-# Up
-echo "Subindo stack de produção (detached)..."
-docker compose -f "$COMPOSE_FILE" --env-file "$DEST_FILE" up -d --build
-
-# Mostrar status
-docker compose -f "$COMPOSE_FILE" --env-file "$DEST_FILE" ps
-
-echo "Deploy finalizado. Verifique logs com: docker compose -f $COMPOSE_FILE --env-file $DEST_FILE logs -f <service>"
+echo "Deploy concluído. Verifique status com:"
+echo "  PROD_ENV_FILE=$PROD_ENV_FILE docker compose -f /opt/dcriar/docker-compose.prod.yml ps"
+echo "Logs: PROD_ENV_FILE=$PROD_ENV_FILE docker compose -f /opt/dcriar/docker-compose.prod.yml logs -f backend"
