@@ -1,36 +1,76 @@
 #!/usr/bin/env bash
 # scripts/develop/down-dev.sh
-# Destroi o ambiente de desenvolvimento Docker Compose.
 
 set -euo pipefail
 
-# Resolve project root (dois níveis acima -> repo root)
+# Este script derruba a stack de desenvolvimento e faz uma limpeza local:
+# - Para e remove containers Docker que exponham as portas conhecidas de dev
+# - Mata PIDs locais que estejam escutando nessas portas (quando seguro)
+# - Executa 'docker compose down --remove-orphans' usando o utilitário central
+
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 PROJECT_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
 cd "$PROJECT_ROOT" || exit 1
 
-# Define o nome do arquivo de segredos local
-ENV_FILE="./.env.dev.local"
+# Função: mata processos ouvindo em uma porta e remove containers Docker que a exponham
+kill_port_and_containers() {
+  local port=$1
+  echo "[down-dev] Verificando porta $port..."
 
-# Prepara os argumentos do --env-file
-ENV_FILE_ARG=()
-if [ -f "$ENV_FILE" ]; then
-  echo "Usando arquivo de segredos: $ENV_FILE"
-  ENV_FILE_ARG=("--env-file" "$ENV_FILE")
-  export DEV_ENV_FILE="$ENV_FILE"
-else
-  echo "Aviso: Arquivo '$ENV_FILE' não encontrado. Tentando derrubar sem ele..." >&2
-  # Se não encontrar, tenta usar o .env.dev como fallback
-  if [ -f "./.env.dev" ]; then
-    echo "Usando template .env.dev como fallback..."
-    ENV_FILE_ARG=("--env-file" "./.env.dev")
-    export DEV_ENV_FILE="./.env.dev"
+  # 1) Detecta containers Docker que publicam essa porta e remove-os
+  if command -v docker >/dev/null 2>&1; then
+    mapfile -t containers < <(docker ps --format '{{.ID}} {{.Names}} {{.Ports}}' 2>/dev/null | grep -E ":[0-9]+:${port}|:${port}->" || true)
+    if [ ${#containers[@]} -gt 0 ]; then
+      echo "[down-dev] Encontrado container(s) Docker expondo a porta $port:"
+      for entry in "${containers[@]}"; do
+        echo "  $entry"
+        cid=$(awk '{print $1}' <<<"$entry") || cid=""
+        if [ -n "$cid" ]; then
+          echo "[down-dev] Parando container $cid..."
+          docker stop "$cid" >/dev/null 2>&1 || sudo docker stop "$cid" >/dev/null 2>&1 || true
+          echo "[down-dev] Removendo container $cid..."
+          docker rm -f "$cid" >/dev/null 2>&1 || sudo docker rm -f "$cid" >/dev/null 2>&1 || true
+        fi
+      done
+      sleep 1
+    fi
   fi
-fi
 
-COMPOSE_FILES=("-f" "docker-compose.dev.yml")
-if [ -f "docker-compose.override.yml" ]; then
-  COMPOSE_FILES+=("-f" "docker-compose.override.yml")
-fi
+  # 2) Tenta detectar e matar PIDs locais que estejam usando a porta
+  local pids=""
+  if command -v lsof >/dev/null 2>&1; then
+    pids=$(lsof -ti tcp:"$port" 2>/dev/null || true)
+  else
+    pids=$(ss -ltnp 2>/dev/null | awk -v p=":$port" '$0~p {match($0, /pid=([0-9]+)/, a); if(a[1]) print a[1]}' || true)
+  fi
 
-docker compose "${ENV_FILE_ARG[@]}" "${COMPOSE_FILES[@]}" down --remove-orphans
+  if [ -n "$pids" ]; then
+    echo "[down-dev] Matando processos na porta $port: $pids"
+    for pid in $pids; do
+      if kill "$pid" 2>/dev/null; then
+        echo "[down-dev] kill $pid ok"
+      else
+        echo "[down-dev] Tentando sudo kill $pid..."
+        sudo kill "$pid" 2>/dev/null || true
+      fi
+    done
+    sleep 1
+    for pid in $pids; do
+      if kill -0 "$pid" 2>/dev/null; then
+        echo "[down-dev] Forçando parada PID $pid"
+        kill -9 "$pid" 2>/dev/null || sudo kill -9 "$pid" 2>/dev/null || true
+      fi
+    done
+  else
+    echo "[down-dev] Porta $port está livre.";
+  fi
+}
+
+# Portas conhecidas do ambiente de desenvolvimento
+DEV_PORTS=(8080 4200 9000 9001 5432)
+for p in "${DEV_PORTS[@]}"; do
+  kill_port_and_containers "$p"
+done
+
+echo "[down-dev] Executando docker compose down (dev)..."
+exec ./scripts/lib/compose-run.sh --mode dev down --remove-orphans

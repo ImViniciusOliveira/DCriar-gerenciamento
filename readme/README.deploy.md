@@ -353,10 +353,7 @@ PROD_ENV_FILE=$PROD_ENV_FILE docker compose -f /opt/dcriar/docker-compose.prod.y
 
 Os scripts sob `./scripts/deploy` e `./scripts/deploys` suportam algumas opções com `--`; aqui estão as mais úteis:
 
-- `./scripts/deploy/deploy-prod-local.sh`
-  - `--no-push` — não fará build/push das imagens; usará imagens locais se disponíveis e só instalará `/.env` e `docker-compose.prod.yml` e subirá o compose (útil para testes locais quando você já tem imagens locais).
-  - `--env=/caminho/.env.prod` — especifica um arquivo de ambiente diferente do padrão `./.env.prod`.
-  - Exemplo: `sudo ./scripts/deploy/deploy-prod-local.sh --no-push --env=./.env.prod`
+- `./scripts/deploy/deploy-prod.sh` — wrapper que instala `.env.prod` e `docker-compose.prod.yml` em `/etc/dcriar` e `/opt/dcriar` e sobe a stack de produção. Para testes locais, use `push-images.sh` + `install-prod-*` e depois `./scripts/lib/compose-run.sh --mode prod up`.
 
 - `./scripts/deploy/push-images.sh`
   - aceita um argumento posicional (arquivo `.env`) que contém `BACKEND_IMAGE` e `FRONTEND_IMAGE`. Não há flags `--` adicionais; apenas passe o caminho para o arquivo de ambiente. Use um arquivo local preenchido com valores reais (não o esqueleto do repositório).
@@ -370,10 +367,7 @@ Os scripts sob `./scripts/deploy` e `./scripts/deploys` suportam algumas opçõe
   - aceita um argumento posicional: caminho para `.env.prod` (que será copiado para `/etc/dcriar/.env.prod`) e faz `docker compose up -d --build` (usa `--env-file` internamente).
   - Exemplo: `./scripts/deploys/deploy-prod.sh ./.env.prod`
 
-# Atualizado: o script legado foi movido para `./scripts/deploy/deploy-prod.sh`.
-# Use:
-#   ./scripts/deploy/deploy-prod.sh ./.env.prod
-
+- Observação: a versão consolidada é `./scripts/deploy/deploy-prod.sh` (use esse wrapper para instalação e subida da stack).
 
 # Nota importante
 O arquivo `./.env.prod` no repositório é comumente um esqueleto com placeholders — antes de usar os scripts acima, crie e edite um arquivo local com valores reais (senhas, nomes de imagem) e NÃO o comite. Por exemplo:

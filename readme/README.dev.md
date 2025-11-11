@@ -93,68 +93,22 @@ docker compose -f docker-compose.dev.yml -f docker-compose.override.yml down --r
 
 ## Scripts úteis (desenvolvimento)
 
-O projeto inclui alguns scripts prontos para facilitar levantar/derrubar e resetar o ambiente de desenvolvimento. Eles ficam em `./scripts/develop`.
+O projeto inclui scripts em `./scripts/develop` para facilitar subir e derrubar o ambiente de desenvolvimento.
 
 Principais scripts:
 
-- `./scripts/develop/up-dev.sh` — sobe os serviços de infraestrutura necessários (Postgres, MinIO) para desenvolvimento. Lê `DEV_ENV_FILE` (por padrão `./.env.dev.local`).
-- `./scripts/develop/down-dev.sh` — derruba os serviços de desenvolvimento levantados pelo compose.
-- `./scripts/develop/recreate-dev.sh` — reset total do ambiente de desenvolvimento: mata processos/containers que ocupam as portas conhecidas (8080, 4200, 9000, 9001, 5432), executa `down-dev.sh` e (por padrão) re-executa `up-dev.sh`.
-
-Flags e comportamento importantes do `recreate-dev.sh`:
-
-- `--no-start` — faz apenas a limpeza (mata containers/processos e roda `down-dev.sh`) e NÃO roda `up-dev.sh` no final.
-- Qualquer argumento adicional é repassado para `up-dev.sh`. Ex.: `./scripts/develop/recreate-dev.sh --no-build` irá repassar `--no-build` para o `up-dev.sh`.
+- `./scripts/develop/up-dev.sh` — sobe os serviços de infraestrutura (Postgres, MinIO) para desenvolvimento. Usa `./.env.dev.local` por padrão.
+- `./scripts/develop/down-dev.sh` — derruba a stack de desenvolvimento e realiza limpeza local: para/remover containers que exponham as portas conhecidas e mata processos locais que estejam usando essas portas.
 
 Exemplos rápidos:
 
 ```bash
-# resetar e subir (padrão)
-./scripts/develop/recreate-dev.sh
+# subir serviços de dev
+./scripts/develop/up-dev.sh
 
-# apenas limpar (não subir)
-./scripts/develop/recreate-dev.sh --no-start
-
-# resetar e passar flag para up-dev.sh
-./scripts/develop/recreate-dev.sh --no-build
+# derrubar e limpar
+./scripts/develop/down-dev.sh
 ```
 
-Observações:
-- O `recreate-dev.sh` agora detecta containers Docker que publicam as portas de dev e os para/remove automaticamente (útil quando um container de outra stack está ocupando a porta). Ele também tenta matar PIDs locais como fallback.
-- Tenha cuidado antes de rodar em uma máquina com outros serviços importantes que possam usar as portas listadas.
-
-## Scripts de deploy helper (no repositório)
-
-Para facilitar a instalação em servidor, o repositório contém auxiliares em `./scripts/deploy`:
-
-- `./scripts/deploy/install-prod-env.sh [caminho_para_.env.prod]` — copia o `.env.prod` (arquivo preenchido com valores reais) para `/etc/dcriar/.env.prod`, define owner root e `chmod 600`.
-- `./scripts/deploy/install-prod-compose.sh [caminho_para_docker-compose.prod.yml]` — copia `docker-compose.prod.yml` para `/opt/dcriar/docker-compose.prod.yml` e ajusta permissões (owner root, perm 644).
-
-Exemplo de uso no servidor:
-
-```bash
-# instalar .env.prod (arquivo REAL, não o esqueleto) em /etc/dcriar
-sudo ./scripts/deploy/install-prod-env.sh ./.env.prod
-# instalar docker-compose em /opt/dcriar
-sudo ./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml
-# subir stack
-export PROD_ENV_FILE=/etc/dcriar/.env.prod
-PROD_ENV_FILE=$PROD_ENV_FILE docker compose -f /opt/dcriar/docker-compose.prod.yml up -d
-```
-
-## Flags / opções rápidas (scripts de desenvolvimento)
-
-Aqui estão as opções com `--` suportadas pelos scripts em `./scripts/develop` (apenas as flags relevantes):
-
-- `./scripts/develop/up-dev.sh`
-  - `--no-backend` — não inclui `docker-compose.override.yml` no `docker compose up` (útil se você quiser subir apenas infra como Postgres/MinIO sem o backend no container).
-  - Exemplo: `./scripts/develop/up-dev.sh --no-backend`
-
-- `./scripts/develop/down-dev.sh`
-  - Não tem flags com `--` específicas; usa `./.env.dev.local` por padrão.
-
-- `./scripts/develop/recreate-dev.sh`
-  - `--no-start` — faz a limpeza e `down` (mata processos/containers e roda `down-dev.sh`), mas NÃO executa `up-dev.sh` no final.
-  - Qualquer argumento desconhecido é repassado para `up-dev.sh`. Por exemplo `./scripts/develop/recreate-dev.sh --no-build` passará `--no-build` para o `up-dev.sh`.
-  - Exemplo (apenas limpar): `./scripts/develop/recreate-dev.sh --no-start`
-  - Exemplo (recriar e passar flag para up-dev): `./scripts/develop/recreate-dev.sh --no-build`
+Observação:
+- O `down-dev.sh` faz uma limpeza proativa nas portas conhecidas (8080, 4200, 9000, 9001, 5432). Tenha cuidado ao rodar em máquinas com outros serviços que usem essas portas.
