@@ -136,43 +136,59 @@ executar_compose() {
 
   if [ "$USAR_SUDO" = false ]; then
     export "$ENV_VAR_NAME"="$ARQ_ENV"
-    if [ "$ACAO" = "up" ]; then
-      echo "Executando: $env_assignment docker compose ${COMPOSE_ARGS[*]} up ${ACAO_ARGS[*]}"
-      docker compose "${COMPOSE_ARGS[@]}" up "${ACAO_ARGS[@]}"
-    elif [ "$ACAO" = "down" ]; then
-      echo "Executando: $env_assignment docker compose ${COMPOSE_ARGS[*]} down ${ACAO_ARGS[*]}"
-      docker compose "${COMPOSE_ARGS[@]}" down "${ACAO_ARGS[@]}"
-    elif [ "$ACAO" = "pull" ]; then
-      echo "Executando: $env_assignment docker compose ${COMPOSE_ARGS[*]} pull ${ACAO_ARGS[*]}"
-      docker compose "${COMPOSE_ARGS[@]}" pull "${ACAO_ARGS[@]}"
-    elif [ "$ACAO" = "ps" ]; then
-      echo "Executando: $env_assignment docker compose ${COMPOSE_ARGS[*]} ps"
-      docker compose "${COMPOSE_ARGS[@]}" ps
-    elif [ "$ACAO" = "logs" ]; then
-      echo "Executando: $env_assignment docker compose ${COMPOSE_ARGS[*]} logs -f ${ACAO_ARGS[*]}"
-      docker compose "${COMPOSE_ARGS[@]}" logs -f "${ACAO_ARGS[@]}"
-    else
-      echo "Ação desconhecida: $ACAO" >&2; exit 3
-    fi
+    case "$ACAO" in
+      up)
+        echo "Executando: $env_assignment docker compose --env-file $ARQ_ENV ${COMPOSE_ARGS[*]} up ${ACAO_ARGS[*]}"
+        docker compose --env-file "$ARQ_ENV" "${COMPOSE_ARGS[@]}" up "${ACAO_ARGS[@]}"
+        ;;
+      down)
+        echo "Executando: $env_assignment docker compose --env-file $ARQ_ENV ${COMPOSE_ARGS[*]} down ${ACAO_ARGS[*]}"
+        docker compose --env-file "$ARQ_ENV" "${COMPOSE_ARGS[@]}" down "${ACAO_ARGS[@]}"
+        ;;
+      pull)
+        echo "Executando: $env_assignment docker compose --env-file $ARQ_ENV ${COMPOSE_ARGS[*]} pull ${ACAO_ARGS[*]}"
+        docker compose --env-file "$ARQ_ENV" "${COMPOSE_ARGS[@]}" pull "${ACAO_ARGS[@]}"
+        ;;
+      ps)
+        echo "Executando: $env_assignment docker compose --env-file $ARQ_ENV ${COMPOSE_ARGS[*]} ps"
+        docker compose --env-file "$ARQ_ENV" "${COMPOSE_ARGS[@]}" ps
+        ;;
+      logs)
+        echo "Executando: $env_assignment docker compose --env-file $ARQ_ENV ${COMPOSE_ARGS[*]} logs -f ${ACAO_ARGS[*]}"
+        docker compose --env-file "$ARQ_ENV" "${COMPOSE_ARGS[@]}" logs -f "${ACAO_ARGS[@]}"
+        ;;
+      *)
+        echo "Ação desconhecida: $ACAO" >&2; exit 3
+        ;;
+    esac
   else
-    if [ "$ACAO" = "up" ]; then
-      echo "Executando: sudo $env_assignment docker compose ${COMPOSE_ARGS[*]} up ${ACAO_ARGS[*]}"
-      sudo $env_assignment docker compose "${COMPOSE_ARGS[@]}" up "${ACAO_ARGS[@]}"
-    elif [ "$ACAO" = "down" ]; then
-      echo "Executando: sudo $env_assignment docker compose ${COMPOSE_ARGS[*]} down ${ACAO_ARGS[*]}"
-      sudo $env_assignment docker compose "${COMPOSE_ARGS[@]}" down "${ACAO_ARGS[@]}"
-    elif [ "$ACAO" = "pull" ]; then
-      echo "Executando: sudo $env_assignment docker compose ${COMPOSE_ARGS[*]} pull ${ACAO_ARGS[*]}"
-      sudo $env_assignment docker compose "${COMPOSE_ARGS[@]}" pull "${ACAO_ARGS[@]}"
-    elif [ "$ACAO" = "ps" ]; then
-      echo "Executando: sudo $env_assignment docker compose ${COMPOSE_ARGS[*]} ps"
-      sudo $env_assignment docker compose "${COMPOSE_ARGS[@]}" ps
-    elif [ "$ACAO" = "logs" ]; then
-      echo "Executando: sudo $env_assignment docker compose ${COMPOSE_ARGS[*]} logs -f ${ACAO_ARGS[*]}"
-      sudo $env_assignment docker compose "${COMPOSE_ARGS[@]}" logs -f "${ACAO_ARGS[@]}"
-    else
-      echo "Ação desconhecida: $ACAO" >&2; exit 3
-    fi
+    # Quando precisa usar sudo, prefixamos com 'sudo env VAR=valor' para garantir
+    # que a variável de ambiente é passada ao processo root sem depender de sh -c ou similar.
+    case "$ACAO" in
+      up)
+        echo "Executando: sudo $env_assignment docker compose --env-file $ARQ_ENV ${COMPOSE_ARGS[*]} up ${ACAO_ARGS[*]}"
+        sudo env "$ENV_VAR_NAME"="$ARQ_ENV" docker compose --env-file "$ARQ_ENV" "${COMPOSE_ARGS[@]}" up "${ACAO_ARGS[@]}"
+        ;;
+      down)
+        echo "Executando: sudo $env_assignment docker compose --env-file $ARQ_ENV ${COMPOSE_ARGS[*]} down ${ACAO_ARGS[*]}"
+        sudo env "$ENV_VAR_NAME"="$ARQ_ENV" docker compose --env-file "$ARQ_ENV" "${COMPOSE_ARGS[@]}" down "${ACAO_ARGS[@]}"
+        ;;
+      pull)
+        echo "Executando: sudo $env_assignment docker compose --env-file $ARQ_ENV ${COMPOSE_ARGS[*]} pull ${ACAO_ARGS[*]}"
+        sudo env "$ENV_VAR_NAME"="$ARQ_ENV" docker compose --env-file "$ARQ_ENV" "${COMPOSE_ARGS[@]}" pull "${ACAO_ARGS[@]}"
+        ;;
+      ps)
+        echo "Executando: sudo $env_assignment docker compose --env-file $ARQ_ENV ${COMPOSE_ARGS[*]} ps"
+        sudo env "$ENV_VAR_NAME"="$ARQ_ENV" docker compose --env-file "$ARQ_ENV" "${COMPOSE_ARGS[@]}" ps
+        ;;
+      logs)
+        echo "Executando: sudo $env_assignment docker compose --env-file $ARQ_ENV ${COMPOSE_ARGS[*]} logs -f ${ACAO_ARGS[*]}"
+        sudo env "$ENV_VAR_NAME"="$ARQ_ENV" docker compose --env-file "$ARQ_ENV" "${COMPOSE_ARGS[@]}" logs -f "${ACAO_ARGS[@]}"
+        ;;
+      *)
+        echo "Ação desconhecida: $ACAO" >&2; exit 3
+        ;;
+    esac
   fi
 }
 
