@@ -1,59 +1,64 @@
-# Dcriar
+# DCriar - Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.4.
+Este projeto front-end foi gerado com o Angular CLI (versão 20) e serve como interface web para a API do DCriar.
 
-## Development server
+## Servidor de desenvolvimento
 
-To start a local development server, run:
+Para iniciar o servidor de desenvolvimento (hot-reload), execute:
 
 ```bash
+npm install
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Abra o navegador em `http://localhost:4200/`. O app recarrega automaticamente quando você altera os arquivos fonte.
 
-## Code scaffolding
+> Observação: em produção usamos a build Angular empacotada em uma imagem Nginx. Localmente o `ng serve` é útil para desenvolvimento rápido.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Estrutura básica
 
-```bash
-ng generate component component-name
-```
+- `src/` — código-fonte Angular
+- `angular.json`, `package.json` — configurações do projeto
+- `Dockerfile` — instruções para build multi-stage (Node -> Nginx)
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Build para produção
 
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+Para gerar os arquivos estáticos prontos para produção, rode:
 
 ```bash
-ng build
+npm ci --legacy-peer-deps
+npm run build -- --configuration production
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Os arquivos de saída serão colocados em `dist/<nome-do-projeto>` e no Dockerfile eles são copiados para `/usr/share/nginx/html`.
 
-## Running unit tests
+## Rodando com Docker (imagem local)
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+O `Dockerfile` no diretório `frontend` realiza um build multi-stage (Node -> Nginx). Para gerar a imagem localmente, execute:
 
 ```bash
-ng test
+# dentro da pasta frontend
+sudo docker build -t imviniciusoliveira/dcriar-frontend:latest -f Dockerfile .
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+Para testar localmente executando o container, use:
 
 ```bash
-ng e2e
+sudo docker run --rm -p 80:80 imviniciusoliveira/dcriar-frontend:latest
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+> Se você publicar a imagem no Docker Hub, basta `docker pull` no servidor e subir via Compose.
 
-## Additional Resources
+## Testes
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Para executar testes unitários (Karma) e e2e (dependendo da configuração), use os comandos padrão do Angular CLI:
+
+```bash
+npm test
+# e2e (se configurado)
+# ng e2e
+```
+
+## Documentação adicional
+
+Consulte o README na raiz do projeto para instruções sobre como executar o backend e o stack via `scripts/lib/compose-run.sh`.

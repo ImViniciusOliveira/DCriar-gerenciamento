@@ -14,6 +14,9 @@ Opções:
   --mode <dev|prod>         Modo (dev ou prod). Default: dev
   --env-file <arquivo>      Caminho para o arquivo .env a ser usado (padrão depende do modo)
   --compose-file <arquivo>  Caminho para um docker-compose YML (pode repetir). Se não informado, usa o padrão do modo.
+  --build-images            Construir imagens locais (backend/frontend) a partir dos Dockerfiles antes do deploy
+  --push-images             Enviar (push) as imagens construídas para o registry
+  --image-tag <tag>         Tag a usar ao taggear as imagens (default: latest)
   --no-sudo                 Não usar sudo mesmo que o env esteja em /etc ou /opt
   -h, --help                Mostrar esta ajuda
 
@@ -27,6 +30,7 @@ Ações:
 Exemplos:
   $0 --mode dev up --build
   $0 --mode prod --env-file /etc/dcriar/.env.prod --compose-file /opt/dcriar/docker-compose.prod.yml up -d
+  $0 --mode prod --build-images --push-images --image-tag v1.2.3 up -d
 EOF
 }
 
@@ -35,6 +39,9 @@ MODO="dev"
 ARQ_ENV=""
 COMPOSE_FILES=()
 USAR_SUDO_SE_ETC=true
+BUILD_IMAGES=false
+PUSH_IMAGES=false
+IMAGE_TAG="latest"
 
 # Parse de argumentos
 POSITIONAL=()
@@ -54,6 +61,14 @@ while [[ $# -gt 0 ]]; do
       COMPOSE_FILES+=("${1#*=}"); shift 1;;
     --no-sudo)
       USAR_SUDO_SE_ETC=false; shift;;
+    --build-images)
+      BUILD_IMAGES=true; shift;;
+    --push-images)
+      PUSH_IMAGES=true; shift;;
+    --image-tag)
+      IMAGE_TAG="$2"; shift 2;;
+    --image-tag=*)
+      IMAGE_TAG="${1#*=}"; shift 1;;
     -h|--help)
       imprimir_uso; exit 0;;
     up|down|pull|ps|logs)
@@ -128,6 +143,97 @@ if $USAR_SUDO_SE_ETC; then
       fi
       ;;
   esac
+fi
+
+# Helper para executar comandos docker com/sans sudo
+run_docker_cmd() {
+  if [ "$USAR_SUDO" = true ]; then
+    sudo env "$ENV_VAR_NAME"="$ARQ_ENV" "$@"
+  else
+    "$@"
+  fi
+}
+
+# Função que constroi imagens locais (se existir Dockerfile nos diretórios)
+build_images() {
+  echo "== Iniciando build das imagens locais (tag: $IMAGE_TAG) =="
+
+  # Ler nomes de imagem do arquivo de env, se possível
+  if [ -f "$ARQ_ENV" ]; then
+    # Use grep para suportar valores com e sem aspas
+    BACKEND_IMAGE=$(grep -E '^BACKEND_IMAGE=' "$ARQ_ENV" | head -n1 | cut -d'=' -f2- | tr -d '"' || true)
+    FRONTEND_IMAGE=$(grep -E '^FRONTEND_IMAGE=' "$ARQ_ENV" | head -n1 | cut -d'=' -f2- | tr -d '"' || true)
+  else
+    BACKEND_IMAGE=""
+    FRONTEND_IMAGE=""
+  fi
+
+  # Defaults caso não estejam definidos
+  : ${BACKEND_IMAGE:="dcriar-api:local"}
+  : ${FRONTEND_IMAGE:="dcriar-frontend:local"}
+
+  # Aplica tag se não houver
+  if [[ "$BACKEND_IMAGE" != *":"* ]]; then BACKEND_IMAGE="${BACKEND_IMAGE%/}:$IMAGE_TAG"; fi
+  if [[ "$FRONTEND_IMAGE" != *":"* ]]; then FRONTEND_IMAGE="${FRONTEND_IMAGE%/}:$IMAGE_TAG"; fi
+
+  echo "Imagens alvo: backend=$BACKEND_IMAGE frontend=$FRONTEND_IMAGE"
+
+  # Build backend
+  if [ -f "backend/Dockerfile" ]; then
+    echo "Construindo backend..."
+    run_docker_cmd docker build -t "$BACKEND_IMAGE" -f backend/Dockerfile backend
+  else
+    echo "Aviso: backend/Dockerfile não encontrado, pulando build do backend." >&2
+  fi
+
+  # Build frontend
+  if [ -f "frontend/Dockerfile" ]; then
+    echo "Construindo frontend..."
+    run_docker_cmd docker build -t "$FRONTEND_IMAGE" -f frontend/Dockerfile frontend
+  else
+    echo "Aviso: frontend/Dockerfile não encontrado, pulando build do frontend." >&2
+  fi
+
+  # Exportar nomes para possível push posterior
+  export BUILT_BACKEND_IMAGE="$BACKEND_IMAGE"
+  export BUILT_FRONTEND_IMAGE="$FRONTEND_IMAGE"
+  echo "== Build concluído =="
+}
+
+# Função que dá push nas imagens construídas
+push_images() {
+  echo "== Iniciando push das imagens =="
+  if [ -z "${BUILT_BACKEND_IMAGE-}" ] && [ -f "$ARQ_ENV" ]; then
+    BUILT_BACKEND_IMAGE=$(grep -E '^BACKEND_IMAGE=' "$ARQ_ENV" | head -n1 | cut -d'=' -f2- | tr -d '"' || true)
+  fi
+  if [ -z "${BUILT_FRONTEND_IMAGE-}" ] && [ -f "$ARQ_ENV" ]; then
+    BUILT_FRONTEND_IMAGE=$(grep -E '^FRONTEND_IMAGE=' "$ARQ_ENV" | head -n1 | cut -d'=' -f2- | tr -d '"' || true)
+  fi
+
+  if [ -n "${BUILT_BACKEND_IMAGE-}" ]; then
+    echo "Pushing $BUILT_BACKEND_IMAGE"
+    run_docker_cmd docker push "$BUILT_BACKEND_IMAGE" || echo "Aviso: falha ao push $BUILT_BACKEND_IMAGE" >&2
+  else
+    echo "Aviso: nome da imagem backend não disponível; pulando push." >&2
+  fi
+
+  if [ -n "${BUILT_FRONTEND_IMAGE-}" ]; then
+    echo "Pushing $BUILT_FRONTEND_IMAGE"
+    run_docker_cmd docker push "$BUILT_FRONTEND_IMAGE" || echo "Aviso: falha ao push $BUILT_FRONTEND_IMAGE" >&2
+  else
+    echo "Aviso: nome da imagem frontend não disponível; pulando push." >&2
+  fi
+
+  echo "== Push concluído =="
+}
+
+# Se solicitado, executar build/push antes da ação do compose
+if [ "$BUILD_IMAGES" = true ]; then
+  build_images
+fi
+
+if [ "$PUSH_IMAGES" = true ]; then
+  push_images
 fi
 
 # Executa o docker compose com a variável de ambiente adequada
