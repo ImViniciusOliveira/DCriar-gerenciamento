@@ -1,381 +1,173 @@
-# Guia de Deploy (Do Dev para a Produção)
+# Guia de Deploy (Produção)
 
-Este guia cobre o fluxo completo de deploy, dividido em duas partes:
+Este guia descreve três fluxos complementares e responsabilidades separadas:
 
-Parte 1: O Workflow do Desenvolvedor (O que você faz no seu PC para construir e enviar as imagens para o Docker Hub).  
-Parte 2: O Workflow do Administrador (O que é feito no servidor Linux para baixar e rodar o sistema).
+- Fluxo 1 (DEV): Build & Push — como o Desenvolvedor (Debian 12) constrói as imagens e envia para o Docker Hub.
+- Fluxo 2 (DEV): Teste Local — como o Desenvolvedor simula produção na própria máquina usando os caminhos reais (/etc e /opt).
+- Fluxo 3 (ADMIN): Deploy Manual — como o Admin do servidor (Windows/WSL) faz o deploy no servidor real, sem usar scripts do projeto.
 
-Parte 1: O Workflow do Desenvolvedor (Build e Push)
+Observação de segurança: Segredos de produção (.env.prod) devem ficar em /etc/dcriar/.env.prod (perm 600, owner root). O arquivo docker-compose.prod.yml fica em /opt/dcriar/docker-compose.prod.yml (perm 644, owner root).
 
-O que: Esta parte é feita na sua máquina de desenvolvimento local. O objetivo é transformar seu código-fonte em imagens Docker prontas para produção e enviá-las para o Docker Hub.
+---
 
-Pré-requisitos:
-- Docker Desktop instalado e rodando.
-- Código-fonte do projeto.
-- Uma conta no Docker Hub (ou outro registry de containers).
+## Fluxo 1 (DEV): Build & Push
 
-Passo 1.1: Login no Docker Hub
+Pré-requisitos (PC do Dev): Docker instalado e login no Docker Hub.
 
-Antes de enviar qualquer imagem, você precisa se autenticar.  
-Abra seu terminal.  
-Execute o comando de login. Ele pedirá seu nome de usuário e senha:
+1) Login no Docker Hub
 
 ```bash
-docker login
+docker login -u imviniciusoliveira
 ```
 
-Passo 1.2: Build e Tag das Imagens
-
-Agora, vamos construir as imagens a partir do seu código, usando os Dockerfiles. O comando docker build usa o Dockerfile da pasta e o -t aplica uma "tag" (etiqueta), que é o nome da imagem no Docker Hub.
-
-Importante: Substitua your-registry pelo seu nome de usuário real do Docker Hub (ex: imviniciusoliveira).
-
-Construir o Backend:
-
-Navegue até a pasta do seu backend:
+1) Build & Push via script
 
 ```bash
-cd /caminho/para/o/projeto/backend
+chmod +x ./scripts/deploy/push-images.sh
+./scripts/deploy/push-images.sh
 ```
 
-Construa e "etiquete" a imagem (o . significa "use esta pasta"):
+- O script perguntará a tag (ex.: 1.0.1) e fará build/push das imagens backend e frontend do projeto.
 
-```bash
-docker build -t your-registry/dcriar-api:1.0.0 .
-```
+---
 
-Construir o Frontend:
+## Fluxo 2 (DEV): Teste Local de Produção
 
-Navegue até a pasta do seu frontend:
+Objetivo: simular a produção no PC do Dev (Debian 12) utilizando os mesmos caminhos de produção.
 
-```bash
-cd /caminho/para/o/projeto/frontend
-```
-
-Construa e "etiquete" a imagem:
-
-```bash
-docker build -t your-registry/dcriar-frontend:1.0.0 .
-```
-
-Passo 1.3: Push (Upload) das Imagens
-
-Com as imagens construídas e "etiquetadas" (taggeadas) localmente, o último passo é enviá-las para o Docker Hub.
-
-```bash
-docker push your-registry/dcriar-api:1.0.0
-docker push your-registry/dcriar-frontend:1.0.0
-```
-
-Pronto! A "Parte 1" terminou. Agora suas imagens estão prontas na nuvem, e o administrador do sistema pode executar a "Parte 2".
-
-Parte 2: O Workflow do Administrador (Deploy no Servidor Linux)
-
-O que: Este é o manual de operações simplificado para um administrador de sistema Linux. O deploy consiste em 2 arquivos e 3 comandos principais.
-
-Pré-requisitos:
-- Servidor Linux (ex: Ubuntu, Debian, CentOS) com Docker e Docker-Compose instalados.
-- Acesso à internet para puxar as imagens do Docker Hub.
-- Acesso de administrador (root/sudo) no servidor.
-
-Os 2 Arquivos Essenciais
-
-O sistema inteiro é definido por apenas dois arquivos no servidor, em locais padronizados do Linux:
-
-- `/etc/dcriar/.env.prod`: O arquivo de segredos (Senhas, chaves de API, etc.).
-- `/opt/dcriar/docker-compose.prod.yml`: O arquivo de orquestração (quais containers rodar).
-
-Passo 2.1: Criar o Arquivo de Segredos (no Servidor)
-
-Este passo é feito uma única vez. Os segredos devem ficar fora da pasta da aplicação por segurança.
-
-Crie o diretório seguro:
+A) Configuração inicial (uma vez)
 
 ```bash
 sudo mkdir -p /etc/dcriar
+sudo mkdir -p /opt/dcriar
+
+# 1) Criar/instalar .env.prod em /etc (use seu arquivo local real)
+sudo ./scripts/deploy/install-prod-env.sh ./.env.prod
+
+# 2) Copiar docker-compose.prod.yml para /opt
+sudo ./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml
 ```
 
-Crie e abra o arquivo de segredos com um editor (ex: nano):
+Edite o /etc/dcriar/.env.prod e garanta que há uma versão/tag definida se você usar imagens versionadas.
+
+B) Subir e derrubar a stack (sempre que testar)
+
+```bash
+# subir
+sudo ./scripts/deploy/deploy-prod.sh
+
+# logs (opcional)
+sudo ./scripts/lib/compose-run.sh --project-name dcriar-prod \
+  --env-file /etc/dcriar/.env.prod \
+  --compose-file /opt/dcriar/docker-compose.prod.yml \
+  logs -f backend
+
+# derrubar
+sudo ./scripts/deploy/down-prod.sh
+```
+---
+
+## Fluxo 3 (ADMIN): Deploy Manual no Servidor Real (Windows/WSL)
+
+O Admin não usa scripts do repositório; apenas cria os arquivos e executa docker compose manualmente.
+
+A) Configuração inicial (uma vez)
+
+1) Diretórios
+
+```bash
+sudo mkdir -p /opt/dcriar
+sudo mkdir -p /etc/dcriar
+```
+
+2) Arquivo de segredos
 
 ```bash
 sudo nano /etc/dcriar/.env.prod
 ```
 
-Cole o template de produção (o esqueleto do seu arquivo .env.prod do projeto) e preencha com as senhas reais:
+Conteúdo de exemplo (preencha valores reais):
 
 ```dotenv
 # /etc/dcriar/.env.prod
-# =================================================
-# ARQUIVO DE PRODUÇÃO (esqueleto) - NÃO comite segredos reais
-# Copie este arquivo para /etc/dcriar/.env.prod e preencha com valores reais
-# =================================================
-
-# Portas expostas no HOST de Produção (padrões)
 APP_PORT=8080
 FRONTEND_PORT=80
 
-# Imagens de Produção (substitua pelo seu registry/imagem)
-BACKEND_IMAGE=your-registry/dcriar-api:1.0.0
-FRONTEND_IMAGE=your-registry/dcriar-frontend:1.0.0
+# Imagens (ajuste para a tag desejada)
+BACKEND_IMAGE=imviniciusoliveira/dcriar-backend:1.0.0
+FRONTEND_IMAGE=imviniciusoliveira/dcriar-frontend:1.0.0
 
-# Variáveis para o serviço do PostgreSQL (preencha com valores reais)
-POSTGRES_DB=your_postgres_db
-POSTGRES_USER=your_postgres_user
-POSTGRES_PASSWORD=your_postgres_password
+# PostgreSQL
+POSTGRES_DB=dcriar
+POSTGRES_USER=dcriar_user
+POSTGRES_PASSWORD=SENHA_REAL_DO_BANCO_DE_PRODUCAO
 
-# Variáveis para o serviço do MinIO (preencha com valores reais)
-MINIO_ROOT_USER=your_minio_user
-MINIO_ROOT_PASSWORD=your_minio_password
-MINIO_BUCKET_NAME=your_minio_bucket
-
-# Observação: este arquivo é somente um esqueleto. Proteja o arquivo real em produção (ex: /etc/dcriar/.env.prod com chmod 600).
+# MinIO
+MINIO_ROOT_USER=minio_admin
+MINIO_ROOT_PASSWORD=SENHA_REAL_DO_MINIO_DE_PRODUCAO
+MINIO_BUCKET_NAME=dcriar-bucket
 ```
 
-Defina as permissões corretas (só o root pode ler):
+Proteja o arquivo:
 
 ```bash
 sudo chmod 600 /etc/dcriar/.env.prod
 sudo chown root:root /etc/dcriar/.env.prod
 ```
 
-Passo 2.2: Criar o Arquivo docker-compose.prod.yml (no Servidor)
-
-Crie a pasta de operação:
+3) Arquivo docker-compose
 
 ```bash
-sudo mkdir -p /opt/dcriar
-cd /opt/dcriar
+sudo nano /opt/dcriar/docker-compose.prod.yml
 ```
 
-Crie o arquivo docker-compose.prod.yml:
+Cole o conteúdo do docker-compose.prod.yml do projeto.
+
+B) Deploy / Atualização
+
+1) Puxar imagens (opcional, recomendado)
 
 ```bash
-sudo nano docker-compose.prod.yml
-```
-
-Cole o seguinte conteúdo dentro deste arquivo:
-
-```yaml
-services:
-  postgres-prod:
-    image: postgres:14-alpine
-    container_name: postgres-prod
-    env_file: ${PROD_ENV_FILE}
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
-    networks:
-      - dcriar-net
-    restart: always
-
-  minio-prod:
-    image: minio/minio:latest
-    container_name: minio-prod
-    env_file: ${PROD_ENV_FILE}
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data_prod:/data
-    networks:
-      - dcriar-net
-    restart: always
-
-  minio-setup:
-    image: minio/mc
-    container_name: minio-setup
-    depends_on:
-      - minio-prod
-    env_file: ${PROD_ENV_FILE}
-    networks:
-      - dcriar-net
-    entrypoint: >
-      /bin/sh -c "
-      echo 'Esperando o MinIO ficar online...';
-      until (/usr/bin/mc alias set dcriar-minio http://minio-prod:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}) do echo '...tentando novamente' && sleep 1; done;
-      echo 'MinIO está online. Configurando bucket...';
-      /usr/bin/mc mb dcriar-minio/${MINIO_BUCKET_NAME} --ignore-existing;
-      echo 'Bucket criado ou já existente.';
-      /usr/bin/mc policy set public dcriar-minio/${MINIO_BUCKET_NAME};
-      echo 'Política do bucket definida como public (leitura pública).';
-      exit 0;
-      "
-
-  backend:
-    image: ${BACKEND_IMAGE}
-    container_name: backend-api
-    depends_on:
-      - postgres-prod
-      - minio-setup
-    env_file: ${PROD_ENV_FILE}
-    ports:
-      - "${APP_PORT}:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-prod:5432/${POSTGRES_DB}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      MINIO_URL: http://minio-prod:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
-      SPRING_PROFILES_ACTIVE: prod
-    networks:
-      - dcriar-net
-    restart: always
-
-  frontend:
-    image: ${FRONTEND_IMAGE}
-    container_name: frontend-app
-    ports:
-      - "${FRONTEND_PORT}:80"
-    networks:
-      - dcriar-net
-    restart: always
-
-networks:
-  dcriar-net:
-    driver: bridge
-
-volumes:
-  postgres_data_prod:
-  minio_data_prod:
-```
-
-Passo 2.3: Puxar as Imagens do Docker Hub (recomendado)
-
-Agora, vamos baixar as imagens mais recentes do Docker Hub para o servidor. Isso garante que você tenha a versão mais atualizada antes de subir os containers.
-
-Na pasta onde está o arquivo docker-compose.prod.yml (`/opt/dcriar`):
-
-```bash
-# opcional: carregar as variáveis e puxar manualmente
-set -a; source /etc/dcriar/.env.prod; set +a
-docker pull "${BACKEND_IMAGE}"
-docker pull "${FRONTEND_IMAGE}"
-
-# ou usar o compose para puxar as imagens (lê PROD_ENV_FILE)
 PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml pull
 ```
 
-Passo 2.4: Validar a Configuração do Compose
-
-Antes de subir os containers, é bom validar se a configuração do Docker Compose está correta. Isso ajuda a evitar erros comuns de sintaxe ou configuração.
-
-```bash
-PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml config
-```
-
-Se houver erro, conserte `/etc/dcriar/.env.prod` ou o `docker-compose.prod.yml` antes de seguir.
-
-Passo 2.5: Subir o Sistema (modo detached)
-
-Com tudo configurado e validado, é hora de subir os containers da aplicação. O parâmetro -d faz o Docker Compose rodar em segundo plano (detached mode).
+2) Subir
 
 ```bash
 PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml up -d
 ```
 
-Passo 2.6: Verificações Pós-Deploy
-
-Após o deploy, é importante verificar se tudo está funcionando como esperado.
+3) Logs e status
 
 ```bash
-# listar containers do projeto
-docker ps --filter "name=dcriar" --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
-
-# logs em tempo real do backend
-PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml logs -f backend
-
-# status do compose
 PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml ps
+PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml logs -f
 ```
 
-Testes rápidos:
-- Abra no navegador: `http://<IP_DO_SERVIDOR>:${FRONTEND_PORT}`
-- Cheque health endpoint (se disponível):
-
-```bash
-curl -f http://localhost:${FRONTEND_PORT}/health || echo 'frontend health failed'
-```
-
-Passo 2.7: Parar e Atualizar (Redeploy)
-
-Se precisar atualizar a aplicação (por exemplo, uma nova versão do código), siga estes passos:
-
-1. Pare e remova os containers atuais:
+4) Parar
 
 ```bash
 PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml down
 ```
 
-1. Atualize para uma nova tag (ex.: 1.0.1):
-- Atualize `/etc/dcriar/.env.prod` trocando a tag em `BACKEND_IMAGE` / `FRONTEND_IMAGE`.
-- No servidor:
+---
+
+## Arquitetura de Scripts
+
+- scripts/lib/compose-run.sh:
+  - Apenas repassa: --project-name, --env-file (repetível), --compose-file (repetível), --no-sudo, e os comandos docker compose.
+  - Exemplo:
 
 ```bash
-set -a; source /etc/dcriar/.env.prod; set +a
-docker pull "${BACKEND_IMAGE}"
-docker pull "${FRONTEND_IMAGE}"
-PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml up -d --no-deps --build backend frontend
+./scripts/lib/compose-run.sh \
+  --project-name dcriar-dev \
+  --env-file ./.env.dev.local \
+  --compose-file docker-compose.dev.yml \
+  --compose-file docker-compose.override.yml \
+  up -d
 ```
 
-Observações importantes
-- `docker-compose.prod.yml` depende de variáveis obrigatórias: se alguma faltar, o Compose irá falhar — corrija `/etc/dcriar/.env.prod`.
-- Não remova volumes do Postgres/MinIO sem backup (dados persistem em volumes).
-- Se uma imagem não existir no Docker Hub, verifique nome e tag.
-- Proteja `/etc/dcriar/.env.prod` com permissão `600` e propriedade `root`.
+- scripts/develop/* — Atalhos de DEV (usam env/compose locais do projeto e --no-sudo).
+- scripts/deploy/* — Atalhos de PROD (usam /etc e /opt e rodam com sudo).
 
-# Adição: scripts helper do repositório
-
-## Scripts helper (instalação rápida em servidor)
-
-Para simplificar a instalação do ambiente de produção no servidor, este repositório inclui dois scripts utilitários em `./scripts/deploy`:
-
-- `install-prod-env.sh [caminho_para_.env.prod]` — copia o arquivo de ambiente para `/etc/dcriar/.env.prod`, configura `root:root` e `chmod 600`.
-- `install-prod-compose.sh [caminho_para_docker-compose.prod.yml]` — copia `docker-compose.prod.yml` para `/opt/dcriar/docker-compose.prod.yml` e ajusta permissões (owner root, perm 644).
-
-Uso recomendado no servidor (exemplo mínimo):
-
-```bash
-# executar a partir da raiz do repositório (ou informe caminhos absolutos)
-sudo ./scripts/deploy/install-prod-env.sh ./.env.prod
-sudo ./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml
-# subir a stack
-export PROD_ENV_FILE=/etc/dcriar/.env.prod
-PROD_ENV_FILE=$PROD_ENV_FILE docker compose -f /opt/dcriar/docker-compose.prod.yml up -d
-```
-
-## Flags / opções rápidas (scripts de deploy)
-
-Os scripts sob `./scripts/deploy` e `./scripts/deploys` suportam algumas opções com `--`; aqui estão as mais úteis:
-
-- `./scripts/deploy/deploy-prod.sh` — wrapper que instala `.env.prod` e `docker-compose.prod.yml` em `/etc/dcriar` e `/opt/dcriar` e sobe a stack de produção. Para testes locais, use `push-images.sh` + `install-prod-*` e depois `./scripts/lib/compose-run.sh --mode prod up`.
-
-- `./scripts/deploy/push-images.sh`
-  - aceita um argumento posicional (arquivo `.env`) que contém `BACKEND_IMAGE` e `FRONTEND_IMAGE`. Não há flags `--` adicionais; apenas passe o caminho para o arquivo de ambiente. Use um arquivo local preenchido com valores reais (não o esqueleto do repositório).
-  - Exemplo: `./scripts/deploy/push-images.sh ./.env.prod`
-
-- `./scripts/deploy/install-prod-env.sh` e `./scripts/deploy/install-prod-compose.sh`
-  - não possuem flags `--`; ambos aceitam um argumento posicional (caminho do arquivo de origem) e precisam de `sudo` para copiar para `/etc/dcriar` e `/opt/dcriar`.
-  - Exemplo: `sudo ./scripts/deploy/install-prod-env.sh ./.env.prod`
-
-- `./scripts/deploys/deploy-prod.sh` (antigo)
-  - aceita um argumento posicional: caminho para `.env.prod` (que será copiado para `/etc/dcriar/.env.prod`) e faz `docker compose up -d --build` (usa `--env-file` internamente).
-  - Exemplo: `./scripts/deploys/deploy-prod.sh ./.env.prod`
-
-- Observação: a versão consolidada é `./scripts/deploy/deploy-prod.sh` (use esse wrapper para instalação e subida da stack).
-
-# Nota importante
-O arquivo `./.env.prod` no repositório é comumente um esqueleto com placeholders — antes de usar os scripts acima, crie e edite um arquivo local com valores reais (senhas, nomes de imagem) e NÃO o comite. Por exemplo:
-
-```bash
-cp .env.prod .env.prod.local  # cria uma cópia local
-# editar .env.prod.local (preencher BACKEND_IMAGE, FRONTEND_IMAGE, senhas, etc.)
-# então usar .env.prod.local como argumento nos scripts, ex:
-./scripts/deploy/push-images.sh .env.prod.local
-sudo ./scripts/deploy/install-prod-env.sh .env.prod.local
-```
+Dica: Nunca comite segredos.

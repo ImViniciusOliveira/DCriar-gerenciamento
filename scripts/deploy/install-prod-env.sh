@@ -2,8 +2,7 @@
 set -euo pipefail
 
 # install-prod-env.sh
-# Copia um arquivo .env.prod do repositório (ou caminho informado) para /etc/dcriar/.env.prod
-# e ajusta permissões para produção.
+# Copia um arquivo .env.prod para /etc/dcriar/.env.prod e ajusta permissões (root:root 600)
 # Uso: sudo ./scripts/deploy/install-prod-env.sh [caminho_para_.env.prod]
 
 SRC_FILE="${1:-./.env.prod}"
@@ -16,8 +15,14 @@ if [ ! -f "$SRC_FILE" ]; then
 fi
 
 sudo mkdir -p "$DEST_DIR"
+if [ -f "$DEST_FILE" ]; then
+  BKTS=$(date +%Y%m%d%H%M%S)
+  echo "AVISO: $DEST_FILE já existe. Criando backup $DEST_FILE.$BKTS.bak"
+  sudo cp -f "$DEST_FILE" "$DEST_FILE.$BKTS.bak" || true
+fi
+
 sudo cp "$SRC_FILE" "$DEST_FILE"
 sudo chown root:root "$DEST_FILE"
 sudo chmod 600 "$DEST_FILE"
 
-echo "Arquivo instalado com sucesso em $DEST_FILE e protegido com permissão 600."
+echo "Arquivo instalado com sucesso em $DEST_FILE (perm: 600, owner root)."

@@ -13,19 +13,18 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 
-    // Pode conter uma origem ou várias separadas por vírgula. Ex: "http://localhost,http://example.com"
-    @Value("${cors.allowed-origins:*}")
-    private String allowedOriginsProperty;
+    // Injeta o valor da variável de ambiente/application.properties.
+    // O nome da propriedade 'cors.allowed-origin' é o equivalente em kebab-case
+    // da variável de ambiente 'CORS_ALLOWED_ORIGIN'.
+    @Value("${cors.allowed-origin}")
+    private String[] allowedOrigins;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        String[] allowedOrigins = allowedOriginsProperty == null || allowedOriginsProperty.isBlank()
-                ? new String[]{"*"}
-                : allowedOriginsProperty.split(" *, *");
-
-        registry.addMapping("/api/v1/**")
+        // Aplica a configuração de CORS a todos os endpoints da aplicação.
+        registry.addMapping("/**")
                 .allowedOrigins(allowedOrigins)
-                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowCredentials(true);
     }
 }

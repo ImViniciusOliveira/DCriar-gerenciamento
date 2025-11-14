@@ -9,7 +9,6 @@ services:
     depends_on:
       - postgres-dev
       - minio-setup-dev
-    env_file: ${DEV_ENV_FILE}
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-dev:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
@@ -18,6 +17,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN}
       SPRING_PROFILES_ACTIVE: dev
     networks:
       - dcriar-net

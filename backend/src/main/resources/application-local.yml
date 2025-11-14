@@ -68,3 +68,6 @@ management:
     health:
       show-details: always
 
+# --- CORS CONFIGURATION ---
+cors:
+  allowed-origin: "http://localhost:4200"

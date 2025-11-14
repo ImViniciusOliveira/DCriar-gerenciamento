@@ -2,30 +2,52 @@
 set -euo pipefail
 
 # scripts/deploy/deploy-prod.sh
-# Instala o .env de produção e o docker-compose em /opt, e sobe a stack de produção.
-# Uso: sudo ./scripts/deploy/deploy-prod.sh /caminho/para/.env.prod
+# Sobe a stack de produção local (teste) usando caminhos reais: /etc e /opt.
+# Uso: sudo ./scripts/deploy/deploy-prod.sh [caminho_para_.env.prod]
 
-ENV_SRC="$1"
-if [ -z "${ENV_SRC:-}" ]; then
-  echo "Uso: $0 /caminho/para/.env.prod" >&2
-  exit 2
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+PROJECT_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
+cd "$PROJECT_ROOT" || exit 1
+
+# Se um arquivo .env foi passado, instale-o em /etc/dcriar/.env.prod
+if [ "${1-}" != "" ]; then
+  echo "Instalando .env.prod em /etc/dcriar/.env.prod..."
+  sudo ./scripts/deploy/install-prod-env.sh "$1"
 fi
 
-if [ ! -f "$ENV_SRC" ]; then
-  echo "Arquivo de origem '$ENV_SRC' não encontrado." >&2
+PROD_ENV_FILE="/etc/dcriar/.env.prod"
+PROD_COMPOSE_FILE="/opt/dcriar/docker-compose.prod.yml"
+PROJECT_NAME="dcriar-prod"
+COMPOSE_RUN_CMD="./scripts/lib/compose-run.sh"
+
+# Validações
+if [ ! -f "$PROD_ENV_FILE" ]; then
+  echo "Erro: $PROD_ENV_FILE não encontrado. Rode install-prod-env.sh primeiro ou passe um caminho como argumento." >&2
+  exit 2
+fi
+if [ ! -f "$PROD_COMPOSE_FILE" ]; then
+  echo "Erro: $PROD_COMPOSE_FILE não encontrado. Rode sudo ./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml" >&2
   exit 3
 fi
 
-# 1) instalar env e compose (ajusta permissões)
-./scripts/deploy/install-prod-env.sh "$ENV_SRC"
-./scripts/deploy/install-prod-compose.sh ./docker-compose.prod.yml
+# Pull e Up
+echo "INFO: Fazendo pull das imagens..."
+sudo "$COMPOSE_RUN_CMD" \
+  --project-name "$PROJECT_NAME" \
+  --env-file "$PROD_ENV_FILE" \
+  --compose-file "$PROD_COMPOSE_FILE" \
+  pull || true
 
-echo "Fazendo pull das imagens (se disponíveis)..."
-./scripts/lib/compose-run.sh --mode prod pull --ignore-pull-failures || true
+echo "INFO: Subindo stack de produção (-d)..."
+sudo "$COMPOSE_RUN_CMD" \
+  --project-name "$PROJECT_NAME" \
+  --env-file "$PROD_ENV_FILE" \
+  --compose-file "$PROD_COMPOSE_FILE" \
+  up -d
 
-echo "Subindo stack de produção (detached, com --pull)..."
-./scripts/lib/compose-run.sh --mode prod up -d --pull always
-
-echo "Deploy concluído. Verifique status com:"
-echo "  ./scripts/lib/compose-run.sh --mode prod ps"
-echo "Logs: ./scripts/lib/compose-run.sh --mode prod logs backend"
+echo "INFO: Deploy concluído. Status:"
+sudo "$COMPOSE_RUN_CMD" \
+  --project-name "$PROJECT_NAME" \
+  --env-file "$PROD_ENV_FILE" \
+  --compose-file "$PROD_COMPOSE_FILE" \
+  ps
