@@ -34,6 +34,13 @@
   max-height: 70vh;
 }
 
+// Garante que as colunas fixas (sticky) tenham um fundo sólido para não mostrar
+// o conteúdo que rola por baixo delas.
+.mat-mdc-table-sticky {
+  background-color: var(--mat-sys-surface-container-highest);
+  z-index: 1; // Garante que a coluna fixa fique acima das outras
+}
+
 ::ng-deep .mat-mdc-table tbody tr:hover {
   background-color: var(--mat-sys-surface-container-high) !important;
 }

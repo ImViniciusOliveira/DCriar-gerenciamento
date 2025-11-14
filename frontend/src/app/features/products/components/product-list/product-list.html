@@ -31,16 +31,6 @@
             <td mat-cell *matCellDef="let product">{{ product.nome }}</td>
           </ng-container>
 
-          <!-- Coluna Estoque -->
-          <ng-container matColumnDef="estoque">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header="estoqueFisicoTotal">Estoque Total</th>
-            <td mat-cell *matCellDef="let product">
-              {{ product.estoqueFisicoTotal }} pacotes
-              <br />
-              <small>({{ product.unidadesPorProduto }} unidades cada)</small>
-            </td>
-          </ng-container>
-
           <!-- Coluna Cor -->
           <ng-container matColumnDef="cor">
             <th mat-header-cell *matHeaderCellDef mat-sort-header="cor">Cor</th>
@@ -58,6 +48,16 @@
             <th mat-header-cell *matHeaderCellDef mat-sort-header="ativo">Ativo</th>
             <td mat-cell *matCellDef="let product">
               <mat-icon>{{ product.ativo ? 'check_circle' : 'cancel' }}</mat-icon>
+            </td>
+          </ng-container>
+
+          <!-- Coluna Estoque -->
+          <ng-container matColumnDef="estoque">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="estoqueFisicoTotal">Estoque Total</th>
+            <td mat-cell *matCellDef="let product">
+              {{ product.estoqueFisicoTotal }} pacotes
+              <br />
+              <small>({{ product.unidadesPorProduto }} unidades cada)</small>
             </td>
           </ng-container>
 
@@ -89,7 +89,8 @@
                   <mat-icon>delete</mat-icon>
                 </button>
               </td>
-            </ng-container>    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
         </table>
 
