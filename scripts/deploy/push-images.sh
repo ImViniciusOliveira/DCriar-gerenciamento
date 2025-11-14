@@ -3,12 +3,13 @@ set -euo pipefail
 
 # push-images.sh
 # Constrói e faz push das imagens do backend e frontend para o registry configurado em .env.prod
-# Uso: ./scripts/deploy/push-images.sh [caminho_para_.env.prod]
 
-ENV_FILE="${1:-./.env.prod}"
+# Define o caminho padrão para o arquivo de ambiente de produção.
+ENV_FILE="/etc/dcriar/.env.prod"
 
 if [ ! -f "$ENV_FILE" ]; then
-  echo "Arquivo de ambiente '$ENV_FILE' não encontrado." >&2
+  echo "Erro: Arquivo de ambiente '$ENV_FILE' não encontrado." >&2
+  echo "Dica: Rode 'sudo ./scripts/deploy/install-prod-env.sh ./.env.prod' para criá-lo." >&2
   exit 2
 fi
 
@@ -18,11 +19,22 @@ set -a
 . "$ENV_FILE"
 set +a
 
-BACKEND_IMAGE=${BACKEND_IMAGE:-}
-FRONTEND_IMAGE=${FRONTEND_IMAGE:-}
+# Pede a tag ao usuário
+read -rp "Digite a tag para as imagens (ex: 1.0.1, latest): " IMAGE_TAG
+if [ -z "$IMAGE_TAG" ]; then
+  echo "Tag não pode ser vazia. Saindo." >&2
+  exit 1
+fi
 
-if [ -z "$BACKEND_IMAGE" ] || [ -z "$FRONTEND_IMAGE" ]; then
-  echo "As variáveis BACKEND_IMAGE e FRONTEND_IMAGE devem estar definidas em $ENV_FILE" >&2
+# Monta o nome completo das imagens usando as variáveis do .env.prod
+DOCKER_REGISTRY_USER=${DOCKER_REGISTRY_USER:-}
+BACKEND_IMAGE_NAME=${BACKEND_IMAGE_NAME:-}
+FRONTEND_IMAGE_NAME=${FRONTEND_IMAGE_NAME:-}
+BACKEND_IMAGE="${DOCKER_REGISTRY_USER}/${BACKEND_IMAGE_NAME}:${IMAGE_TAG}"
+FRONTEND_IMAGE="${DOCKER_REGISTRY_USER}/${FRONTEND_IMAGE_NAME}:${IMAGE_TAG}"
+
+if [ -z "$DOCKER_REGISTRY_USER" ] || [ -z "$BACKEND_IMAGE_NAME" ] || [ -z "$FRONTEND_IMAGE_NAME" ]; then
+  echo "As variáveis DOCKER_REGISTRY_USER, BACKEND_IMAGE_NAME e FRONTEND_IMAGE_NAME devem estar definidas em $ENV_FILE" >&2
   exit 3
 fi
 
