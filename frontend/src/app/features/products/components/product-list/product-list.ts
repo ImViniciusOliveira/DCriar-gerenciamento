@@ -77,10 +77,8 @@ export class ProductList implements OnInit {
 
   ngOnInit(): void {
     this.loadProducts();
-    // Carrega o mapa de unidades de consumo para "traduzir" os valores na tabela
     this.apiRoot.endpoints$.pipe(
-      filter(endpoints => !!endpoints), // Garante que os endpoints da API raiz foram carregados
-      map(endpoints => endpoints._links?.['unidades-de-medida']?.href), // Obtém o link HATEOAS
+      map(endpoints => endpoints?._links?.['unidades-de-medida']?.href),
       filter((url): url is string => !!url), // Garante que a URL existe
       take(1), // Pega o primeiro valor e completa
       switchMap(url => this.enumService.getConsumptionUnitsMap(url)) // Usa o novo método do EnumService
@@ -96,18 +94,12 @@ export class ProductList implements OnInit {
   loadProducts(): void {
     this.isLoading.set(true);
 
-    // 1. GARANTE que os canais de venda estejam carregados ANTES de tudo.
     this.salesChannelService.channelKeys$.pipe(
-      take(1), // Pega o valor atual (ou o primeiro emitido) e completa.
-
-      // 2. COM OS CANAIS PRONTOS, busca os produtos.
-      // switchMap cancela a operação anterior e inicia uma nova (busca de produtos).
+      take(1),
       switchMap(() => {
         const sortString = `${this.sortActive()},${this.sortDirection()}`;
         return this.productsService.getProducts(this.pageIndex(), this.pageSize(), sortString);
       }),
-
-      // 3. COM OS PRODUTOS EM MÃOS, busca o estoque de todos em paralelo.
       switchMap(productsResponse => {
         const products = productsResponse?._embedded?.produtos || [];
         this.totalElements.set(productsResponse.page?.totalElements || 0);
@@ -123,14 +115,11 @@ export class ProductList implements OnInit {
           )
         );
 
-        // forkJoin espera todas as chamadas de estoque terminarem.
-        // Usamos um map para combinar a lista original de produtos com os estoques recebidos.
         return forkJoin(stockObservables).pipe(
           map(stocks => this.mergeStockData(products, stocks))
         );
       })
     ).subscribe({
-      // 4. O SUBSCRIBE FINAL apenas recebe os dados prontos e atualiza a UI.
       next: (finalProducts) => {
         this.products.set(finalProducts);
         this.isLoading.set(false);
@@ -143,7 +132,6 @@ export class ProductList implements OnInit {
     });
   }
 
-  // Esta função agora é puramente síncrona. Ela recebe tudo o que precisa e retorna o resultado.
   private mergeStockData(products: Product[], stocks: { productId: number; stock: { [key: string]: number } }[]): Product[] {
     const stockMap = new Map(stocks.map(s => [s.productId, s.stock]));
     const channelKeys = Array.from(this.channelNameMap.keys());
@@ -163,15 +151,12 @@ export class ProductList implements OnInit {
   }
 
   sortData(sort: Sort) {
-    // Se a direção da ordenação for vazia, volta para o padrão (nome, asc)
     this.sortActive.set(sort.direction ? sort.active : 'nome');
     this.sortDirection.set(sort.direction || 'asc');
 
-    // Ao mudar a ordenação, sempre volte para a primeira página.
     if (this.paginator && this.paginator.pageIndex !== 0) {
       this.paginator.firstPage();
     } else {
-      // Se já estiver na primeira página, apenas carrega os produtos com a nova ordenação.
       this.loadProducts();
     }
   }
@@ -203,8 +188,6 @@ export class ProductList implements OnInit {
 
   async onView(product: Product): Promise<void> {
     try {
-      // O objeto 'product' da linha da tabela já contém o estoque e os links necessários.
-      // Não é preciso buscar novamente.
       const dialogData: ProductFormData = { product, isEditMode: false, title: 'Detalhes do Produto' };
       this.openProductDialog(dialogData, '');
     } catch (error) {
@@ -218,8 +201,6 @@ export class ProductList implements OnInit {
   async onEdit(product: Product): Promise<void> {
     try {
       this.isLoading.set(true);
-      // Usamos o produto da linha, que já tem os links corretos.
-      // A cópia profunda evita que alterações no formulário afetem a tabela antes de salvar.
       const productCopy = structuredClone(product);
       this.openProductDialog({ product: productCopy, isEditMode: true, title: 'Editar Produto' }, ProductList.Texts.saveSuccess);
     } catch (error) {
@@ -233,10 +214,7 @@ export class ProductList implements OnInit {
   async onCreate(): Promise<void> {
     try {
       this.isLoading.set(true);
-      // Garante que a API raiz foi carregada para termos acesso aos links principais.
       await lastValueFrom(this.apiRoot.endpoints$);
-
-      // Busca o "molde" do produto do backend.
       const newProductTemplate = await lastValueFrom(this.productsService.getNewProductTemplate());
 
       this.openProductDialog({
@@ -256,7 +234,8 @@ export class ProductList implements OnInit {
   private openProductDialog(dialogData: ProductFormData, successMessage: string): void {
     const dialogRef = this.dialog.open(ProductFormComponent, {
       data: dialogData,
-      width: '800px',
+      width: '90vw', // Usa 90% da largura da tela
+      maxWidth: '900px', // Mas não passa de 900px
       autoFocus: false,
     });
 

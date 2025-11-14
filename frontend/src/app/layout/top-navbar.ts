@@ -25,24 +25,32 @@ type NavLink = { path: string; label: string; icon?: string };
 export class TopNavbar {
   apiRoot = inject(ApiRoot);
 
-  readonly navLinksMap: Record<string, NavLink> = {
-    dashboard: { path: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-    produtos: { path: 'produtos', label: 'Produtos', icon: 'inventory_2' },
-    vendas: { path: 'vendas', label: 'Vendas', icon: 'point_of_sale' },
+  // Define a ordem desejada dos links de navegação.
+  private readonly navOrder: string[] = [
+    'dashboard',
+    'produtos',
+    'lotes-materia-prima',
+    'ordens-de-producao',
+    'vendas'
+  ];
+
+  private readonly navLinksMap: Record<string, NavLink> = {
+    'dashboard': { path: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+    'produtos': { path: 'produtos', label: 'Produtos', icon: 'inventory_2' },
     'lotes-materia-prima': { path: 'lotes-materia-prima', label: 'Lotes', icon: 'view_in_ar' },
     'ordens-de-producao': { path: 'ordens-de-producao', label: 'Ordens de Produção', icon: 'content_cut' },
+    'vendas': { path: 'vendas', label: 'Vendas', icon: 'point_of_sale' },
   };
 
   get availableNavLinks(): NavLink[] {
     const endpoints = this.apiRoot.endpoints();
-    if (!endpoints) {
+    if (!endpoints?._links) {
       return [];
     }
 
-    return Object.keys(this.navLinksMap)
-      // Filtra as chaves do nosso mapa para incluir apenas aquelas que a API retornou em `_links`.
+    // Usa o array `navOrder` para garantir a sequência correta dos links.
+    return this.navOrder
       .filter(key => key in endpoints._links)
-      // Mapeia as chaves filtradas de volta para os objetos NavLink correspondentes.
       .map(key => this.navLinksMap[key]);
   }
 }
