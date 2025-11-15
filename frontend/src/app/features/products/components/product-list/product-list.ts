@@ -14,15 +14,13 @@ import {
   ConfirmDialog,
   ConfirmDialogData,
 } from '../../../../shared/components/confirm-dialog/confirm-dialog/confirm-dialog';
-import { filter, of, lastValueFrom, map, take, switchMap, catchError, forkJoin } from 'rxjs';
+import { filter, of, lastValueFrom, map, switchMap, catchError } from 'rxjs';
 import { ProductFormComponent, ProductFormData } from '../product-form/product-form';
 import { MatCardModule } from '@angular/material/card';
 import { ApiRoot } from '../../../../core/services/api-root';
-import { SalesChannelService } from '../../services/sales-channel.service';
 import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
-import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-product-list',
@@ -58,7 +56,6 @@ export class ProductList implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly apiRoot = inject(ApiRoot);
-  private readonly salesChannelService = inject(SalesChannelService);
   private readonly enumService = inject(EnumService);
 
   private loadingTimer: any;
@@ -74,7 +71,6 @@ export class ProductList implements OnInit {
   sortActive = signal('nome');
   sortDirection = signal<Sort['direction']>('asc');
 
-  private readonly channelNameMap = toSignal(this.salesChannelService.channelNameMap$, { initialValue: new Map<string, string>() });
   readonly consumptionUnitsMap = signal(new Map<string, EnumOption>());
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -87,29 +83,25 @@ export class ProductList implements OnInit {
     // Exibe o spinner apenas se a operação demorar mais de 300ms.
     this.loadingTimer = setTimeout(() => this.isLoading.set(true), 300);
 
-    this.salesChannelService.channelKeys$.pipe(
-      take(1),
-      switchMap(() => {
-        const sortString = `${this.sortActive()},${this.sortDirection()}`;
-        return this.productsService.getProducts(this.pageIndex(), this.pageSize(), sortString);
-      }),
+    const sortString = `${this.sortActive()},${this.sortDirection()}`;
+    this.productsService.getProducts(this.pageIndex(), this.pageSize(), sortString).pipe(
       switchMap(productsResponse => {
         const products = productsResponse?._embedded?.produtos || [];
+        const stockUrl = productsResponse._links?.['estoques-por-produtos']?.href;
         this.totalElements.set(productsResponse.page?.totalElements || 0);
 
-        if (products.length === 0) {
+        if (products.length === 0 || !stockUrl) {
+          console.warn('[ProductList] URL de estoque não encontrada na resposta. Exibindo produtos sem dados de estoque por canal.');
           return of([]);
         }
 
-        const stockObservables = products.map(product =>
-          this.productsService.getChannelStock(product).pipe(
-            map(stock => ({ productId: product.id, stock })),
-            catchError(() => of({ productId: product.id, stock: {} })) // Em caso de erro, não quebra a cadeia.
-          )
-        );
-
-        return forkJoin(stockObservables).pipe(
-          map(stocks => this.mergeStockData(products, stocks))
+        const productIds = products.map(p => p.id);
+        return this.productsService.getStocksForProducts(productIds, stockUrl).pipe(
+          map(allStocks => this.mergeStockData(products, allStocks)),
+          catchError(() => {
+            console.error('[ProductList] Falha ao buscar estoques. Exibindo produtos sem dados de estoque.');
+            return of(products); // Em caso de erro, retorna apenas os produtos.
+          })
         );
       })
     ).subscribe({
@@ -132,16 +124,11 @@ export class ProductList implements OnInit {
    * Garante que cada produto tenha um objeto `estoquePorCanal` com todos os canais de venda,
    * preenchendo com 0 para os canais onde o produto não tem estoque.
    */
-  private mergeStockData(products: Product[], stocks: { productId: number; stock: { [key: string]: number } }[]): Product[] {
-    const stockMap = new Map(stocks.map(s => [s.productId, s.stock]));
-    const channelKeys = Array.from(this.channelNameMap().keys());
-    const baseChannelStock = Object.fromEntries(channelKeys.map(key => [key, 0]));
-
-    return products.map(product => {
-      const productSpecificStock = stockMap.get(product.id) || {};
-      const finalStock = { ...baseChannelStock, ...productSpecificStock };
-      return { ...product, estoquePorCanal: finalStock };
-    });
+  private mergeStockData(products: Product[], allStocks: { [productId: string]: { [channelKey: string]: number } }): Product[] {
+    return products.map(product => ({
+      ...product,
+      estoquePorCanal: allStocks[product.id] || {},
+    }));
   }
 
   onPageChange(event: PageEvent): void {
@@ -242,7 +229,7 @@ export class ProductList implements OnInit {
   }
 
   getChannelDisplayName(channelKey: string): string {
-    return this.channelNameMap().get(channelKey) || channelKey;
+    return channelKey;
   }
 
   trackByProductId(index: number, product: Product): number {

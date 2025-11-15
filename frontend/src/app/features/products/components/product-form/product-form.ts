@@ -1,6 +1,6 @@
 import { InfiniteScrollDirective } from '../../../stock/services/infinite-scroll.directive';
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, Inject, OnInit, WritableSignal, computed, inject, signal, Signal } from '@angular/core';
+import { ChangeDetectorRef, Component, Inject, OnInit, WritableSignal, inject, signal, Signal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Product } from '../../models/products.model';
 import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -59,7 +59,7 @@ export class ProductFormComponent implements OnInit {
 
   readonly consumptionUnits$: Observable<EnumOption[]>;
   readonly consumptionUnits: Signal<EnumOption[]>;
-  private readonly consumptionUnitsMap = computed(() => new Map(this.consumptionUnits().map(u => [u.value, u.viewValue])));
+  private readonly consumptionUnitsMap: Map<string, string | undefined>;
 
   constructor(
     public dialogRef: MatDialogRef<ProductFormComponent>,
@@ -92,6 +92,7 @@ export class ProductFormComponent implements OnInit {
     }
 
     this.consumptionUnits = toSignal(this.consumptionUnits$, { initialValue: [] });
+    this.consumptionUnitsMap = new Map(this.consumptionUnits().map(u => [u.value, u.viewValue]));
 
     this.productForm = this.fb.group({
       nome: [this.product.nome, Validators.required],
@@ -183,16 +184,6 @@ export class ProductFormComponent implements OnInit {
     }
   }
 
-  displayImageUrl(): string | null {
-    const preview = this.previewUrl();
-    if (preview) return preview;
-    const prodUrl = this.product?.fotoPrincipalUrl;
-    if (prodUrl) {
-      return this.normalizeDownloadUrl(prodUrl);
-    }
-    return null;
-  }
-
   private normalizeDownloadUrl(url: string | null | undefined): string | null {
     if (!url) return null;
     try {
@@ -281,7 +272,6 @@ export class ProductFormComponent implements OnInit {
       this.materialTypes.update(currentTypes => [...currentTypes, ...newMaterials]);
     } catch (err) {
       console.error('Erro ao carregar mais matérias-primas:', err);
-      // Não é necessário fazer mais nada aqui, o `finally` cuidará do estado de `isSearching`.
     } finally {
       this.isSearching.set(false);
     }
@@ -343,21 +333,18 @@ export class ProductFormComponent implements OnInit {
           continue;
         }
 
-        if (key === 'dimensoes') {
-          dirtyValues[key] = control.value;
-        } else {
-          dirtyValues[key] = nestedDirtyValues;
-        }
+        dirtyValues[key] = nestedDirtyValues;
         continue;
       }
 
       dirtyValues[key] = control.value;
     }
+
     return dirtyValues;
   }
 
   getConsumptionUnitViewValue(value: string): string {
-    return this.consumptionUnitsMap().get(value) ?? value;
+    return this.consumptionUnitsMap.get(value) ?? value;
   }
 
   compareMaterialTypes(o1: MaterialType, o2: MaterialType): boolean {

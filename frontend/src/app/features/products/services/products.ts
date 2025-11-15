@@ -6,8 +6,7 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { ApiRoot } from '../../../core/services/api-root';
 import { Hateoas } from '../../../core/models/hateoas.model';
 import { ApiResponseProducts, Product } from '../models/products.model';
-import { Channel, ProductChannelStock } from '../../stock/models/channel-stock.model';
-import { SalesChannelService } from './sales-channel.service';
+import { Channel } from '../../stock/models/channel-stock.model';
 
 @Injectable({
   providedIn: 'root',
@@ -15,7 +14,6 @@ import { SalesChannelService } from './sales-channel.service';
 export class ProductsService {
   private readonly http = inject(HttpClient);
   private readonly apiRoot = inject(ApiRoot);
-  private readonly salesChannelService = inject(SalesChannelService);
 
   private readonly refresh$ = new BehaviorSubject<void>(undefined);
 
@@ -83,13 +81,12 @@ export class ProductsService {
   }
 
   patchProduct(productId: number, product: Partial<Product>): Observable<Product> {
-    if (!product.id) {
-      delete product.id;
-    }
+    delete product.id;
+    const payload = this.mapToPayload(product);
 
     return this.endpoints$.pipe(
       map(endpoints => this.getProductBaseUrl(endpoints)),
-      switchMap(baseUrl => this.http.patch<Product>(`${baseUrl}/${productId}`, product)),
+      switchMap(baseUrl => this.http.patch<Product>(`${baseUrl}/${productId}`, payload)),
       tap(() => this.refresh$.next()),
       take(1)
     );
@@ -104,35 +101,33 @@ export class ProductsService {
   }
 
   /**
-   * Busca o estoque por canal para um produto específico.
+   * Busca o estoque por canal para uma lista de IDs de produtos.
+   * @param productIds Um array com os IDs dos produtos.
+   * @param stockUrl A URL completa do endpoint para buscar os estoques.
+   * @returns Um Observable com um mapa de [productId] para seu mapa de estoque por canal.
    */
-  getChannelStock(product: Product): Observable<{ [key: string]: number }> {
-    const stockUrl = product._links?.['estoque-por-canal']?.href;
-    if (!stockUrl) {
+  getStocksForProducts(productIds: number[], stockUrl: string): Observable<{ [productId: string]: { [channelKey: string]: number } }> {
+    if (productIds.length === 0) {
       return of({});
     }
 
-    return this.http.get<ProductChannelStock>(stockUrl).pipe(
+    // Remove a parte do template da URL, que pode ou não existir.
+    const baseUrl = stockUrl.split('{')[0];
+    // Usa o objeto URL para adicionar os parâmetros de forma segura,
+    // evitando duplicatas de '?'
+    const url = new URL(baseUrl);
+    url.searchParams.set('produtoIds', productIds.join(','));
+
+    return this.http.get<any>(url.toString()).pipe(
       map(response => {
-        const stockEntries = response?.canais || [];
-        if (stockEntries.length === 0) {
-          return {};
+        const stockMap: { [productId: string]: { [channelKey: string]: number } } = {};
+        const productStocks = response?._embedded?.produtoEstoqueResponseDTOList || [];
+        for (const item of productStocks) {
+          stockMap[item.produtoId] = this.createChannelMap(item.canais);
         }
-        return this.createChannelMap(stockEntries);
-      }),
-      catchError(err => {
-        console.error(`Erro ao buscar estoque para o produto ID ${product.id}:`, err);
-        return of({});
+        return stockMap;
       })
     );
-  }
-
-  private getProductBaseUrl(endpoints: Hateoas): string {
-    const url = endpoints?._links?.['produtos']?.href;
-    if (!url) {
-      throw new Error('URL de produtos não encontrada na resposta da API');
-    }
-    return url.split('{')[0];
   }
 
   /**
@@ -146,20 +141,18 @@ export class ProductsService {
       delete payload.materiaPrima;
     }
 
-    if (payload.dimensoes) {
-      payload.dimensoesUnitarias = payload.dimensoes;
-      delete payload.dimensoes;
-    }
-
     return payload;
   }
 
   private createChannelMap(channels: Channel[]): { [key: string]: number } {
-    const finalMap = channels.reduce((acc, channel) => {
-      acc[channel.canalNome] = channel.quantidade;
-      return acc;
-    }, {} as { [key: string]: number });
+    return Object.fromEntries(channels.map(channel => [channel.canalNome, channel.quantidade]));
+  }
 
-    return finalMap;
+  private getProductBaseUrl(endpoints: Hateoas): string {
+    const url = endpoints?._links?.['produtos']?.href;
+    if (!url) {
+      throw new Error('URL de produtos não encontrada na resposta da API');
+    }
+    return url.split('{')[0];
   }
 }
