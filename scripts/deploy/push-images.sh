@@ -70,3 +70,4 @@ docker push "$BACKEND_IMAGE"
 docker push "$FRONTEND_IMAGE"
 
 echo "Build e push concluídos. Certifique-se de que as imagens existam no registry antes de rodar o compose no servidor."
+
