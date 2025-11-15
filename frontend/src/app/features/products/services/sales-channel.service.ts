@@ -37,7 +37,7 @@ export class SalesChannelService {
     map(channels => new Map(channels.map(c => [c.nome, c.nome])))
   );
 
-  // Expõe uma lista reativa de todos os identificadores de canal (Ex: ['LOJA_FISICA', 'SHOPEE', ...])
+  // Expõe uma lista reativa de todos os nomes de canal (Ex: ['Loja Física', 'Shopee', ...])
   readonly channelKeys$: Observable<string[]> = this.allChannels$.pipe(
     map(channels => channels.map(c => c.nome))
   );

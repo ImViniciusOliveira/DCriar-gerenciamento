@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Hateoas } from '../models/hateoas.model';
-import { Observable, tap, shareReplay } from 'rxjs';
+import { Observable, tap, shareReplay, take } from 'rxjs';
 import { environment } from './environment';
 
 @Injectable({
@@ -17,8 +17,10 @@ export class ApiRoot {
   endpoints$: Observable<Hateoas>;
 
   constructor() {
-    // O shareReplay garante que a requisição só será feita uma vez.
     this.endpoints$ = this.loadEndpoints();
+    // A subscrição inicial garante que os endpoints sejam carregados o mais cedo possível.
+    // O take(1) finaliza o observable após a primeira emissão, evitando memory leaks.
+    this.endpoints$.pipe(take(1)).subscribe();
   }
 
   loadEndpoints(): Observable<Hateoas> {

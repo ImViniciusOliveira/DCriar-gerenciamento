@@ -14,7 +14,7 @@ import {
   ConfirmDialog,
   ConfirmDialogData,
 } from '../../../../shared/components/confirm-dialog/confirm-dialog/confirm-dialog';
-import { filter, catchError, of, lastValueFrom, forkJoin, map, take, switchMap } from 'rxjs';
+import { filter, of, lastValueFrom, map, take, switchMap, catchError, forkJoin } from 'rxjs';
 import { ProductFormComponent, ProductFormData } from '../product-form/product-form';
 import { MatCardModule } from '@angular/material/card';
 import { ApiRoot } from '../../../../core/services/api-root';
@@ -77,15 +77,6 @@ export class ProductList implements OnInit {
 
   ngOnInit(): void {
     this.loadProducts();
-    this.apiRoot.endpoints$.pipe(
-      map(endpoints => endpoints?._links?.['unidades-de-medida']?.href),
-      filter((url): url is string => !!url), // Garante que a URL existe
-      take(1), // Pega o primeiro valor e completa
-      switchMap(url => this.enumService.getConsumptionUnitsMap(url)) // Usa o novo método do EnumService
-    ).subscribe(map => {
-      this.consumptionUnitsMap.set(map); // Atualiza o signal
-    });
-    // Carrega o mapa de nomes de canais uma vez para uso no template
     this.salesChannelService.channelNameMap$.pipe(take(1)).subscribe((mapData) => {
       this.channelNameMap = mapData;
     });
