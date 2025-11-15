@@ -74,5 +74,5 @@ public class ProdutoRequestDTO {
      */
     @Valid
     @Schema(description = "As dimensões de uma única unidade do produto.", requiredMode = Schema.RequiredMode.REQUIRED)
-    private DimensoesRequestDTO dimensoesUnitarias;
+    private DimensoesRequestDTO dimensoes;
 }

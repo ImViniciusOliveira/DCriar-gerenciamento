@@ -52,7 +52,7 @@ INSERT INTO canais_venda (nome) VALUES
     ('Loja Física'), ('Shopee'), ('Site Próprio'), ('Mercado Livre'), ('Equipe de Vendas');
 
 -- ETAPA E: PRODUTOS ACABADOS DIVERSIFICADOS
-INSERT INTO produtos (nome, sku, descricao, cor, unidades_por_produto, ativo, foto_principal_url, tipo_materia_prima_id, largura_cm_unitaria, comprimento_cm_unitario) VALUES
+INSERT INTO produtos (nome, sku, descricao, cor, unidades_por_produto, ativo, foto_principal_url, tipo_materia_prima_id, largura_cm, comprimento_cm) VALUES
     ('Cartão de Visita Premium', 'CV-PREM-9X5', 'Cartão de visita em papel couchê 300g, laminação fosca.', 'Branco', 100, true, '', 1, 9.0, 5.0),
     ('Banner Comercial 1,20x0,80m', 'BNR-COM-120X80', 'Banner em lona fosca 440g com bastão e corda.', 'Personalizada', 1, true, '', 2, 80.0, 120.0),
     ('Adesivo Redondo 5cm', 'ADSV-RD-5', 'Adesivo em vinil branco para uso geral, corte redondo.', 'Branco', 100, true, '', 3, 5.0, 5.0),

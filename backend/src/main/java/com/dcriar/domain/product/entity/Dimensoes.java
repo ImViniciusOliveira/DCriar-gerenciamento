@@ -25,13 +25,13 @@ public class Dimensoes {
     /**
      * Largura do item em centímetros. Valor pode ser nulo se não informado.
      */
-    @Column(name = "largura_cm_unitaria", precision = 10, scale = 2)
+    @Column(name = "largura_cm", precision = 10, scale = 2)
     private BigDecimal larguraCm;
 
     /**
      * Comprimento do item em centímetros. Valor pode ser nulo se não informado.
      */
-    @Column(name = "comprimento_cm_unitario", precision = 10, scale = 2)
+    @Column(name = "comprimento_cm", precision = 10, scale = 2)
     private BigDecimal comprimentoCm;
 
 }

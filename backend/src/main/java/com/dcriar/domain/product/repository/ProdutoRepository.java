@@ -4,6 +4,7 @@ import com.dcriar.domain.product.entity.Produto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
@@ -20,15 +21,24 @@ import java.util.Optional;
 public interface ProdutoRepository extends JpaRepository<Produto, Long> {
 
     /**
-     * Busca todos os produtos, garantindo que a associação com {@link com.dcriar.domain.stock.entity.TipoMateriaPrima}
-     * seja carregada de forma otimizada (EAGER) nesta consulta específica, evitando o problema N+1.
+     * Busca todos os produtos de forma paginada.
+     * <p>
+     * Esta consulta customizada com {@code LEFT JOIN FETCH} garante que as associações
+     * com {@code tipoMateriaPrima} e {@code dimensoes} sejam carregadas de forma otimizada (EAGER),
+     * evitando o problema N+1.
+     * <p>
+     * O {@code LEFT JOIN} explícito também permite que o Spring Data JPA ordene corretamente
+     * por campos de entidades aninhadas, como {@code dimensoes.larguraCm}.
      *
      * @param pageable Objeto com as informações de paginação (não pode ser nulo).
      * @return Uma página de produtos (nunca nula).
      */
     @Override
     @NonNull
-    @EntityGraph(attributePaths = {"tipoMateriaPrima"})
+    @Query(value = "SELECT p FROM Produto p " +
+                   "LEFT JOIN FETCH p.tipoMateriaPrima " +
+                   "LEFT JOIN FETCH p.dimensoes",
+           countQuery = "SELECT count(p) FROM Produto p")
     Page<Produto> findAll(@NonNull Pageable pageable);
 
     /**
@@ -40,7 +50,7 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
      */
     @Override
     @NonNull
-    @EntityGraph(attributePaths = {"tipoMateriaPrima"})
+    @EntityGraph(attributePaths = {"tipoMateriaPrima", "dimensoes"})
     Optional<Produto> findById(@NonNull Long id);
 
     /**

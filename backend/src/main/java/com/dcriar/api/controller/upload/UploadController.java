@@ -79,9 +79,6 @@ public class UploadController {
             @Parameter(description = "Nome do arquivo a ser baixado (ex: 123e4567-e89b-12d3-a456-426614174000_minha_imagem.jpg)", example = "123e4567-e89b-12d3-a456-426614174000_exemplo.png")
             @PathVariable String fileName, HttpServletRequest request) {
 
-        // Log apenas o essencial: pedido de download (sem flood)
-        log.info("[DOWNLOAD] request for fileName='{}'", fileName);
-
         String decodedName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
         Resource resource = fileStorageService.loadFileAsResource(decodedName);
 

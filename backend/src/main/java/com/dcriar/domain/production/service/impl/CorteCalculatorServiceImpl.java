@@ -65,7 +65,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
             throw new MargemInvalidaException("A soma das margens laterais não pode exceder a largura do lote.");
         }
 
-        Dimensoes dimensoesProduto = produto.getDimensoesUnitarias();
+        Dimensoes dimensoesProduto = produto.getDimensoes();
         BigDecimal larguraProduto = dimensoesProduto.getLarguraCm();
         BigDecimal comprimentoProduto = dimensoesProduto.getComprimentoCm();
 

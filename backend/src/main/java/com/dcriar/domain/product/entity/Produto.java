@@ -87,7 +87,7 @@ public class Produto {
      * Armazenado como um objeto embutido {@link Dimensoes}.
      */
     @Embedded
-    private Dimensoes dimensoesUnitarias;
+    private Dimensoes dimensoes;
 
     /**
      * Método de fábrica estático para criar uma nova instância de {@link Produto} a partir de um {@link ProdutoRequestDTO}.
@@ -98,11 +98,11 @@ public class Produto {
      * @return Uma nova instância de {@link Produto}.
      */
     public static Produto from(ProdutoRequestDTO request) {
-        Dimensoes dimensoes = null;
-        if (request.getDimensoesUnitarias() != null) {
-            dimensoes = Dimensoes.builder()
-                    .larguraCm(request.getDimensoesUnitarias().getLarguraCm())
-                    .comprimentoCm(request.getDimensoesUnitarias().getComprimentoCm())
+        Dimensoes dimensoesObj = null;
+        if (request.getDimensoes() != null) {
+            dimensoesObj = Dimensoes.builder()
+                    .larguraCm(request.getDimensoes().getLarguraCm())
+                    .comprimentoCm(request.getDimensoes().getComprimentoCm())
                     .build();
         }
 
@@ -114,7 +114,7 @@ public class Produto {
                 .unidadesPorProduto(request.getUnidadesPorProduto())
                 .fotoPrincipalUrl(request.getFotoPrincipalUrl())
                 .ativo(request.getAtivo() != null ? request.getAtivo() : false)
-                .dimensoesUnitarias(dimensoes)
+                .dimensoes(dimensoesObj)
                 .build();
     }
 
@@ -122,7 +122,7 @@ public class Produto {
      * Atualiza os dados do produto a partir de um {@link ProdutoRequestDTO}.
      * <p>
      * Este método permite a atualização de campos como nome, SKU, descrição, cor,
-     * unidades por produto, URL da foto principal, status de ativo e dimensões unitárias.
+     * unidades por produto, URL da foto principal, status de ativo e dimensões.
      * A atualização do {@link TipoMateriaPrima} deve ser gerenciada separadamente pelo serviço.
      *
      * @param request O DTO de requisição contendo os novos dados para atualização do produto.
@@ -135,10 +135,10 @@ public class Produto {
         this.unidadesPorProduto = request.getUnidadesPorProduto();
         this.fotoPrincipalUrl = request.getFotoPrincipalUrl();
         this.ativo = request.getAtivo() != null ? request.getAtivo() : this.ativo;
-        if (request.getDimensoesUnitarias() != null) {
-            this.dimensoesUnitarias = Dimensoes.builder()
-                    .larguraCm(request.getDimensoesUnitarias().getLarguraCm())
-                    .comprimentoCm(request.getDimensoesUnitarias().getComprimentoCm())
+        if (request.getDimensoes() != null) {
+            this.dimensoes = Dimensoes.builder()
+                    .larguraCm(request.getDimensoes().getLarguraCm())
+                    .comprimentoCm(request.getDimensoes().getComprimentoCm())
                     .build();
         }
     }

@@ -201,8 +201,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private List<CorteRealizadoResponseDTO> gerarCortesManuais(OrdemDeCorteRequestDTO requestDTO, Produto produto, LoteMateriaPrima lotePrincipal) {
         BigDecimal larguraFinalCm = requestDTO.getLarguraFinalCm();
         BigDecimal comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
-        BigDecimal larguraProduto = produto.getDimensoesUnitarias().getLarguraCm();
-        BigDecimal comprimentoProduto = produto.getDimensoesUnitarias().getComprimentoCm();
+        BigDecimal larguraProduto = produto.getDimensoes().getLarguraCm();
+        BigDecimal comprimentoProduto = produto.getDimensoes().getComprimentoCm();
         int quantidadeProduzida = requestDTO.getQuantidadeProduzida();
 
         List<CorteRealizadoResponseDTO> cortes = new ArrayList<>();

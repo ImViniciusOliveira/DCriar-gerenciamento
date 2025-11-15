@@ -95,17 +95,13 @@ public class FileStorageServiceImpl implements FileStorageService {
     public Resource loadFileAsResource(String fileName) {
         // Vamos tentar várias variações para lidar com espaços, +, e codificação URL
         String[] candidates = buildCandidatesForFilename(fileName);
-        // informational log to help debug only when level INFO is enabled
-        log.info("[STORAGE] loadFileAsResource requested='{}' candidatesCount={}", fileName, candidates.length);
         for (String candidate : candidates) {
             try {
-                log.info("[STORAGE] attempting to fetch object='{}' from bucket='{}'", candidate, minioProperties.getBucketName());
                 InputStream stream = minioClient.getObject(
                         GetObjectArgs.builder()
                                 .bucket(minioProperties.getBucketName())
                                 .object(candidate)
                                 .build());
-                log.info("[STORAGE] object '{}' fetched successfully", candidate);
                 return new InputStreamResource(stream);
             } catch (Exception e) {
                 log.debug("[STORAGE] candidate '{}' failed: {}", candidate, e.getMessage());

@@ -359,13 +359,13 @@ public class ProdutoServiceImpl implements ProdutoService {
             errors.put("tipoMateriaPrimaId", "Tipo de matéria-prima é obrigatório");
         }
         // Validação para o objeto de dimensões e seus campos internos
-        if (requestDTO.getDimensoesUnitarias() == null) {
+        if (requestDTO.getDimensoes() == null) {
             errors.put("dimensoesUnitarias", "Dimensões são obrigatórias");
         } else {
-            if (requestDTO.getDimensoesUnitarias().getLarguraCm() == null) {
+            if (requestDTO.getDimensoes().getLarguraCm() == null) {
                 errors.put("dimensoesUnitarias.larguraCm", "Largura é obrigatória");
             }
-            if (requestDTO.getDimensoesUnitarias().getComprimentoCm() == null) {
+            if (requestDTO.getDimensoes().getComprimentoCm() == null) {
                 errors.put("dimensoesUnitarias.comprimentoCm", "Comprimento é obrigatório");
             }
         }

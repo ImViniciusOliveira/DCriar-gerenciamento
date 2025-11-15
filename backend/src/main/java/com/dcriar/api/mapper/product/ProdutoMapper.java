@@ -32,7 +32,6 @@ public interface ProdutoMapper {
     @Mapping(target = "estoqueFisicoTotal", ignore = true)
     @Mapping(target = "estoqueDistribuidoTotal", ignore = true)
     @Mapping(target = "estoqueDisponivelParaAlocar", ignore = true)
-    @Mapping(source = "dimensoesUnitarias", target = "dimensoes")
     @Mapping(source = "tipoMateriaPrima", target = "materiaPrima")
     ProdutoResponseDTO toResponseDTO(Produto produto);
 
@@ -59,6 +58,5 @@ public interface ProdutoMapper {
      * @return Um DTO de requisição pronto para ser mesclado e validado.
      */
     @Mapping(source = "materiaPrima.id", target = "tipoMateriaPrimaId")
-    @Mapping(source = "dimensoes", target = "dimensoesUnitarias")
     ProdutoRequestDTO toRequestDTO(ProdutoResponseDTO responseDTO);
 }

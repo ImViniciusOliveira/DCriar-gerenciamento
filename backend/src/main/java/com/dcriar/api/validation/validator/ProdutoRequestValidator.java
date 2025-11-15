@@ -13,7 +13,7 @@ import com.dcriar.api.validation.annotation.ValidProdutoRequest;
  *     <li>A {@code cor} não pode ser nula ou vazia.</li>
  *     <li>O {@code tipoMateriaPrimaId} não pode ser nulo.</li>
  *     <li>As {@code unidadesPorProduto} devem ser um número positivo.</li>
- *     <li>As {@code dimensoesUnitarias} não podem ser nulas (a validação interna é delegada).</li>
+ *     <li>As {@code dimensoes} não podem ser nulas (a validação interna é delegada).</li>
  * </ul>
  */
 public class ProdutoRequestValidator extends BaseValidator<ValidProdutoRequest, ProdutoRequestDTO> {
@@ -25,6 +25,6 @@ public class ProdutoRequestValidator extends BaseValidator<ValidProdutoRequest, 
         addViolationIf(dto.getCor() == null || dto.getCor().isBlank(), "A cor do produto é obrigatória.", "cor");
         addViolationIf(dto.getUnidadesPorProduto() == null || dto.getUnidadesPorProduto() <= 0, "A quantidade de unidades por produto deve ser um número positivo.", "unidadesPorProduto");
         addViolationIf(dto.getTipoMateriaPrimaId() == null, "O ID do tipo de matéria-prima é obrigatório.", "tipoMateriaPrimaId");
-        addViolationIf(dto.getDimensoesUnitarias() == null, "As dimensões unitárias são obrigatórias.", "dimensoesUnitarias");
+        addViolationIf(dto.getDimensoes() == null, "As dimensões são obrigatórias.", "dimensoes");
     }
 }

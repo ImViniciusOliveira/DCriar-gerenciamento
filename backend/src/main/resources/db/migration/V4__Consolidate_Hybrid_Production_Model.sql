@@ -10,8 +10,8 @@ DROP TABLE IF EXISTS composicao_produto;
 -- Originado da V5: Aprimora a tabela de produtos para ser o "molde".
 ALTER TABLE produtos
     ADD COLUMN tipo_materia_prima_id BIGINT,
-    ADD COLUMN largura_cm_unitaria NUMERIC(10, 2),
-    ADD COLUMN comprimento_cm_unitario NUMERIC(10, 2);
+    ADD COLUMN largura_cm NUMERIC(10, 2),
+    ADD COLUMN comprimento_cm NUMERIC(10, 2);
 
 -- Adiciona a chave estrangeira para ligar o produto ao seu material principal.
 ALTER TABLE produtos
