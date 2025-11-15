@@ -3,6 +3,7 @@ package com.dcriar.domain.product.repository;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.entity.Produto;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -32,5 +33,15 @@ public interface EstoqueRepository extends JpaRepository<Estoque, Long> {
      * @return Uma lista com todos os registros de estoque encontrados para o produto.
      */
     List<Estoque> findAllByProduto(Produto produto);
-}
 
+    /**
+     * Busca todos os registros de estoque para uma lista de IDs de produtos.
+     * O @EntityGraph garante que as entidades 'produto' e 'canalVenda' sejam carregadas de forma otimizada (EAGER),
+     * evitando o problema de N+1 queries na camada de serviço.
+     *
+     * @param produtoIds A lista de IDs dos produtos.
+     * @return Uma lista de Estoque com as entidades relacionadas carregadas.
+     */
+    @EntityGraph(attributePaths = {"produto", "canalVenda"})
+    List<Estoque> findByProdutoIdIn(List<Long> produtoIds);
+}

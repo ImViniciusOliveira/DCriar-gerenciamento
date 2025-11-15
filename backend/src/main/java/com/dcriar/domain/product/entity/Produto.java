@@ -3,6 +3,7 @@ package com.dcriar.domain.product.entity;
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Formula;
 import lombok.*;
 
 /**
@@ -88,6 +89,16 @@ public class Produto {
      */
     @Embedded
     private Dimensoes dimensoes;
+
+    /**
+     * Campo calculado que representa o total do estoque físico para este produto.
+     * A anotação @Formula executa a subquery SQL para cada produto carregado.
+     * Este campo é somente leitura e pode ser usado para ordenação.
+     */
+    @Formula("(SELECT COALESCE(SUM(CASE WHEN mep.tipo LIKE 'ENTRADA%' THEN mep.quantidade ELSE -mep.quantidade END), 0) " +
+             "FROM movimentacoes_estoque_produto mep WHERE mep.produto_id = id)")
+    private Integer estoqueFisicoTotal;
+
 
     /**
      * Método de fábrica estático para criar uma nova instância de {@link Produto} a partir de um {@link ProdutoRequestDTO}.

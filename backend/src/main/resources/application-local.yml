@@ -58,6 +58,7 @@ logging:
     com.dcriar.domain.upload.service.impl.FileStorageServiceImpl: INFO
     com.dcriar.api.controller.product.ProdutoController: INFO
     com.dcriar: INFO
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: ERROR
 
 management:
   endpoints:

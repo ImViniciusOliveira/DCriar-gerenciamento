@@ -26,9 +26,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
-import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
  * Controller responsável por expor os endpoints da API para o recurso de Produto.
@@ -38,8 +38,6 @@ import org.slf4j.LoggerFactory;
 @RequiredArgsConstructor
 @Tag(name = "Produtos", description = "Endpoints para gerenciamento de produtos")
 public class ProdutoController {
-
-    private static final Logger log = LoggerFactory.getLogger(ProdutoController.class);
 
     private final ProdutoService produtoService;
     private final ProdutoModelAssembler produtoModelAssembler;
@@ -58,8 +56,12 @@ public class ProdutoController {
             PagedResourcesAssembler<ProdutoResponseDTO> pagedResourcesAssembler
     ) {
         Page<ProdutoResponseDTO> produtosPage = produtoService.findAll(pageable);
-        // O assembler é usado aqui, recebido como parâmetro do método
         PagedModel<ProdutoModel> pagedModel = pagedResourcesAssembler.toModel(produtosPage, produtoModelAssembler);
+
+        // Adiciona o link de descoberta para o endpoint otimizado de busca de estoques.
+        // Esta é a forma mais segura e simples de gerar o link base.
+        pagedModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarEstoquesPorListaDeProdutos(null)).withRel("estoques-por-produtos"));
 
         return ResponseEntity.ok(pagedModel);
     }
@@ -199,9 +201,8 @@ public class ProdutoController {
             @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
     })
     public ResponseEntity<ProdutoModel> uploadFoto(@PathVariable Long id,
-                                                   @RequestParam("file") MultipartFile file,
-                                                   HttpServletRequest request) {
-         ProdutoResponseDTO produtoAtualizado = produtoService.uploadFoto(id, file);
-         return produtoModelAssembler.toOkResponseEntity(produtoAtualizado);
-     }
- }
+                                                   @RequestParam("file") MultipartFile file) {
+        ProdutoResponseDTO produtoAtualizado = produtoService.uploadFoto(id, file);
+        return produtoModelAssembler.toOkResponseEntity(produtoAtualizado);
+    }
+}

@@ -56,4 +56,13 @@ public interface EstoqueProdutoService {
      * @return Uma lista de DTOs, onde cada DTO contém o ID do produto e uma lista de seus estoques por canal.
      */
     List<ProdutoEstoqueResponseDTO> listarEstoqueDeTodosOsProdutosPorCanal();
+
+    /**
+     * Lista o estoque de múltiplos produtos, agrupados por canal de venda.
+     * Este método é otimizado para o frontend, que precisa buscar os dados de vários produtos de uma só vez.
+     *
+     * @param produtoIds A lista de IDs de produtos a serem consultados.
+     * @return Uma lista de DTOs, onde cada DTO contém o ID do produto e uma lista de seus estoques por canal.
+     */
+    List<ProdutoEstoqueResponseDTO> listarEstoquePorListaDeProdutos(List<Long> produtoIds);
 }

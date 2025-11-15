@@ -33,7 +33,6 @@ public class EstoqueProdutoModelAssembler extends RepresentationModelAssemblerSu
         EstoqueProdutoModel model = EstoqueProdutoModel.fromDto(dto);
 
         model.add(linkTo(methodOn(EstoqueProdutoController.class).consultarEstoque(model.getProdutoId(), model.getCanalVendaId())).withSelfRel());
-        model.add(linkTo(methodOn(EstoqueProdutoController.class).listarEstoquesPorProduto(model.getProdutoId())).withRel("estoques-do-produto"));
         model.add(linkTo(methodOn(EstoqueProdutoController.class).ajustarEstoqueCanal(null)).withRel("ajustar-estoque-canal"));
         model.add(linkTo(methodOn(ProdutoController.class).findById(model.getProdutoId())).withRel("produto"));
 
@@ -47,7 +46,6 @@ public class EstoqueProdutoModelAssembler extends RepresentationModelAssemblerSu
 
         CollectionModel<EstoqueProdutoModel> collectionModel = CollectionModel.of(estoqueModels);
 
-        collectionModel.add(linkTo(methodOn(EstoqueProdutoController.class).listarEstoquesPorProduto(produtoId)).withSelfRel());
         collectionModel.add(linkTo(methodOn(EstoqueProdutoController.class).ajustarEstoqueFisico(null)).withRel("ajustar-estoque-fisico"));
         collectionModel.add(linkTo(methodOn(EstoqueProdutoController.class).listarMovimentacoesPorProduto(produtoId)).withRel("historico-movimentacoes"));
         collectionModel.add(linkTo(methodOn(ProdutoController.class).findById(produtoId)).withRel("produto"));

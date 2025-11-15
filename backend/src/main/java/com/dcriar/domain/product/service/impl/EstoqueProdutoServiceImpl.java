@@ -25,7 +25,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
@@ -192,6 +194,34 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         return estoqueRepository.findAll().stream()
                 .collect(groupingBy(estoque -> estoque.getProduto().getId()))
                 .entrySet().stream()
+                .map(entry -> produtoEstoqueDTOMapper.toDto(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lista o estoque de múltiplos produtos, agrupados por canal de venda, de forma otimizada.
+     * Este método substitui a necessidade de múltiplas chamadas de API ou de carregar todos os estoques em memória.
+     *
+     * @param produtoIds A lista de IDs de produtos a serem consultados.
+     * @return Uma lista de DTOs, onde cada DTO contém o ID do produto e uma lista de seus estoques por canal.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProdutoEstoqueResponseDTO> listarEstoquePorListaDeProdutos(List<Long> produtoIds) {
+        if (produtoIds == null || produtoIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 1. Busca todos os estoques para os produtos solicitados em UMA ÚNICA QUERY.
+        // O método findByProdutoIdIn precisa ser criado no EstoqueRepository.
+        List<Estoque> estoques = estoqueRepository.findByProdutoIdIn(produtoIds);
+
+        // 2. Agrupa os estoques por ID do produto.
+        Map<Long, List<Estoque>> estoquesAgrupadosPorProdutoId = estoques.stream()
+                .collect(groupingBy(estoque -> estoque.getProduto().getId()));
+
+        // 3. Mapeia o resultado para a lista de DTOs de resposta.
+        return estoquesAgrupadosPorProdutoId.entrySet().stream()
                 .map(entry -> produtoEstoqueDTOMapper.toDto(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
     }
