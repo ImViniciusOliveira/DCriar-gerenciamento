@@ -63,14 +63,28 @@
 
           <!-- Coluna Estoque por Canal -->
           <ng-container matColumnDef="estoquePorCanal">
-            <th mat-header-cell *matHeaderCellDef> Estoque por Canal </th>
+            <th mat-header-cell *matHeaderCellDef> Canais </th>
             <td mat-cell *matCellDef="let product">
-              @if (product.estoquePorCanal && (product.estoquePorCanal | keyvalue).length > 0) {
-                <ul class="channel-stock-list">
-                  @for (channel of product.estoquePorCanal | keyvalue; track channel.key) {
-                    <li>{{ getChannelDisplayName($any(channel.key)) }}: {{ channel.value }}</li>
+              @if (product.estoquePorCanal) {
+                <!-- Primeiro, aplicamos os pipes e atribuímos o resultado a 'activeChannels' -->
+                @if (product.estoquePorCanal | keyvalue | filterStock:0; as activeChannels) {
+                  <!-- Agora, verificamos se o array resultante tem itens -->
+                  @if (activeChannels.length > 0) {
+                    <div class="stock-summary">
+                      <span>Em {{ activeChannels.length }} {{ activeChannels.length > 1 ? 'canais' : 'canal' }}</span>
+                      <mat-icon class="stock-menu-trigger" [matMenuTriggerFor]="stockMenu" title="Ver estoque por canal">more_vert</mat-icon>
+                    </div>
+                    <mat-menu #stockMenu="matMenu">
+                      @for (channel of activeChannels; track channel.key) {
+                        <button mat-menu-item disabled class="stock-menu-item">{{ getChannelDisplayName($any(channel.key)) }}: {{ channel.value }}</button>
+                      }
+                    </mat-menu>
+                  } @else {
+                    <span>Nenhum</span>
                   }
-                </ul>
+                } @else {
+                  <span>Nenhum</span>
+                }
               }
             </td>
           </ng-container>

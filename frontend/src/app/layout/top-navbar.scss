@@ -1,6 +1,4 @@
-// Define a cor de fundo da barra de navegação principal.
 :host mat-toolbar {
-  // Usa uma cor de superfície do tema do Material 3 para o modo claro.
   background-color: var(--mat-sys-surface-container-highest);
   color: var(--mat-sys-on-surface);
 }
@@ -8,12 +6,12 @@
 .home-link {
   font-size: 20px;
   font-weight: 500;
-  text-decoration: none; // Remove o sublinhado padrão de links
-  color: inherit; // Herda a cor do texto da toolbar
-  transition: opacity 0.2s ease-in-out; // Adiciona uma transição suave
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.2s ease-in-out;
 
   &:hover {
-    opacity: 0.8; // Deixa o link um pouco mais transparente ao passar o mouse
+    opacity: 0.8;
   }
 }
 
@@ -22,7 +20,6 @@
 }
 
 .nav-link {
-  // Adiciona margem à esquerda do texto apenas se ele for precedido por um ícone.
   mat-icon + span {
     margin-left: 8px;
   }

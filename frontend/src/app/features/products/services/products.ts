@@ -30,19 +30,17 @@ export class ProductsService {
       map(endpoints => {
         const productsRootUrl = endpoints._links?.['produtos']?.href;
         if (!productsRootUrl) {
-          // Se o link principal de produtos não for encontrado, a aplicação não pode continuar.
           throw new Error('URL de produtos não encontrada na resposta da API raiz.');
         }
-        // Remove qualquer template, caso exista (boa prática).
         return productsRootUrl.split('{')[0];
       }),
-      // CONSTRÓI a URL final para a primeira chamada e executa.
       switchMap(baseUrl => {
         const finalUrl = `${baseUrl}?page=${page}&size=${size}&sort=${sort}`;
         return this.http.get<ApiResponseProducts>(finalUrl);
       }),
       catchError(err => {
         console.error(`Falha ao buscar produtos na página ${page}, tamanho ${size}`, err);
+        // Em caso de erro, retorna uma resposta vazia para não quebrar a UI.
         return of({ _embedded: { produtos: [] }, _links: {}, page: { size: 0, totalElements: 0, totalPages: 0, number: 0 } } as ApiResponseProducts);
       })
     );
@@ -50,7 +48,6 @@ export class ProductsService {
 
   getNewProductTemplate(): Observable<Product> {
     return this.endpoints$.pipe(
-      // O template de um novo produto é um sub-recurso da coleção de produtos.
       map(endpoints => this.getProductBaseUrl(endpoints)),
       switchMap(baseUrl => this.http.get<Product>(`${baseUrl}/new`)),
       take(1)
@@ -67,7 +64,7 @@ export class ProductsService {
 
   deleteProduct(url: string): Observable<void> {
     return this.http.delete<void>(url).pipe(
-      tap(() => this.refresh$.next()) // Dispara o recarregamento da lista de produtos.
+      tap(() => this.refresh$.next())
     );
   }
 
@@ -81,7 +78,7 @@ export class ProductsService {
       take(1),
       map(endpoints => this.getProductBaseUrl(endpoints)),
       switchMap(url => this.http.post<Product>(url, payload)),
-      tap(() => this.refresh$.next()) // O tap aqui retorna o que o switchMap emitiu, que é o Produto.
+      tap(() => this.refresh$.next())
     );
   }
 
@@ -94,7 +91,7 @@ export class ProductsService {
       map(endpoints => this.getProductBaseUrl(endpoints)),
       switchMap(baseUrl => this.http.patch<Product>(`${baseUrl}/${productId}`, product)),
       tap(() => this.refresh$.next()),
-      take(1) // Garante que o Observable complete após a primeira emissão (a resposta do PATCH).
+      take(1)
     );
   }
 
@@ -107,8 +104,7 @@ export class ProductsService {
   }
 
   /**
-   * Busca o estoque por canal para um produto específico usando seu link HATEOAS.
-   * Transforma a resposta da API em um mapa simples de [channelName]: quantity.
+   * Busca o estoque por canal para um produto específico.
    */
   getChannelStock(product: Product): Observable<{ [key: string]: number }> {
     const stockUrl = product._links?.['estoque-por-canal']?.href;
@@ -116,7 +112,6 @@ export class ProductsService {
       return of({});
     }
 
-    // A lógica de conversão não é mais necessária, pois usaremos o nome do canal como chave.
     return this.http.get<ProductChannelStock>(stockUrl).pipe(
       map(response => {
         const stockEntries = response?.canais || [];
@@ -127,7 +122,7 @@ export class ProductsService {
       }),
       catchError(err => {
         console.error(`Erro ao buscar estoque para o produto ID ${product.id}:`, err);
-        return of({}); // Em caso de erro, retorna um objeto de estoque vazio para não quebrar o fluxo principal.
+        return of({});
       })
     );
   }
@@ -137,25 +132,20 @@ export class ProductsService {
     if (!url) {
       throw new Error('URL de produtos não encontrada na resposta da API');
     }
-    return url.split('{')[0]; // Remove qualquer parte de template
+    return url.split('{')[0];
   }
 
   /**
-   * Mapeia um objeto de produto (geralmente vindo de um formulário) para o formato
-   * de payload que a API espera.
-   * - Remove campos que não devem ser enviados (como _links).
-   * - Transforma campos complexos em IDs (ex: materiaPrima -> tipoMateriaPrimaId).
+   * Mapeia um objeto de produto para o payload esperado pela API.
    */
   private mapToPayload(product: Partial<Product>): any {
     const payload: any = { ...product };
 
-    // Se houver matéria-prima, envie apenas o ID.
     if (payload.materiaPrima) {
       payload.tipoMateriaPrimaId = payload.materiaPrima.id;
       delete payload.materiaPrima;
     }
 
-    // Renomeia 'dimensoes' para 'dimensoesUnitarias' que é o esperado pela API na criação.
     if (payload.dimensoes) {
       payload.dimensoesUnitarias = payload.dimensoes;
       delete payload.dimensoes;
@@ -166,7 +156,6 @@ export class ProductsService {
 
   private createChannelMap(channels: Channel[]): { [key: string]: number } {
     const finalMap = channels.reduce((acc, channel) => {
-      // Usa o próprio nome do canal como chave.
       acc[channel.canalNome] = channel.quantidade;
       return acc;
     }, {} as { [key: string]: number });

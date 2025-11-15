@@ -5,7 +5,6 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { ApiRoot } from '../../../core/services/api-root';
 import { Hateoas } from '../../../core/models/hateoas.model';
 
-// Modelo para um único Canal de Venda
 export interface SalesChannel {
   id: number;
   nome: string;
@@ -13,7 +12,6 @@ export interface SalesChannel {
   _links?: any;
 }
 
-// Modelo para a resposta da coleção do backend
 interface ApiResponseSalesChannels extends Hateoas {
   _embedded: {
     'canais-venda': SalesChannel[];
@@ -27,17 +25,17 @@ export class SalesChannelService {
   private readonly http = inject(HttpClient);
   private readonly apiRoot = inject(ApiRoot);
 
-  // A single, cached stream of all sales channels from the API.
+  // Um fluxo único e cacheado de todos os canais de venda da API.
   private readonly allChannels$: Observable<SalesChannel[]> = this.fetchAllSalesChannels().pipe(
     shareReplay(1)
   );
 
-  // Expõe um mapa reativo de Identificador -> Nome (Ex: 'LOJA_FISICA' -> 'Loja Física')
+  // Expõe um mapa reativo de Nome do Canal -> Nome do Canal.
   readonly channelNameMap$: Observable<Map<string, string>> = this.allChannels$.pipe(
     map(channels => new Map(channels.map(c => [c.nome, c.nome])))
   );
 
-  // Expõe uma lista reativa de todos os nomes de canal (Ex: ['Loja Física', 'Shopee', ...])
+  // Expõe uma lista reativa com os nomes de todos os canais.
   readonly channelKeys$: Observable<string[]> = this.allChannels$.pipe(
     map(channels => channels.map(c => c.nome))
   );

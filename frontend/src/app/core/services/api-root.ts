@@ -18,8 +18,8 @@ export class ApiRoot {
 
   constructor() {
     this.endpoints$ = this.loadEndpoints();
-    // A subscrição inicial garante que os endpoints sejam carregados o mais cedo possível.
-    // O take(1) finaliza o observable após a primeira emissão, evitando memory leaks.
+    // A subscrição inicial garante que os endpoints sejam carregados na inicialização da aplicação.
+    // O take(1) finaliza o observable após a primeira emissão, evitando memory leaks (vazamentos de memória).
     this.endpoints$.pipe(take(1)).subscribe();
   }
 
@@ -28,7 +28,7 @@ export class ApiRoot {
       .get<Hateoas>(this.API_URL)
       .pipe(
         tap(endpoints => this.endpoints.set(endpoints)),
-        shareReplay(1) // Evita múltiplas chamadas para a raiz da API
+        shareReplay(1) // Cacheia o resultado para evitar múltiplas chamadas à raiz da API.
       );
   }
 }

@@ -29,7 +29,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
   templateUrl: './product-form.html',
   styleUrls: ['./product-form.scss']
 })
-export class ProductFormComponent implements OnInit { // Removido OnDestroy, pois destroy$ não é mais necessário
+export class ProductFormComponent implements OnInit {
   private static readonly CONFIRM_CHANGE_TITLE = 'Confirmar Alteração';
   private static readonly CONFIRM_CHANGE_MESSAGE = (original: string, novo: string) =>
     `Deseja realmente alterar a matéria-prima de "${original}" para "${novo}"?`;
@@ -69,9 +69,7 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
     this.product = data.product;
     this.isEditMode = data.isEditMode;
 
-    // Lógica HATEOAS robusta:
-    // 1. Tenta obter o link do objeto do produto (cenário ideal).
-    // 2. Se não encontrar, busca o link na raiz da API (fallback).
+    // Obtém a URL do endpoint HATEOAS, priorizando o link do produto e usando a raiz da API como fallback.
     const getUrl = (link: string) => this.product?._links?.[link]?.href?.split('{')[0]
                                   || this.apiRoot.endpoints()?._links?.[link]?.href?.split('{')[0];
 
@@ -89,8 +87,8 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
         map(unitsMap => Array.from(unitsMap.values()))
       );
     } else {
-      console.error("URL para unidades de medida não pôde ser determinada.");
-      this.consumptionUnits$ = of([]); // Define um array vazio se a URL não for encontrada
+      console.error('URL para unidades de medida não pôde ser determinada.');
+      this.consumptionUnits$ = of([]);
     }
 
     this.consumptionUnits = toSignal(this.consumptionUnits$, { initialValue: [] });
@@ -115,7 +113,7 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
     });
 
     if (!this.materialTypesSearchUrl) {
-      this.productForm.disable();
+      this.productForm.get('materiaPrima')?.disable();
     }
   }
 
@@ -126,21 +124,20 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
 
     if (this.isEditMode) {
       await this.handleEditSubmit();
-    } else { // Modo de Criação
+    } else {
       await this.handleCreateSubmit();
     }
   }
 
   private async handleEditSubmit(): Promise<void> {
-     this.isUploading.set(true); // Ativa o spinner antes das operações
+     this.isUploading.set(true);
      try {
        let hasChanged = false;
 
        if (this.selectedFile) {
-         // Apenas faz o upload. Não precisamos da resposta aqui, pois a lista será recarregada.
          const updated = await this.uploadImage();
          if (updated) {
-           this.product = updated; // garante que o produto local está atualizado
+           this.product = updated;
            hasChanged = true;
          }
        }
@@ -156,21 +153,15 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
         hasChanged = true;
       }
 
-      // Se houve qualquer alteração (upload ou patch), fechamos o diálogo para forçar o recarregamento.
-      // Se não houve alteração, podemos simplesmente fechar sem sinalizar sucesso.
-      // Desconecta o componente da detecção de mudanças ANTES de fechar.
       this.cdr.detach();
       this.dialogRef.close(hasChanged);
     } catch (error) {
       console.error('Erro ao atualizar o produto:', error instanceof Error ? error.message : error);
-     } finally {
-       this.isUploading.set(false); // Garante que o spinner seja desativado
      }
    }
 
   private async handleCreateSubmit(): Promise<void> {
     try {
-      // Desconecta o componente da detecção de mudanças ANTES de fechar.
       this.cdr.detach();
       const formValue = this.productForm.getRawValue();
       await lastValueFrom(this.productsService.createProduct(formValue as Partial<Product>));
@@ -180,74 +171,59 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
     }
   }
 
-  // Utilitário: detecta se uma URL é provavelmente o endpoint de upload do produto
   private isUploadEndpoint(url: string | undefined | null): boolean {
     if (!url) return false;
     try {
-      const parsed = new URL(url, window.location.origin);
-      // Se a URL contém o padrão /api/v1/produtos/{id}/foto ou termina com /foto, consideramos upload endpoint
-      return /\/api\/v1\/produtos\/[0-9]+\/foto(\/)?$/.test(parsed.pathname) || /\/api\/v1\/produtos\/.*\/foto/.test(parsed.pathname);
+      const parsed = new URL(url, globalThis.location.origin);
+      return /\/api\/v1\/produtos\/\d+\/foto(\/)?$/.test(parsed.pathname) || /\/api\/v1\/produtos\/.*\/foto/.test(parsed.pathname);
     } catch (e) {
+      console.error(`Falha ao parsear URL em isUploadEndpoint: ${url}`, e);
       // fallback: regex direto na string (mais permissivo)
-      return /\/api\/v1\/produtos\/[0-9]+\/foto(\/)?$/.test(String(url)) || /\/api\/v1\/produtos\/.*\/foto/.test(String(url));
+      return /\/api\/v1\/produtos\/\d+\/foto(\/)?$/.test(String(url)) || /\/api\/v1\/produtos\/.*\/foto/.test(String(url));
     }
   }
 
-  // Retorna a URL que deve ser usada no <img src="...">. Prioriza preview local (createObjectURL)
-  // e só usa a URL do produto se ela for a URL pública de download (não o endpoint de upload).
   displayImageUrl(): string | null {
     const preview = this.previewUrl();
     if (preview) return preview;
     const prodUrl = this.product?.fotoPrincipalUrl;
     if (prodUrl) {
-      // Normaliza e garante que não é o endpoint de upload
-      const normalized = this.normalizeDownloadUrl(prodUrl);
-      if (!this.isUploadEndpoint(normalized)) return normalized;
+      return this.normalizeDownloadUrl(prodUrl);
     }
     return null;
   }
 
-  // Normaliza URLs recebidas do backend: encode espaços e caracteres inválidos para uso em src
   private normalizeDownloadUrl(url: string | null | undefined): string | null {
     if (!url) return null;
     try {
-      // Se já é uma URL absoluta
-      const u = new URL(url, window.location.origin);
-      // Garantir que o path seja adequadamente encoded (evita espaços no caminho)
+      const u = new URL(url, globalThis.location.origin);
       const pathname = u.pathname.split('/').map(segment => encodeURIComponent(decodeURIComponent(segment))).join('/');
-      // Reconstruir sem alterar other parts
       const normalized = `${u.protocol}//${u.host}${pathname}${u.search}${u.hash}`;
       return normalized;
     } catch (e) {
-      // Se não é um URL válida, tenta um encode simples
+      console.warn(`Falha ao normalizar URL com new URL(), tentando fallback com encodeURI: ${url}`, e);
       try {
         return encodeURI(url);
       } catch (ex) {
+        console.error(`Falha total ao normalizar ou encodar URL: ${url}`, ex);
         return url;
       }
     }
   }
 
   ngOnInit(): void {
-    // No modo de edição, pré-populamos a lista apenas com a matéria-prima atual do produto
-    // para que ela já apareça selecionada. A busca completa só ocorrerá com a interação do usuário.
     if (this.isEditMode && this.product.materiaPrima) {
       this.materialTypes.set([this.product.materiaPrima]);
     }
 
-    // Se o produto já tiver uma foto, define a URL de preview
     if (this.isEditMode && this.product.fotoPrincipalUrl) {
-      // Segurança: evita usar acidentalmente uma URL de upload (POST) como src de imagem.
       const normalized = this.normalizeDownloadUrl(this.product.fotoPrincipalUrl);
       if (normalized && !this.isUploadEndpoint(normalized)) {
         this.previewUrl.set(normalized);
       } else {
-        // Se a URL parecer apontar para o endpoint de upload, não a usa como src.
         this.previewUrl.set(null);
       }
     }
-    // Nos modos de criação e visualização, a lista de matérias-primas começa vazia,
-    // aguardando a ação do usuário para ser populada.
   }
 
   async performSearch(): Promise<void> {
@@ -255,13 +231,11 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
 
     try {
       this.currentPage.set(0);
-      // Sempre limpa os tipos de matéria-prima existentes para uma nova busca
       this.materialTypes.set([]);
-      // Limpa a seleção atual do dropdown para evitar que um valor antigo seja mantido.
       this.productForm.get('materiaPrima')?.reset();
 
       if (!this.materialTypesSearchUrl) {
-        console.error("Não é possível buscar matérias-primas: URL não encontrada no produto.");
+        console.error('Não é possível buscar matérias-primas: URL não encontrada no produto.');
         return;
       }
 
@@ -276,10 +250,8 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
         )
       );
 
-      // Acesso seguro: se a busca não retornar nada (`_embedded` for undefined), `newMaterials` será um array vazio.
       const newMaterials = response?._embedded?.['tipos-materia-prima'] || [];
 
-      // A lista de resultados agora contém apenas o que foi retornado pela busca.
       this.materialTypes.set(newMaterials);
       this.totalElements.set(response.page.totalElements);
     } catch (err) {
@@ -305,11 +277,11 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
 
       const response = await lastValueFrom(this.materialTypeService.searchMaterialTypes(this.materialTypesSearchUrl, filters, this.currentPage(), this.pageSize));
 
-      // Acesso seguro também no `loadMore`.
       const newMaterials = response?._embedded?.['tipos-materia-prima'] || [];
       this.materialTypes.update(currentTypes => [...currentTypes, ...newMaterials]);
     } catch (err) {
       console.error('Erro ao carregar mais matérias-primas:', err);
+      // Não é necessário fazer mais nada aqui, o `finally` cuidará do estado de `isSearching`.
     } finally {
       this.isSearching.set(false);
     }
@@ -319,7 +291,6 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       this.selectedFile = input.files[0];
-      // Gera uma URL local para a pré-visualização da imagem
       this.previewUrl.set(URL.createObjectURL(this.selectedFile));
     }
   }
@@ -327,7 +298,6 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
   private async uploadImage(): Promise<Product | null> {
     const uploadUrl = this.product?._links?.['upload-foto']?.href;
     if (!this.selectedFile || !uploadUrl) {
-      // Se não houver arquivo ou URL, retorna o produto atual sem alterações.
       return this.product;
     }
 
@@ -336,31 +306,23 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
       const updatedProduct = await lastValueFrom(
         this.productsService.uploadProductPhoto(uploadUrl, this.selectedFile)
       );
-      // Atualiza o produto local com a nova URL da imagem para feedback visual imediato.
-      // Atualiza o estado do componente com o produto retornado pelo backend
       if (updatedProduct) {
-        // Sanitiza a fotoPrincipalUrl retornada pelo backend antes de sobrescrever o produto local.
         const rawUrl = updatedProduct.fotoPrincipalUrl;
         const normalized = this.normalizeDownloadUrl(rawUrl);
         if (normalized && !this.isUploadEndpoint(normalized) && normalized.includes('/uploads/')) {
-          // URL válida de download -> usa
           updatedProduct.fotoPrincipalUrl = normalized;
           this.previewUrl.set(normalized);
         } else {
-          // Backend retornou algo inesperado (ex.: endpoint de upload).
-          // Não sobrescreve a url de foto existente do produto local para evitar que o <img> tente um GET em /produtos/{id}/foto.
-          // Mantemos a URL anterior (ou string vazia) sem logs de depuração.
           updatedProduct.fotoPrincipalUrl = this.product?.fotoPrincipalUrl ?? '';
          }
 
-        // Atualiza o produto local com os demais campos (mantendo fotoPrincipalUrl sanitizada)
         this.product = { ...this.product, ...updatedProduct } as Product;
       }
-      this.selectedFile = null; // Limpa o arquivo selecionado
+      this.selectedFile = null;
       return updatedProduct;
     } catch (err) {
-      // Erro no upload: será tratado pelo chamador
-      throw err; // Re-lança o erro para ser pego pelo bloco catch do onSubmit
+      console.error('Falha durante o upload da imagem:', err);
+      throw err;
     } finally {
       this.isUploading.set(false);
     }
@@ -371,19 +333,16 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
     for (const key of Object.keys(form.controls)) {
       const control = (form.controls as any)[key];
 
-      // Skip controls that were not modified to reduce nesting
       if (!control.dirty) {
         continue;
       }
 
-      // Handle composite controls (groups/arrays)
       if (control instanceof FormGroup || control instanceof FormArray) {
         const nestedDirtyValues = this.getDirtyValues(control);
         if (Object.keys(nestedDirtyValues).length === 0) {
           continue;
         }
 
-        // Special case for 'dimensoes': if any child changed, send the whole object
         if (key === 'dimensoes') {
           dirtyValues[key] = control.value;
         } else {
@@ -392,7 +351,6 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
         continue;
       }
 
-      // Simple control: include its value
       dirtyValues[key] = control.value;
     }
     return dirtyValues;
@@ -427,9 +385,7 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
     }
   }
 
-  // Retorna a URL segura para usar em <img src>
   getSafeImageSrc(): string | null {
-    // Prioriza preview local (createObjectURL)
     const preview = this.previewUrl();
     if (preview) return preview;
 
@@ -439,13 +395,10 @@ export class ProductFormComponent implements OnInit { // Removido OnDestroy, poi
     const normalized = this.normalizeDownloadUrl(prodUrl);
     if (!normalized) return null;
 
-    // Apenas permite URLs públicas que contenham '/uploads/' (onde os arquivos são servidos)
     if (normalized.includes('/uploads/')) {
       return normalized;
     }
 
-    // Se o backend devolveu algo inesperado (ex.: o endpoint de upload), logamos para investigação
-    // Ignora URL não válida de download sem log.
      return null;
    }
  }

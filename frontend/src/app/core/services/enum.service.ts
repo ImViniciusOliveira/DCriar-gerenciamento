@@ -34,14 +34,11 @@ export class EnumService {
   /**
    * Retorna um Observable com um mapa de unidades de consumo.
    * O mapa é cacheado por URL para evitar requisições repetidas.
-   * @param url A URL HATEOAS para o recurso 'unidades-de-medida'.
    */
   getConsumptionUnitsMap(url: string): Observable<Map<string, EnumOption>> {
-    // A URL é a chave do cache para o mapa, garantindo que cada URL única
-    // tenha seu próprio fluxo de mapa cacheado.
     const cacheKey = `map_${url}`;
     if (!this.cache[cacheKey]) {
-      this.cache[cacheKey] = this.getEnumOptions(url).pipe( // Cria o mapa a partir das opções
+      this.cache[cacheKey] = this.getEnumOptions(url).pipe(
         map(options => new Map(options.map(opt => [opt.value, opt]))),
         shareReplay(1)
       );
@@ -53,13 +50,11 @@ export class EnumService {
     if (!this.cache[url]) {
       this.cache[url] = this.http.get<EmbeddedEnumResponse>(url).pipe(
         map(response => {
-          // Extrai o primeiro array encontrado dentro do objeto _embedded
           const embedded = response?._embedded;
 
           const key = Object.keys(embedded)[0];
           const items = embedded[key] || [];
 
-          // Mapeia os campos 'name' e 'descricao' para 'value' e 'viewValue' com segurança de tipo.
           const mappedItems = items.map(item => ({
             value: item.name,
             viewValue: item.descricao,

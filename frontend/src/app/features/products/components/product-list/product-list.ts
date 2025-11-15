@@ -19,7 +19,10 @@ import { ProductFormComponent, ProductFormData } from '../product-form/product-f
 import { MatCardModule } from '@angular/material/card';
 import { ApiRoot } from '../../../../core/services/api-root';
 import { SalesChannelService } from '../../services/sales-channel.service';
+import { FilterStockPipe } from './filter-stock.pipe';
+import { MatMenuModule } from '@angular/material/menu';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-product-list',
@@ -34,6 +37,8 @@ import { EnumOption, EnumService } from '../../../../core/services/enum.service'
     MatPaginatorModule,
     MatSortModule,
     MatProgressSpinnerModule,
+    FilterStockPipe,
+    MatMenuModule,
     MatSnackBarModule,
   ],
   templateUrl: './product-list.html',
@@ -56,7 +61,7 @@ export class ProductList implements OnInit {
   private readonly salesChannelService = inject(SalesChannelService);
   private readonly enumService = inject(EnumService);
 
-  private channelNameMap = new Map<string, string>(); // Pode ser convertido para signal se houver necessidade de reatividade
+  private loadingTimer: any;
 
   products = signal<Product[]>([]);
   isLoading = signal(false);
@@ -66,24 +71,21 @@ export class ProductList implements OnInit {
   pageSize = signal(10);
   pageIndex = signal(0);
 
-  // Controla a ordenação
   sortActive = signal('nome');
   sortDirection = signal<Sort['direction']>('asc');
 
-  // Usar um signal para o mapa de unidades de consumo para consistência e reatividade
+  private readonly channelNameMap = toSignal(this.salesChannelService.channelNameMap$, { initialValue: new Map<string, string>() });
   readonly consumptionUnitsMap = signal(new Map<string, EnumOption>());
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   ngOnInit(): void {
     this.loadProducts();
-    this.salesChannelService.channelNameMap$.pipe(take(1)).subscribe((mapData) => {
-      this.channelNameMap = mapData;
-    });
   }
 
   loadProducts(): void {
-    this.isLoading.set(true);
+    // Exibe o spinner apenas se a operação demorar mais de 300ms.
+    this.loadingTimer = setTimeout(() => this.isLoading.set(true), 300);
 
     this.salesChannelService.channelKeys$.pipe(
       take(1),
@@ -96,7 +98,7 @@ export class ProductList implements OnInit {
         this.totalElements.set(productsResponse.page?.totalElements || 0);
 
         if (products.length === 0) {
-          return of([]); // Retorna um array vazio para o subscribe final.
+          return of([]);
         }
 
         const stockObservables = products.map(product =>
@@ -112,20 +114,27 @@ export class ProductList implements OnInit {
       })
     ).subscribe({
       next: (finalProducts) => {
+        clearTimeout(this.loadingTimer);
         this.products.set(finalProducts);
         this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Erro ao carregar produtos:', error);
+        clearTimeout(this.loadingTimer);
         this.snackBar.open(ProductList.Texts.loadError, 'Fechar', { duration: 5000 });
         this.isLoading.set(false);
       }
     });
   }
 
+  /**
+   * Combina a lista de produtos com os dados de estoque.
+   * Garante que cada produto tenha um objeto `estoquePorCanal` com todos os canais de venda,
+   * preenchendo com 0 para os canais onde o produto não tem estoque.
+   */
   private mergeStockData(products: Product[], stocks: { productId: number; stock: { [key: string]: number } }[]): Product[] {
     const stockMap = new Map(stocks.map(s => [s.productId, s.stock]));
-    const channelKeys = Array.from(this.channelNameMap.keys());
+    const channelKeys = Array.from(this.channelNameMap().keys());
     const baseChannelStock = Object.fromEntries(channelKeys.map(key => [key, 0]));
 
     return products.map(product => {
@@ -184,27 +193,21 @@ export class ProductList implements OnInit {
     } catch (error) {
       console.error('Erro ao buscar detalhes do produto para visualização:', error);
       this.snackBar.open('Não foi possível carregar os dados para visualização.', 'Fechar', { duration: 3000 });
-    } finally {
-      this.isLoading.set(false);
     }
   }
 
   async onEdit(product: Product): Promise<void> {
     try {
-      this.isLoading.set(true);
       const productCopy = structuredClone(product);
       this.openProductDialog({ product: productCopy, isEditMode: true, title: 'Editar Produto' }, ProductList.Texts.saveSuccess);
     } catch (error) {
       console.error('Erro ao buscar detalhes do produto para edição:', error);
       this.snackBar.open('Não foi possível carregar os dados para edição.', 'Fechar', { duration: 3000 });
-    } finally {
-      this.isLoading.set(false);
     }
   }
 
   async onCreate(): Promise<void> {
     try {
-      this.isLoading.set(true);
       await lastValueFrom(this.apiRoot.endpoints$);
       const newProductTemplate = await lastValueFrom(this.productsService.getNewProductTemplate());
 
@@ -217,8 +220,6 @@ export class ProductList implements OnInit {
     } catch (error) {
       console.error('Erro ao buscar template para novo produto:', error);
       this.snackBar.open('Não foi possível iniciar o cadastro de um novo produto.', 'Fechar', { duration: 3000 });
-    } finally {
-      this.isLoading.set(false);
     }
   }
 
@@ -237,18 +238,14 @@ export class ProductList implements OnInit {
   }
 
   getConsumptionUnitViewValue(key: string): string {
-    return this.consumptionUnitsMap().get(key)?.viewValue ?? key; // Acessa o valor do signal
+    return this.consumptionUnitsMap().get(key)?.viewValue ?? key;
   }
 
   getChannelDisplayName(channelKey: string): string {
-    return this.channelNameMap.get(channelKey) || channelKey;
+    return this.channelNameMap().get(channelKey) || channelKey;
   }
 
   trackByProductId(index: number, product: Product): number {
     return product.id;
   }
-}
-
-function compare(a: number | string, b: number | string, isAsc: boolean) {
-  return (a < b ? -1 : 1) * (isAsc ? 1 : -1);
 }

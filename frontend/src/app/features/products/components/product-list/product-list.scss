@@ -64,8 +64,27 @@
   font-size: 0.85rem;
 }
 
+.stock-summary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-start;
+}
+
+.stock-menu-trigger {
+  cursor: pointer;
+  border-radius: 50%;
+  padding: 4px;
+  transition: background-color 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: content-box;
+}
+.stock-menu-trigger:hover {
+  background-color: rgba(var(--mat-sys-on-surface-rgb), 0.08);
+}
 mat-paginator {
   background-color: var(--mat-sys-surface-container-highest);
-  border-radius: 0 0 8px 8px; // Arredonda as bordas inferiores para combinar com o card.
   padding: 0 16px;
 }
