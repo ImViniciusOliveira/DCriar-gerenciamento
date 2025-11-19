@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -174,12 +176,13 @@ public class GlobalExceptionHandler {
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400 e detalhes dos erros de campo.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponseDTO> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleValidationErrors(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
-        ex.getBindingResult().getGlobalErrors().forEach(error -> errors.put(error.getObjectName(), error.getDefaultMessage()));
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                errors.put(error.getField(), error.getDefaultMessage()));
+
         log.warn("Erros de validação de argumento de método: {}", errors);
-        return buildErrorResponse("Erros de validação encontrados", HttpStatus.BAD_REQUEST, errors);
+        return buildErrorResponse("Erro de validação. Verifique os campos informados.", HttpStatus.BAD_REQUEST, errors);
     }
 
     /**
@@ -233,6 +236,32 @@ public class GlobalExceptionHandler {
         log.error("Erro interno do servidor: ", ex);
         String msg = "Ocorreu um erro interno inesperado. Tente novamente mais tarde.";
         return buildErrorResponse(msg, HttpStatus.INTERNAL_SERVER_ERROR, Map.of("detalhe", ex.getMessage()));
+    }
+
+    /**
+     * Manipula erros de integridade (ex: tentar criar produto com nome duplicado)
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleDatabaseErrors(DataIntegrityViolationException ex) {
+        log.error("Conflito de dados no banco de dados.", ex);
+        return buildErrorResponse(
+                "Conflito de dados. Este registro já existe ou viola uma regra de integridade.",
+                HttpStatus.CONFLICT,
+                null
+        );
+    }
+
+    /**
+     * Manipula uploads maiores que o permitido
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponseDTO> handleMaxSizeException(MaxUploadSizeExceededException ex) {
+        log.warn("Tentativa de upload de arquivo excedeu o tamanho máximo permitido.", ex);
+        return buildErrorResponse(
+                "O arquivo enviado excede o tamanho máximo permitido.",
+                HttpStatus.EXPECTATION_FAILED,
+                null
+        );
     }
 
     /**

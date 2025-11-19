@@ -18,15 +18,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.Link;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -123,32 +118,21 @@ public class EstoqueProdutoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * Lista o estoque de múltiplos produtos, agrupados por canal de venda.
-     * Endpoint otimizado para evitar o problema "N+1" no frontend.
-     *
-     * @param produtoIds Lista de IDs de produtos a serem consultados.
-     * @return Um ResponseEntity com a lista de DTOs de estoque de produtos.
-     */
-    @GetMapping("/por-produtos/canais")
-    @Operation(summary = "Listar o estoque de múltiplos produtos, agrupados por canal de venda (Otimizado com HATEOAS)")
-    public ResponseEntity<CollectionModel<EntityModel<ProdutoEstoqueResponseDTO>>> listarEstoquesPorListaDeProdutos(
-            @RequestParam List<Long> produtoIds) {
-        List<ProdutoEstoqueResponseDTO> estoquesDTO = estoqueProdutoService.listarEstoquePorListaDeProdutos(produtoIds);
+    @GetMapping("/por-lista-produtos")
+    @Operation(summary = "Listar estoques de múltiplos produtos (Otimizado)")
+    public ResponseEntity<CollectionModel<ProdutoEstoqueResponseDTO>> listarEstoquesPorListaDeProdutos(
+            @RequestParam(required = false) List<Long> produtoIds) {
 
-        // Constrói manualmente os modelos HATEOAS para cada item da lista
-        List<EntityModel<ProdutoEstoqueResponseDTO>> models = estoquesDTO.stream()
-                .map(dto -> EntityModel.of(dto,
-                        linkTo(methodOn(ProdutoController.class).findById(dto.getProdutoId())).withRel("produto")))
-                .collect(Collectors.toList());
+        List<ProdutoEstoqueResponseDTO> estoques = estoqueProdutoService.listarEstoquePorListaDeProdutos(produtoIds);
 
-        // Constrói o link 'self' manualmente para usar o formato de vírgulas, que é mais limpo.
-        String idsComoString = StringUtils.collectionToCommaDelimitedString(produtoIds);
-        URI selfLinkUri = linkTo(methodOn(EstoqueProdutoController.class).listarEstoquesPorListaDeProdutos(produtoIds))
-                .toUriComponentsBuilder().replaceQueryParam("produtoIds", idsComoString).build().toUri();
+        // Clean Code: Encapsula a lista em um modelo de coleção HATEOAS padrão
+        CollectionModel<ProdutoEstoqueResponseDTO> collectionModel = CollectionModel.of(estoques);
 
-        // Envolve a lista de modelos em uma CollectionModel e adiciona um link "self"
-        return ResponseEntity.ok(CollectionModel.of(models, Link.of(selfLinkUri.toString(), "self")));
+        // Adiciona o link "self" apontando para este próprio método, permitindo navegação
+        collectionModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarEstoquesPorListaDeProdutos(produtoIds)).withSelfRel());
+
+        return ResponseEntity.ok(collectionModel);
     }
 
     /**
