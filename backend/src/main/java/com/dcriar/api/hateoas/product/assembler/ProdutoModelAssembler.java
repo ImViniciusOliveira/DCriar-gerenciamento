@@ -18,7 +18,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -55,23 +54,18 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
             model.add(linkTo(methodOn(ProdutoController.class).deleteById(dto.getId())).withRel("deletar-produto"));
             model.add(linkTo(methodOn(ProdutoController.class).uploadFoto(dto.getId(), null)).withRel("upload-foto"));
 
-            // Se houver uma URL da foto principal, expõe um link HATEOAS para o download direto
-            if (dto.getFotoPrincipalUrl() != null && !dto.getFotoPrincipalUrl().isBlank()) {
-                try {
-                    URI uri = new URI(dto.getFotoPrincipalUrl());
-                    String path = uri.getPath();
-                    String fileName = path.substring(path.lastIndexOf('/') + 1);
-                    if (!fileName.isBlank()) {
-                        // Popula o campo fotoPrincipalUrl do modelo com a URL segura da API
-                        String apiHref = ServletUriComponentsBuilder.fromCurrentContextPath()
-                                .path("/api/v1/uploads/")
-                                .path(fileName)
-                                .toUriString();
-                        model.setFotoPrincipalUrl(apiHref);
-                    }
-                } catch (URISyntaxException ignored) {
-                    // se a URL for inválida, mantém o valor original de fotoPrincipalUrl
-                }
+            // Pega o nome do arquivo (ex: "uuid_foto.jpg") que veio do Service
+            String fileName = dto.getFotoPrincipalUrl();
+            
+            if (fileName != null && !fileName.isBlank()) {
+                // Monta a URL absoluta: http://localhost:8080/api/v1/uploads/uuid_foto.jpg
+                String fullUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/api/v1/uploads/")
+                        .path(fileName)
+                        .toUriString();
+                
+                // Define a URL pronta para o Frontend usar
+                model.setFotoPrincipalUrl(fullUrl);
             }
 
             model.add(linkTo(methodOn(EstoqueProdutoController.class).listarMovimentacoesPorProduto(dto.getId())).withRel("historico-movimentacoes"));

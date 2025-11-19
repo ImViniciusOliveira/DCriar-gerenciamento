@@ -132,22 +132,32 @@ public class ProdutoServiceImpl implements ProdutoService {
         // 5. Gerencia o ciclo de vida do arquivo de imagem.
         String newFotoUrlFromDto = requestDTO.getFotoPrincipalUrl();
 
-        if (newFotoUrlFromDto != null && !newFotoUrlFromDto.isBlank()) {
-            // Se uma nova foto foi enviada, extrai o nome do arquivo.
-            String newFileName = fileStorageService.extractFileName(newFotoUrlFromDto);
+        if (newFotoUrlFromDto != null) {
+            if (newFotoUrlFromDto.isBlank()) {
+                // Intenção explícita de remover a foto.
+                if (oldFotoFileName != null && !oldFotoFileName.isBlank()) {
+                    fileStorageService.deleteFile(oldFotoFileName);
+                }
+                produto.setFotoPrincipalUrl(null);
+            } else {
+                String newFileName;
+                // Verifica se a string é uma URL completa ou apenas um nome de arquivo.
+                if (newFotoUrlFromDto.startsWith("http://") || newFotoUrlFromDto.startsWith("https://")) {
+                    // É uma URL nova, extrai o nome do arquivo.
+                    newFileName = fileStorageService.extractFileName(newFotoUrlFromDto);
+                } else {
+                    // Já é um nome de arquivo (vindo de um PATCH), usa diretamente.
+                    newFileName = newFotoUrlFromDto;
+                }
 
-            // Se a foto antiga existia e é diferente da nova, exclui a antiga.
-            if (oldFotoFileName != null && !oldFotoFileName.equals(newFileName)) {
-                fileStorageService.deleteFile(oldFotoFileName);
+                // Se a foto antiga existia e é diferente da nova, exclui a antiga.
+                if (oldFotoFileName != null && !oldFotoFileName.equals(newFileName)) {
+                    fileStorageService.deleteFile(oldFotoFileName);
+                }
+                produto.setFotoPrincipalUrl(newFileName);
             }
-            produto.setFotoPrincipalUrl(newFileName);
-        } else {
-            // Se a URL da foto foi removida, exclui o arquivo antigo se ele existir.
-            if (oldFotoFileName != null && !oldFotoFileName.isBlank()) {
-                fileStorageService.deleteFile(oldFotoFileName);
-            }
-            produto.setFotoPrincipalUrl(null);
         }
+        // Se newFotoUrlFromDto for nulo, nada acontece, preservando a foto existente.
 
         // 6. Salva as alterações.
         produtoRepository.save(produto);
@@ -274,19 +284,9 @@ public class ProdutoServiceImpl implements ProdutoService {
      * @return O {@link ProdutoResponseDTO} enriquecido.
      */
     private ProdutoResponseDTO mapAndEnrichProduto(Produto produto) {
+        // O mapper já copia o nome do arquivo (ex: "foto123.jpg") para o DTO.
+        // Não fazemos nada com a URL aqui. Deixamos o dado "cru".
         ProdutoResponseDTO dto = produtoMapper.toResponseDTO(produto);
-
-        // 1. Constrói a URL completa da foto a partir do nome do arquivo armazenado.
-        if (dto.getFotoPrincipalUrl() != null && !dto.getFotoPrincipalUrl().isBlank()) {
-            String fileName = dto.getFotoPrincipalUrl();
-            // Constrói a URL para o endpoint de download do nosso próprio backend,
-            // que atua como um proxy seguro para o MinIO.
-            String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/v1/uploads/")
-                .path(fileName)
-                .toUriString();
-            dto.setFotoPrincipalUrl(fileDownloadUri);
-        }
 
         // 2. Calcula e define os dados de estoque.
         Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
