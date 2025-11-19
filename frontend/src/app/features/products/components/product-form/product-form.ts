@@ -172,48 +172,13 @@ export class ProductFormComponent implements OnInit {
     }
   }
 
-  private isUploadEndpoint(url: string | undefined | null): boolean {
-    if (!url) return false;
-    try {
-      const parsed = new URL(url, globalThis.location.origin);
-      return /\/api\/v1\/produtos\/\d+\/foto(\/)?$/.test(parsed.pathname) || /\/api\/v1\/produtos\/.*\/foto/.test(parsed.pathname);
-    } catch (e) {
-      console.error(`Falha ao parsear URL em isUploadEndpoint: ${url}`, e);
-      // fallback: regex direto na string (mais permissivo)
-      return /\/api\/v1\/produtos\/\d+\/foto(\/)?$/.test(String(url)) || /\/api\/v1\/produtos\/.*\/foto/.test(String(url));
-    }
-  }
-
-  private normalizeDownloadUrl(url: string | null | undefined): string | null {
-    if (!url) return null;
-    try {
-      const u = new URL(url, globalThis.location.origin);
-      const pathname = u.pathname.split('/').map(segment => encodeURIComponent(decodeURIComponent(segment))).join('/');
-      const normalized = `${u.protocol}//${u.host}${pathname}${u.search}${u.hash}`;
-      return normalized;
-    } catch (e) {
-      console.warn(`Falha ao normalizar URL com new URL(), tentando fallback com encodeURI: ${url}`, e);
-      try {
-        return encodeURI(url);
-      } catch (ex) {
-        console.error(`Falha total ao normalizar ou encodar URL: ${url}`, ex);
-        return url;
-      }
-    }
-  }
-
   ngOnInit(): void {
     if (this.isEditMode && this.product.materiaPrima) {
       this.materialTypes.set([this.product.materiaPrima]);
     }
 
     if (this.isEditMode && this.product.fotoPrincipalUrl) {
-      const normalized = this.normalizeDownloadUrl(this.product.fotoPrincipalUrl);
-      if (normalized && !this.isUploadEndpoint(normalized)) {
-        this.previewUrl.set(normalized);
-      } else {
-        this.previewUrl.set(null);
-      }
+      this.previewUrl.set(this.product.fotoPrincipalUrl);
     }
   }
 
@@ -297,15 +262,7 @@ export class ProductFormComponent implements OnInit {
         this.productsService.uploadProductPhoto(uploadUrl, this.selectedFile)
       );
       if (updatedProduct) {
-        const rawUrl = updatedProduct.fotoPrincipalUrl;
-        const normalized = this.normalizeDownloadUrl(rawUrl);
-        if (normalized && !this.isUploadEndpoint(normalized) && normalized.includes('/uploads/')) {
-          updatedProduct.fotoPrincipalUrl = normalized;
-          this.previewUrl.set(normalized);
-        } else {
-          updatedProduct.fotoPrincipalUrl = this.product?.fotoPrincipalUrl ?? '';
-         }
-
+        this.previewUrl.set(updatedProduct.fotoPrincipalUrl);
         this.product = { ...this.product, ...updatedProduct } as Product;
       }
       this.selectedFile = null;
@@ -373,20 +330,7 @@ export class ProductFormComponent implements OnInit {
   }
 
   getSafeImageSrc(): string | null {
-    const preview = this.previewUrl();
-    if (preview) return preview;
-
-    const prodUrl = this.product?.fotoPrincipalUrl;
-    if (!prodUrl) return null;
-
-    const normalized = this.normalizeDownloadUrl(prodUrl);
-    if (!normalized) return null;
-
-    if (normalized.includes('/uploads/')) {
-      return normalized;
-    }
-
-     return null;
+    return this.previewUrl() ?? this.product?.fotoPrincipalUrl ?? null;
    }
  }
 
