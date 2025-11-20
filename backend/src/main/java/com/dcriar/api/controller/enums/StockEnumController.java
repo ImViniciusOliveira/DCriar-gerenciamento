@@ -37,11 +37,6 @@ public class StockEnumController {
         this.tipoMovimentacaoModelAssembler = tipoMovimentacaoModelAssembler;
     }
 
-    /**
-     * Retorna uma coleção de todas as unidades de medida disponíveis no sistema, com links HATEOAS.
-     *
-     * @return Um {@link ResponseEntity} com um {@link CollectionModel} de {@link UnidadeDeMedidaModel}.
-     */
     @GetMapping("/unidades-de-medida")
     @Operation(summary = "Listar todas as Unidades de Medida")
     @ApiResponse(responseCode = "200", description = "Lista de unidades de medida retornada com sucesso")
@@ -49,11 +44,6 @@ public class StockEnumController {
         return ResponseEntity.ok(unidadeDeMedidaModelAssembler.toCollectionModel(Arrays.asList(UnidadeDeMedida.values())));
     }
 
-    /**
-     * Retorna uma coleção de todos os tipos de movimentação de estoque disponíveis, com links HATEOAS.
-     *
-     * @return Um {@link ResponseEntity} com um {@link CollectionModel} de {@link TipoMovimentacaoModel}.
-     */
     @GetMapping("/tipos-movimentacao")
     @Operation(summary = "Listar todos os Tipos de Movimentação de Estoque")
     @ApiResponse(responseCode = "200", description = "Lista de tipos de movimentação retornada com sucesso")

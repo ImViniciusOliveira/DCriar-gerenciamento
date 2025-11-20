@@ -49,9 +49,6 @@ public class ProdutoServiceImpl implements ProdutoService {
     private final ProdutoMapper produtoMapper;
     private final FileStorageService fileStorageService;
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional(readOnly = true)
     public Page<ProdutoResponseDTO> findAll(Pageable pageable) {
@@ -59,9 +56,6 @@ public class ProdutoServiceImpl implements ProdutoService {
         return produtoPage.map(this::mapAndEnrichProduto);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional(readOnly = true)
     public ProdutoResponseDTO findById(Long id) {
@@ -69,9 +63,6 @@ public class ProdutoServiceImpl implements ProdutoService {
         return mapAndEnrichProduto(produto);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional
     public ProdutoResponseDTO create(ProdutoRequestDTO requestDTO) {
@@ -103,9 +94,6 @@ public class ProdutoServiceImpl implements ProdutoService {
         return findById(produtoSalvo.getId());
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional
     public ProdutoResponseDTO update(Long id, ProdutoRequestDTO requestDTO) {
@@ -231,9 +219,6 @@ public class ProdutoServiceImpl implements ProdutoService {
         return mapAndEnrichProduto(produtoAtualizado);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional
     public ProdutoResponseDTO uploadFoto(Long produtoId, MultipartFile file) {
@@ -259,9 +244,6 @@ public class ProdutoServiceImpl implements ProdutoService {
         return mapAndEnrichProduto(produtoAtualizado);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional
     public void deleteById(Long id) {

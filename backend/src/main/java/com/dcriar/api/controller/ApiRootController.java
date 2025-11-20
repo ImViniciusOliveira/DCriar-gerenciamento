@@ -34,7 +34,7 @@ public class ApiRootController {
         RepresentationModel<?> rootModel = new RepresentationModel<>();
 
         rootModel.add(linkTo(methodOn(ProdutoController.class).findAll()).withRel("produtos"));
-        rootModel.add(linkTo(methodOn(LoteMateriaPrimaController.class).findAll()).withRel("lotes-materia-prima"));
+        rootModel.add(linkTo(methodOn(LoteMateriaPrimaController.class).searchAll(null, null)).withRel("lotes-materia-prima"));
         rootModel.add(linkTo(methodOn(VendaController.class).findAll()).withRel("vendas"));
         rootModel.add(linkTo(methodOn(OrdemDeProducaoController.class).listarTodas()).withRel("ordens-de-producao"));
         rootModel.add(linkTo(methodOn(CanalVendaController.class).findAll()).withRel("canais-venda"));

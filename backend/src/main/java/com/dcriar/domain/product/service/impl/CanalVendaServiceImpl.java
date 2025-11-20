@@ -24,13 +24,6 @@ public class CanalVendaServiceImpl implements CanalVendaService {
     private final CanalVendaRepository canalVendaRepository;
     private final CanalVendaMapper canalVendaMapper;
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * A lógica de validação e criação é delegada ao método {@link CanalVenda#from(CanalVendaRequestDTO)}.
-     * Garante que o nome do canal de venda não seja duplicado, lançando uma exceção do banco de dados
-     * caso a constraint de unicidade seja violada.
-     */
     @Override
     @Transactional
     public CanalVendaResponseDTO create(CanalVendaRequestDTO requestDTO) {
@@ -39,13 +32,6 @@ public class CanalVendaServiceImpl implements CanalVendaService {
         return canalVendaMapper.toResponseDTO(salvo);
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * A lógica de validação e atualização é delegada ao método {@link CanalVenda#updateFrom(CanalVendaRequestDTO)}.
-     * Garante que o novo nome do canal de venda não seja duplicado.
-     * @throws CanalVendaNaoEncontradoException se o canal de venda com o ID fornecido não for encontrado.
-     */
     @Override
     @Transactional
     public CanalVendaResponseDTO update(Long id, CanalVendaRequestDTO requestDTO) {
@@ -56,10 +42,6 @@ public class CanalVendaServiceImpl implements CanalVendaService {
         return canalVendaMapper.toResponseDTO(atualizado);
     }
 
-    /**
-     * {@inheritDoc}
-     * @throws CanalVendaNaoEncontradoException se o canal de venda com o ID fornecido não for encontrado.
-     */
     @Override
     @Transactional(readOnly = true)
     public CanalVendaResponseDTO findById(Long id) {
@@ -68,9 +50,6 @@ public class CanalVendaServiceImpl implements CanalVendaService {
         return canalVendaMapper.toResponseDTO(canal);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional(readOnly = true)
     public List<CanalVendaResponseDTO> findAll() {
@@ -79,10 +58,6 @@ public class CanalVendaServiceImpl implements CanalVendaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * {@inheritDoc}
-     * @throws CanalVendaNaoEncontradoException se o canal de venda com o ID fornecido não for encontrado.
-     */
     @Override
     @Transactional
     public void deleteById(Long id) {

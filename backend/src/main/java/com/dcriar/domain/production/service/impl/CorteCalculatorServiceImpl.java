@@ -28,26 +28,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CorteCalculatorServiceImpl implements CorteCalculatorService {
 
-    /**
-     * Extrai os parâmetros de corte ideais para produzir uma quantidade de um produto a partir de um lote de matéria-prima.
-     * <p>
-     * <b>Regras de Negócio e Otimização:</b>
-     * <ol>
-     *     <li><b>Objetivo:</b> A lógica simula o corte com o produto em sua orientação normal e rotacionado em 90 graus.
-     *     O objetivo é escolher a orientação que resulta no <strong>menor consumo de comprimento</strong> do lote de matéria-prima.</li>
-     *     <li><b>Atributo do Lote:</b> O cálculo assume que o lote de matéria-prima possui um atributo em seu mapa {@code atributos} chamado 'larguraMm', que representa a largura do rolo em milímetros.</li>
-     *     <li><b>Margens:</b> Se as margens de segurança (esquerda/direita) não forem fornecidas, elas são consideradas como zero.</li>
-     * </ol>
-     *
-     * @param quantidade A quantidade de produtos a serem produzidos.
-     * @param produto O produto a ser cortado.
-     * @param lotePrincipal O lote de matéria-prima de onde o material será consumido.
-     * @param margensRequest As margens de segurança opcionais para o corte.
-     * @return Um objeto {@link ParametrosCorte} com os dados otimizados para o corte.
-     * @throws AtributoLoteInvalidoException se o atributo 'larguraMm' do lote for inválido ou inexistente.
-     * @throws MargemInvalidaException se a soma das margens laterais exceder a largura do lote.
-     * @throws ProdutoNaoCabeNoLoteException se o produto não couber na largura útil do lote em nenhuma orientação.
-     */
     @Override
     public ParametrosCorte extrairParametrosCorte(
             int quantidade,
@@ -115,9 +95,6 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         );
     }
 
-    /**
-     * Extrai a largura do mapa de atributos de um lote e a converte de milímetros para centímetros.
-     */
     private BigDecimal getLarguraEmCm(Map<String, Object> atributos) {
         Object larguraMmObj = atributos.get("larguraMm");
         if (!(larguraMmObj instanceof Number)) {

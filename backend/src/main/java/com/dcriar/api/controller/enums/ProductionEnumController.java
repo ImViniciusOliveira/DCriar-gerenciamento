@@ -31,11 +31,6 @@ public class ProductionEnumController {
         this.modoCalculoModelAssembler = modoCalculoModelAssembler;
     }
 
-    /**
-     * Retorna uma coleção de todos os modos de cálculo disponíveis, com links HATEOAS.
-     *
-     * @return Um {@link ResponseEntity} com um {@link CollectionModel} de {@link ModoCalculoModel}.
-     */
     @GetMapping("/modos-calculo")
     @Operation(summary = "Listar todos os Modos de Cálculo")
     @ApiResponse(responseCode = "200", description = "Lista de modos de cálculo retornada com sucesso")

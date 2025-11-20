@@ -34,15 +34,6 @@ public class CorteRealizadoServiceImpl implements CorteRealizadoService {
     private final OrdemDeProducaoRepository ordemDeProducaoRepository;
     private final CorteRealizadoMapper corteRealizadoMapper;
 
-    /**
-     * Cria e associa um novo registro de CorteRealizado a uma Ordem de Produção.
-     * <p>
-     * A lógica de construção da entidade é delegada ao método {@link CorteRealizado#from(CorteRealizadoRequestDTO, OrdemDeProducao)}.
-     *
-     * @param dto DTO com os dados do corte realizado.
-     * @return DTO de resposta do corte realizado cadastrado.
-     * @throws OrdemDeProducaoNaoEncontradaException se a ordem de produção especificada no DTO não for encontrada.
-     */
     @Override
     @Transactional
     public CorteRealizadoResponseDTO create(CorteRealizadoRequestDTO dto) {
@@ -56,20 +47,6 @@ public class CorteRealizadoServiceImpl implements CorteRealizadoService {
         return corteRealizadoMapper.toResponseDTO(salvo);
     }
 
-    /**
-     * Atualiza um registro existente de CorteRealizado.
-     * <p>
-     * <b>Regra de Negócio:</b> É possível reassociar um corte a uma Ordem de Produção diferente,
-     * embora isso possa levar a inconsistências se não for feito com cuidado.
-     * <p>
-     * A lógica de atualização é delegada ao método {@link CorteRealizado#updateFrom(CorteRealizadoRequestDTO, OrdemDeProducao)}.
-     *
-     * @param id  ID do corte realizado a ser atualizado.
-     * @param dto DTO com os dados para atualização.
-     * @return DTO de resposta do corte realizado atualizado.
-     * @throws CorteRealizadoNaoEncontradoException se o corte não for encontrado.
-     * @throws OrdemDeProducaoNaoEncontradaException se a nova ordem de produção não for encontrada.
-     */
     @Override
     @Transactional
     public CorteRealizadoResponseDTO update(Long id, CorteRealizadoRequestDTO dto) {
@@ -83,13 +60,6 @@ public class CorteRealizadoServiceImpl implements CorteRealizadoService {
         return corteRealizadoMapper.toResponseDTO(atualizado);
     }
 
-    /**
-     * Consulta um corte realizado pelo ID.
-     *
-     * @param id ID do corte realizado.
-     * @return DTO de resposta do corte realizado encontrado.
-     * @throws CorteRealizadoNaoEncontradoException se o corte não for encontrado.
-     */
     @Override
     @Transactional
     public CorteRealizadoResponseDTO findById(Long id) {
@@ -98,13 +68,6 @@ public class CorteRealizadoServiceImpl implements CorteRealizadoService {
         return corteRealizadoMapper.toResponseDTO(corte);
     }
 
-    /**
-     * Lista todos os cortes realizados de uma ordem de produção específica.
-     *
-     * @param ordemDeProducaoId ID da ordem de produção.
-     * @return Lista de DTOs de resposta dos cortes realizados.
-     * @throws OrdemDeProducaoNaoEncontradaException se a ordem de produção não for encontrada.
-     */
     @Override
     @Transactional
     public List<CorteRealizadoResponseDTO> findByOrdemDeProducao(Long ordemDeProducaoId) {
@@ -116,11 +79,6 @@ public class CorteRealizadoServiceImpl implements CorteRealizadoService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lista todos os cortes realizados cadastrados no sistema.
-     *
-     * @return Lista de DTOs de resposta de todos os cortes realizados.
-     */
     @Override
     @Transactional
     public List<CorteRealizadoResponseDTO> findAll() {
@@ -130,16 +88,6 @@ public class CorteRealizadoServiceImpl implements CorteRealizadoService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Exclui um corte realizado pelo seu ID.
-     * <p>
-     * <b>Atenção:</b> Esta é uma operação de exclusão física (hard delete) que não realiza
-     * validações ou atualizações em cascata. A exclusão de um corte <strong>não</strong>
-     * recalcula os totais ou o estado da {@link OrdemDeProducao} pai, o que pode
-     * levar a inconsistências nos dados da ordem de produção.
-     *
-     * @param id ID do corte realizado a ser excluído.
-     */
     @Override
     @Transactional
     public void delete(Long id) {

@@ -41,14 +41,6 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     private final TipoMateriaPrimaMapper tipoMateriaPrimaMapper;
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
 
-    /**
-     * Retorna uma lista paginada de todos os tipos de matéria-prima, com possibilidade de filtro.
-     *
-     * @param nome              Filtro para buscar tipos de matéria-prima por nome (busca parcial, case-insensitive).
-     * @param unidadeDeConsumo  Filtro para buscar tipos de matéria-prima por unidade de consumo.
-     * @param pageable          Informações de paginação e ordenação.
-     * @return Uma página ({@link Page}) de {@link TipoMateriaPrimaResponseDTO}.
-     */
     @Override
     @Transactional(readOnly = true)
     public Page<TipoMateriaPrimaResponseDTO> findAll(String nome, UnidadeDeMedida unidadeDeConsumo, Pageable pageable) {
@@ -65,13 +57,6 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         return paginaDeEntidades.map(tipoMateriaPrimaMapper::toResponseDTO);
     }
 
-    /**
-     * Busca um tipo de matéria-prima específico pelo seu ID.
-     *
-     * @param id O ID do tipo de matéria-prima a ser buscado.
-     * @return O {@link TipoMateriaPrimaResponseDTO} correspondente ao ID.
-     * @throws TipoMateriaPrimaNaoEncontradoException se o tipo de matéria-prima com o ID especificado não for encontrado.
-     */
     @Override
     @Transactional(readOnly = true)
     public TipoMateriaPrimaResponseDTO findById(Long id) {
@@ -79,17 +64,6 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         return tipoMateriaPrimaMapper.toResponseDTO(tipo);
     }
 
-    /**
-     * Cria um novo tipo de matéria-prima no sistema.
-     * <p>
-     * Antes de criar, verifica se já existe um tipo de matéria-prima com o mesmo nome.
-     * A criação da entidade é feita pelo método de fábrica {@link TipoMateriaPrima#from(TipoMateriaPrimaRequestDTO)},
-     * que centraliza regras de negócio como normalização e validação dos campos.
-     *
-     * @param requestDTO O DTO com os dados para a criação do tipo de matéria-prima.
-     * @return O {@link TipoMateriaPrimaResponseDTO} do tipo recém-criado.
-     * @throws TipoMateriaPrimaJaExisteException se já existir um tipo de matéria-prima com o nome fornecido.
-     */
     @Override
     @Transactional
     public TipoMateriaPrimaResponseDTO create(TipoMateriaPrimaRequestDTO requestDTO) {
@@ -99,20 +73,6 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         return tipoMateriaPrimaMapper.toResponseDTO(salvo);
     }
 
-    /**
-     * Atualiza um tipo de matéria-prima existente pelo seu ID.
-     * <p>
-     * Permite a atualização do nome e da unidade de consumo. Se o nome for alterado,
-     * verifica se o novo nome já não está em uso por outro tipo de matéria-prima.
-     * A atualização dos campos é feita pelo método {@link TipoMateriaPrima#updateFrom(TipoMateriaPrimaRequestDTO)},
-     * que centraliza regras de negócio como normalização e validação dos campos.
-     *
-     * @param id O ID do tipo de matéria-prima a ser atualizado.
-     * @param requestDTO O DTO com os novos dados.
-     * @return O {@link TipoMateriaPrimaResponseDTO} do tipo atualizado.
-     * @throws TipoMateriaPrimaNaoEncontradoException se o tipo de matéria-prima com o ID especificado não for encontrado.
-     * @throws TipoMateriaPrimaJaExisteException se o novo nome fornecido já estiver em uso por outro tipo.
-     */
     @Override
     @Transactional
     public TipoMateriaPrimaResponseDTO update(Long id, TipoMateriaPrimaRequestDTO requestDTO) {
@@ -125,15 +85,6 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         return tipoMateriaPrimaMapper.toResponseDTO(atualizado);
     }
 
-    /**
-     * Deleta um tipo de matéria-prima pelo seu ID.
-     * <p>
-     * Antes de deletar, verifica se o tipo de matéria-prima não está em uso por nenhum lote.
-     *
-     * @param id O ID do tipo de matéria-prima a ser deletado.
-     * @throws TipoMateriaPrimaNaoEncontradoException se o tipo de matéria-prima com o ID especificado não for encontrado.
-     * @throws TipoMateriaPrimaEmUsoException se o tipo de matéria-prima estiver em uso por um ou mais lotes.
-     */
     @Override
     @Transactional
     public void deleteById(Long id) {
@@ -148,26 +99,11 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         tipoMateriaPrimaRepository.delete(tipo);
     }
 
-    /**
-     * Busca uma entidade {@link TipoMateriaPrima} pelo seu ID.
-     * Método auxiliar para evitar duplicação de código e centralizar o tratamento de "não encontrado".
-     *
-     * @param id O ID do tipo de matéria-prima a ser buscado.
-     * @return A entidade {@link TipoMateriaPrima} encontrada.
-     * @throws TipoMateriaPrimaNaoEncontradoException se o tipo de matéria-prima com o ID especificado não for encontrado.
-     */
     private TipoMateriaPrima findTipoById(Long id) {
         return tipoMateriaPrimaRepository.findById(id)
                 .orElseThrow(() -> new TipoMateriaPrimaNaoEncontradoException(id));
     }
 
-    /**
-     * Valida se um nome de tipo de matéria-prima já está em uso.
-     * Método auxiliar para evitar duplicação de código.
-     *
-     * @param nome O nome a ser validado.
-     * @throws TipoMateriaPrimaJaExisteException se já existir um tipo de matéria-prima com o nome fornecido.
-     */
     private void validateNomeDisponivel(String nome) {
         if (tipoMateriaPrimaRepository.existsByNome(nome)) {
             throw new TipoMateriaPrimaJaExisteException(nome);

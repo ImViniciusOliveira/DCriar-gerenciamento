@@ -116,11 +116,6 @@ public class VendaServiceImpl implements VendaService {
         return vendaMapper.toResponseDTO(savedVenda);
     }
 
-    /**
-     * Lista todas as vendas registradas no sistema.
-     *
-     * @return Uma lista de {@link VendaResponseDTO} contendo todas as vendas.
-     */
     @Override
     @Transactional(readOnly = true)
     public List<VendaResponseDTO> findAll() {
@@ -129,13 +124,6 @@ public class VendaServiceImpl implements VendaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Busca uma venda específica pelo seu ID.
-     *
-     * @param id O ID da venda a ser buscada.
-     * @return O {@link VendaResponseDTO} da venda encontrada.
-     * @throws VendaNaoEncontradaException se a venda com o ID especificado não for encontrada.
-     */
     @Override
     @Transactional(readOnly = true)
     public VendaResponseDTO findById(Long id) {

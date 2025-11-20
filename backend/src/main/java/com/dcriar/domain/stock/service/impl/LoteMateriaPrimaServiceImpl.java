@@ -94,18 +94,6 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return responseDTO;
     }
 
-    /**
-     * Atualiza os dados cadastrais de um lote de matéria-prima.
-     * <p>
-     * <b>Atenção:</b> Este método não altera movimentações de estoque existentes nem recalcula custos.
-     * Ele é destinado a corrigir informações cadastrais do lote, como código, fornecedor ou atributos.
-     *
-     * @param id O ID do lote a ser atualizado.
-     * @param requestDTO O DTO com os dados para atualização.
-     * @return O {@link LoteMateriaPrimaResponseDTO} do lote atualizado, enriquecido com o saldo de estoque.
-     * @throws LoteMateriaPrimaNaoEncontradoException se o lote não for encontrado.
-     * @throws TipoMateriaPrimaNaoEncontradoException se um novo tipo de matéria-prima for especificado e não for encontrado.
-     */
     @Override
     @Transactional
     public LoteMateriaPrimaResponseDTO update(Long id, LoteMateriaPrimaRequestDTO requestDTO) {
@@ -185,13 +173,6 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return dto.getCustoTotalLote().divide(totalUnidadesBase, 8, RoundingMode.HALF_UP);
     }
 
-    /**
-     * Busca um lote de matéria-prima pelo seu ID e enriquece a resposta com o saldo de estoque.
-     *
-     * @param id O ID do lote a ser buscado.
-     * @return O {@link LoteMateriaPrimaResponseDTO} do lote encontrado, com o campo {@code saldoEstoque} calculado.
-     * @throws LoteMateriaPrimaNaoEncontradoException se o lote com o ID especificado não for encontrado.
-     */
     @Override
     @Transactional(readOnly = true)
     public LoteMateriaPrimaResponseDTO findById(Long id) {
@@ -204,13 +185,6 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return responseDTO;
     }
 
-    /**
-     * Lista todos os lotes de matéria-prima, com filtros opcionais, e enriquece cada um com seu saldo de estoque.
-     *
-     * @param tipoMateriaPrimaId O ID do tipo de matéria-prima para filtrar (opcional).
-     * @param apenasLotesPrincipais Se true, filtra apenas lotes que não são sobras ({@code loteDeOrigemId} é nulo) (opcional).
-     * @return Uma lista de {@link LoteMateriaPrimaResponseDTO}, cada um com o campo {@code saldoEstoque} calculado.
-     */
     @Override
     @Transactional(readOnly = true)
     public List<LoteMateriaPrimaResponseDTO> findAll(Long tipoMateriaPrimaId, Boolean apenasLotesPrincipais) {
@@ -226,18 +200,6 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Registra uma nova movimentação de estoque (entrada ou saída) para um lote de matéria-prima.
-     * <p>
-     * <b>Regra de Negócio:</b> A validação de saldo é realizada <strong>apenas</strong> para movimentações de saída
-     * (quantidade negativa). Se a saída resultar em um saldo negativo, a operação é bloqueada.
-     *
-     * @param loteId O ID do lote de matéria-prima.
-     * @param requestDTO O DTO com os dados da movimentação (tipo, quantidade, motivo).
-     * @return O {@link MovimentacaoResponseDTO} da movimentação registrada.
-     * @throws LoteMateriaPrimaNaoEncontradoException se o lote com o ID especificado não for encontrado.
-     * @throws EstoqueInsuficienteParaMovimentacaoException se não houver saldo suficiente para uma movimentação de saída.
-     */
     @Override
     @Transactional
     public MovimentacaoResponseDTO registrarMovimentacao(Long loteId, MovimentacaoRequestDTO requestDTO) {
@@ -268,13 +230,6 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return movimentacaoMapper.toResponseDTO(movimentacaoSalva);
     }
 
-    /**
-     * Lista todo o histórico de movimentações de um lote de matéria-prima específico.
-     *
-     * @param loteId O ID do lote cujo histórico será consultado.
-     * @return Uma lista de {@link MovimentacaoResponseDTO} representando todas as movimentações do lote.
-     * @throws LoteMateriaPrimaNaoEncontradoException se o lote com o ID especificado não for encontrado.
-     */
     @Override
     @Transactional(readOnly = true)
     public List<MovimentacaoResponseDTO> listarMovimentacoesPorLote(Long loteId) {
@@ -284,27 +239,11 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Busca uma entidade {@link LoteMateriaPrima} pelo seu ID.
-     * Método auxiliar para evitar duplicação de código e centralizar o tratamento de "não encontrado".
-     *
-     * @param id O ID do lote a ser buscado.
-     * @return A entidade {@link LoteMateriaPrima} encontrada.
-     * @throws LoteMateriaPrimaNaoEncontradoException se o lote com o ID especificado não for encontrado.
-     */
     private LoteMateriaPrima findLoteById(Long id) {
         return loteMateriaPrimaRepository.findById(id)
                 .orElseThrow(() -> new LoteMateriaPrimaNaoEncontradoException(id));
     }
 
-    /**
-     * Calcula o saldo de estoque atual para um determinado lote de matéria-prima.
-     * <p>
-     * O saldo é a soma das quantidades de todas as movimentações associadas ao lote.
-     *
-     * @param lote O lote para o qual o saldo será calculado.
-     * @return O saldo de estoque atual como um {@link BigDecimal}.
-     */
     private BigDecimal calcularSaldo(LoteMateriaPrima lote) {
         return movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
     }

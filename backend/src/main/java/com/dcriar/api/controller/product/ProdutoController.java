@@ -42,12 +42,6 @@ public class ProdutoController {
     private final ProdutoService produtoService;
     private final ProdutoModelAssembler produtoModelAssembler;
 
-    /**
-     * Lista todos os produtos cadastrados de forma paginada.
-     *
-     * @param pageable Parâmetros de paginação e ordenação.
-     * @return Modelo paginado HATEOAS com a lista de produtos.
-     */
     @GetMapping
     @Operation(summary = "Listar todos os produtos de forma paginada")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
@@ -93,12 +87,6 @@ public class ProdutoController {
         return produtoModelAssembler.toOkResponseEntity(new ProdutoResponseDTO());
     }
 
-    /**
-     * Busca um produto pelo seu ID.
-     *
-     * @param id ID do produto.
-     * @return Produto encontrado com links HATEOAS.
-     */
     @GetMapping("/{id}")
     @Operation(summary = "Buscar produto por ID")
     @ApiResponses(value = {
@@ -110,12 +98,6 @@ public class ProdutoController {
         return produtoModelAssembler.toOkResponseEntity(produto);
     }
 
-    /**
-     * Cria um novo produto.
-     *
-     * @param requestDTO Dados do produto a ser criado.
-     * @return Produto criado com links HATEOAS e header Location.
-     */
     @PostMapping
     @Operation(summary = "Criar um novo produto")
     @ApiResponses(value = {
@@ -128,13 +110,6 @@ public class ProdutoController {
         return produtoModelAssembler.toCreatedResponseEntity(produtoCriado);
     }
 
-    /**
-     * Atualiza um produto existente por completo (PUT).
-     *
-     * @param id O ID do produto a ser atualizado.
-     * @param requestDTO O DTO com os dados completos do produto.
-     * @return O modelo HATEOAS do produto atualizado.
-     */
     @PutMapping("/{id}")
     @Operation(summary = "Atualizar um produto por completo (PUT)")
     @ApiResponses(value = {
@@ -147,13 +122,6 @@ public class ProdutoController {
         return produtoModelAssembler.toOkResponseEntity(produtoAtualizado);
     }
 
-    /**
-     * Atualiza parcialmente um produto existente (PATCH).
-     *
-     * @param id O ID do produto a ser atualizado.
-     * @param fields Um mapa com os campos a serem alterados.
-     * @return O modelo HATEOAS do produto atualizado.
-     */
     @PatchMapping("/{id}")
     @Operation(summary = "Atualizar parcialmente um produto (PATCH)")
     @ApiResponses(value = {
@@ -166,12 +134,6 @@ public class ProdutoController {
         return produtoModelAssembler.toOkResponseEntity(produtoAtualizado);
     }
 
-    /**
-     * Deleta um produto pelo seu ID.
-     *
-     * @param id ID do produto.
-     * @return Resposta sem conteúdo (204) se deletado com sucesso.
-     */
     @DeleteMapping("/{id}")
     @Operation(summary = "Deletar um produto")
     @ApiResponses(value = {
@@ -183,16 +145,6 @@ public class ProdutoController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Realiza o upload de uma foto e a associa a um produto existente.
-     * <p>
-     * Este endpoint orquestra a ação de negócio de enviar um arquivo de imagem e
-     * vinculá-lo a um produto específico em uma única operação atômica.
-     *
-     * @param id   O ID do produto ao qual a foto será associada.
-     * @param file O arquivo de imagem enviado como 'multipart/form-data'.
-     * @return Um ResponseEntity com status 200 OK e o modelo HATEOAS do produto atualizado.
-     */
     @PostMapping(path = "/{id}/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Fazer upload da foto de um produto")
     @ApiResponses(value = {

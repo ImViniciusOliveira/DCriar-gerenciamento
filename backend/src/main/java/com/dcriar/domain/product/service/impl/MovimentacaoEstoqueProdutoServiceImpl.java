@@ -37,19 +37,6 @@ public class MovimentacaoEstoqueProdutoServiceImpl implements MovimentacaoEstoqu
     private final MovimentacaoEstoqueProdutoRepository movimentacaoRepository;
     private final ProdutoRepository produtoRepository;
 
-    /**
-     * Registra uma nova movimentação de estoque para um produto.
-     * <p>
-     * Este método cria um registro de transação (entrada ou saída) no histórico do produto.
-     * A lógica de construção da entidade é delegada para o método {@link MovimentacaoEstoqueProduto#from(MovimentacaoEstoqueProdutoRequestDTO, Produto)}.
-     * <p>
-     * <b>Atenção:</b> Nenhuma validação de saldo de estoque é realizada aqui. O método apenas
-     * persiste o registro da movimentação.
-     *
-     * @param requestDTO DTO de request com os dados da movimentação.
-     * @return DTO de resposta da movimentação registrada.
-     * @throws ProdutoNaoEncontradoException se o produto associado não for encontrado.
-     */
     @Transactional
     public MovimentacaoEstoqueProdutoResponseDTO registrarMovimentacao(MovimentacaoEstoqueProdutoRequestDTO requestDTO) {
         Produto produto = produtoRepository.findById(requestDTO.getProdutoId())
@@ -59,21 +46,6 @@ public class MovimentacaoEstoqueProdutoServiceImpl implements MovimentacaoEstoqu
         return toResponseDTO(movimentacao);
     }
 
-    /**
-     * Atualiza uma movimentação de estoque existente.
-     * <p>
-     * A lógica de atualização dos campos da entidade é delegada para o método
-     * {@link MovimentacaoEstoqueProduto#updateFrom(MovimentacaoEstoqueProdutoRequestDTO, Produto)}.
-     * <p>
-     * <b>Atenção:</b> Esta operação altera diretamente um registro histórico. Não há recalculo
-     * ou validação de saldos subsequentes.
-     *
-     * @param id ID da movimentação a ser atualizada.
-     * @param requestDTO DTO de request com os dados atualizados.
-     * @return DTO de resposta da movimentação atualizada.
-     * @throws MovimentacaoEstoqueProdutoNaoEncontradoException se a movimentação não for encontrada.
-     * @throws ProdutoNaoEncontradoException se o produto associado não for encontrado.
-     */
     @Transactional
     public MovimentacaoEstoqueProdutoResponseDTO atualizarMovimentacao(Long id, MovimentacaoEstoqueProdutoRequestDTO requestDTO) {
         MovimentacaoEstoqueProduto movimentacao = movimentacaoRepository.findById(id)
@@ -85,13 +57,6 @@ public class MovimentacaoEstoqueProdutoServiceImpl implements MovimentacaoEstoqu
         return toResponseDTO(movimentacao);
     }
 
-    /**
-     * Lista todas as movimentações de estoque de um produto.
-     *
-     * @param produtoId ID do produto.
-     * @return Lista de DTOs de resposta das movimentações.
-     * @throws ProdutoNaoEncontradoException se o produto não for encontrado.
-     */
     public List<MovimentacaoEstoqueProdutoResponseDTO> listarPorProduto(Long produtoId) {
         Produto produto = produtoRepository.findById(produtoId)
                 .orElseThrow(() -> new ProdutoNaoEncontradoException(produtoId));
@@ -100,14 +65,6 @@ public class MovimentacaoEstoqueProdutoServiceImpl implements MovimentacaoEstoqu
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Converte a entidade MovimentacaoEstoqueProduto para o DTO de resposta.
-     * <p>
-     * Conversão simples, sem lógica de negócio.
-     *
-     * @param movimentacao Entidade movimentação.
-     * @return DTO de resposta.
-     */
     private MovimentacaoEstoqueProdutoResponseDTO toResponseDTO(MovimentacaoEstoqueProduto movimentacao) {
         return MovimentacaoEstoqueProdutoResponseDTO.builder()
                 .id(movimentacao.getId())

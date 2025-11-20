@@ -36,13 +36,6 @@ public class UploadController {
 
     private final FileStorageService fileStorageService;
 
-    /**
-     * Realiza o upload de um arquivo para o servidor.
-     * O arquivo é armazenado e uma URL para download é retornada.
-     *
-     * @param file O arquivo a ser enviado.
-     * @return Um ResponseEntity com status 200 OK e um corpo contendo a URL de download do arquivo.
-     */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Fazer upload de um arquivo")
     public ResponseEntity<UploadResponseDTO> uploadFile(
@@ -65,14 +58,6 @@ public class UploadController {
         }
     }
 
-    /**
-     * Permite o download de um arquivo previamente enviado.
-     *
-     * @param fileName O nome do arquivo a ser baixado.
-     * @param request  A requisição HTTP, usada para determinar o tipo de conteúdo do arquivo.
-     * @return Um ResponseEntity contendo o recurso do arquivo para download.
-     *         O cabeçalho Content-Disposition é definido como 'attachment' para forçar o download.
-     */
     @GetMapping("/{fileName:.+}")
     @Operation(summary = "Baixar um arquivo")
     public ResponseEntity<Resource> downloadFile(

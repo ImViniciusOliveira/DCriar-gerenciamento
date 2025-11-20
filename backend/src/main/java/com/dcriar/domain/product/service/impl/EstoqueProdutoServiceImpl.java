@@ -49,24 +49,6 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     private final MovimentacaoProdutoMapper movimentacaoProdutoMapper;
     private final ProdutoEstoqueDTOMapper produtoEstoqueDTOMapper;
 
-    /**
-     * Ajusta o estoque de um produto acabado em um canal de venda específico (distribuição).
-     * Esta operação pode aumentar ou diminuir o estoque de um produto em um canal.
-     * <p>
-     * <b>Regras de negócio aplicadas:</b>
-     * <ul>
-     *     <li>Se não existir um registro de estoque para a combinação produto/canal, um novo será criado com quantidade zero antes do ajuste.</li>
-     *     <li>Ao adicionar estoque a um canal, o total distribuído não pode ultrapassar o estoque físico total disponível.</li>
-     *     <li>O estoque de um canal não pode se tornar negativo após a operação.</li>
-     * </ul>
-     *
-     * @param requestDTO O DTO contendo os dados do ajuste de estoque (produtoId, canalVendaId, quantidade).
-     * @return Um {@link EstoqueResponseDTO} representando o estado atualizado do estoque no canal.
-     * @throws ProdutoNaoEncontradoException se o produto especificado não for encontrado.
-     * @throws CanalVendaNaoEncontradoException se o canal de venda especificado não for encontrado.
-     * @throws AlocacaoEstoqueExcedeTotalException se o total distribuído exceder o estoque físico total.
-     * @throws EstoqueInsuficienteCanalException se a operação resultar em estoque negativo no canal.
-     */
     @Override
     @Transactional
     public EstoqueResponseDTO ajustarEstoque(AjusteEstoqueRequestDTO requestDTO) {
@@ -118,15 +100,6 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         return estoqueMapper.toResponseDTO(estoqueSalvo);
     }
 
-    /**
-     * Ajusta o Estoque Físico Total de um produto ("Estoque Mestre") através de uma movimentação manual.
-     * Esta operação registra uma entrada ou saída direta no estoque mestre do produto,
-     * sem afetar diretamente os estoques dos canais de venda. É utilizada para correções
-     * de inventário, registro de perdas, ou entradas de produção.
-     *
-     * @param requestDTO O DTO contendo os dados do ajuste de estoque físico (produtoId, quantidade, motivo).
-     * @throws ProdutoNaoEncontradoException se o produto especificado não for encontrado.
-     */
     @Override
     @Transactional
     public void ajustarEstoqueFisico(AjusteEstoqueProdutoRequestDTO requestDTO) {
@@ -143,16 +116,6 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         movimentacaoEstoqueProdutoRepository.save(movimentacaoManual);
     }
 
-    /**
-     * Consulta o estoque de um produto específico em um determinado canal de venda.
-     *
-     * @param produtoId O ID do produto a ser consultado.
-     * @param canalVendaId O ID do canal de venda a ser consultado.
-     * @return Um {@link EstoqueResponseDTO} representando o estoque do produto no canal.
-     * @throws ProdutoNaoEncontradoException se o produto especificado não for encontrado.
-     * @throws CanalVendaNaoEncontradoException se o canal de venda especificado não for encontrado.
-     * @throws EstoqueNaoEncontradoException se o registro de estoque para a combinação produto/canal não existir.
-     */
     @Override
     @Transactional(readOnly = true)
     public EstoqueResponseDTO consultarEstoque(Long produtoId, Long canalVendaId) {
@@ -164,13 +127,6 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .orElseThrow(() -> new EstoqueNaoEncontradoException(produtoId, canalVendaId));
     }
 
-    /**
-     * Lista todo o histórico de movimentações ("Livro-Razão") do Estoque Físico Total de um produto.
-     *
-     * @param produtoId O ID do produto cujo histórico será consultado.
-     * @return Uma lista de {@link MovimentacaoProdutoResponseDTO} representando todas as movimentações do produto.
-     * @throws ProdutoNaoEncontradoException se o produto especificado não for encontrado.
-     */
     @Override
     @Transactional(readOnly = true)
     public List<MovimentacaoProdutoResponseDTO> listarMovimentacoesPorProduto(Long produtoId) {
@@ -181,10 +137,6 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lista o estoque de todos os produtos, formatado para a necessidade específica do frontend.
-     * O resultado é agrupado por produto, com uma lista de seus estoques em cada canal.
-     */
     @Override
     @Transactional(readOnly = true)
     public List<ProdutoEstoqueResponseDTO> listarEstoqueDeTodosOsProdutosPorCanal() {
@@ -198,13 +150,6 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lista o estoque de múltiplos produtos, agrupados por canal de venda, de forma otimizada.
-     * Este método substitui a necessidade de múltiplas chamadas de API ou de carregar todos os estoques em memória.
-     *
-     * @param produtoIds A lista de IDs de produtos a serem consultados.
-     * @return Uma lista de DTOs, onde cada DTO contém o ID do produto e uma lista de seus estoques por canal.
-     */
     @Override
     @Transactional(readOnly = true)
     public List<ProdutoEstoqueResponseDTO> listarEstoquePorListaDeProdutos(List<Long> produtoIds) {
@@ -226,16 +171,6 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Cria um novo registro de estoque para um produto em um canal de venda.
-     * Método auxiliar para ser usado quando um registro de estoque não existe e precisa ser inicializado.
-     * <p>
-     * Utiliza o método from() da entidade Estoque para centralizar regras de negócio de criação.
-     *
-     * @param produto O produto a ser associado ao novo estoque.
-     * @param canalVenda O canal de venda a ser associado ao novo estoque.
-     * @return Uma nova instância de {@link Estoque} com quantidade inicial zero.
-     */
     private Estoque criarNovoEstoque(Produto produto, CanalVenda canalVenda) {
         EstoqueRequestDTO dto = EstoqueRequestDTO.builder()
             .produtoId(produto.getId())
@@ -245,27 +180,11 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         return Estoque.from(dto, produto, canalVenda);
     }
 
-    /**
-     * Busca uma entidade {@link Produto} pelo seu ID.
-     * Método auxiliar para evitar duplicação de código e centralizar o tratamento de "não encontrado".
-     *
-     * @param id O ID do produto a ser buscado.
-     * @return A entidade {@link Produto} encontrada.
-     * @throws ProdutoNaoEncontradoException se o produto com o ID especificado não for encontrado.
-     */
     private Produto findProdutoById(Long id) {
         return produtoRepository.findById(id)
                 .orElseThrow(() -> new ProdutoNaoEncontradoException(id));
     }
 
-    /**
-     * Busca uma entidade {@link CanalVenda} pelo seu ID.
-     * Método auxiliar para evitar duplicação de código e centralizar o tratamento de "não encontrado".
-     *
-     * @param id O ID do canal de venda a ser buscado.
-     * @return A entidade {@link CanalVenda} encontrada.
-     * @throws CanalVendaNaoEncontradoException se o canal de venda com o ID especificado não for encontrado.
-     */
     private CanalVenda findCanalVendaById(Long id) {
         return canalVendaRepository.findById(id)
                 .orElseThrow(() -> new CanalVendaNaoEncontradoException(id));

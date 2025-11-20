@@ -49,27 +49,13 @@ public class LoteMateriaPrimaController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todos os lotes de matéria-prima")
+    @Operation(summary = "Listar e buscar lotes de matéria-prima com filtros")
     @ApiResponse(responseCode = "200", description = "Lista de lotes retornada com sucesso")
-    public ResponseEntity<CollectionModel<LoteMateriaPrimaModel>> findAll(
+    public ResponseEntity<CollectionModel<LoteMateriaPrimaModel>> searchAll(
             @RequestParam(required = false) Long tipoMateriaPrimaId,
             @RequestParam(required = false) Boolean apenasLotesPrincipais) {
         List<LoteMateriaPrimaResponseDTO> lotes = loteMateriaPrimaService.findAll(tipoMateriaPrimaId, apenasLotesPrincipais);
         return ResponseEntity.ok(loteMateriaPrimaModelAssembler.toCollectionModel(lotes));
-    }
-
-    /**
-     * Método de sobrecarga para a construção de links HATEOAS.
-     * <p>
-     * Não é um endpoint real e não deve ser chamado diretamente.
-     * Sua única finalidade é servir como um alvo seguro para o {@code linkTo(methodOn(...))},
-     * evitando a ambiguidade de qual método {@code findAll} chamar.
-     * @return null, pois nunca é executado.
-     */
-    @SuppressWarnings("unused") // Usado por reflexão pelo Spring HATEOAS
-    public org.springframework.hateoas.CollectionModel<LoteMateriaPrimaModel> findAll() {
-        // O tipo de retorno é genérico, pois este método nunca é executado.
-        return null;
     }
 
     @GetMapping("/{id}")
