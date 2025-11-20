@@ -34,5 +34,5 @@ public class VendaRequestDTO {
      * A anotação {@code @Valid} garante que cada item da lista seja validado individualmente.
      */
     @Schema(description = "A lista de itens que compõem a venda.", requiredMode = Schema.RequiredMode.REQUIRED)
-    private List<@Valid ItemVendaRequestDTO> items;
+    private List<@Valid ItemVendaRequestDTO> itens;
 }

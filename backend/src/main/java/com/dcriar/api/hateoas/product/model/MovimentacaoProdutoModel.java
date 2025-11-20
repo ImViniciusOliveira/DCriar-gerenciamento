@@ -8,7 +8,7 @@ import lombok.Setter;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 /**
  * Representa o modelo de recurso HATEOAS para uma movimentação de estoque de produto.
@@ -30,7 +30,7 @@ public class MovimentacaoProdutoModel extends RepresentationModel<MovimentacaoPr
     /**
      * A data e hora em que a movimentação foi registrada.
      */
-    private OffsetDateTime data;
+    private LocalDateTime data;
 
     /**
      * O tipo da movimentação do estoque (ex: ENTRADA_PRODUCAO, SAIDA_VENDA).
@@ -57,7 +57,7 @@ public class MovimentacaoProdutoModel extends RepresentationModel<MovimentacaoPr
      * @param quantidade A quantidade movimentada.
      * @param motivo O motivo da movimentação.
      */
-    private MovimentacaoProdutoModel(Long id, OffsetDateTime data, TipoMovimentacaoProduto tipo, Integer quantidade, String motivo) {
+    private MovimentacaoProdutoModel(Long id, LocalDateTime data, TipoMovimentacaoProduto tipo, Integer quantidade, String motivo) {
         this.id = id;
         this.data = data;
         this.tipo = tipo;

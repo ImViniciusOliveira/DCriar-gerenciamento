@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 /**
  * Data Transfer Object (DTO) que representa a resposta de uma movimentação de estoque.
@@ -30,7 +30,7 @@ public class MovimentacaoResponseDTO {
      * A data e hora em que a movimentação foi registrada.
      */
     @Schema(description = "Data e hora em que a movimentação foi registada.")
-    private OffsetDateTime data;
+    private LocalDateTime data;
 
     /**
      * O tipo da movimentação (ex: ENTRADA_COMPRA, SAIDA_PRODUCAO).

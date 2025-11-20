@@ -1,5 +1,6 @@
 package com.dcriar.api.mapper.product;
 
+import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.hateoas.product.model.ProdutoModel;
 import com.dcriar.domain.product.entity.Produto;
@@ -31,6 +32,8 @@ public interface ProdutoMapper {
     @Mapping(target = "estoqueDistribuidoTotal", ignore = true)
     @Mapping(target = "estoqueDisponivelParaAlocar", ignore = true)
     @Mapping(source = "tipoMateriaPrima", target = "materiaPrima")
+    @Mapping(source = "dataCriacao", target = "dataCriacao")
+    @Mapping(source = "dataAtualizacao", target = "dataAtualizacao")
     ProdutoResponseDTO toResponseDTO(Produto produto);
 
     /**
@@ -43,4 +46,16 @@ public interface ProdutoMapper {
      * @return O modelo HATEOAS correspondente.
      */
     ProdutoModel toModel(ProdutoResponseDTO responseDTO);
+
+    /**
+     * Converte a entidade {@link Produto} de volta para um {@link ProdutoRequestDTO}.
+     * <p>
+     * Este método é útil em cenários como o PATCH, onde a entidade é modificada
+     * em memória e depois precisa ser validada novamente através da estrutura de um DTO de requisição.
+     *
+     * @param produto A entidade de produto a ser convertida.
+     * @return O DTO de requisição correspondente.
+     */
+    @Mapping(source = "tipoMateriaPrima.id", target = "tipoMateriaPrimaId")
+    ProdutoRequestDTO toRequestDTO(Produto produto);
 }

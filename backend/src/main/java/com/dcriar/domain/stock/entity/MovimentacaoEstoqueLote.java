@@ -4,10 +4,11 @@ import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 /**
  * Entidade que representa um único registro no "Livro-Razão" do estoque de um lote de matéria-prima.
@@ -30,6 +31,7 @@ import java.time.OffsetDateTime;
 @Builder
 @ToString
 @EqualsAndHashCode(of = "id")
+@EntityListeners(AuditingEntityListener.class)
 public class MovimentacaoEstoqueLote {
 
     /**
@@ -50,9 +52,9 @@ public class MovimentacaoEstoqueLote {
      * A data e hora em que a movimentação foi registrada.
      * Gerado automaticamente no momento da criação.
      */
-    @CreationTimestamp
+    @CreatedDate
     @Column(nullable = false, updatable = false)
-    private OffsetDateTime data;
+    private LocalDateTime data;
 
     /**
      * O tipo da movimentação (ex: ENTRADA_COMPRA, SAIDA_PRODUCAO).

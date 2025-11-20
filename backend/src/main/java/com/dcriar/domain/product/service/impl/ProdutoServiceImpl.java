@@ -3,6 +3,7 @@ package com.dcriar.domain.product.service.impl;
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
+import com.dcriar.domain.product.entity.Dimensoes;
 import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.repository.EstoqueRepository;
@@ -10,12 +11,11 @@ import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
+import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.product.service.ProdutoService;
 import com.dcriar.domain.upload.service.FileStorageService;
 import com.dcriar.exception.custom.*;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,6 @@ public class ProdutoServiceImpl implements ProdutoService {
     private final OrdemDeProducaoRepository ordemDeProducaoRepository;
     private final ProdutoMapper produtoMapper;
     private final FileStorageService fileStorageService;
-    private final ObjectMapper objectMapper;
 
     /**
      * {@inheritDoc}
@@ -165,51 +165,70 @@ public class ProdutoServiceImpl implements ProdutoService {
         return findById(id);
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Este método implementa uma atualização parcial (PATCH) usando uma estratégia de fusão profunda (deep merge).
-     * Ele busca o estado atual do produto, mescla as alterações recebidas e, em seguida, delega a lógica
-     * de validação e persistência para o método {@code update}, garantindo a reutilização e consistência das regras de negócio.
-     */
     @Override
     @Transactional
     public ProdutoResponseDTO patch(Long id, Map<String, Object> fields) {
-        // Passo 1: Se o mapa de campos estiver vazio, nenhuma alteração é necessária.
         if (fields == null || fields.isEmpty()) {
-            return this.findById(id);
+            return findById(id);
         }
 
-        // Passo 2: Busca o estado atual do produto para usar como base para a fusão.
-        Produto produtoAtual = findProdutoById(id);
+        Produto produto = findProdutoById(id);
 
-        // Passo 3: Traduz os nomes de campos do payload do frontend para os nomes esperados pelo backend.
-        translateFieldNames(fields);
+        // Mapeamento Manual de Alta Performance
+        fields.forEach((key, value) -> {
+            switch (key) {
+                case "nome" -> produto.setNome((String) value);
+                case "sku" -> produto.setSku((String) value);
+                case "descricao" -> produto.setDescricao((String) value);
+                case "cor" -> produto.setCor((String) value);
+                case "ativo" -> produto.setAtivo((Boolean) value);
+                case "fotoPrincipalUrl" -> produto.setFotoPrincipalUrl((String) value);
+                case "unidadesPorProduto" -> {
+                    if (value instanceof Number) {
+                        produto.setUnidadesPorProduto(((Number) value).intValue());
+                    }
+                }
+                case "dimensoes" -> {
+                    if (value instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> dimensoesMap = (Map<String, Object>) value;
+                        Dimensoes.DimensoesBuilder builder = produto.getDimensoes() != null ?
+                                produto.getDimensoes().toBuilder() : Dimensoes.builder();
 
-        // Passo 4: Converte a entidade atual em um mapa, para servir de base para a fusão.
-        Map<String, Object> produtoAsMap = objectMapper.convertValue(produtoAtual, new TypeReference<>() {});
+                        if (dimensoesMap.containsKey("larguraCm")) {
+                            Object largura = dimensoesMap.get("larguraCm");
+                            builder.larguraCm(new BigDecimal(largura.toString()));
+                        }
 
-        // Correção: Garante que o ID da matéria-prima seja populado no mapa base.
-        // A conversão direta da Entidade Produto para um Mapa genérico não resolve
-        // a associação 'tipoMateriaPrima' para o campo 'tipoMateriaPrimaId' esperado pelo DTO.
-        // Sem isso, o método 'update' chamado na sequência lançaria um erro de validação
-        // desnecessário em operações de PATCH.
-        if (produtoAtual.getTipoMateriaPrima() != null) {
-            produtoAsMap.put("tipoMateriaPrimaId", produtoAtual.getTipoMateriaPrima().getId());
+                        if (dimensoesMap.containsKey("comprimentoCm")) {
+                            Object comprimento = dimensoesMap.get("comprimentoCm");
+                            builder.comprimentoCm(new BigDecimal(comprimento.toString()));
+                        }
+                        produto.setDimensoes(builder.build());
+                    }
+                }
+            }
+        });
+
+        // Tratamento específico para o relacionamento com TipoMateriaPrima
+        if (fields.containsKey("tipoMateriaPrimaId")) {
+            Object mpIdValue = fields.get("tipoMateriaPrimaId");
+            if (mpIdValue instanceof Number) {
+                Long tipoMateriaPrimaId = ((Number) mpIdValue).longValue();
+                TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(tipoMateriaPrimaId)
+                        .orElseThrow(() -> new TipoMateriaPrimaNaoEncontradoException(tipoMateriaPrimaId));
+                produto.setTipoMateriaPrima(tipoMateriaPrima);
+            }
         }
 
-        // Passo 5: Realiza uma fusão profunda para campos aninhados como 'dimensoesUnitarias'.
-        // Isso evita que a atualização de um único sub-campo (ex: 'larguraCm') apague os outros ('comprimentoCm').
-        deepMerge(fields, produtoAsMap);
+        // Valida as regras de negócio com os dados atualizados
+        validarRegrasDeNegocio(produtoMapper.toRequestDTO(produto), id);
 
-        // Passo 6: Mescla os campos alterados (fields) sobre o estado atual (produtoAsMap).
-        produtoAsMap.putAll(fields);
+        // Salva a entidade atualizada
+        Produto produtoAtualizado = produtoRepository.save(produto);
 
-        // Passo 7: Converte o mapa final de volta para um DTO de requisição, pronto para ser processado.
-        ProdutoRequestDTO requestDTO = objectMapper.convertValue(produtoAsMap, ProdutoRequestDTO.class);
-
-        // Passo 8: Delega para o método update, reutilizando toda a lógica de negócio e validações.
-        return update(id, requestDTO);
+        // Retorna o DTO enriquecido
+        return mapAndEnrichProduto(produtoAtualizado);
     }
 
     /**
@@ -369,51 +388,5 @@ public class ProdutoServiceImpl implements ProdutoService {
             }
         }
         return errors;
-    }
-
-    /**
-     * Traduz os nomes de campos do payload do frontend para os nomes esperados pelo backend.
-     * Este método modifica o mapa de campos diretamente.
-     *
-     * @param fields O mapa de campos recebido na requisição PATCH.
-     */
-    private void translateFieldNames(Map<String, Object> fields) {
-        if (fields.containsKey("materiaPrima")) {
-            Object value = fields.remove("materiaPrima");
-            if (value instanceof Map) {
-                Object id = ((Map<?, ?>) value).get("id");
-                if (id != null) {
-                    fields.put("tipoMateriaPrimaId", ((Number) id).longValue());
-                }
-            }
-        }
-
-        if (fields.containsKey("dimensoes")) {
-            Object value = fields.remove("dimensoes");
-            fields.put("dimensoesUnitarias", value);
-        }
-    }
-
-    /**
-     * Realiza uma fusão profunda (deep merge) de um campo aninhado entre dois mapas.
-     * Garante que a atualização de um sub-campo não apague outros sub-campos existentes.
-     *
-     * @param source O mapa de origem com os novos dados (requisição PATCH).
-     * @param target O mapa de destino com os dados existentes (entidade atual).
-     */
-    @SuppressWarnings("unchecked")
-    private void deepMerge(Map<String, Object> source, Map<String, Object> target) {
-        if (source.containsKey("dimensoesUnitarias") && target.containsKey("dimensoesUnitarias")) {
-            Object sourceObj = source.get("dimensoesUnitarias");
-            Object targetObj = target.get("dimensoesUnitarias");
-
-            if (sourceObj instanceof Map && targetObj instanceof Map) {
-                Map<String, Object> sourceMap = new HashMap<>((Map<String, Object>) sourceObj);
-                Map<String, Object> targetMap = new HashMap<>((Map<String, Object>) targetObj);
-
-                targetMap.putAll(sourceMap);
-                source.put("dimensoesUnitarias", targetMap);
-            }
-        }
     }
 }

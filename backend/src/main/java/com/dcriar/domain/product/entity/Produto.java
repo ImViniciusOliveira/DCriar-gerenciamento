@@ -1,6 +1,7 @@
 package com.dcriar.domain.product.entity;
 
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
+import com.dcriar.domain.common.entity.AuditableEntity;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import jakarta.persistence.*;
 import org.hibernate.annotations.Formula;
@@ -21,8 +22,8 @@ import lombok.*;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(toBuilder = true)
 @ToString
-@EqualsAndHashCode(of = "id")
-public class Produto {
+@EqualsAndHashCode(of = "id", callSuper = false)
+public class Produto extends AuditableEntity {
 
     /**
      * O ID único do produto.

@@ -4,7 +4,7 @@ import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 /**
  * Data Transfer Object (DTO) que representa a resposta de uma movimentação de estoque de produto.
@@ -29,7 +29,7 @@ public class MovimentacaoProdutoResponseDTO {
      * A data e hora em que a movimentação foi registrada.
      */
     @Schema(description = "Data e hora da movimentação.", example = "2025-09-22T03:13:23.522Z")
-    private OffsetDateTime data;
+    private LocalDateTime data;
 
     /**
      * O tipo da movimentação do estoque (ex: ENTRADA_PRODUCAO, SAIDA_VENDA).

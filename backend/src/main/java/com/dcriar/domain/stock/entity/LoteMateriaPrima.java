@@ -1,6 +1,7 @@
 package com.dcriar.domain.stock.entity;
 
 import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
+import com.dcriar.domain.common.entity.AuditableEntity;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
@@ -26,8 +27,8 @@ import java.util.Map;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 @ToString(exclude = {"movimentacoes", "loteDeOrigem"})
-@EqualsAndHashCode(of = "id")
-public class LoteMateriaPrima {
+@EqualsAndHashCode(of = "id", callSuper = false)
+public class LoteMateriaPrima extends AuditableEntity {
 
     /**
      * O ID único do lote de matéria-prima.

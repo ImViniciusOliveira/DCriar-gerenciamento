@@ -1,6 +1,7 @@
 package com.dcriar.domain.product.entity;
 
 import com.dcriar.api.dto.request.product.PrecoRequestDTO;
+import com.dcriar.domain.common.entity.AuditableEntity;
 import com.dcriar.domain.product.entity.enums.TipoPreco;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,8 +22,8 @@ import java.math.BigDecimal;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 @ToString
-@EqualsAndHashCode(of = "id")
-public class Preco {
+@EqualsAndHashCode(of = "id", callSuper = false)
+public class Preco extends AuditableEntity {
 
     /**
      * O ID único do preço.

@@ -10,7 +10,7 @@ import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 /**
  * Modelo de representação HATEOAS para uma Movimentação de Lote de Matéria-Prima.
@@ -29,7 +29,7 @@ public class MovimentacaoLoteModel extends RepresentationModel<MovimentacaoLoteM
     private Long id;
 
     @Schema(description = "Data e hora em que a movimentação foi registrada.")
-    private OffsetDateTime data;
+    private LocalDateTime data;
 
     @Schema(description = "Tipo da movimentação (ex: ENTRADA_COMPRA, SAIDA_PRODUCAO).", example = "SAIDA_PRODUCAO")
     private TipoMovimentacao tipo;

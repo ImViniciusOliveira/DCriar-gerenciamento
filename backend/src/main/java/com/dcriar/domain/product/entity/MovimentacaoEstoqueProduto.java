@@ -4,9 +4,10 @@ import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 /**
  * Entidade que representa um único registro no "Livro-Razão" do estoque de produtos acabados.
@@ -24,6 +25,7 @@ import java.time.OffsetDateTime;
 @Builder
 @ToString
 @EqualsAndHashCode(of = "id")
+@EntityListeners(AuditingEntityListener.class)
 public class MovimentacaoEstoqueProduto {
 
     /**
@@ -44,9 +46,9 @@ public class MovimentacaoEstoqueProduto {
      * A data e hora em que a movimentação foi registrada.
      * Gerado automaticamente no momento da criação.
      */
-    @CreationTimestamp
+    @CreatedDate
     @Column(nullable = false, updatable = false)
-    private OffsetDateTime data;
+    private LocalDateTime data;
 
     /**
      * O tipo da movimentação (ex: ENTRADA_PRODUCAO, SAIDA_VENDA).

@@ -3,6 +3,8 @@ package com.dcriar.api.dto.response.product;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 /**
  * Data Transfer Object (DTO) que representa a resposta completa de um Produto.
  * <p>
@@ -101,4 +103,16 @@ public class ProdutoResponseDTO {
      */
     @Schema(description = "Dimensões unitárias do produto.")
     private DimensoesResponseDTO dimensoes;
+
+    /**
+     * A data e hora em que o produto foi criado.
+     */
+    @Schema(description = "Data e hora de criação do produto.")
+    private LocalDateTime dataCriacao;
+
+    /**
+     * A data e hora da última atualização do produto.
+     */
+    @Schema(description = "Data e hora da última atualização do produto.")
+    private LocalDateTime dataAtualizacao;
 }

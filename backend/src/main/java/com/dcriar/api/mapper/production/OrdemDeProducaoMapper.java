@@ -38,6 +38,7 @@ public interface OrdemDeProducaoMapper {
     @Mapping(source = "produto.nome", target = "nomeProduto")
     @Mapping(source = "lotesConsumidos", target = "lotesConsumidosIds", qualifiedByName = "lotesToIds")
     @Mapping(source = "cortesRealizados", target = "cortesRealizados")
+    @Mapping(source = "dataCriacao", target = "dataCriacao")
     OrdemDeProducaoResponseDTO toDto(OrdemDeProducao ordem);
 
     /**

@@ -61,7 +61,8 @@ public class VendaModelAssembler extends RepresentationModelAssemblerSupport<Ven
         VendaModel model = instantiateModel(dto);
 
         model.setId(dto.getId());
-        model.setDataVenda(dto.getDataVenda());
+        model.setDataCriacao(dto.getDataCriacao());
+        model.setDataAtualizacao(dto.getDataAtualizacao());
         model.setNomeCanalVenda(dto.getNomeCanalVenda());
         model.setValorTotal(dto.getValorTotal());
 

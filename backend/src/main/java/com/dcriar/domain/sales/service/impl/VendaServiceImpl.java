@@ -79,7 +79,7 @@ public class VendaServiceImpl implements VendaService {
                 .orElseThrow(() -> new CanalVendaNaoEncontradoException(requestDTO.getCanalVendaId()));
 
         // 2. Processa cada item da venda para criar as entidades ItemVenda.
-        List<ItemVenda> itemVendas = requestDTO.getItems().stream().map(itemDTO -> {
+        List<ItemVenda> itemVendas = requestDTO.getItens().stream().map(itemDTO -> {
             Produto produto = produtoRepository.findById(itemDTO.getProdutoId())
                     .orElseThrow(() -> new ProdutoNaoEncontradoException(itemDTO.getProdutoId()));
 

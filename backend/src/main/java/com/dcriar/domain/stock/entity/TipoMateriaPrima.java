@@ -1,6 +1,7 @@
 package com.dcriar.domain.stock.entity;
 
 import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
+import com.dcriar.domain.common.entity.AuditableEntity;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import jakarta.persistence.*;
 import lombok.*;
@@ -19,8 +20,8 @@ import lombok.*;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(toBuilder = true)
 @ToString
-@EqualsAndHashCode(of = "id")
-public class TipoMateriaPrima {
+@EqualsAndHashCode(of = "id", callSuper = false)
+public class TipoMateriaPrima extends AuditableEntity {
 
     /**
      * O ID único do tipo de matéria-prima.

@@ -1,6 +1,7 @@
 package com.dcriar.domain.product.entity;
 
 import com.dcriar.api.dto.request.product.CanalVendaRequestDTO;
+import com.dcriar.domain.common.entity.AuditableEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,8 +17,8 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-@EqualsAndHashCode(of = "id")
-public class CanalVenda {
+@EqualsAndHashCode(of = "id", callSuper = false)
+public class CanalVenda extends AuditableEntity {
 
     /**
      * O ID único do canal de venda.

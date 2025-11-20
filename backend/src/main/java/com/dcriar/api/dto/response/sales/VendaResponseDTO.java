@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -27,12 +27,6 @@ public class VendaResponseDTO {
     private Long id;
 
     /**
-     * A data e hora em que a venda foi registrada no sistema.
-     */
-    @Schema(description = "A data e hora em que a venda foi registrada no sistema.")
-    private OffsetDateTime dataVenda;
-
-    /**
      * O nome do canal de venda onde a transação ocorreu.
      */
     @Schema(description = "O nome do canal de venda onde a transação ocorreu.", example = "SHOPEE")
@@ -49,4 +43,16 @@ public class VendaResponseDTO {
      */
     @Schema(description = "A lista de itens que foram vendidos nesta transação.")
     private List<ItemVendaResponseDTO> itens;
+
+    /**
+     * A data e hora em que a venda foi criada.
+     */
+    @Schema(description = "Data e hora de criação da venda.")
+    private LocalDateTime dataCriacao;
+
+    /**
+     * A data e hora da última atualização da venda.
+     */
+    @Schema(description = "Data e hora da última atualização da venda.")
+    private LocalDateTime dataAtualizacao;
 }

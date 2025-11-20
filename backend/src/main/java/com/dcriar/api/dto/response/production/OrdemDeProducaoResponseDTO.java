@@ -9,7 +9,7 @@ import lombok.Setter;
 import org.springframework.hateoas.RepresentationModel;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -43,7 +43,10 @@ public class OrdemDeProducaoResponseDTO extends RepresentationModel<OrdemDeProdu
     private ModoCalculo modoCalculo;
 
     @Schema(description = "Data e hora em que a ordem foi criada.")
-    private OffsetDateTime dataCriacao;
+    private LocalDateTime dataCriacao;
+
+    @Schema(description = "Data e hora da última atualização da ordem.")
+    private LocalDateTime dataAtualizacao;
 
     @Schema(description = "Motivo ou referência para a ordem.")
     private String motivo;

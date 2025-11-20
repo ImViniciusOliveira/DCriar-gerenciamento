@@ -1,15 +1,14 @@
 package com.dcriar.domain.production.entity;
 
 import com.dcriar.api.dto.request.production.OrdemDeProducaoRequestDTO;
+import com.dcriar.domain.common.entity.AuditableEntity;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -29,9 +28,9 @@ import java.util.Set;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(toBuilder = true)
 @ToString(exclude = {"cortesRealizados", "lotesConsumidos"})
-@EqualsAndHashCode(of = "id")
+@EqualsAndHashCode(of = "id", callSuper = false)
 @Table(name = "ordens_de_producao")
-public class OrdemDeProducao {
+public class OrdemDeProducao extends AuditableEntity {
 
     /**
      * O ID único da ordem de produção.
@@ -101,13 +100,6 @@ public class OrdemDeProducao {
      */
     @Column(name = "comprimento_final_cm", precision = 10, scale = 2)
     private BigDecimal comprimentoFinalCm;
-
-    /**
-     * A data e hora em que a ordem de produção foi criada. Gerado automaticamente.
-     */
-    @CreationTimestamp
-    @Column(name = "data_criacao", nullable = false, updatable = false)
-    private OffsetDateTime dataCriacao;
 
     /**
      * Um motivo, observação ou referência para a ordem de produção (ex: número do pedido do cliente).

@@ -9,7 +9,7 @@ import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -28,9 +28,6 @@ public class VendaModel extends RepresentationModel<VendaModel> {
     @Schema(description = "ID único da venda.", example = "1")
     private Long id;
 
-    @Schema(description = "Data e hora em que a venda foi registrada.")
-    private OffsetDateTime dataVenda;
-
     @Schema(description = "Nome do canal onde a venda ocorreu.", example = "LOJA_FISICA")
     private String nomeCanalVenda;
 
@@ -39,4 +36,10 @@ public class VendaModel extends RepresentationModel<VendaModel> {
 
     @Schema(description = "Lista de itens que compõem a venda.")
     private List<ItemVendaModel> itens;
+
+    @Schema(description = "Data e hora de criação da venda.")
+    private LocalDateTime dataCriacao;
+
+    @Schema(description = "Data e hora da última atualização da venda.")
+    private LocalDateTime dataAtualizacao;
 }

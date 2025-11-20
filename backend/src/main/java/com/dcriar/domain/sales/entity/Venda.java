@@ -1,12 +1,11 @@
 package com.dcriar.domain.sales.entity;
 
+import com.dcriar.domain.common.entity.AuditableEntity;
 import com.dcriar.domain.product.entity.CanalVenda;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,7 +13,8 @@ import java.util.List;
  * Representa o "cabeçalho" de uma Venda realizada.
  * <p>
  * Esta entidade agrupa todos os itens de uma única transação e armazena
- * informações gerais como a data, o canal de venda e o valor total.
+ * informações gerais como o canal de venda e o valor total.
+ * As datas de criação e atualização são herdadas de {@link AuditableEntity}.
  */
 @Entity
 @Table(name = "vendas")
@@ -24,8 +24,8 @@ import java.util.List;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 @ToString(exclude = {"itens"})
-@EqualsAndHashCode(of = "id")
-public class Venda {
+@EqualsAndHashCode(of = "id", callSuper = false)
+public class Venda extends AuditableEntity {
 
     /**
      * O ID único da venda.
@@ -33,14 +33,6 @@ public class Venda {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    /**
-     * A data e hora em que a venda foi registrada.
-     * Gerado automaticamente no momento da criação.
-     */
-    @CreationTimestamp
-    @Column(name = "data_venda", nullable = false, updatable = false)
-    private OffsetDateTime dataVenda;
 
     /**
      * O canal de venda onde esta transação ocorreu.

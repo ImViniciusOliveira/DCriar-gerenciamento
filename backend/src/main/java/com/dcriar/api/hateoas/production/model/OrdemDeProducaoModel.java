@@ -14,7 +14,7 @@ import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -48,7 +48,10 @@ public class OrdemDeProducaoModel extends RepresentationModel<OrdemDeProducaoMod
     private ModoCalculo modoCalculo;
 
     @Schema(description = "Data e hora em que a ordem foi criada.")
-    private OffsetDateTime dataCriacao;
+    private LocalDateTime dataCriacao;
+
+    @Schema(description = "Data e hora da última atualização da ordem.")
+    private LocalDateTime dataAtualizacao;
 
     @Schema(description = "Motivo ou referência para a ordem.")
     private String motivo;

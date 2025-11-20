@@ -22,7 +22,7 @@ public class VendaRequestValidator extends BaseValidator<ValidVendaRequest, Vend
     protected void validate(VendaRequestDTO dto) {
         addViolationIf(dto.getCanalVendaId() == null, "O ID do canal de venda é obrigatório.", "canalVendaId");
 
-        List<ItemVendaRequestDTO> items = dto.getItems();
+        List<ItemVendaRequestDTO> items = dto.getItens();
         addViolationIf(items == null || items.isEmpty(), "A lista de itens não pode estar vazia.", "items");
     }
 }

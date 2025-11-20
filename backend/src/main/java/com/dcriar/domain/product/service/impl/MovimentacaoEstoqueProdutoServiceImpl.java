@@ -113,7 +113,7 @@ public class MovimentacaoEstoqueProdutoServiceImpl implements MovimentacaoEstoqu
                 .id(movimentacao.getId())
                 .produtoId(movimentacao.getProduto().getId())
                 .data(movimentacao.getData())
-                .tipo(movimentacao.getTipo().name())
+                .tipo(movimentacao.getTipo())
                 .quantidade(movimentacao.getQuantidade())
                 .motivo(movimentacao.getMotivo())
                 .build();

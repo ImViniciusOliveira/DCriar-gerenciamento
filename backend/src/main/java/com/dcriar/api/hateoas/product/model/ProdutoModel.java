@@ -13,6 +13,8 @@ import lombok.Setter;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
+import java.time.LocalDateTime;
+
 /**
  * Modelo de representação HATEOAS para Produto na API.
  * <p>
@@ -67,4 +69,10 @@ public class ProdutoModel extends RepresentationModel<ProdutoModel> {
 
     @Schema(description = "Dimensões unitárias do produto.")
     private DimensoesResponseDTO dimensoes;
+
+    @Schema(description = "Data e hora de criação do produto.")
+    private LocalDateTime dataCriacao;
+
+    @Schema(description = "Data e hora da última atualização do produto.")
+    private LocalDateTime dataAtualizacao;
 }
