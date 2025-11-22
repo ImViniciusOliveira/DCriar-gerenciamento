@@ -1,126 +1,83 @@
-<mat-card class="page-card">
-  <mat-card-header>
-    <div>
-      <mat-card-title>Produtos</mat-card-title>
-      <mat-card-subtitle>Gerenciamento de produtos</mat-card-subtitle>
-    </div>
-    <span class="header-spacer"></span>
-    <button mat-raised-button color="primary" class="add-product-button" (click)="onCreate()">
-      <mat-icon>add</mat-icon>
-      Adicionar Produto
-    </button>
-  </mat-card-header>
-  <mat-card-content>
-    <div class="table-wrapper">
-      @if (isLoading()) {
-        <div class="spinner-container">
-          <mat-spinner diameter="50"></mat-spinner>
-        </div>
-      }
-      <div class="mat-elevation-z8 table-container">
-        <table mat-table [dataSource]="products()" matSort (matSortChange)="sortData($event)" [trackBy]="trackByProductId">
-          <!-- Coluna SKU -->
-          <ng-container matColumnDef="sku">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header="sku">SKU</th>
-            <td mat-cell *matCellDef="let product">{{ product.sku }}</td>
-          </ng-container>
+<app-base-table
+  [title]="'Produtos'"
+  [subtitle]="'Gerenciamento de produtos'"
+  [addButtonText]="'Adicionar Produto'"
+  [items]="products()"
+  [columns]="tableColumns"
+  [isLoading]="isLoading()"
+  [totalElements]="totalElements()"
+  [pageSize]="pageSize()"
+  [pageIndex]="pageIndex()"
+  (add)="onCreate()"
+  (pageChange)="onPageChange($event)"
+  (sortChange)="onSortChange($event)">
+</app-base-table>
 
-          <!-- Coluna Nome -->
-          <ng-container matColumnDef="nome">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header="nome">Produto</th>
-            <td mat-cell *matCellDef="let product">{{ product.nome }}</td>
-          </ng-container>
+<!-- Templates para as Células da Tabela -->
 
-          <!-- Coluna Detalhes (Dinâmica) -->
-          <ng-container matColumnDef="detalhes">
-            <th mat-header-cell *matHeaderCellDef>Detalhes</th>
-            <td mat-cell *matCellDef="let product">
-              <!-- Verifica se há detalhes específicos para mostrar o ícone -->
-              @if (product.tipoProduto === 'CORTE' || product.tipoProduto === 'CONSUMO_DIRETO') {
-                <div class="details-cell-content">
-                  <span class="details-trigger">Exibir detalhes</span>
-                  <div class="details-text-container">
-                    @for(detail of getProductDetails(product); track detail.key) {
-                      <span><strong>{{ detail.key | titlecase }}:</strong> {{ detail.value }}</span>
-                    }
-                  </div>
-                </div>
-              } @else {
-                <span>-</span>
-              }
-            </td>
-          </ng-container>
+<ng-template #skuTemplate let-product>
+  {{ product.sku }}
+</ng-template>
 
-          <ng-container matColumnDef="ativo">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header="ativo">Ativo</th>
-            <td mat-cell *matCellDef="let product">
-              <mat-icon>{{ product.ativo ? 'check_circle' : 'cancel' }}</mat-icon>
-            </td>
-          </ng-container>
+<ng-template #nomeTemplate let-product>
+  {{ product.nome }}
+</ng-template>
 
-          <!-- Coluna Estoque -->
-          <ng-container matColumnDef="estoque">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header="estoqueFisicoTotal">Estoque Total</th>
-            <td mat-cell *matCellDef="let product">
-              {{ product.estoqueFisicoTotal }} pacotes
-              <br />
-              <small>({{ product.unidadesPorProduto }} unidades cada)</small>
-            </td>
-          </ng-container>
+<ng-template #ativoTemplate let-product>
+  <mat-icon>{{ product.ativo ? 'check_circle' : 'cancel' }}</mat-icon>
+</ng-template>
 
-          <!-- Coluna Estoque por Canal -->
-          <ng-container matColumnDef="estoquePorCanal">
-            <th mat-header-cell *matHeaderCellDef> Canais </th>
-            <td mat-cell *matCellDef="let product">
-              @if (product.estoquePorCanal) {
-                <!-- Primeiro, aplicamos os pipes e atribuímos o resultado a 'activeChannels' -->
-                @if (product.estoquePorCanal | keyvalue | filterStock:0; as activeChannels) {
-                  <!-- Agora, verificamos se o array resultante tem itens -->
-                  @if (activeChannels.length > 0) {
-                    <div class="stock-summary">
-                      <span>Em {{ activeChannels.length }} {{ activeChannels.length > 1 ? 'canais' : 'canal' }}</span>
-                      <mat-icon class="stock-menu-trigger" [matMenuTriggerFor]="stockMenu" title="Ver estoque por canal">more_vert</mat-icon>
-                    </div>
-                    <mat-menu #stockMenu="matMenu">
-                      @for (channel of activeChannels; track channel.key) {
-                        <button mat-menu-item disabled class="stock-menu-item">{{ getChannelDisplayName($any(channel.key)) }}: {{ channel.value }}</button>
-                      }
-                    </mat-menu>
-                  } @else {
-                    <span>Nenhum</span>
-                  }
-                } @else {
-                  <span>Nenhum</span>
-                }
-              }
-            </td>
-          </ng-container>
+<ng-template #estoqueTemplate let-product>
+  {{ product.estoqueFisicoTotal }} pacotes
+  <br />
+  <small>({{ product.unidadesPorProduto }} unidades cada)</small>
+</ng-template>
 
-          <!-- Coluna Ações -->
-            <ng-container matColumnDef="acoes">
-              <th mat-header-cell *matHeaderCellDef>Ações</th>
-              <td mat-cell *matCellDef="let product">
-                <button mat-icon-button color="primary" title="Visualizar" (click)="onView(product)">
-                  <mat-icon>visibility</mat-icon>
-                </button>
-                <button mat-icon-button color="accent" title="Editar" (click)="onEdit(product)">
-                  <mat-icon>edit</mat-icon>
-                </button>
-                <button mat-icon-button color="warn" title="Excluir" (click)="onDelete(product)">
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </td>
-            </ng-container>
-          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-        </table>
+<ng-template #detalhesTemplate let-product>
+  @if (product.tipoProduto === 'CORTE' || product.tipoProduto === 'CONSUMO_DIRETO') {
+    <div class="details-cell-content">
+      <span class="details-trigger">Exibir detalhes</span>
+      <div class="details-text-container">
+        @for(detail of getProductDetails(product); track detail.key) {
+          <span><strong>{{ detail.key | titlecase }}:</strong> {{ detail.value }}</span>
+        }
       </div>
     </div>
-  </mat-card-content>
-  <mat-paginator [length]="totalElements()"
-                 [pageSize]="pageSize()"
-                 [pageSizeOptions]="[5, 10, 25, 100]"
-                 (page)="onPageChange($event)"
-                 aria-label="Selecione a página de produtos">
-  </mat-paginator>
-</mat-card>
+  } @else {
+    <span>-</span>
+  }
+</ng-template>
+
+<ng-template #estoquePorCanalTemplate let-product>
+  @if (product.estoquePorCanal) {
+    @if (product.estoquePorCanal | keyvalue | filterStock:0; as activeChannels) {
+      @if (activeChannels.length > 0) {
+        <div class="stock-summary">
+          <span>Em {{ activeChannels.length }} {{ activeChannels.length > 1 ? 'canais' : 'canal' }}</span>
+          <mat-icon class="stock-menu-trigger" [matMenuTriggerFor]="stockMenu" title="Ver estoque por canal">more_vert</mat-icon>
+        </div>
+        <mat-menu #stockMenu="matMenu">
+          @for (channel of activeChannels; track channel.key) {
+            <button mat-menu-item disabled class="stock-menu-item">{{ getChannelDisplayName($any(channel.key)) }}: {{ channel.value }}</button>
+          }
+        </mat-menu>
+      } @else {
+        <span>Nenhum</span>
+      }
+    } @else {
+      <span>Nenhum</span>
+    }
+  }
+</ng-template>
+
+<ng-template #acoesTemplate let-product>
+  <button mat-icon-button color="primary" title="Visualizar" (click)="onView(product)">
+    <mat-icon>visibility</mat-icon>
+  </button>
+  <button mat-icon-button color="accent" title="Editar" (click)="onEdit(product)">
+    <mat-icon>edit</mat-icon>
+  </button>
+  <button mat-icon-button color="warn" title="Excluir" (click)="onDelete(product)">
+    <mat-icon>delete</mat-icon>
+  </button>
+</ng-template>

@@ -1,13 +1,11 @@
-import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, signal, TemplateRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Product } from '../../models/products.model';
-import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { Sort, MatSortModule } from '@angular/material/sort';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { PageEvent } from '@angular/material/paginator';
+import { Sort } from '@angular/material/sort';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ProductsService } from '../../services/products';
 import {
@@ -16,12 +14,12 @@ import {
 } from '../../../../shared/components/confirm-dialog/confirm-dialog/confirm-dialog';
 import { filter, of, lastValueFrom, map, switchMap, catchError } from 'rxjs';
 import { ProductFormComponent, ProductFormData } from '../product-form/product-form';
-import { MatCardModule } from '@angular/material/card';
 import { ApiRoot } from '../../../../core/services/api-root';
 import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
+import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 
 @Component({
   selector: 'app-product-list',
@@ -30,21 +28,17 @@ import { EnumOption, EnumService } from '../../../../core/services/enum.service'
     CommonModule,
     MatButtonModule,
     MatIconModule,
-    MatTableModule,
     MatDialogModule,
-    MatCardModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatProgressSpinnerModule,
-    FilterStockPipe,
+    MatSnackBarModule,
     MatMenuModule,
     MatTooltipModule,
-    MatSnackBarModule,
+    FilterStockPipe,
+    BaseTable,
   ],
   templateUrl: './product-list.html',
   styleUrls: ['./product-list.scss'],
 })
-export class ProductList implements OnInit {
+export class ProductList implements OnInit, AfterViewInit {
   private static readonly Texts = {
     deleteConfirmTitle: 'Confirmar Exclusão',
     deleteConfirmMessage: (name: string) => `Tem certeza que deseja excluir o produto "${name}"?`,
@@ -64,7 +58,7 @@ export class ProductList implements OnInit {
 
   products = signal<Product[]>([]);
   isLoading = signal(false);
-  displayedColumns: string[] = ['sku', 'nome', 'ativo', 'estoque', 'detalhes', 'estoquePorCanal', 'acoes'];
+  tableColumns: TableColumn<Product>[] = [];
 
   totalElements = signal(0);
   pageSize = signal(10);
@@ -75,14 +69,31 @@ export class ProductList implements OnInit {
 
   readonly consumptionUnitsMap = signal(new Map<string, EnumOption>());
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild('skuTemplate') skuTemplate!: TemplateRef<any>;
+  @ViewChild('nomeTemplate') nomeTemplate!: TemplateRef<any>;
+  @ViewChild('ativoTemplate') ativoTemplate!: TemplateRef<any>;
+  @ViewChild('estoqueTemplate') estoqueTemplate!: TemplateRef<any>;
+  @ViewChild('detalhesTemplate') detalhesTemplate!: TemplateRef<any>;
+  @ViewChild('estoquePorCanalTemplate') estoquePorCanalTemplate!: TemplateRef<any>;
+  @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
 
   ngOnInit(): void {
     this.loadProducts();
   }
 
+  ngAfterViewInit(): void {
+    this.tableColumns = [
+      { key: 'sku', header: 'SKU', sortable: true, cellTemplate: this.skuTemplate },
+      { key: 'nome', header: 'Produto', sortable: true, cellTemplate: this.nomeTemplate },
+      { key: 'ativo', header: 'Ativo', sortable: true, cellTemplate: this.ativoTemplate },
+      { key: 'estoque', header: 'Estoque Total', sortable: true, sortKey: 'estoqueFisicoTotal', cellTemplate: this.estoqueTemplate },
+      { key: 'detalhes', header: 'Detalhes', sortable: false, cellTemplate: this.detalhesTemplate },
+      { key: 'estoquePorCanal', header: 'Canais', sortable: false, cellTemplate: this.estoquePorCanalTemplate },
+      { key: 'acoes', header: 'Ações', sortable: false, cellTemplate: this.acoesTemplate },
+    ];
+  }
+
   loadProducts(): void {
-    // Exibe o spinner apenas se a operação demorar mais de 300ms.
     this.loadingTimer = setTimeout(() => this.isLoading.set(true), 300);
 
     const sortString = `${this.sortActive()},${this.sortDirection()}`;
@@ -93,17 +104,13 @@ export class ProductList implements OnInit {
         this.totalElements.set(productsResponse.page?.totalElements || 0);
 
         if (products.length === 0 || !stockUrl) {
-          console.warn('[ProductList] URL de estoque não encontrada na resposta. Exibindo produtos sem dados de estoque por canal.');
           return of([]);
         }
 
         const productIds = products.map(p => p.id);
         return this.productsService.getStocksForProducts(productIds, stockUrl).pipe(
           map(allStocks => this.mergeStockData(products, allStocks)),
-          catchError(() => {
-            console.error('[ProductList] Falha ao buscar estoques. Exibindo produtos sem dados de estoque.');
-            return of(products); // Em caso de erro, retorna apenas os produtos.
-          })
+          catchError(() => of(products))
         );
       })
     ).subscribe({
@@ -121,11 +128,6 @@ export class ProductList implements OnInit {
     });
   }
 
-  /**
-   * Combina a lista de produtos com os dados de estoque.
-   * Garante que cada produto tenha um objeto `estoquePorCanal` com todos os canais de venda,
-   * preenchendo com 0 para os canais onde o produto não tem estoque.
-   */
   private mergeStockData(products: Product[], allStocks: { [productId: string]: { [channelKey: string]: number } }): Product[] {
     return products.map(product => ({
       ...product,
@@ -139,15 +141,11 @@ export class ProductList implements OnInit {
     this.loadProducts();
   }
 
-  sortData(sort: Sort) {
+  onSortChange(sort: Sort) {
     this.sortActive.set(sort.direction ? sort.active : 'nome');
     this.sortDirection.set(sort.direction || 'asc');
-
-    if (this.paginator && this.paginator.pageIndex !== 0) {
-      this.paginator.firstPage();
-    } else {
-      this.loadProducts();
-    }
+    this.pageIndex.set(0);
+    this.loadProducts();
   }
 
   async onDelete(product: Product): Promise<void> {
@@ -162,9 +160,7 @@ export class ProductList implements OnInit {
     if (confirmed) {
       try {
         const deleteUrl = product._links?.['deletar-produto']?.href;
-        if (!deleteUrl) {
-          throw new Error('URL de exclusão não encontrada.');
-        }
+        if (!deleteUrl) throw new Error('URL de exclusão não encontrada.');
         await lastValueFrom(this.productsService.deleteProduct(deleteUrl));
         this.snackBar.open(ProductList.Texts.deleteSuccess, 'Fechar', { duration: 3000 });
         this.loadProducts();
@@ -176,30 +172,19 @@ export class ProductList implements OnInit {
   }
 
   async onView(product: Product): Promise<void> {
-    try {
-      const dialogData: ProductFormData = { product, isEditMode: false, title: 'Detalhes do Produto' };
-      this.openProductDialog(dialogData, '');
-    } catch (error) {
-      console.error('Erro ao buscar detalhes do produto para visualização:', error);
-      this.snackBar.open('Não foi possível carregar os dados para visualização.', 'Fechar', { duration: 3000 });
-    }
+    const dialogData: ProductFormData = { product, isEditMode: false, title: 'Detalhes do Produto' };
+    this.openProductDialog(dialogData, '');
   }
 
   async onEdit(product: Product): Promise<void> {
-    try {
-      const productCopy = structuredClone(product);
-      this.openProductDialog({ product: productCopy, isEditMode: true, title: 'Editar Produto' }, ProductList.Texts.saveSuccess);
-    } catch (error) {
-      console.error('Erro ao buscar detalhes do produto para edição:', error);
-      this.snackBar.open('Não foi possível carregar os dados para edição.', 'Fechar', { duration: 3000 });
-    }
+    const productCopy = structuredClone(product);
+    this.openProductDialog({ product: productCopy, isEditMode: true, title: 'Editar Produto' }, ProductList.Texts.saveSuccess);
   }
 
   async onCreate(): Promise<void> {
     try {
       await lastValueFrom(this.apiRoot.endpoints$);
       const newProductTemplate = await lastValueFrom(this.productsService.getNewProductTemplate());
-
       this.openProductDialog({
         product: newProductTemplate,
         isEditMode: false,
@@ -215,38 +200,25 @@ export class ProductList implements OnInit {
   private openProductDialog(dialogData: ProductFormData, successMessage: string): void {
     const dialogRef = this.dialog.open(ProductFormComponent, {
       data: dialogData,
-      width: '90vw', // Usa 90% da largura da tela
-      maxWidth: '900px', // Mas não passa de 900px
+      width: '90vw',
+      maxWidth: '900px',
       autoFocus: false,
     });
 
     dialogRef.afterClosed().pipe(filter(result => result === true)).subscribe(() => {
-      this.snackBar.open(successMessage, 'Fechar', { duration: 3000 });
+      if (successMessage) {
+        this.snackBar.open(successMessage, 'Fechar', { duration: 3000 });
+      }
       this.loadProducts();
     });
-  }
-
-  getConsumptionUnitViewValue(key: string): string {
-    return this.consumptionUnitsMap().get(key)?.viewValue ?? key;
   }
 
   getChannelDisplayName(channelKey: string): string {
     return channelKey;
   }
 
-  trackByProductId(index: number, product: Product): number {
-    return product.id;
-  }
-
-  /**
-   * Transforma os detalhes específicos de um produto em uma lista genérica de chave-valor para exibição.
-   * Isso desacopla o template da estrutura específica de cada tipo de produto.
-   * @param product O produto a ser analisado.
-   * @returns Um array de objetos {key, value} com os detalhes.
-   */
   getProductDetails(product: Product): { key: string, value: string }[] {
     const details: { key: string, value: string }[] = [];
-
     if (product.tipoProduto === 'CORTE') {
       if (product.dimensoes) {
         details.push({ key: 'Dimensões', value: `${product.dimensoes.larguraCm} x ${product.dimensoes.comprimentoCm} cm` });
@@ -260,7 +232,6 @@ export class ProductList implements OnInit {
       }
       Object.entries(product.especificacoes || {}).forEach(([key, value]) => details.push({ key, value }));
     }
-
     return details;
   }
 }

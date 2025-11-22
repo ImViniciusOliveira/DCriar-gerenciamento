@@ -1,0 +1,29 @@
+.page-card {
+  margin: 20px;
+}
+
+.header-spacer {
+  flex: 1 1 auto;
+}
+
+.table-wrapper {
+  position: relative;
+}
+
+.spinner-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+}
+
+.table-container {
+  overflow: auto;
+  max-height: 60vh;
+}

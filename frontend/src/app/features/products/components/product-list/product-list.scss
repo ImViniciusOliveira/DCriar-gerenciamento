@@ -79,8 +79,8 @@ mat-paginator {
 }
 
 table {
-  width: 100%; /* Garante que a tabela ocupe todo o espaço */
-  table-layout: fixed; /* Força as colunas a respeitarem as larguras definidas */
+  width: 100%;
+  table-layout: fixed;
 }
 
 .mat-column-detalhes {
@@ -99,14 +99,13 @@ table {
   justify-content: center;
 }
 
-.mat-column-detalhes .mat-mdc-cell {
-  white-space: normal;
-}
-
 .details-cell-content {
   display: flex;
-  align-items: center; /* Centraliza o ícone verticalmente quando o texto não está visível */
+  align-items: center;
   min-height: 48px;
+  width: 220px; /* Largura fixa, menor que a da coluna para dar espaço ao padding */
+  box-sizing: border-box;
+  word-break: break-word;
 
   .details-trigger {
     display: inline-flex;
@@ -138,8 +137,6 @@ table {
   }
 
   &:hover {
-    align-items: flex-start; /* Alinha o texto ao topo no hover */
-
     .details-trigger {
       display: none;
     }
