@@ -1,26 +1,42 @@
 import { Hateoas } from '../../../core/models/hateoas.model';
-import { MaterialType } from '../../stock/models/material-type.model';
+
+// Renomeado de MaterialType para maior clareza, baseado na resposta da API.
+export interface MateriaPrima {
+  id: number;
+  nome: string;
+  unidadeDeConsumo: string;
+  _links?: Hateoas['_links']; // Adicionado para compatibilidade com MaterialType
+}
 
 export interface Dimensoes {
   larguraCm: number;
   comprimentoCm: number;
 }
 
-export interface Product extends Hateoas {
+export type Especificacoes = { [key: string]: string };
+
+export interface Product {
   id: number;
+  tipoProduto: 'CORTE' | 'CONSUMO_DIRETO';
   nome: string;
   sku: string;
   descricao: string;
-  cor: string;
   unidadesPorProduto: number;
   ativo: boolean;
   estoqueFisicoTotal: number;
   estoqueDistribuidoTotal: number;
   estoqueDisponivelParaAlocar: number;
-  estoquePorCanal: { [key: string]: number };
   fotoPrincipalUrl: string;
-  materiaPrima: MaterialType;
-  dimensoes: Dimensoes;
+  materiaPrima: MateriaPrima;
+  _links?: Hateoas['_links'];
+
+  // Atributos específicos de ProdutoDeCorte (opcionais)
+  cor?: string;
+  dimensoes?: Dimensoes;
+
+  // Atributos específicos de ProdutoDeConsumoDireto (opcionais)
+  codigoFabricante?: string;
+  especificacoes?: Especificacoes;
 }
 
 export interface EmbeddedProducts {
