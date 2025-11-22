@@ -95,29 +95,18 @@ export class ProductFormComponent implements OnInit {
     this.consumptionUnitsMap = new Map(this.consumptionUnits().map(u => [u.value, u.viewValue]));
 
     this.productForm = this.fb.group({
-      tipoProduto: [this.product.tipoProduto || 'CORTE', Validators.required],
       nome: [this.product.nome, Validators.required],
       sku: [this.product.sku, Validators.required],
       descricao: [this.product.descricao],
+      cor: [this.product.cor],
       unidadesPorProduto: [this.product.unidadesPorProduto, [Validators.required, Validators.min(1)]],
       ativo: [this.product.ativo],
       materiaPrima: [this.product.materiaPrima, Validators.required],
-
-      // Campos de ProdutoDeCorte
-      cor: [this.product.cor],
       dimensoes: this.fb.group({
         larguraCm: [this.product.dimensoes?.larguraCm, [Validators.required, Validators.min(0.1)]],
         comprimentoCm: [this.product.dimensoes?.comprimentoCm, [Validators.required, Validators.min(0.1)]]
-      }),
-
-      // Campos de ProdutoDeConsumoDireto
-      codigoFabricante: [this.product.codigoFabricante],
-      especificacoes: this.fb.group({
-        // Inicialização vazia, pode ser preenchido dinamicamente se necessário
       })
     });
-
-    this.setupFormControlsBasedOnProductType(this.product.tipoProduto || 'CORTE');
 
     this.searchForm = this.fb.group({
       searchName: [''],
@@ -126,40 +115,6 @@ export class ProductFormComponent implements OnInit {
 
     if (!this.materialTypesSearchUrl) {
       this.productForm.get('materiaPrima')?.disable();
-    }
-
-    // Ouve mudanças no tipo de produto para ajustar o formulário
-    this.productForm.get('tipoProduto')?.valueChanges.subscribe(type => {
-      this.setupFormControlsBasedOnProductType(type);
-    });
-  }
-
-  private setupFormControlsBasedOnProductType(type: 'CORTE' | 'CONSUMO_DIRETO'): void {
-    const corteControls = ['cor', 'dimensoes'];
-    const consumoControls = ['codigoFabricante', 'especificacoes'];
-
-    if (type === 'CORTE') {
-      corteControls.forEach(name => {
-        this.productForm.get(name)?.enable();
-        if (name === 'dimensoes') {
-          this.productForm.get('dimensoes.larguraCm')?.setValidators([Validators.required, Validators.min(0.1)]);
-          this.productForm.get('dimensoes.comprimentoCm')?.setValidators([Validators.required, Validators.min(0.1)]);
-        }
-      });
-      consumoControls.forEach(name => {
-        this.productForm.get(name)?.disable();
-        this.productForm.get(name)?.reset();
-      });
-    } else { // CONSUMO_DIRETO
-      consumoControls.forEach(name => this.productForm.get(name)?.enable());
-      corteControls.forEach(name => {
-        this.productForm.get(name)?.disable();
-        this.productForm.get(name)?.reset();
-        if (name === 'dimensoes') {
-          this.productForm.get('dimensoes.larguraCm')?.clearValidators();
-          this.productForm.get('dimensoes.comprimentoCm')?.clearValidators();
-        }
-      });
     }
   }
 
@@ -219,7 +174,7 @@ export class ProductFormComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.isEditMode && this.product.materiaPrima) {
-      this.materialTypes.set([this.product.materiaPrima as MaterialType]);
+      this.materialTypes.set([this.product.materiaPrima]);
     }
 
     if (this.isEditMode && this.product.fotoPrincipalUrl) {

@@ -31,26 +31,19 @@
             <td mat-cell *matCellDef="let product">{{ product.nome }}</td>
           </ng-container>
 
-          <!-- Coluna Detalhes (Dinâmica) -->
-          <ng-container matColumnDef="detalhes">
-            <th mat-header-cell *matHeaderCellDef>Detalhes</th>
-            <td mat-cell *matCellDef="let product">
-              <!-- Verifica se há detalhes específicos para mostrar o ícone -->
-              @if (product.tipoProduto === 'CORTE' || product.tipoProduto === 'CONSUMO_DIRETO') {
-                <div class="details-cell-content">
-                  <span class="details-trigger">Exibir detalhes</span>
-                  <div class="details-text-container">
-                    @for(detail of getProductDetails(product); track detail.key) {
-                      <span><strong>{{ detail.key | titlecase }}:</strong> {{ detail.value }}</span>
-                    }
-                  </div>
-                </div>
-              } @else {
-                <span>-</span>
-              }
-            </td>
+          <!-- Coluna Cor -->
+          <ng-container matColumnDef="cor">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="cor">Cor</th>
+            <td mat-cell *matCellDef="let product">{{ product.cor }}</td>
           </ng-container>
 
+          <!-- Coluna Dimensões -->
+          <ng-container matColumnDef="dimensoes">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="dimensoes.larguraCm">Dimensões</th>
+            <td mat-cell *matCellDef="let product">{{ product.dimensoes?.larguraCm }} x {{ product.dimensoes?.comprimentoCm }} cm</td>
+          </ng-container>
+
+          <!-- Coluna Ativo -->
           <ng-container matColumnDef="ativo">
             <th mat-header-cell *matHeaderCellDef mat-sort-header="ativo">Ativo</th>
             <td mat-cell *matCellDef="let product">

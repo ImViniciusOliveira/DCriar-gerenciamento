@@ -20,7 +20,6 @@ import { MatCardModule } from '@angular/material/card';
 import { ApiRoot } from '../../../../core/services/api-root';
 import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
 
 @Component({
@@ -38,7 +37,6 @@ import { EnumOption, EnumService } from '../../../../core/services/enum.service'
     MatProgressSpinnerModule,
     FilterStockPipe,
     MatMenuModule,
-    MatTooltipModule,
     MatSnackBarModule,
   ],
   templateUrl: './product-list.html',
@@ -64,7 +62,7 @@ export class ProductList implements OnInit {
 
   products = signal<Product[]>([]);
   isLoading = signal(false);
-  displayedColumns: string[] = ['sku', 'nome', 'ativo', 'estoque', 'detalhes', 'estoquePorCanal', 'acoes'];
+  displayedColumns: string[] = ['sku', 'nome', 'cor', 'dimensoes', 'ativo', 'estoque', 'estoquePorCanal', 'acoes'];
 
   totalElements = signal(0);
   pageSize = signal(10);
@@ -161,7 +159,7 @@ export class ProductList implements OnInit {
 
     if (confirmed) {
       try {
-        const deleteUrl = product._links?.['deletar-produto']?.href;
+        const deleteUrl = product._links['deletar-produto']?.href;
         if (!deleteUrl) {
           throw new Error('URL de exclusão não encontrada.');
         }
@@ -236,31 +234,5 @@ export class ProductList implements OnInit {
 
   trackByProductId(index: number, product: Product): number {
     return product.id;
-  }
-
-  /**
-   * Transforma os detalhes específicos de um produto em uma lista genérica de chave-valor para exibição.
-   * Isso desacopla o template da estrutura específica de cada tipo de produto.
-   * @param product O produto a ser analisado.
-   * @returns Um array de objetos {key, value} com os detalhes.
-   */
-  getProductDetails(product: Product): { key: string, value: string }[] {
-    const details: { key: string, value: string }[] = [];
-
-    if (product.tipoProduto === 'CORTE') {
-      if (product.dimensoes) {
-        details.push({ key: 'Dimensões', value: `${product.dimensoes.larguraCm} x ${product.dimensoes.comprimentoCm} cm` });
-      }
-      if (product.cor) {
-        details.push({ key: 'Cor', value: product.cor });
-      }
-    } else if (product.tipoProduto === 'CONSUMO_DIRETO') {
-      if (product.codigoFabricante) {
-        details.push({ key: 'Cód. Fab.', value: product.codigoFabricante });
-      }
-      Object.entries(product.especificacoes || {}).forEach(([key, value]) => details.push({ key, value }));
-    }
-
-    return details;
   }
 }
