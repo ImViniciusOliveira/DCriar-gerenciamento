@@ -39,11 +39,12 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
     @Override
     @NonNull
     public ProdutoModel toModel(@NonNull ProdutoResponseDTO dto) {
+        // O mapper agora lida com o polimorfismo, convertendo para a subclasse de Model correta.
         ProdutoModel model = mapper.toModel(dto);
 
         // Links de descoberta para recursos relacionados, necessários para preencher formulários no frontend.
         model.add(linkTo(ProdutoController.class).withRel("produtos"));
-        model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("buscar-tipos-materia-prima"));
+        model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll(null, null, null, null)).withRel("buscar-tipos-materia-prima"));
         model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida()).withRel("unidades-de-medida"));
 
         // Adiciona links específicos do recurso apenas se o produto já existir (tiver um ID)
@@ -54,17 +55,13 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
             model.add(linkTo(methodOn(ProdutoController.class).deleteById(dto.getId())).withRel("deletar-produto"));
             model.add(linkTo(methodOn(ProdutoController.class).uploadFoto(dto.getId(), null)).withRel("upload-foto"));
 
-            // Pega o nome do arquivo (ex: "uuid_foto.jpg") que veio do Service
             String fileName = dto.getFotoPrincipalUrl();
             
             if (fileName != null && !fileName.isBlank()) {
-                // Monta a URL absoluta: http://localhost:8080/api/v1/uploads/uuid_foto.jpg
                 String fullUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                         .path("/api/v1/uploads/")
                         .path(fileName)
                         .toUriString();
-                
-                // Define a URL pronta para o Frontend usar
                 model.setFotoPrincipalUrl(fullUrl);
             }
 
@@ -80,12 +77,10 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
         CollectionModel<ProdutoModel> collectionModel = super.toCollectionModel(dtos);
         collectionModel.add(linkTo(methodOn(ProdutoController.class).getNewProductTemplate()).withRel("novo-produto"));
 
-        // Adiciona o link de descoberta para o endpoint otimizado de busca de estoques por múltiplos produtos.
-        // Usamos um UriComponentsBuilder para criar um link template, que é a forma correta para endpoints com @RequestParam.
         URI uri = UriComponentsBuilder.fromUri(linkTo(methodOn(EstoqueProdutoController.class).listarEstoquesPorListaDeProdutos(null)).toUri())
-                .replaceQuery(null) // Remove a query gerada pelo HATEOAS com valor nulo
-                .queryParam("produtoIds", "{ids}") // Adiciona um template de variável
-                .build(true) // O 'true' indica que é um template
+                .replaceQuery(null)
+                .queryParam("produtoIds", "{ids}")
+                .build(true)
                 .toUri();
 
         collectionModel.add(Link.of(uri.toString(), "estoques-por-produtos"));

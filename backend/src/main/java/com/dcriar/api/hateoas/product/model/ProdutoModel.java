@@ -1,15 +1,12 @@
 package com.dcriar.api.hateoas.product.model;
 
-import com.dcriar.api.dto.response.product.DimensoesResponseDTO;
 import com.dcriar.api.dto.response.product.MateriaPrimaResponseDTO;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRootName;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
@@ -18,8 +15,23 @@ import java.time.LocalDateTime;
 /**
  * Modelo de representação HATEOAS para Produto na API.
  * <p>
- * Inclui informações detalhadas do produto e links para recursos relacionados.
+ * Esta é uma classe abstrata que serve como base para os diferentes tipos de produtos.
+ * A anotação {@code @JsonTypeInfo} garante que o JSON de resposta inclua um campo 'tipoProduto'
+ * para que os clientes da API possam diferenciar entre as subclasses.
+ * <p>
+ * <b>Nota sobre o Builder:</b> Esta classe e suas subclasses não utilizam o {@code @SuperBuilder} do Lombok
+ * devido a uma incompatibilidade com a classe pai {@link RepresentationModel}, que não foi projetada
+ * para esse padrão. A instanciação é feita manualmente no {@link com.dcriar.api.mapper.product.ProdutoMapper}.
  */
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "tipoProduto"
+)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = ProdutoDeCorteModel.class, name = "CORTE"),
+    @JsonSubTypes.Type(value = ProdutoDeConsumoDiretoModel.class, name = "CONSUMO_DIRETO")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,10 +41,13 @@ import java.time.LocalDateTime;
 @Relation(collectionRelation = "produtos", itemRelation = "produto")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(name = "ProdutoResponse", description = "Representação de um produto com links HATEOAS.")
-public class ProdutoModel extends RepresentationModel<ProdutoModel> {
+public abstract class ProdutoModel extends RepresentationModel<ProdutoModel> {
 
     @Schema(description = "ID único do produto.", example = "1")
     private Long id;
+
+    @Schema(description = "Tipo do produto.", example = "CORTE")
+    private String tipoProduto;
 
     @Schema(description = "Nome do produto.", example = "Etiqueta Adesiva Redonda 5x5cm Kraft")
     private String nome;
@@ -42,9 +57,6 @@ public class ProdutoModel extends RepresentationModel<ProdutoModel> {
 
     @Schema(description = "Descrição detalhada do produto.", example = "Etiqueta adesiva redonda de papel kraft 5x5cm")
     private String descricao;
-
-    @Schema(description = "Cor principal do produto.", example = "Marrom")
-    private String cor;
 
     @Schema(description = "Quantidade de unidades por produto vendido.", example = "100")
     private Integer unidadesPorProduto;
@@ -66,9 +78,6 @@ public class ProdutoModel extends RepresentationModel<ProdutoModel> {
 
     @Schema(description = "Saldo de unidades disponíveis para alocação em canais de venda.", example = "50")
     private Integer estoqueDisponivelParaAlocar;
-
-    @Schema(description = "Dimensões unitárias do produto.")
-    private DimensoesResponseDTO dimensoes;
 
     @Schema(description = "Data e hora de criação do produto.")
     private LocalDateTime dataCriacao;

@@ -1,6 +1,7 @@
 package com.dcriar.api.controller.product;
 
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
+import com.dcriar.api.dto.response.product.ProdutoDeCorteResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.hateoas.product.assembler.ProdutoModelAssembler;
 import com.dcriar.api.hateoas.product.model.ProdutoModel;
@@ -83,8 +84,8 @@ public class ProdutoController {
     @Operation(summary = "Obter um modelo de produto para criação")
     @ApiResponse(responseCode = "200", description = "Modelo de produto retornado com sucesso")
     public ResponseEntity<ProdutoModel> getNewProductTemplate() {
-        // Retorna um DTO vazio que o assembler transformará em um modelo com os links HATEOAS corretos.
-        return produtoModelAssembler.toOkResponseEntity(new ProdutoResponseDTO());
+        // Retorna um DTO de uma subclasse concreta para que o assembler possa funcionar.
+        return produtoModelAssembler.toOkResponseEntity(new ProdutoDeCorteResponseDTO());
     }
 
     @GetMapping("/{id}")

@@ -3,12 +3,14 @@ package com.dcriar.domain.production.service.impl;
 import com.dcriar.api.dto.request.production.MargensRequestDTO;
 import com.dcriar.domain.product.entity.Dimensoes;
 import com.dcriar.domain.product.entity.Produto;
+import com.dcriar.domain.product.entity.ProdutoDeCorte;
 import com.dcriar.domain.production.model.ParametrosCorte;
 import com.dcriar.domain.production.service.CorteCalculatorService;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.exception.custom.AtributoLoteInvalidoException;
 import com.dcriar.exception.custom.MargemInvalidaException;
 import com.dcriar.exception.custom.ProdutoNaoCabeNoLoteException;
+import com.dcriar.exception.custom.TipoProducaoIncompativelException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +37,10 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
             LoteMateriaPrima lotePrincipal,
             MargensRequestDTO margensRequest
     ) {
+        if (!(produto instanceof ProdutoDeCorte produtoDeCorte)) {
+            throw new TipoProducaoIncompativelException("Cálculo de corte só é aplicável a produtos do tipo 'CORTE'.");
+        }
+
         // 1. Obter a largura total do lote e calcular a largura útil, descontando as margens.
         BigDecimal larguraTotalLoteCm = getLarguraEmCm(lotePrincipal.getAtributos());
         BigDecimal margemEsquerda = Optional.ofNullable(margensRequest != null ? margensRequest.getEsquerda() : null).orElse(BigDecimal.ZERO);
@@ -45,7 +51,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
             throw new MargemInvalidaException("A soma das margens laterais não pode exceder a largura do lote.");
         }
 
-        Dimensoes dimensoesProduto = produto.getDimensoes();
+        Dimensoes dimensoesProduto = produtoDeCorte.getDimensoes();
         BigDecimal larguraProduto = dimensoesProduto.getLarguraCm();
         BigDecimal comprimentoProduto = dimensoesProduto.getComprimentoCm();
 

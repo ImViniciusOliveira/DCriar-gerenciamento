@@ -11,6 +11,7 @@ import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
 import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
+import com.dcriar.domain.product.entity.ProdutoDeCorte;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
@@ -299,10 +300,14 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private List<CorteRealizadoResponseDTO> gerarCortesManuais(OrdemDeCorteRequestDTO requestDTO, Produto produto, LoteMateriaPrima lotePrincipal) {
+        if (!(produto instanceof ProdutoDeCorte produtoDeCorte)) {
+            throw new TipoProducaoIncompativelException("Corte manual só é aplicável a produtos do tipo 'CORTE'.");
+        }
+
         BigDecimal larguraFinalCm = requestDTO.getLarguraFinalCm();
         BigDecimal comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
-        BigDecimal larguraProduto = produto.getDimensoes().getLarguraCm();
-        BigDecimal comprimentoProduto = produto.getDimensoes().getComprimentoCm();
+        BigDecimal larguraProduto = produtoDeCorte.getDimensoes().getLarguraCm();
+        BigDecimal comprimentoProduto = produtoDeCorte.getDimensoes().getComprimentoCm();
         int quantidadeProduzida = requestDTO.getQuantidadeProduzida();
 
         List<CorteRealizadoResponseDTO> cortes = new ArrayList<>();

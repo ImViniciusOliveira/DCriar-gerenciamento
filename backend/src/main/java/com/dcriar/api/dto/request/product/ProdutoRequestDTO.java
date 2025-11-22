@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.*;
 
+import java.util.Map;
+
 /**
  * Data Transfer Object (DTO) para criar ou atualizar um Produto.
  * <p>
@@ -20,59 +22,42 @@ import lombok.*;
 @ValidProdutoRequest
 public class ProdutoRequestDTO {
 
-    /**
-     * O nome descritivo e único do produto.
-     */
+    @Schema(description = "Tipo do produto. 'CORTE' para produtos com dimensões, 'CONSUMO_DIRETO' para outros.", example = "CORTE", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String tipoProduto;
+
     @Schema(description = "Nome descritivo e único do produto.", example = "Etiqueta Adesiva Redonda 5x5cm Kraft", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nome;
 
-    /**
-     * O código único de produto (SKU - Stock Keeping Unit).
-     */
     @Schema(description = "Código único de produto (Stock Keeping Unit).", example = "ETQ-KFT-RD5", requiredMode = Schema.RequiredMode.REQUIRED)
     private String sku;
 
-    /**
-     * A descrição detalhada sobre o produto, seu material e uso.
-     */
     @Schema(description = "Descrição detalhada sobre o produto, seu material e uso.", example = "Etiquetas de papel Kraft para embalagens artesanais.")
     private String descricao;
 
-    /**
-     * A cor principal do produto.
-     */
-    @Schema(description = "Cor principal do produto.", example = "Marrom", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String cor;
-
-    /**
-     * A quantidade de itens que compõem uma unidade do produto vendido (ex: 100 etiquetas por pacote).
-     */
     @Schema(description = "Quantidade de itens que compõem uma unidade do produto vendido (ex: 100 etiquetas por pacote).", example = "100", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer unidadesPorProduto;
 
-    /**
-     * A URL da imagem principal do produto para exibição no catálogo.
-     */
     @Schema(description = "URL da imagem principal do produto para exibição no catálogo.", example = "https://cdn.dcriar.com/images/ETQ-KFT-RD5.jpg")
     private String fotoPrincipalUrl;
 
-    /**
-     * Define se o produto está ativo e disponível para operações de venda e produção.
-     * Se não for fornecido, o padrão pode ser 'true'.
-     */
     @Schema(description = "Define se o produto está ativo e disponível para operações de venda e produção. Se não for fornecido, o padrão é 'true'.", example = "true")
     private Boolean ativo;
 
-    /**
-     * O ID do Tipo de Matéria-Prima principal que este produto consome.
-     */
     @Schema(description = "ID do Tipo de Matéria-Prima principal que este produto consome.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long tipoMateriaPrimaId;
 
-    /**
-     * As dimensões de uma única unidade do produto.
-     */
+    // --- Campos para ProdutoDeCorte ---
+    @Schema(description = "Cor principal do produto (apenas para produtos de corte).", example = "Marrom")
+    private String cor;
+
     @Valid
-    @Schema(description = "As dimensões de uma única unidade do produto.", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "As dimensões de uma única unidade do produto (apenas para produtos de corte).")
     private DimensoesRequestDTO dimensoes;
+
+    // --- Campos para ProdutoDeConsumoDireto ---
+    @Schema(description = "Código do produto fornecido pelo fabricante (apenas para produtos de consumo direto).", example = "INK-BLK-ES-1L")
+    private String codigoFabricante;
+
+    @Schema(description = "Mapa flexível para especificações técnicas (apenas para produtos de consumo direto).", example = "{\"tipo_tinta\": \"Eco-Solvente\", \"volume_ml\": 1000}")
+    private Map<String, String> especificacoes;
 }
