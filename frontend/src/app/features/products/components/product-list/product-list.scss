@@ -77,3 +77,74 @@ mat-paginator {
   background-color: var(--mat-sys-surface-container-highest);
   padding: 0 16px;
 }
+
+table {
+  width: 100%; /* Garante que a tabela ocupe todo o espaço */
+  table-layout: fixed; /* Força as colunas a respeitarem as larguras definidas */
+}
+
+.mat-column-detalhes {
+  width: 250px;
+}
+
+.mat-column-ativo {
+  width: 65px;
+}
+.mat-column-acoes {
+  width: 160px;
+}
+
+.mat-column-ativo .mat-mdc-cell,
+.mat-column-acoes .mat-mdc-cell {
+  justify-content: center;
+}
+
+.mat-column-detalhes .mat-mdc-cell {
+  white-space: normal;
+}
+
+.details-cell-content {
+  display: flex;
+  align-items: center; /* Centraliza o ícone verticalmente quando o texto não está visível */
+  min-height: 48px;
+
+  .details-trigger {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: var(--mat-sys-surface-container-low);
+    color: var(--mat-sys-on-surface);
+    cursor: pointer;
+    border: 1px solid var(--mat-sys-outline-variant);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      background-color: var(--mat-sys-surface-container);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .details-text-container {
+    display: none;
+    flex-direction: column;
+    font-size: 0.85rem;
+    text-align: left;
+    line-height: 1.4;
+    width: 100%;
+  }
+
+  &:hover {
+    align-items: flex-start; /* Alinha o texto ao topo no hover */
+
+    .details-trigger {
+      display: none;
+    }
+    .details-text-container {
+      display: flex;
+    }
+  }
+}

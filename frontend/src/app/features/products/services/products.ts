@@ -34,7 +34,42 @@ export class ProductsService {
       }),
       switchMap(baseUrl => {
         const finalUrl = `${baseUrl}?page=${page}&size=${size}&sort=${sort}`;
-        return this.http.get<ApiResponseProducts>(finalUrl);
+        // A API agora retorna duas listas de produtos, então precisamos ajustar o tipo de retorno esperado.
+        return this.http.get<any>(finalUrl).pipe(
+          map(response => {
+            const embedded = response._embedded;
+            const products = [
+              ...(embedded?.produtoDeCorteModelList || []),
+              ...(embedded?.produtoDeConsumoDiretoModelList || [])
+            ];
+
+            // Ordena a lista combinada no lado do cliente para garantir a consistência.
+            const [sortField, sortOrder] = sort.split(',');
+            products.sort((a, b) => {
+              // Função auxiliar para acessar propriedades aninhadas (ex: 'dimensoes.larguraCm')
+              const getNestedValue = (obj: any, path: string) => path.split('.').reduce((o, key) => o && o[key], obj);
+
+              const valueA = getNestedValue(a, sortField);
+              const valueB = getNestedValue(b, sortField);
+
+              // Lida com valores nulos ou indefinidos para que fiquem no final
+              if (valueA == null) return 1;
+              if (valueB == null) return -1;
+
+              if (valueA < valueB) {
+                return sortOrder === 'asc' ? -1 : 1;
+              }
+              if (valueA > valueB) {
+                return sortOrder === 'asc' ? 1 : -1;
+              }
+              return 0;
+            });
+
+            // Remontamos a resposta no formato que a aplicação espera (ApiResponseProducts)
+            response._embedded.produtos = products;
+            return response as ApiResponseProducts;
+          })
+        );
       }),
       catchError(err => {
         console.error(`Falha ao buscar produtos na página ${page}, tamanho ${size}`, err);

@@ -3,6 +3,15 @@
   <form [formGroup]="productForm" (ngSubmit)="onSubmit()" (keydown.enter)="$event.preventDefault()">
     <mat-dialog-content>
         <div class="form-row">
+          @if (data.isCreationMode) {
+            <mat-form-field class="full-width">
+              <mat-label>Tipo de Produto</mat-label>
+              <mat-select formControlName="tipoProduto">
+                <mat-option value="CORTE">Produto de Corte</mat-option>
+                <mat-option value="CONSUMO_DIRETO">Produto de Consumo Direto</mat-option>
+              </mat-select>
+            </mat-form-field>
+          }
           <mat-form-field class="full-width">
             <mat-label>Nome</mat-label>
             <input matInput formControlName="nome" required>
@@ -13,13 +22,15 @@
             <mat-label>SKU</mat-label>
             <input matInput formControlName="sku" required>
           </mat-form-field>
-          <mat-form-field>
-            <mat-label>Cor</mat-label>
-            <input matInput formControlName="cor">
-          </mat-form-field>
+          @if (productForm.get('cor')?.enabled) {
+            <mat-form-field>
+              <mat-label>Cor</mat-label>
+              <input matInput formControlName="cor">
+            </mat-form-field>
+          }
         </div>
         <mat-form-field class="full-width">
-      <mat-label>Descrição</mat-label>
+          <mat-label>Descrição</mat-label>
           <textarea matInput formControlName="descricao"></textarea>
         </mat-form-field>
         <div class="form-row">
@@ -100,17 +111,29 @@
           </mat-form-field>
         </fieldset>
 
-        <h3 class="dimensions-title mat-subheading-2">Dimensões Unitárias</h3>
-        <div class="dimensions-group" formGroupName="dimensoes">
-          <mat-form-field>
-            <mat-label>Largura (cm)</mat-label>
-            <input matInput type="number" formControlName="larguraCm" required>
-          </mat-form-field>
-          <mat-form-field>
-            <mat-label>Comprimento (cm)</mat-label>
-            <input matInput type="number" formControlName="comprimentoCm" required>
-          </mat-form-field>
-        </div>
+        @if (productForm.get('dimensoes')?.enabled) {
+          <h3 class="dimensions-title mat-subheading-2">Dimensões Unitárias</h3>
+          <div class="dimensions-group" formGroupName="dimensoes">
+            <mat-form-field>
+              <mat-label>Largura (cm)</mat-label>
+              <input matInput type="number" formControlName="larguraCm" required>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Comprimento (cm)</mat-label>
+              <input matInput type="number" formControlName="comprimentoCm" required>
+            </mat-form-field>
+          </div>
+        }
+
+        @if (productForm.get('codigoFabricante')?.enabled) {
+          <h3 class="dimensions-title mat-subheading-2">Detalhes de Consumo</h3>
+          <div class="form-row">
+            <mat-form-field>
+              <mat-label>Código do Fabricante</mat-label>
+              <input matInput formControlName="codigoFabricante">
+            </mat-form-field>
+          </div>
+        }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancelar</button>
@@ -132,9 +155,25 @@
       </div>
       <div class="details-info">
         <p><strong>SKU:</strong> {{ product.sku }}</p>
-        <p><strong>Cor:</strong> {{ product.cor }}</p>
-        <p><strong>Dimensões:</strong> {{ product.dimensoes.larguraCm }} x {{ product.dimensoes.comprimentoCm }} cm</p>
         <p><strong>Ativo:</strong> {{ product.ativo ? 'Sim' : 'Não' }}</p>
+
+        <!-- Seção para Detalhes Específicos -->
+        <fieldset class="specific-details">
+          <legend>Detalhes Específicos ({{ product.tipoProduto === 'CORTE' ? 'Corte' : 'Consumo Direto' }})</legend>
+          @if (product.tipoProduto === 'CORTE') {
+            <p><strong>Cor:</strong> {{ product.cor || 'N/A' }}</p>
+            <p><strong>Dimensões:</strong> {{ product.dimensoes?.larguraCm }} x {{ product.dimensoes?.comprimentoCm }} cm</p>
+          }
+          @if (product.tipoProduto === 'CONSUMO_DIRETO') {
+            <p><strong>Cód. Fabricante:</strong> {{ product.codigoFabricante || 'N/A' }}</p>
+            @if (product.especificacoes) {
+              @for (spec of product.especificacoes | keyvalue; track spec.key) {
+                <p><strong>{{ spec.key | titlecase }}:</strong> {{ spec.value }}</p>
+              }
+            }
+          }
+        </fieldset>
+
         <hr>
         <p><strong>Estoque Físico Total:</strong> {{ product.estoqueFisicoTotal }} pacotes</p>
         <p><strong>Estoque Distribuído:</strong> {{ product.estoqueDistribuidoTotal }} pacotes</p>
