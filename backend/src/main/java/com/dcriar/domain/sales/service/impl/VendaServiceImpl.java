@@ -2,6 +2,7 @@ package com.dcriar.domain.sales.service.impl;
 
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
+import com.dcriar.api.dto.request.sales.ItemVendaRequestDTO;
 import com.dcriar.api.dto.request.sales.VendaRequestDTO;
 import com.dcriar.api.dto.response.sales.VendaResponseDTO;
 import com.dcriar.api.mapper.sales.VendaMapper;
@@ -26,16 +27,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Implementação da lógica de negócio para o módulo de Vendas.
- * <p>
- * Esta classe orquestra o processo de registro de vendas, incluindo a validação de dados,
- * cálculo de preços, a complexa baixa de estoque em duas fases (canal e mestre)
- * e a persistência dos dados de forma transacional.
- */
 @Service
 @RequiredArgsConstructor
 public class VendaServiceImpl implements VendaService {
@@ -48,117 +46,94 @@ public class VendaServiceImpl implements VendaService {
     private final EstoqueProdutoService estoqueProdutoService;
     private final VendaMapper vendaMapper;
 
-    /**
-     * Registra uma nova venda no sistema e orquestra a baixa automática de estoque.
-     * <p>
-     * <b>Processo de Orquestração e Regras de Negócio:</b>
-     * <ol>
-     *     <li><b>Validação do Canal:</b> O canal de venda especificado deve existir.</li>
-     *     <li><b>Processamento de Itens:</b> Para cada item na venda:
-     *         <ul>
-     *             <li>O produto deve existir.</li>
-     *             <li><b>Lógica de Preço:</b> O preço é determinado com base no {@link TipoPreco#VAREJO}. Se uma promoção estiver ativa ({@code promocaoAtiva=true}), o {@code valorPromocional} tem precedência sobre o {@code valor} normal.</li>
-     *             <li><b>Baixa de Estoque:</b> O estoque é reduzido em duas fases (ver {@link #performStockReduction(Produto, CanalVenda, int)}). A validação de saldo ocorre na baixa do estoque do canal.</li>
-     *         </ul>
-     *     </li>
-     *     <li><b>Transacionalidade:</b> A operação é atômica. Se o estoque de qualquer item for insuficiente, a venda inteira é revertida (rollback), garantindo a consistência dos dados.</li>
-     * </ol>
-     *
-     * @param requestDTO O DTO contendo os dados da nova venda.
-     * @return Um {@link VendaResponseDTO} representando a venda registrada.
-     * @throws CanalVendaNaoEncontradoException se o canal de venda não for encontrado.
-     * @throws ProdutoNaoEncontradoException se um produto de um item não for encontrado.
-     * @throws PrecoVarejoNaoDefinidoException se o preço de varejo para um produto não estiver definido.
-     * @throws EstoqueInsuficienteCanalException se não houver estoque suficiente no canal para um produto (propagada pelo {@code EstoqueProdutoService}).
-     */
     @Override
     @Transactional
     public VendaResponseDTO registrarVenda(VendaRequestDTO requestDTO) {
-        // 1. Valida e busca o canal de venda.
+        // 1. Valida Canal (1 Query)
         CanalVenda canalVenda = canalVendaRepository.findById(requestDTO.getCanalVendaId())
                 .orElseThrow(() -> new CanalVendaNaoEncontradoException(requestDTO.getCanalVendaId()));
 
-        // 2. Processa cada item da venda para criar as entidades ItemVenda.
-        List<ItemVenda> itemVendas = requestDTO.getItens().stream().map(itemDTO -> {
-            Produto produto = produtoRepository.findById(itemDTO.getProdutoId())
-                    .orElseThrow(() -> new ProdutoNaoEncontradoException(itemDTO.getProdutoId()));
+        // --- OTIMIZAÇÃO BATCH (Alta Performance) ---
+        
+        // A. Coleta IDs
+        Set<Long> produtoIds = requestDTO.getItens().stream()
+                .map(ItemVendaRequestDTO::getProdutoId)
+                .collect(Collectors.toSet());
 
-            // Regra de negócio: A venda sempre utiliza o preço de VAREJO.
-            Preco preco = precoRepository.findByProdutoAndTipoPreco(produto, TipoPreco.VAREJO)
-                    .orElseThrow(() -> new PrecoVarejoNaoDefinidoException(produto.getId()));
+        // B. Busca Produtos em Lote (1 Query IN)
+        Map<Long, Produto> produtosMap = produtoRepository.findAllById(produtoIds).stream()
+                .collect(Collectors.toMap(Produto::getId, Function.identity()));
 
-            // Regra de negócio: Aplica o preço promocional se a promoção estiver ativa.
+        if (produtosMap.size() != produtoIds.size()) {
+             produtoIds.removeAll(produtosMap.keySet());
+             throw new ProdutoNaoEncontradoException(produtoIds.iterator().next());
+        }
+
+        // C. Busca Preços em Lote (1 Query IN)
+        List<Preco> precosList = precoRepository.findByProdutoInAndTipoPreco(produtosMap.values(), TipoPreco.VAREJO);
+        Map<Long, Preco> precosMap = precosList.stream()
+                .collect(Collectors.toMap(p -> p.getProduto().getId(), Function.identity()));
+
+        // -------------------------------------------
+
+        List<ItemVenda> itemVendas = new ArrayList<>();
+
+        // Loop em Memória (Zero queries de leitura aqui dentro)
+        for (ItemVendaRequestDTO itemDTO : requestDTO.getItens()) {
+            Produto produto = produtosMap.get(itemDTO.getProdutoId());
+            Preco preco = precosMap.get(itemDTO.getProdutoId());
+
+            if (preco == null) {
+                throw new PrecoVarejoNaoDefinidoException(produto.getId());
+            }
+
             BigDecimal unitPrice = preco.isPromocaoAtiva() && preco.getValorPromocional() != null
                     ? preco.getValorPromocional()
                     : preco.getValor();
 
             BigDecimal itemTotalPrice = unitPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantidade()));
 
-            // Orquestra a baixa de estoque (validação no canal + registro no mestre).
+            // A baixa de estoque gera escrita (necessário)
             performStockReduction(produto, canalVenda, itemDTO.getQuantidade());
 
-            return ItemVenda.builder()
+            itemVendas.add(ItemVenda.builder()
                     .produto(produto)
                     .quantidade(itemDTO.getQuantidade())
                     .precoUnitario(unitPrice)
                     .precoTotal(itemTotalPrice)
-                    .build();
-        }).collect(Collectors.toList());
+                    .build());
+        }
 
-        // 3. Cria a entidade Venda, calcula o total e a persiste.
         Venda newVenda = Venda.from(canalVenda, itemVendas);
         BigDecimal totalAmount = itemVendas.stream()
                 .map(ItemVenda::getPrecoTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         newVenda.setValorTotal(totalAmount);
+        
         Venda savedVenda = vendaRepository.save(newVenda);
-
         return vendaMapper.toResponseDTO(savedVenda);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<VendaResponseDTO> findAll() {
-        return vendaRepository.findAll().stream()
-                .map(vendaMapper::toResponseDTO)
-                .collect(Collectors.toList());
+        return vendaRepository.findAll().stream().map(vendaMapper::toResponseDTO).collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public VendaResponseDTO findById(Long id) {
-        return vendaRepository.findById(id)
-                .map(vendaMapper::toResponseDTO)
-                .orElseThrow(() -> new VendaNaoEncontradaException(id));
+        return vendaRepository.findById(id).map(vendaMapper::toResponseDTO).orElseThrow(() -> new VendaNaoEncontradaException(id));
     }
 
-    /**
-     * Orquestra a baixa de estoque em duas fases: validação/redução no canal e registro no histórico mestre.
-     * <p>
-     * <b>Processo de Baixa de Estoque:</b>
-     * <ol>
-     *     <li><b>Fase 1: Baixa no Canal de Venda.</b> Invoca o {@link EstoqueProdutoService} para reduzir o estoque no canal.
-     *     Esta é a etapa de validação crítica: se o estoque do canal for insuficiente, uma {@link EstoqueInsuficienteCanalException}
-     *     será lançada, e a transação da venda será revertida.</li>
-     *     <li><b>Fase 2: Registro no Estoque Mestre.</b> Se a baixa no canal for bem-sucedida, uma {@link MovimentacaoEstoqueProduto}
-     *     de saída é criada para registrar a transação no histórico geral do produto (livro-razão), garantindo a rastreabilidade.</li>
-     * </ol>
-     *
-     * @param produto O produto que terá seu estoque reduzido.
-     * @param canalVenda O canal de venda onde a baixa será efetuada.
-     * @param quantity A quantidade a ser removida (valor positivo que será convertido para negativo).
-     * @throws EstoqueInsuficienteCanalException se não houver estoque suficiente no canal.
-     */
     private void performStockReduction(Produto produto, CanalVenda canalVenda, int quantity) {
-        // Fase 1: Ajusta (e valida) o estoque no canal de venda.
         AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
                 .produtoId(produto.getId())
                 .canalVendaId(canalVenda.getId())
-                .quantidade(quantity * -1) // Quantidade negativa para indicar saída.
+                .quantidade(quantity * -1)
                 .build();
         estoqueProdutoService.ajustarEstoque(ajusteDTO);
 
-        // Fase 2: Registra a movimentação no histórico mestre para fins de auditoria.
         MovimentacaoEstoqueProdutoRequestDTO movimentacaoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
                 .produtoId(produto.getId())
                 .tipo(TipoMovimentacaoProduto.SAIDA_VENDA.name())

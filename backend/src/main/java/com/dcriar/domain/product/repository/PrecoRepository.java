@@ -6,8 +6,8 @@ import com.dcriar.domain.product.entity.enums.TipoPreco;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Repositório para a entidade Preco.
@@ -17,14 +17,6 @@ import java.util.Optional;
  */
 @Repository
 public interface PrecoRepository extends JpaRepository<Preco, Long> {
-    /**
-     * Busca o preço de um produto por tipo.
-     *
-     * @param produto Produto associado
-     * @param tipoPreco Tipo de preço
-     * @return Preço encontrado, se existir
-     */
-    Optional<Preco> findByProdutoAndTipoPreco(Produto produto, TipoPreco tipoPreco);
 
     /**
      * Lista todos os preços de um produto.
@@ -33,4 +25,13 @@ public interface PrecoRepository extends JpaRepository<Preco, Long> {
      * @return Lista de preços
      */
     List<Preco> findByProduto(Produto produto);
+
+    /**
+     * Busca os preços de uma coleção de produtos para um tipo de preço específico.
+     *
+     * @param produtos Coleção de produtos
+     * @param tipoPreco Tipo de preço
+     * @return Lista de preços encontrados
+     */
+    List<Preco> findByProdutoInAndTipoPreco(Collection<Produto> produtos, TipoPreco tipoPreco);
 }

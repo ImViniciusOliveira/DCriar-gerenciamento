@@ -26,7 +26,6 @@ import com.dcriar.domain.production.service.OrdemDeProducaoService;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
-import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.exception.custom.*;
@@ -76,7 +75,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         // 1. Validações iniciais e busca de entidades principais.
         Produto produto = findProdutoById(requestDTO.getProdutoId());
-        if (isGeometricUnit(produto.getTipoMateriaPrima().getUnidadeDeConsumo())) {
+        if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
             throw new TipoProducaoIncompativelException("Este produto não pode ser produzido por corte. Utilize o endpoint de consumo direto.");
         }
 
@@ -181,8 +180,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     public OrdemDeProducaoResponseDTO criarOrdemDeConsumoDireto(OrdemDeConsumoDiretoRequestDTO requestDTO) {
         // 1. Validações iniciais e busca de entidades.
         Produto produto = findProdutoById(requestDTO.getProdutoId());
-        if (isDirectConsumptionUnit(produto.getTipoMateriaPrima().getUnidadeDeConsumo())) {
-            throw new TipoProducaoIncompativelException("Este produto não pode ser produzido por consumo direto. Utilize o endpoint de corte.");
+        if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumoDireto()) {
+            throw new TipoProducaoIncompativelException("Este produto não é para consumo direto.");
         }
 
         Set<LoteMateriaPrima> lotesConsumidos = new HashSet<>(loteMateriaPrimaRepository.findAllById(requestDTO.getLotesConsumidosIds()));
@@ -246,14 +245,14 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     @Override
     public OrdemDeProducaoResponseDTO buscarPorId(Long id) {
-        return ordemDeProducaoRepository.findById(id)
+        return ordemDeProducaoRepository.findByIdWithDetails(id)
                 .map(ordemDeProducaoMapper::toDto)
                 .orElseThrow(() -> new OrdemDeProducaoNaoEncontradaException(id));
     }
 
     @Override
     public List<OrdemDeProducaoResponseDTO> listarTodas() {
-        return ordemDeProducaoRepository.findAll().stream()
+        return ordemDeProducaoRepository.findAllWithDetails().stream()
                 .map(ordemDeProducaoMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -261,7 +260,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Override
     public SimulacaoCorteResponseDTO simularCorte(SimulacaoCorteRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
-        if (isGeometricUnit(produto.getTipoMateriaPrima().getUnidadeDeConsumo())) {
+        if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
             throw new TipoProducaoIncompativelException("Este produto não utiliza uma matéria-prima geométrica para simulação de corte.");
         }
 
@@ -288,7 +287,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Override
     public SimulacaoConsumoDiretoResponseDTO simularConsumoDireto(SimulacaoConsumoDiretoRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
-        if (isDirectConsumptionUnit(produto.getTipoMateriaPrima().getUnidadeDeConsumo())) {
+        if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumoDireto()) {
             throw new TipoProducaoIncompativelException("Este produto utiliza uma matéria-prima geométrica. Utilize o simulador de corte.");
         }
 
@@ -508,20 +507,5 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private LoteMateriaPrima findLoteById(Long id) {
         return loteMateriaPrimaRepository.findById(id)
                 .orElseThrow(() -> new LoteMateriaPrimaNaoEncontradoException(id));
-    }
-
-    private boolean isGeometricUnit(UnidadeDeMedida unidade) {
-        return unidade != UnidadeDeMedida.METRO_LINEAR &&
-                unidade != UnidadeDeMedida.CENTIMETRO_LINEAR &&
-                unidade != UnidadeDeMedida.METRO_QUADRADO &&
-                unidade != UnidadeDeMedida.CENTIMETRO_QUADRADO;
-    }
-
-    private boolean isDirectConsumptionUnit(UnidadeDeMedida unidade) {
-        return unidade != UnidadeDeMedida.LITRO &&
-                unidade != UnidadeDeMedida.MILILITRO &&
-                unidade != UnidadeDeMedida.QUILOGRAMA &&
-                unidade != UnidadeDeMedida.GRAMA &&
-                unidade != UnidadeDeMedida.UNIDADE;
     }
 }
