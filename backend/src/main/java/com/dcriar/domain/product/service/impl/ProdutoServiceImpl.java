@@ -6,6 +6,7 @@ import com.dcriar.api.mapper.product.ProdutoMapper;
 import com.dcriar.domain.product.entity.*;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
+import com.dcriar.domain.product.repository.ProdutoDeConsumoDiretoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
 public class ProdutoServiceImpl implements ProdutoService {
 
     private final ProdutoRepository produtoRepository;
+    private final ProdutoDeConsumoDiretoRepository produtoDeConsumoDiretoRepository;
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
     private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
     private final EstoqueRepository estoqueRepository;
@@ -65,8 +67,10 @@ public class ProdutoServiceImpl implements ProdutoService {
         Produto produto;
         if ("CORTE".equalsIgnoreCase(requestDTO.getTipoProduto())) {
             produto = createProdutoDeCorte(requestDTO, tipoMateriaPrima);
+            produto = produtoRepository.save(produto);
         } else if ("CONSUMO_DIRETO".equalsIgnoreCase(requestDTO.getTipoProduto())) {
             produto = createProdutoDeConsumoDireto(requestDTO, tipoMateriaPrima);
+            produto = produtoDeConsumoDiretoRepository.save((ProdutoDeConsumoDireto) produto);
         } else {
             throw new RegraNegocioException("Tipo de produto inválido: " + requestDTO.getTipoProduto());
         }

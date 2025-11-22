@@ -23,12 +23,9 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
     /**
      * Busca todos os produtos de forma paginada.
      * <p>
-     * Esta consulta customizada com {@code LEFT JOIN FETCH} garante que as associações
-     * com {@code tipoMateriaPrima} e {@code dimensoes} sejam carregadas de forma otimizada (EAGER),
+     * Esta consulta customizada com {@code LEFT JOIN FETCH} garante que a associação
+     * com {@code tipoMateriaPrima} seja carregada de forma otimizada (EAGER),
      * evitando o problema N+1.
-     * <p>
-     * O {@code LEFT JOIN} explícito também permite que o Spring Data JPA ordene corretamente
-     * por campos de entidades aninhadas, como {@code dimensoes.larguraCm}.
      *
      * @param pageable Objeto com as informações de paginação (não pode ser nulo).
      * @return Uma página de produtos (nunca nula).
@@ -36,8 +33,7 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
     @Override
     @NonNull
     @Query(value = "SELECT p FROM Produto p " +
-                   "LEFT JOIN FETCH p.tipoMateriaPrima " +
-                   "LEFT JOIN FETCH p.dimensoes",
+                   "LEFT JOIN FETCH p.tipoMateriaPrima",
            countQuery = "SELECT count(p) FROM Produto p")
     Page<Produto> findAll(@NonNull Pageable pageable);
 
@@ -50,7 +46,7 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
      */
     @Override
     @NonNull
-    @EntityGraph(attributePaths = {"tipoMateriaPrima", "dimensoes"})
+    @EntityGraph(attributePaths = {"tipoMateriaPrima"})
     Optional<Produto> findById(@NonNull Long id);
 
     /**
