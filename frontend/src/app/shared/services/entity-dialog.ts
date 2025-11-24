@@ -3,7 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
-import { ConfirmDialog, ConfirmDialogData } from '../components/confirm-dialog/confirm-dialog/confirm-dialog';
+import { ConfirmDialog, ConfirmDialogData } from '../components/confirm-dialog/confirm-dialog';
 
 export interface FormDialogData<T> {
   component: Type<any>;

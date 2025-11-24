@@ -1,33 +1,24 @@
-import { Component, inject, signal, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, OnInit } from '@angular/core';
+import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-// Caminho corrigido
+import { of, lastValueFrom, map, switchMap, catchError } from 'rxjs';
+
+// Nossos componentes e serviços reutilizáveis
+import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
+import { BaseList } from '../../../../shared/components/base-list/base-list';
+
+// Coisas específicas de Produtos
 import { Product } from '../../models/product.model';
-import { PageEvent } from '@angular/material/paginator';
-import { Sort } from '@angular/material/sort';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-// Caminho e nome corrigidos
 import { ProductService } from '../../services/product';
-import {
-  ConfirmDialog,
-  ConfirmDialogData,
-} from '../../../../shared/components/confirm-dialog/confirm-dialog/confirm-dialog';
-import { filter, of, lastValueFrom, map, switchMap, catchError } from 'rxjs';
 import { ProductFormComponent, ProductFormData } from '../product-form/product-form';
+
+// Outros imports
 import { ApiRoot } from '../../../../core/services/api-root';
 import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
-import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
-
-interface PagedResponse<T> {
-  _embedded?: Record<string, T[]>;
-  _links?: { [key: string]: { href: string } };
-  page?: { totalElements: number };
-}
 
 @Component({
   selector: 'app-product-list',
@@ -36,8 +27,6 @@ interface PagedResponse<T> {
     CommonModule,
     MatButtonModule,
     MatIconModule,
-    MatDialogModule,
-    MatSnackBarModule,
     MatMenuModule,
     MatTooltipModule,
     FilterStockPipe,
@@ -46,36 +35,28 @@ interface PagedResponse<T> {
   templateUrl: './product-list.html',
   styleUrls: ['./product-list.scss'],
 })
-export class ProductList implements OnInit, AfterViewInit {
+export class ProductList extends BaseList<Product> implements AfterViewInit {
   private static readonly Texts = {
     deleteConfirmTitle: 'Confirmar Exclusão',
-    deleteConfirmMessage: (name: string) => `Tem certeza que deseja excluir o produto "${name}"?`,
     deleteSuccess: 'Produto excluído com sucesso!',
     saveSuccess: 'Produto salvo com sucesso!',
     createSuccess: 'Produto cadastrado com sucesso!',
     deleteError: 'Falha ao excluir o produto.',
-    loadError: 'Falha ao carregar a lista de produtos. Tente novamente mais tarde.',
+    loadError: 'Falha ao carregar a lista de produtos.',
+    createError: 'Não foi possível iniciar o cadastro de um novo produto.',
   };
-  // Nome da variável injetada corrigido
+
+  // Serviços específicos de Produtos
   private readonly productService = inject(ProductService);
-  private readonly dialog = inject(MatDialog);
-  private readonly snackBar = inject(MatSnackBar);
   private readonly apiRoot = inject(ApiRoot);
   private readonly enumService = inject(EnumService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  products = signal<Product[]>([]);
+  // Estado específico de Produtos
   tableColumns: TableColumn<Product>[] = [];
-
-  totalElements = signal(0);
-  pageSize = signal(10);
-  pageIndex = signal(0);
-
-  sortActive = signal('nome');
-  sortDirection = signal<Sort['direction']>('asc');
-
   readonly consumptionUnitsMap = signal(new Map<string, EnumOption>());
 
+  // Referências aos templates do HTML
   @ViewChild('skuTemplate') skuTemplate!: TemplateRef<any>;
   @ViewChild('nomeTemplate') nomeTemplate!: TemplateRef<any>;
   @ViewChild('ativoTemplate') ativoTemplate!: TemplateRef<any>;
@@ -84,12 +65,7 @@ export class ProductList implements OnInit, AfterViewInit {
   @ViewChild('estoquePorCanalTemplate') estoquePorCanalTemplate!: TemplateRef<any>;
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
 
-  ngOnInit(): void {
-    this.loadProducts();
-  }
-
   ngAfterViewInit(): void {
-    // A inicialização das colunas é feita aqui para garantir que os @ViewChild (templates) estejam disponíveis.
     this.tableColumns = [
       { key: 'sku', header: 'SKU', sortable: true, cellTemplate: this.skuTemplate },
       { key: 'nome', header: 'Produto', sortable: true, cellTemplate: this.nomeTemplate },
@@ -99,29 +75,23 @@ export class ProductList implements OnInit, AfterViewInit {
       { key: 'estoquePorCanal', header: 'Canais', sortable: false, cellTemplate: this.estoquePorCanalTemplate },
       { key: 'acoes', header: 'Ações', sortable: false, cellTemplate: this.acoesTemplate },
     ];
-
-    // Força o Angular a rodar a detecção de alterações novamente.
-    // Isso sincroniza a view com a mudança feita em `tableColumns` e evita o erro.
     this.cdr.detectChanges();
   }
 
-  onSortChange(sort: Sort) {
-    this.sortActive.set(sort.direction ? sort.active : 'nome');
-    this.sortDirection.set(sort.direction || 'asc');
-    this.pageIndex.set(0);
-    this.loadProducts();
-  }
-
-  loadProducts(): void {
-    const sortString = `${this.sortActive()},${this.sortDirection()}`;
-    this.productService.getProducts(this.pageIndex(), this.pageSize(), sortString).pipe(
+  // Implementação do método abstrato da classe base
+  override loadItems(): void {
+    this.productService.getProducts(
+      this.pagination.pageIndex(),
+      this.pagination.pageSize(),
+      this.pagination.sortString()
+    ).pipe(
       switchMap((productsResponse: any) => {
         const products = productsResponse?._embedded?.produtos ?? [];
         const stockUrl = productsResponse?._links?.['estoques-por-produtos']?.href;
-        this.totalElements.set(productsResponse?.page?.totalElements ?? 0);
+        this.pagination.updateTotalElements(productsResponse?.page?.totalElements ?? 0);
 
         if (products.length === 0 || !stockUrl) {
-          return of([]);
+          return of(products);
         }
 
         const productIds = products.map((p: Product) => p.id);
@@ -131,12 +101,10 @@ export class ProductList implements OnInit, AfterViewInit {
         );
       })
     ).subscribe({
-      next: (finalProducts) => {
-        this.products.set(finalProducts);
-      },
+      next: (finalProducts) => this.items.set(finalProducts), // Usa a propriedade 'items' da classe base
       error: (error) => {
         console.error('Erro ao carregar produtos:', error);
-        this.snackBar.open(ProductList.Texts.loadError, 'Fechar', { duration: 5000 });
+        this.entityDialog.showErrorSnackbar(ProductList.Texts.loadError);
       }
     });
   }
@@ -148,41 +116,33 @@ export class ProductList implements OnInit, AfterViewInit {
     }));
   }
 
-  onPageChange(event: PageEvent): void {
-    this.pageIndex.set(event.pageIndex);
-    this.pageSize.set(event.pageSize);
-    this.loadProducts();
+  // Métodos de CRUD específicos de Produtos
+  onDelete(product: Product): void {
+    this.entityDialog.openConfirmDeleteDialog(product.nome, ProductList.Texts.deleteConfirmTitle)
+      .subscribe((confirmed: boolean) => {
+        if (confirmed) {
+          const deleteUrl = product._links?.['deletar-produto']?.href;
+          if (!deleteUrl) {
+            this.entityDialog.showErrorSnackbar(ProductList.Texts.deleteError);
+            return;
+          }
+          this.productService.deleteProduct(deleteUrl).subscribe({
+            next: () => {
+              this.entityDialog.showSuccessSnackbar(ProductList.Texts.deleteSuccess);
+              this.loadItems();
+            },
+            error: () => this.entityDialog.showErrorSnackbar(ProductList.Texts.deleteError)
+          });
+        }
+      });
   }
 
-  async onDelete(product: Product): Promise<void> {
-    const dialogData: ConfirmDialogData = {
-      title: ProductList.Texts.deleteConfirmTitle,
-      message: ProductList.Texts.deleteConfirmMessage(product.nome),
-    };
-
-    const dialogRef = this.dialog.open(ConfirmDialog, { data: dialogData });
-    const confirmed = await lastValueFrom(dialogRef.afterClosed());
-
-    if (confirmed) {
-      try {
-        const deleteUrl = product._links?.['deletar-produto']?.href;
-        if (!deleteUrl) throw new Error('URL de exclusão não encontrada.');
-        await lastValueFrom(this.productService.deleteProduct(deleteUrl));
-        this.snackBar.open(ProductList.Texts.deleteSuccess, 'Fechar', { duration: 3000 });
-        this.loadProducts();
-      } catch (error) {
-        console.error('Erro ao excluir produto:', error);
-        this.snackBar.open(ProductList.Texts.deleteError, 'Fechar', { duration: 3000 });
-      }
-    }
-  }
-
-  async onView(product: Product): Promise<void> {
+  onView(product: Product): void {
     const dialogData: ProductFormData = { product, isEditMode: false, title: 'Detalhes do Produto' };
-    this.openProductDialog(dialogData, '');
+    this.openProductDialog(dialogData);
   }
 
-  async onEdit(product: Product): Promise<void> {
+  onEdit(product: Product): void {
     const productCopy = structuredClone(product);
     this.openProductDialog({ product: productCopy, isEditMode: true, title: 'Editar Produto' }, ProductList.Texts.saveSuccess);
   }
@@ -199,23 +159,24 @@ export class ProductList implements OnInit, AfterViewInit {
       }, ProductList.Texts.createSuccess);
     } catch (error) {
       console.error('Erro ao buscar template para novo produto:', error);
-      this.snackBar.open('Não foi possível iniciar o cadastro de um novo produto.', 'Fechar', { duration: 3000 });
+      this.entityDialog.showErrorSnackbar(ProductList.Texts.createError);
     }
   }
 
-  private openProductDialog(dialogData: ProductFormData, successMessage: string): void {
-    const dialogRef = this.dialog.open(ProductFormComponent, {
-      data: dialogData,
+  private openProductDialog(dialogData: ProductFormData, successMessage?: string): void {
+    this.entityDialog.openFormDialog({
+      component: ProductFormComponent,
+      formData: dialogData,
+      title: dialogData.title, // Propriedade 'title' adicionada
       width: '90vw',
       maxWidth: '900px',
-      autoFocus: false,
-    });
-
-    dialogRef.afterClosed().pipe(filter(result => result === true)).subscribe(() => {
-      if (successMessage) {
-        this.snackBar.open(successMessage, 'Fechar', { duration: 3000 });
+    }).subscribe((saved: boolean) => {
+      if (saved && successMessage) {
+        this.entityDialog.showSuccessSnackbar(successMessage);
       }
-      this.loadProducts();
+      // Recarrega sempre para garantir dados atualizados, mesmo que a operação seja cancelada.
+      // Uma melhoria futura seria recarregar apenas se 'saved' for true.
+      this.loadItems();
     });
   }
 

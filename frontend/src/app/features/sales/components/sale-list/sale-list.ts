@@ -1,14 +1,11 @@
-import { Component, inject, signal, ViewChild, TemplateRef, AfterViewInit, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { PageEvent } from '@angular/material/paginator';
-import { Sort } from '@angular/material/sort';
 
 // Nossos componentes e serviços reutilizáveis
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
-import { PaginationHandler } from '../../../../shared/services/pagination-handler';
-import { EntityDialogService } from '../../../../shared/services/entity-dialog';
+import { BaseList } from '../../../../shared/components/base-list/base-list';
 
 // Coisas específicas de Vendas
 import { Sale } from '../../models/sale.model';
@@ -29,13 +26,12 @@ import { SaleFormComponent } from '../sale-form/sale-form';
   templateUrl: './sale-list.html',
   styleUrls: ['./sale-list.scss']
 })
-export class SaleListComponent implements OnInit, AfterViewInit {
-  readonly pagination = inject(PaginationHandler);
-  private readonly entityDialog = inject(EntityDialogService);
+export class SaleListComponent extends BaseList<Sale> implements AfterViewInit {
+  // Serviços específicos de Vendas
   private readonly saleService = inject(SaleService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  sales = signal<Sale[]>([]);
+  // Estado específico de Vendas
   tableColumns: TableColumn<Sale>[] = [];
 
   // Referências aos templates do HTML
@@ -46,12 +42,7 @@ export class SaleListComponent implements OnInit, AfterViewInit {
   @ViewChild('dateTemplate') dateTemplate!: TemplateRef<any>;
   @ViewChild('actionsTemplate') actionsTemplate!: TemplateRef<any>;
 
-  ngOnInit(): void {
-    this.loadSales();
-  }
-
   ngAfterViewInit(): void {
-    // Define as colunas com os novos campos
     this.tableColumns = [
       { key: 'id', header: 'ID', sortable: true, cellTemplate: this.idTemplate },
       { key: 'nomeCanalVenda', header: 'Canal de Venda', sortable: true, cellTemplate: this.channelTemplate },
@@ -63,33 +54,23 @@ export class SaleListComponent implements OnInit, AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  loadSales(): void {
+  // Implementação do método abstrato da classe base
+  override loadItems(): void {
     this.saleService.getSales(
       this.pagination.pageIndex(),
       this.pagination.pageSize(),
       this.pagination.sortString()
     ).subscribe(response => {
-      // Chave alterada para "vendas"
-      this.sales.set(response._embedded?.vendas ?? []);
+      this.items.set(response._embedded?.vendas ?? []); // Usa a propriedade 'items' da classe base
       this.pagination.updateTotalElements(response.page?.totalElements ?? 0);
     });
   }
 
-  onPageChange(event: PageEvent): void {
-    this.pagination.handlePageEvent(event);
-    this.loadSales();
-  }
-
-  onSortChange(sort: Sort): void {
-    this.pagination.handleSortChange(sort);
-    this.loadSales();
-  }
-
+  // Métodos de CRUD específicos de Vendas
   onDelete(sale: Sale): void {
-    // Usando o ID da venda para a mensagem de confirmação
     this.entityDialog.openConfirmDeleteDialog(`Venda #${sale.id}`).subscribe((confirmed: boolean) => {
       if (confirmed) {
-        const deleteUrl = sale._links?.['self']?.href; // Usando o link 'self' como exemplo
+        const deleteUrl = sale._links?.['self']?.href;
         if (!deleteUrl) {
           this.entityDialog.showErrorSnackbar('URL para exclusão não encontrada.');
           return;
@@ -97,7 +78,7 @@ export class SaleListComponent implements OnInit, AfterViewInit {
         this.saleService.deleteSale(deleteUrl).subscribe({
           next: () => {
             this.entityDialog.showSuccessSnackbar('Venda excluída com sucesso!');
-            this.loadSales();
+            this.loadItems();
           },
           error: () => this.entityDialog.showErrorSnackbar('Falha ao excluir a venda.')
         });
@@ -121,7 +102,7 @@ export class SaleListComponent implements OnInit, AfterViewInit {
     }).subscribe((saved: boolean) => {
       if (saved) {
         this.entityDialog.showSuccessSnackbar('Venda salva com sucesso!');
-        this.loadSales();
+        this.loadItems();
       }
     });
   }
