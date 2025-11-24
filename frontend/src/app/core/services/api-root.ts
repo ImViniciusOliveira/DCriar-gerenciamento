@@ -1,14 +1,16 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Hateoas } from '../models/hateoas.model';
-import { Observable, tap, shareReplay, take } from 'rxjs';
+import { Observable, tap, shareReplay, take, catchError, of } from 'rxjs';
 import { environment } from './environment';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ApiRoot {
   private readonly http = inject(HttpClient);
+  private readonly snackBar = inject(MatSnackBar);
 
   private readonly API_URL = `${environment.apiUrl}/api/v1`;
 
@@ -27,6 +29,18 @@ export class ApiRoot {
     return this.http
       .get<Hateoas>(this.API_URL)
       .pipe(
+        catchError(error => {
+          // Log do erro para os desenvolvedores
+          console.error('Falha ao conectar com a API. Backend pode estar offline.', error);
+
+          // Mensagem amigável para o usuário
+          this.snackBar.open('Não foi possível conectar ao servidor. Tente novamente mais tarde.', 'Fechar', {
+            duration: 7000,
+          });
+
+          // Retorna um observable com um objeto vazio e tipado para não quebrar o fluxo
+          return of({} as Hateoas);
+        }),
         tap(endpoints => this.endpoints.set(endpoints)),
         shareReplay(1) // Cacheia o resultado para evitar múltiplas chamadas à raiz da API.
       );

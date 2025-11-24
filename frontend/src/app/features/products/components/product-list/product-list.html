@@ -4,7 +4,6 @@
   [addButtonText]="'Adicionar Produto'"
   [items]="products()"
   [columns]="tableColumns"
-  [isLoading]="isLoading()"
   [totalElements]="totalElements()"
   [pageSize]="pageSize()"
   [pageIndex]="pageIndex()"
@@ -14,25 +13,16 @@
 </app-base-table>
 
 <!-- Templates para as Células da Tabela -->
-
-<ng-template #skuTemplate let-product>
-  {{ product.sku }}
-</ng-template>
-
-<ng-template #nomeTemplate let-product>
-  {{ product.nome }}
-</ng-template>
-
+<ng-template #skuTemplate let-product>{{ product.sku }}</ng-template>
+<ng-template #nomeTemplate let-product>{{ product.nome }}</ng-template>
 <ng-template #ativoTemplate let-product>
   <mat-icon>{{ product.ativo ? 'check_circle' : 'cancel' }}</mat-icon>
 </ng-template>
-
 <ng-template #estoqueTemplate let-product>
   {{ product.estoqueFisicoTotal }} pacotes
   <br />
   <small>({{ product.unidadesPorProduto }} unidades cada)</small>
 </ng-template>
-
 <ng-template #detalhesTemplate let-product>
   @if (product.tipoProduto === 'CORTE' || product.tipoProduto === 'CONSUMO_DIRETO') {
     <div class="details-cell-content">
@@ -47,20 +37,18 @@
     <span>-</span>
   }
 </ng-template>
-
 <ng-template #estoquePorCanalTemplate let-product>
   @if (product.estoquePorCanal) {
-    @if (product.estoquePorCanal | keyvalue | filterStock:0; as activeChannels) {
-      @if (activeChannels.length > 0) {
-        <div class="stock-summary">
-          <span>Em {{ activeChannels.length }} {{ activeChannels.length > 1 ? 'canais' : 'canal' }}</span>
-          <mat-icon class="stock-menu-trigger" [matMenuTriggerFor]="stockMenu" title="Ver estoque por canal">more_vert</mat-icon>
+    @if ((product.estoquePorCanal | keyvalue | filterStock:0); as activeChannels) {
+      @if (activeChannels.length) {
+        <div class="details-cell-content">
+          <span class="details-trigger">Exibir canais</span>
+          <div class="details-text-container">
+            @for(channel of activeChannels; track channel.key) {
+              <span><strong>{{ getChannelDisplayName(channel.key) | titlecase }}:</strong> {{ channel.value }}</span>
+            }
+          </div>
         </div>
-        <mat-menu #stockMenu="matMenu">
-          @for (channel of activeChannels; track channel.key) {
-            <button mat-menu-item disabled class="stock-menu-item">{{ getChannelDisplayName($any(channel.key)) }}: {{ channel.value }}</button>
-          }
-        </mat-menu>
       } @else {
         <span>Nenhum</span>
       }
@@ -69,7 +57,6 @@
     }
   }
 </ng-template>
-
 <ng-template #acoesTemplate let-product>
   <button mat-icon-button color="primary" title="Visualizar" (click)="onView(product)">
     <mat-icon>visibility</mat-icon>

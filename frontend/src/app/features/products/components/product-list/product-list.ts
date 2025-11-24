@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject, signal, TemplateRef, AfterViewInit } from '@angular/core';
+import { Component, inject, signal, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,6 +20,12 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
+
+interface PagedResponse<T> {
+  _embedded?: Record<string, T[]>;
+  _links?: { [key: string]: { href: string } };
+  page?: { totalElements: number };
+}
 
 @Component({
   selector: 'app-product-list',
@@ -53,11 +59,9 @@ export class ProductList implements OnInit, AfterViewInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly apiRoot = inject(ApiRoot);
   private readonly enumService = inject(EnumService);
-
-  private loadingTimer: any;
+  private readonly cdr = inject(ChangeDetectorRef);
 
   products = signal<Product[]>([]);
-  isLoading = signal(false);
   tableColumns: TableColumn<Product>[] = [];
 
   totalElements = signal(0);
@@ -82,6 +86,7 @@ export class ProductList implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
+    // A inicialização das colunas é feita aqui para garantir que os @ViewChild (templates) estejam disponíveis.
     this.tableColumns = [
       { key: 'sku', header: 'SKU', sortable: true, cellTemplate: this.skuTemplate },
       { key: 'nome', header: 'Produto', sortable: true, cellTemplate: this.nomeTemplate },
@@ -91,23 +96,32 @@ export class ProductList implements OnInit, AfterViewInit {
       { key: 'estoquePorCanal', header: 'Canais', sortable: false, cellTemplate: this.estoquePorCanalTemplate },
       { key: 'acoes', header: 'Ações', sortable: false, cellTemplate: this.acoesTemplate },
     ];
+
+    // Força o Angular a rodar a detecção de alterações novamente.
+    // Isso sincroniza a view com a mudança feita em `tableColumns` e evita o erro.
+    this.cdr.detectChanges();
+  }
+
+  onSortChange(sort: Sort) {
+    this.sortActive.set(sort.direction ? sort.active : 'nome');
+    this.sortDirection.set(sort.direction || 'asc');
+    this.pageIndex.set(0);
+    this.loadProducts();
   }
 
   loadProducts(): void {
-    this.loadingTimer = setTimeout(() => this.isLoading.set(true), 300);
-
     const sortString = `${this.sortActive()},${this.sortDirection()}`;
     this.productsService.getProducts(this.pageIndex(), this.pageSize(), sortString).pipe(
-      switchMap(productsResponse => {
-        const products = productsResponse?._embedded?.produtos || [];
-        const stockUrl = productsResponse._links?.['estoques-por-produtos']?.href;
-        this.totalElements.set(productsResponse.page?.totalElements || 0);
+      switchMap((productsResponse: any) => {
+        const products = productsResponse?._embedded?.produtos ?? [];
+        const stockUrl = productsResponse?._links?.['estoques-por-produtos']?.href;
+        this.totalElements.set(productsResponse?.page?.totalElements ?? 0);
 
         if (products.length === 0 || !stockUrl) {
           return of([]);
         }
 
-        const productIds = products.map(p => p.id);
+        const productIds = products.map((p: Product) => p.id);
         return this.productsService.getStocksForProducts(productIds, stockUrl).pipe(
           map(allStocks => this.mergeStockData(products, allStocks)),
           catchError(() => of(products))
@@ -115,15 +129,11 @@ export class ProductList implements OnInit, AfterViewInit {
       })
     ).subscribe({
       next: (finalProducts) => {
-        clearTimeout(this.loadingTimer);
         this.products.set(finalProducts);
-        this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Erro ao carregar produtos:', error);
-        clearTimeout(this.loadingTimer);
         this.snackBar.open(ProductList.Texts.loadError, 'Fechar', { duration: 5000 });
-        this.isLoading.set(false);
       }
     });
   }
@@ -138,13 +148,6 @@ export class ProductList implements OnInit, AfterViewInit {
   onPageChange(event: PageEvent): void {
     this.pageIndex.set(event.pageIndex);
     this.pageSize.set(event.pageSize);
-    this.loadProducts();
-  }
-
-  onSortChange(sort: Sort) {
-    this.sortActive.set(sort.direction ? sort.active : 'nome');
-    this.sortDirection.set(sort.direction || 'asc');
-    this.pageIndex.set(0);
     this.loadProducts();
   }
 
@@ -230,7 +233,9 @@ export class ProductList implements OnInit, AfterViewInit {
       if (product.codigoFabricante) {
         details.push({ key: 'Cód. Fab.', value: product.codigoFabricante });
       }
-      Object.entries(product.especificacoes || {}).forEach(([key, value]) => details.push({ key, value }));
+      for (const [key, value] of Object.entries(product.especificacoes || {})) {
+        details.push({ key, value });
+      }
     }
     return details;
   }

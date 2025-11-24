@@ -40,7 +40,6 @@ export class BaseTable<T> implements OnChanges {
 
   @Input() items: T[] = [];
   @Input() columns: TableColumn<T>[] = [];
-  @Input() isLoading: boolean = false;
 
   @Input() totalElements: number = 0;
   @Input() pageSize: number = 10;

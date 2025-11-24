@@ -1,104 +1,3 @@
-.page-card {
-  margin: 24px;
-  background-color: var(--mat-sys-surface-container-highest);
-}
-
-.page-card mat-card-header {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-}
-
-.header-spacer {
-  flex: 1 1 auto;
-}
-
-.add-product-button {
-  height: 40px;
-  padding: 0 24px;
-}
-
-.page-card mat-card-content {
-  padding: 0 16px;
-}
-.table-wrapper {
-  position: relative;
-}
-
-.spinner-container {
-  position: absolute;
-  inset: 0;
-  background: rgba(var(--mat-sys-surface-rgb), 0.8);
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.table-container {
-  position: relative;
-  border-radius: 8px;
-  overflow-x: auto;
-
-  max-height: 70vh;
-}
-
-.mat-mdc-table-sticky {
-  background-color: var(--mat-sys-surface-container-highest);
-  z-index: 1; // Garante que a coluna fixa fique acima das outras
-}
-
-.stock-info small {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.85rem;
-}
-
-.stock-summary {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  justify-content: flex-start;
-}
-
-.stock-menu-trigger {
-  cursor: pointer;
-  border-radius: 50%;
-  padding: 4px;
-  transition: background-color 0.2s ease-in-out;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: content-box;
-}
-.stock-menu-trigger:hover {
-  background-color: rgba(var(--mat-sys-on-surface-rgb), 0.08);
-}
-mat-paginator {
-  background-color: var(--mat-sys-surface-container-highest);
-  padding: 0 16px;
-}
-
-table {
-  width: 100%;
-  table-layout: fixed;
-}
-
-.mat-column-detalhes {
-  width: 250px;
-}
-
-.mat-column-ativo {
-  width: 65px;
-}
-.mat-column-acoes {
-  width: 160px;
-}
-
-.mat-column-ativo .mat-mdc-cell,
-.mat-column-acoes .mat-mdc-cell {
-  justify-content: center;
-}
-
 .details-cell-content {
   display: flex;
   align-items: center;
@@ -144,4 +43,19 @@ table {
       display: flex;
     }
   }
+}
+.mat-column-detalhes {
+  width: 250px;
+}
+
+.mat-column-ativo {
+  width: 65px;
+}
+.mat-column-acoes {
+  width: 160px;
+}
+
+.mat-column-ativo .mat-mdc-cell,
+.mat-column-acoes .mat-mdc-cell {
+  justify-content: center;
 }
