@@ -1,0 +1,18 @@
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  text-transform: uppercase;
+
+  &.pending {
+    background-color: #f59e0b; // amber-500
+  }
+  &.completed {
+    background-color: #10b981; // emerald-500
+  }
+  &.cancelled {
+    background-color: #ef4444; // red-500
+  }
+}

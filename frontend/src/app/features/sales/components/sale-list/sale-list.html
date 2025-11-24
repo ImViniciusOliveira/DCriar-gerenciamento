@@ -1,0 +1,30 @@
+<app-base-table
+  [title]="'Vendas'"
+  [subtitle]="'Gerenciamento de vendas'"
+  [addButtonText]="'Adicionar Venda'"
+  [items]="sales()"
+  [columns]="tableColumns"
+  [totalElements]="pagination.totalElements()"
+  [pageSize]="pagination.pageSize()"
+  [pageIndex]="pagination.pageIndex()"
+  (add)="onCreate()"
+  (pageChange)="onPageChange($event)"
+  (sortChange)="onSortChange($event)">
+</app-base-table>
+
+<!-- Templates para as Células -->
+<ng-template #idTemplate let-sale>{{ sale.id }}</ng-template>
+<ng-template #channelTemplate let-sale>{{ sale.nomeCanalVenda }}</ng-template>
+<ng-template #itemsTemplate let-sale>
+  {{ sale.itens.length }} {{ sale.itens.length > 1 ? 'itens' : 'item' }}
+</ng-template>
+<ng-template #amountTemplate let-sale>{{ sale.valorTotal | currency:'BRL' }}</ng-template>
+<ng-template #dateTemplate let-sale>{{ sale.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</ng-template>
+<ng-template #actionsTemplate let-sale>
+  <button mat-icon-button color="primary" title="Editar" (click)="onEdit(sale)">
+    <mat-icon>edit</mat-icon>
+  </button>
+  <button mat-icon-button color="warn" title="Excluir" (click)="onDelete(sale)">
+    <mat-icon>delete</mat-icon>
+  </button>
+</ng-template>

@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { Product } from '../../models/products.model';
+// Caminho corrigido
+import { Product } from '../../models/product.model';
 import { PageEvent } from '@angular/material/paginator';
 import { Sort } from '@angular/material/sort';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { ProductsService } from '../../services/products';
+// Caminho e nome corrigidos
+import { ProductService } from '../../services/product';
 import {
   ConfirmDialog,
   ConfirmDialogData,
@@ -54,7 +56,8 @@ export class ProductList implements OnInit, AfterViewInit {
     deleteError: 'Falha ao excluir o produto.',
     loadError: 'Falha ao carregar a lista de produtos. Tente novamente mais tarde.',
   };
-  private readonly productsService = inject(ProductsService);
+  // Nome da variável injetada corrigido
+  private readonly productService = inject(ProductService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly apiRoot = inject(ApiRoot);
@@ -111,7 +114,7 @@ export class ProductList implements OnInit, AfterViewInit {
 
   loadProducts(): void {
     const sortString = `${this.sortActive()},${this.sortDirection()}`;
-    this.productsService.getProducts(this.pageIndex(), this.pageSize(), sortString).pipe(
+    this.productService.getProducts(this.pageIndex(), this.pageSize(), sortString).pipe(
       switchMap((productsResponse: any) => {
         const products = productsResponse?._embedded?.produtos ?? [];
         const stockUrl = productsResponse?._links?.['estoques-por-produtos']?.href;
@@ -122,7 +125,7 @@ export class ProductList implements OnInit, AfterViewInit {
         }
 
         const productIds = products.map((p: Product) => p.id);
-        return this.productsService.getStocksForProducts(productIds, stockUrl).pipe(
+        return this.productService.getStocksForProducts(productIds, stockUrl).pipe(
           map(allStocks => this.mergeStockData(products, allStocks)),
           catchError(() => of(products))
         );
@@ -164,7 +167,7 @@ export class ProductList implements OnInit, AfterViewInit {
       try {
         const deleteUrl = product._links?.['deletar-produto']?.href;
         if (!deleteUrl) throw new Error('URL de exclusão não encontrada.');
-        await lastValueFrom(this.productsService.deleteProduct(deleteUrl));
+        await lastValueFrom(this.productService.deleteProduct(deleteUrl));
         this.snackBar.open(ProductList.Texts.deleteSuccess, 'Fechar', { duration: 3000 });
         this.loadProducts();
       } catch (error) {
@@ -187,7 +190,7 @@ export class ProductList implements OnInit, AfterViewInit {
   async onCreate(): Promise<void> {
     try {
       await lastValueFrom(this.apiRoot.endpoints$);
-      const newProductTemplate = await lastValueFrom(this.productsService.getNewProductTemplate());
+      const newProductTemplate = await lastValueFrom(this.productService.getNewProductTemplate());
       this.openProductDialog({
         product: newProductTemplate,
         isEditMode: false,

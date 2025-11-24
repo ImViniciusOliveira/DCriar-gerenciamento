@@ -5,13 +5,15 @@ import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
 import { Hateoas } from '../../../core/models/hateoas.model';
-import { ApiResponseProducts, Product } from '../models/products.model';
+// Caminho corrigido
+import { ApiResponseProducts, Product } from '../models/product.model';
 import { Channel } from '../../stock/models/channel-stock.model';
 
 @Injectable({
   providedIn: 'root',
 })
-export class ProductsService {
+// Nome da classe corrigido
+export class ProductService {
   private readonly http = inject(HttpClient);
   private readonly apiRoot = inject(ApiRoot);
 

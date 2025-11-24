@@ -2,9 +2,11 @@ import { InfiniteScrollDirective } from '../../../stock/services/infinite-scroll
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, Inject, OnInit, WritableSignal, inject, signal, Signal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { Product } from '../../models/products.model';
+// Caminho corrigido
+import { Product } from '../../models/product.model';
 import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ProductsService } from '../../services/products';
+// Caminho e nome corrigidos
+import { ProductService } from '../../services/product';
 import { MaterialTypeService } from '../../../stock/services/material-type.service';
 import { MaterialType } from '../../../stock/models/material-type.model';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -38,7 +40,8 @@ export class ProductFormComponent implements OnInit {
   isEditMode: boolean;
 
   productForm: FormGroup;
-  private readonly productsService = inject(ProductsService);
+  // Nome da variável injetada corrigido
+  private readonly productService = inject(ProductService);
   private readonly materialTypeService = inject(MaterialTypeService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
@@ -195,7 +198,7 @@ export class ProductFormComponent implements OnInit {
       const dirtyValues = this.getDirtyValues(this.productForm);
 
       if (Object.keys(dirtyValues).length > 0) {
-        await lastValueFrom(this.productsService.patchProduct(this.product.id, dirtyValues));
+        await lastValueFrom(this.productService.patchProduct(this.product.id, dirtyValues));
         hasChanged = true;
       }
 
@@ -210,7 +213,7 @@ export class ProductFormComponent implements OnInit {
     try {
       this.cdr.detach();
       const formValue = this.productForm.getRawValue();
-      await lastValueFrom(this.productsService.createProduct(formValue as Partial<Product>));
+      await lastValueFrom(this.productService.createProduct(formValue as Partial<Product>));
       this.dialogRef.close(true);
     } catch (error) {
       console.error('Erro ao criar o produto:', error instanceof Error ? error.message : error);
@@ -304,7 +307,7 @@ export class ProductFormComponent implements OnInit {
     this.isUploading.set(true);
     try {
       const updatedProduct = await lastValueFrom(
-        this.productsService.uploadProductPhoto(uploadUrl, this.selectedFile)
+        this.productService.uploadProductPhoto(uploadUrl, this.selectedFile)
       );
       if (updatedProduct) {
         this.previewUrl.set(updatedProduct.fotoPrincipalUrl);

@@ -1,20 +1,19 @@
 import { Hateoas } from '../../../core/models/hateoas.model';
-import { PageInfo } from '../../products/models/products.model';
+// Caminho corrigido
+import { PageInfo } from '../../products/models/product.model';
 
-export interface MaterialType extends Hateoas {
+export interface MaterialType {
   id: number;
   nome: string;
   unidadeDeConsumo: string;
+  _links?: Hateoas['_links'];
+}
+
+export interface EmbeddedMaterialTypes {
+  'tipos-materia-prima': MaterialType[];
 }
 
 export interface ApiResponseMaterialTypes extends Hateoas {
-  _embedded?: { 'tipos-materia-prima': MaterialType[] };
-}
-
-export interface PagedMaterialTypesResponse {
-  _embedded: {
-    'tipos-materia-prima': MaterialType[];
-  };
+  _embedded: EmbeddedMaterialTypes;
   page: PageInfo;
-  _links: Hateoas['_links'];
 }
