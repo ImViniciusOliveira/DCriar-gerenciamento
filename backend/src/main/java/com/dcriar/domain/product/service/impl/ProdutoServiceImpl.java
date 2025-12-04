@@ -59,7 +59,7 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Override
     @Transactional
     public ProdutoResponseDTO create(ProdutoRequestDTO requestDTO) {
-        validarRegrasDeNegocio(requestDTO, null);
+        validarRegrasDeNegocio(requestDTO);
 
         TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
                 .orElseThrow(() -> new TipoMateriaPrimaNaoEncontradoException(requestDTO.getTipoMateriaPrimaId()));
@@ -176,8 +176,19 @@ public class ProdutoServiceImpl implements ProdutoService {
                 case "especificacoes" -> {
                     if (produto instanceof ProdutoDeConsumoDireto p && value instanceof Map) {
                         @SuppressWarnings("unchecked")
-                        Map<String, String> especificacoesMap = (Map<String, String>) value;
-                        p.setEspecificacoes(especificacoesMap);
+                        Map<String, String> incomingSpecs = (Map<String, String>) value;
+
+                        if (p.getEspecificacoes() == null) {
+                            p.setEspecificacoes(new HashMap<>());
+                        }
+
+                        incomingSpecs.forEach((specKey, specValue) -> {
+                            if (specValue == null) {
+                                p.getEspecificacoes().remove(specKey);
+                            } else {
+                                p.getEspecificacoes().put(specKey, specValue);
+                            }
+                        });
                     }
                 }
             }
@@ -240,21 +251,12 @@ public class ProdutoServiceImpl implements ProdutoService {
                 .orElseThrow(() -> new ProdutoNaoEncontradoException(id));
     }
 
-    private void validarRegrasDeNegocio(ProdutoRequestDTO requestDTO, Long produtoId) {
-        if (produtoId == null) {
-            if (produtoRepository.existsByNome(requestDTO.getNome())) {
-                throw new ProdutoNomeDuplicadoException(requestDTO.getNome());
-            }
-            if (produtoRepository.existsBySku(requestDTO.getSku())) {
-                throw new ProdutoSkuDuplicadoException(requestDTO.getSku());
-            }
-        } else {
-            if (produtoRepository.existsByNomeAndIdNot(requestDTO.getNome(), produtoId)) {
-                throw new ProdutoNomeDuplicadoException(requestDTO.getNome());
-            }
-            if (produtoRepository.existsBySkuAndIdNot(requestDTO.getSku(), produtoId)) {
-                throw new ProdutoSkuDuplicadoException(requestDTO.getSku());
-            }
+    private void validarRegrasDeNegocio(ProdutoRequestDTO requestDTO) {
+        if (produtoRepository.existsByNome(requestDTO.getNome())) {
+            throw new ProdutoNomeDuplicadoException(requestDTO.getNome());
+        }
+        if (produtoRepository.existsBySku(requestDTO.getSku())) {
+            throw new ProdutoSkuDuplicadoException(requestDTO.getSku());
         }
     }
 }
