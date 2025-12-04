@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { DashboardPage } from './features/dashboard/dashboard-page/dashboard-page';
 import { ProductList } from './features/products/components/product-list/product-list';
-// Corrigindo o import para a nova lista de vendas
 import { SaleListComponent } from './features/sales/components/sale-list/sale-list';
 import { ProductionOrderForm } from './features/production/components/production-order-form/production-order-form';
 import { BatchList } from './features/stock/components/batch-list/batch-list';
@@ -23,7 +22,6 @@ export const routes: Routes = [
   },
   {
     path: 'vendas',
-    // Corrigindo o nome do componente
     component: SaleListComponent,
   },
   {

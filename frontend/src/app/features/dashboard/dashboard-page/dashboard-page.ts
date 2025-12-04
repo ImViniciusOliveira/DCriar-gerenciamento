@@ -9,5 +9,4 @@ import { CommonModule } from '@angular/common';
   styleUrl: './dashboard-page.scss'
 })
 export class DashboardPage {
-  // TODO: Implementar o conteúdo do Dashboard.
 }

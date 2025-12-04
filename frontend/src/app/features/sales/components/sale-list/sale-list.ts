@@ -3,11 +3,9 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 
-// Nossos componentes e serviços reutilizáveis
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
 
-// Coisas específicas de Vendas
 import { Sale } from '../../models/sale.model';
 import { SaleService } from '../../services/sale.service';
 import { SaleFormComponent } from '../sale-form/sale-form';

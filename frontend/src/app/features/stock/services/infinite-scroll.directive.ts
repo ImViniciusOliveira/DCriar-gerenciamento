@@ -13,7 +13,6 @@ export class InfiniteScrollDirective implements AfterViewInit, OnDestroy {
   private observer: MutationObserver | null = null;
 
   ngAfterViewInit(): void {
-    // O painel do mat-select é adicionado ao corpo do documento, não dentro do componente.
     // Usamos um MutationObserver para detectar quando ele é adicionado.
     this.observer = new MutationObserver(mutations => {
       for (const mutation of mutations) {
@@ -26,11 +25,11 @@ export class InfiniteScrollDirective implements AfterViewInit, OnDestroy {
             .pipe(
               debounceTime(200),
               map(event => event.target as HTMLElement),
-              filter(target => target.scrollTop + target.clientHeight >= target.scrollHeight - 20), // 20px de margem
+              filter(target => target.scrollTop + target.clientHeight >= target.scrollHeight - 20),
               distinctUntilChanged()
             )
             .subscribe(() => this.infiniteScroll.emit());
-          this.observer?.disconnect(); // Paramos de observar após encontrar o painel
+          this.observer?.disconnect();
           break;
         }
       }

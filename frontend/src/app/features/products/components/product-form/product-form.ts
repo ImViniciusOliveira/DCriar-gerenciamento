@@ -1,11 +1,9 @@
 import { InfiniteScrollDirective } from '../../../stock/services/infinite-scroll.directive';
-import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, Inject, OnInit, WritableSignal, inject, signal, Signal } from '@angular/core';
+import {CommonModule, NgOptimizedImage} from '@angular/common';
+                          import { ChangeDetectorRef, Component, Inject, OnInit, WritableSignal, inject, signal, Signal, computed } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-// Caminho corrigido
 import { Product } from '../../models/product.model';
 import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-// Caminho e nome corrigidos
 import { ProductService } from '../../services/product';
 import { MaterialTypeService } from '../../../stock/services/material-type.service';
 import { MaterialType } from '../../../stock/models/material-type.model';
@@ -26,7 +24,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule, MatCheckboxModule, MatIconModule, InfiniteScrollDirective, MatProgressSpinnerModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule, MatCheckboxModule, MatIconModule, InfiniteScrollDirective, MatProgressSpinnerModule, NgOptimizedImage],
   providers: [provideNgxMask()],
   templateUrl: './product-form.html',
   styleUrls: ['./product-form.scss']
@@ -54,6 +52,7 @@ export class ProductFormComponent implements OnInit {
   previewUrl = signal<string | null>(null);
   isSearching = signal(false);
   isUploading = signal(false);
+  readonly safeImageSrc: Signal<string | null>;
 
   private readonly currentPage = signal(0);
   private readonly pageSize = 20;
@@ -71,6 +70,7 @@ export class ProductFormComponent implements OnInit {
   ) {
     this.product = data.product;
     this.isEditMode = data.isEditMode;
+    this.safeImageSrc = computed(() => this.previewUrl() ?? this.product?.fotoPrincipalUrl ?? null);
 
     // Obtém a URL do endpoint HATEOAS, priorizando o link do produto e usando a raiz da API como fallback.
     const getUrl = (link: string) => this.product?._links?.[link]?.href?.split('{')[0]
@@ -131,7 +131,6 @@ export class ProductFormComponent implements OnInit {
       this.productForm.get('materiaPrima')?.disable();
     }
 
-    // Ouve mudanças no tipo de produto para ajustar o formulário
     this.productForm.get('tipoProduto')?.valueChanges.subscribe(type => {
       this.setupFormControlsBasedOnProductType(type);
     });
@@ -376,10 +375,6 @@ export class ProductFormComponent implements OnInit {
       this.productForm.get('materiaPrima')?.setValue(originalSelection);
     }
   }
-
-  getSafeImageSrc(): string | null {
-    return this.previewUrl() ?? this.product?.fotoPrincipalUrl ?? null;
-   }
  }
 
 export interface ProductFormData {

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, tap } from 'rxjs';
-import { EntityDialogService } from './entity-dialog.service';
+import {EntityDialogService} from './entity-dialog';
 
 export interface CrudOperationFeedback<T> {
   /** A chamada de API (Observable) a ser executada. */

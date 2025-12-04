@@ -1,10 +1,9 @@
-import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, signal } from '@angular/core';
+import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { of, lastValueFrom, map, switchMap, catchError } from 'rxjs';
 
-// Nossos componentes e serviços reutilizáveis
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
 
@@ -18,7 +17,6 @@ import { ApiRoot } from '../../../../core/services/api-root';
 import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { EnumOption, EnumService } from '../../../../core/services/enum.service';
 
 @Component({
   selector: 'app-product-list',
@@ -49,14 +47,11 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
   // Serviços específicos de Produtos
   private readonly productService = inject(ProductService);
   private readonly apiRoot = inject(ApiRoot);
-  private readonly enumService = inject(EnumService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   // Estado específico de Produtos
   tableColumns: TableColumn<Product>[] = [];
-  readonly consumptionUnitsMap = signal(new Map<string, EnumOption>());
-
-  // Referências aos templates do HTML
+// Referências aos templates do HTML
   @ViewChild('skuTemplate') skuTemplate!: TemplateRef<any>;
   @ViewChild('nomeTemplate') nomeTemplate!: TemplateRef<any>;
   @ViewChild('ativoTemplate') ativoTemplate!: TemplateRef<any>;

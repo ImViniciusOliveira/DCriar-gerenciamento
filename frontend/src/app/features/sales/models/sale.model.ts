@@ -16,7 +16,7 @@ export interface Sale {
   nomeCanalVenda: string;
   valorTotal: number;
   itens: SaleItem[];
-  dataCriacao: string; // Mantido como string para corresponder ao JSON (ISO date)
+  dataCriacao: string;
   dataAtualizacao: string;
   _links?: Hateoas['_links'];
 }

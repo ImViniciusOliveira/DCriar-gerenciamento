@@ -10,5 +10,4 @@ import { MatTableModule } from '@angular/material/table';
   standalone: true,
 })
 export class BatchList {
-  // TODO: Implementar a lógica de listagem de lotes de matéria-prima.
 }

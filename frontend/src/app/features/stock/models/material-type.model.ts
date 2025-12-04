@@ -1,5 +1,4 @@
 import { Hateoas } from '../../../core/models/hateoas.model';
-// Caminho corrigido
 import { PageInfo } from '../../products/models/product.model';
 
 export interface MaterialType {

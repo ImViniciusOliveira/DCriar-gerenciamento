@@ -11,7 +11,7 @@ export const environment = {
       return `http://${host}:8080`;
     } catch (e: any) {
       // Em ambientes sem 'window' (como renderização no servidor), usa um fallback seguro.
-      console.error('Failed to derive API host from location.hostname, falling back to localhost:', e);
+      console.error('Falha ao derivar o host da API a partir de location.hostname, usando localhost como fallback:', e);
       return 'http://localhost:8080';
     }
   })(),

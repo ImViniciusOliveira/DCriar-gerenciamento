@@ -43,8 +43,8 @@
         @if (isEditMode) {<div class="image-upload-section">
           <label class="mat-body-2" for="fotoPrincipal">Foto Principal</label>
           <div class="image-preview-container">
-            @if (getSafeImageSrc()) {
-              <img [src]="getSafeImageSrc()" alt="Pré-visualização da foto">
+            @if (safeImageSrc(); as src) {
+              <img [ngSrc]="src" alt="Pré-visualização da foto" fill>
             } @else {
               <mat-icon class="no-image-icon">image_not_supported</mat-icon>
               <span>Sem imagem</span>
@@ -144,8 +144,8 @@
   <mat-dialog-content class="details-content">
     <div class="details-container">
       <div class="details-image">
-        @if (getSafeImageSrc()) {
-          <img [src]="getSafeImageSrc()" alt="Foto do produto {{product.nome}}">
+        @if (safeImageSrc(); as src) {
+          <img [ngSrc]="src" alt="Foto do produto {{product.nome}}" fill>
         } @else {
            <div class="no-image">
              <mat-icon>image_not_supported</mat-icon>

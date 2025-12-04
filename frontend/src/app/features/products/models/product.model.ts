@@ -1,11 +1,10 @@
 import { Hateoas } from '../../../core/models/hateoas.model';
 
-// Renomeado de MaterialType para maior clareza, baseado na resposta da API.
 export interface MateriaPrima {
   id: number;
   nome: string;
   unidadeDeConsumo: string;
-  _links?: Hateoas['_links']; // Adicionado para compatibilidade com MaterialType
+  _links?: Hateoas['_links'];
 }
 
 export interface Dimensoes {

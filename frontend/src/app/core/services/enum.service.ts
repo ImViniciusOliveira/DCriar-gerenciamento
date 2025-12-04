@@ -1,13 +1,12 @@
-import { HttpClient } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
-import { Observable, of, map } from 'rxjs';
-import { catchError, shareReplay } from 'rxjs/operators';
-import { ApiRoot } from './api-root';
+import {HttpClient} from '@angular/common/http';
+import {inject, Injectable} from '@angular/core';
+import {map, Observable, of} from 'rxjs';
+import {catchError, shareReplay} from 'rxjs/operators';
 
 export interface EnumOption {
   value: string;
   viewValue: string;
-  simbolo?: string; // Adicionando o símbolo
+  simbolo?: string;
 }
 
 // Interface para descrever um item individual na resposta da API de enums.
@@ -28,7 +27,6 @@ interface EmbeddedEnumResponse {
 })
 export class EnumService {
   private readonly http = inject(HttpClient);
-  private readonly apiRoot = inject(ApiRoot);
   private cache: { [key: string]: Observable<any> } = {};
 
   /**
@@ -55,12 +53,11 @@ export class EnumService {
           const key = Object.keys(embedded)[0];
           const items = embedded[key] || [];
 
-          const mappedItems = items.map(item => ({
+          return items.map(item => ({
             value: item.name,
             viewValue: item.descricao,
             simbolo: item.simbolo
           }));
-          return mappedItems;
         }),
         shareReplay(1),
         catchError(err => {

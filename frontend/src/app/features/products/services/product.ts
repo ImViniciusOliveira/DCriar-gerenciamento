@@ -5,14 +5,12 @@ import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
 import { Hateoas } from '../../../core/models/hateoas.model';
-// Caminho corrigido
 import { ApiResponseProducts, Product } from '../models/product.model';
 import { Channel } from '../../stock/models/channel-stock.model';
 
 @Injectable({
   providedIn: 'root',
 })
-// Nome da classe corrigido
 export class ProductService {
   private readonly http = inject(HttpClient);
   private readonly apiRoot = inject(ApiRoot);
@@ -88,25 +86,11 @@ export class ProductService {
       take(1)
     );
   }
-
-  getProductById(id: number): Observable<Product> {
-    return this.endpoints$.pipe(
-      map(endpoints => this.getProductBaseUrl(endpoints)),
-      switchMap(baseUrl => this.http.get<Product>(`${baseUrl}/${id}`)),
-      take(1)
-    );
-  }
-
   deleteProduct(url: string): Observable<void> {
     return this.http.delete<void>(url).pipe(
       tap(() => this.refresh$.next())
     );
   }
-
-  updateProduct(url: string, product: Product): Observable<Product> {
-    return this.http.put<Product>(url, product);
-  }
-
   createProduct(product: Partial<Product>): Observable<Product> {
     const payload = this.mapToPayload(product);
     return this.endpoints$.pipe(

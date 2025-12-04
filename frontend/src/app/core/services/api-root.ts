@@ -29,16 +29,12 @@ export class ApiRoot {
     return this.http
       .get<Hateoas>(this.API_URL)
       .pipe(
-        catchError(error => {
-          // Log do erro para os desenvolvedores
-          console.error('Falha ao conectar com a API. Backend pode estar offline.', error);
-
+        catchError(() => {
           // Mensagem amigável para o usuário
           this.snackBar.open('Não foi possível conectar ao servidor. Tente novamente mais tarde.', 'Fechar', {
             duration: 7000,
           });
 
-          // Retorna um observable com um objeto vazio e tipado para não quebrar o fluxo
           return of({} as Hateoas);
         }),
         tap(endpoints => this.endpoints.set(endpoints)),
