@@ -66,6 +66,8 @@ export class ProductFormComponent implements OnInit {
   readonly consumptionUnits: Signal<EnumOption[]>;
   private readonly consumptionUnitsMap: Map<string, string | undefined>;
 
+  private initialSpecifications: { [key: string]: string } = {};
+
   constructor(
     public dialogRef: MatDialogRef<ProductFormComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ProductFormData,
@@ -149,15 +151,34 @@ export class ProductFormComponent implements OnInit {
   addEspecificacao(): void {
     this.especificacoes.push(this.fb.group({
       chave: ['', Validators.required],
-      valor: ['', Validators.required]
+      valor: ['', Validators.required],
+      isNew: [true]
     }));
     this.cdr.detectChanges();
+
+    // Rola o container do diálogo para o final
+    setTimeout(() => {
+      const dialogContent = (this.dialogRef as any)._containerInstance._elementRef.nativeElement.querySelector('mat-dialog-content');
+      if (dialogContent) {
+        dialogContent.scrollTop = dialogContent.scrollHeight;
+      }
+    }, 100);
   }
 
   async removeEspecificacao(index: number): Promise<void> {
     const specGroup = this.especificacoes.at(index);
-    const key = specGroup.get('chave')?.value;
+    const isNew = specGroup.get('isNew')?.value;
 
+    // Se for um campo novo, remove diretamente
+    if (isNew) {
+      this.especificacoes.removeAt(index);
+      this.productForm.get('especificacoes')?.markAsDirty();
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Se for um campo existente, mostra o diálogo de confirmação
+    const key = specGroup.get('chave')?.value;
     const dialogData: ConfirmDialogData = {
       title: ProductFormComponent.CONFIRM_DELETE_SPEC_TITLE,
       message: ProductFormComponent.CONFIRM_DELETE_SPEC_MESSAGE(key || 'esta característica')
@@ -168,6 +189,7 @@ export class ProductFormComponent implements OnInit {
 
     if (confirmed) {
       this.especificacoes.removeAt(index);
+      this.productForm.get('especificacoes')?.markAsDirty();
       this.cdr.detectChanges();
     }
   }
@@ -254,22 +276,35 @@ export class ProductFormComponent implements OnInit {
       }
 
       const dirtyValues: { [key: string]: any } = {};
+      let especificacoesIsDirty = false;
+
       Object.keys(this.productForm.controls).forEach(key => {
         const control = this.productForm.get(key);
         if (control && control.dirty) {
           if (key === 'especificacoes') {
-            const especificacoesMap: { [key: string]: string } = {};
-            (control.value || []).forEach((spec: { chave: string; valor: string }) => {
-              if (spec.chave) {
-                especificacoesMap[spec.chave] = spec.valor;
-              }
-            });
-            dirtyValues[key] = especificacoesMap;
+            especificacoesIsDirty = true;
           } else {
             dirtyValues[key] = control.value;
           }
         }
       });
+
+      if (especificacoesIsDirty) {
+        const currentSpecs: { [key: string]: string } = {};
+        (this.productForm.get('especificacoes')?.value || []).forEach((spec: { chave: string; valor: string }) => {
+          if (spec.chave) {
+            currentSpecs[spec.chave] = spec.valor;
+          }
+        });
+
+        const specsPayload: { [key: string]: string | null } = { ...currentSpecs };
+        Object.keys(this.initialSpecifications).forEach(initialKey => {
+          if (!currentSpecs.hasOwnProperty(initialKey)) {
+            specsPayload[initialKey] = null; // Mark for deletion
+          }
+        });
+        dirtyValues['especificacoes'] = specsPayload;
+      }
 
       if (Object.keys(dirtyValues).length > 0) {
         await lastValueFrom(this.productService.patchProduct(this.product().id, dirtyValues));
@@ -309,10 +344,12 @@ export class ProductFormComponent implements OnInit {
             this.especificacoes.clear();
             const specs = fullProduct['especificacoes' as keyof Product] as { [key: string]: string } | undefined;
             if (specs) {
+              this.initialSpecifications = { ...specs }; // Store initial state
               Object.entries(specs).forEach(([chave, valor]) => {
                 this.especificacoes.push(this.fb.group({
                   chave: [chave, Validators.required],
-                  valor: [valor, Validators.required]
+                  valor: [valor, Validators.required],
+                  isNew: [false]
                 }));
               });
             }
