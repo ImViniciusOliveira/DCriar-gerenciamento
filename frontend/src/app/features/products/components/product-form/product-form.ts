@@ -1,6 +1,6 @@
 import { InfiniteScrollDirective } from '../../../stock/services/infinite-scroll.directive';
 import {CommonModule, NgOptimizedImage} from '@angular/common';
-                          import { ChangeDetectorRef, Component, Inject, OnInit, WritableSignal, inject, signal, Signal, computed } from '@angular/core';
+import { ChangeDetectorRef, Component, Inject, OnInit, WritableSignal, inject, signal, Signal, computed } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Product } from '../../models/product.model';
 import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -33,6 +33,9 @@ export class ProductFormComponent implements OnInit {
   private static readonly CONFIRM_CHANGE_TITLE = 'Confirmar Alteração';
   private static readonly CONFIRM_CHANGE_MESSAGE = (original: string, novo: string) =>
     `Deseja realmente alterar a matéria-prima de "${original}" para "${novo}"?`;
+  private static readonly CONFIRM_DELETE_SPEC_TITLE = 'Confirmar Remoção';
+  private static readonly CONFIRM_DELETE_SPEC_MESSAGE = (key: string) =>
+    `Deseja realmente remover a característica "${key}"?`;
 
   readonly product: WritableSignal<Product>;
   isEditMode: boolean;
@@ -74,7 +77,7 @@ export class ProductFormComponent implements OnInit {
 
     // Obtém a URL do endpoint HATEOAS, priorizando o link do produto e usando a raiz da API como fallback.
     const getUrl = (link: string) => this.product()?._links?.[link]?.href?.split('{')[0]
-                                  || this.apiRoot.endpoints()?._links?.[link]?.href?.split('{')[0];
+      || this.apiRoot.endpoints()?._links?.[link]?.href?.split('{')[0];
 
     const searchUrl = getUrl('buscar-tipos-materia-prima');
     const unitsUrl = getUrl('unidades-de-medida');
@@ -116,9 +119,7 @@ export class ProductFormComponent implements OnInit {
 
       // Campos de ProdutoDeConsumoDireto
       codigoFabricante: [currentProduct.codigoFabricante],
-      especificacoes: this.fb.group({
-        // Inicialização vazia, pode ser preenchido dinamicamente se necessário
-      })
+      especificacoes: this.fb.array([])
     });
 
     this.setupFormControlsBasedOnProductType(currentProduct.tipoProduto || 'CORTE', false);
@@ -137,6 +138,40 @@ export class ProductFormComponent implements OnInit {
     });
   }
 
+  get especificacoes(): FormArray {
+    return this.productForm.get('especificacoes') as FormArray;
+  }
+
+  get especificacoesControls(): FormGroup[] {
+    return (this.productForm.get('especificacoes') as FormArray).controls as FormGroup[];
+  }
+
+  addEspecificacao(): void {
+    this.especificacoes.push(this.fb.group({
+      chave: ['', Validators.required],
+      valor: ['', Validators.required]
+    }));
+    this.cdr.detectChanges();
+  }
+
+  async removeEspecificacao(index: number): Promise<void> {
+    const specGroup = this.especificacoes.at(index);
+    const key = specGroup.get('chave')?.value;
+
+    const dialogData: ConfirmDialogData = {
+      title: ProductFormComponent.CONFIRM_DELETE_SPEC_TITLE,
+      message: ProductFormComponent.CONFIRM_DELETE_SPEC_MESSAGE(key || 'esta característica')
+    };
+
+    const dialogRef = this.dialog.open(ConfirmDialog, { data: dialogData });
+    const confirmed = await lastValueFrom(dialogRef.afterClosed());
+
+    if (confirmed) {
+      this.especificacoes.removeAt(index);
+      this.cdr.detectChanges();
+    }
+  }
+
   private setupFormControlsBasedOnProductType(type: 'CORTE' | 'CONSUMO_DIRETO', resetOppositeControls: boolean): void {
     const corteControls = ['cor', 'dimensoes'];
     const consumoControls = ['codigoFabricante', 'especificacoes'];
@@ -153,7 +188,11 @@ export class ProductFormComponent implements OnInit {
         const control = this.productForm.get(name);
         control?.disable();
         if (resetOppositeControls) {
-          control?.reset();
+          if (name === 'especificacoes') {
+            this.especificacoes.clear();
+          } else {
+            control?.reset();
+          }
         }
       });
     } else { // CONSUMO_DIRETO
@@ -184,24 +223,53 @@ export class ProductFormComponent implements OnInit {
     }
   }
 
+  private getProcessedFormValue(): any {
+    const formValue = this.productForm.getRawValue();
+    const especificacoesMap: { [key: string]: string } = {};
+    (formValue.especificacoes || []).forEach((spec: { chave: string; valor: string }) => {
+      if (spec.chave) {
+        especificacoesMap[spec.chave] = spec.valor;
+      }
+    });
+    formValue.especificacoes = especificacoesMap;
+    return formValue;
+  }
+
   private async handleEditSubmit(): Promise<void> {
-     this.isUploading.set(true);
-     try {
-       let hasChanged = false;
+    this.isUploading.set(true);
+    try {
+      let hasChanged = false;
 
-       if (this.selectedFile) {
-         const updated = await this.uploadImage();
-         if (updated) {
-           this.product.set(updated);
-           hasChanged = true;
-         }
-       }
+      if (this.selectedFile) {
+        const updated = await this.uploadImage();
+        if (updated) {
+          this.product.set(updated);
+          hasChanged = true;
+        }
+      }
 
-       if (!this.product()?.id) {
-         console.error('ID do produto não encontrado, não é possível atualizar.', this.product());
-         return;
-       }
-      const dirtyValues = this.getDirtyValues(this.productForm);
+      if (!this.product()?.id) {
+        console.error('ID do produto não encontrado, não é possível atualizar.', this.product());
+        return;
+      }
+
+      const dirtyValues: { [key: string]: any } = {};
+      Object.keys(this.productForm.controls).forEach(key => {
+        const control = this.productForm.get(key);
+        if (control && control.dirty) {
+          if (key === 'especificacoes') {
+            const especificacoesMap: { [key: string]: string } = {};
+            (control.value || []).forEach((spec: { chave: string; valor: string }) => {
+              if (spec.chave) {
+                especificacoesMap[spec.chave] = spec.valor;
+              }
+            });
+            dirtyValues[key] = especificacoesMap;
+          } else {
+            dirtyValues[key] = control.value;
+          }
+        }
+      });
 
       if (Object.keys(dirtyValues).length > 0) {
         await lastValueFrom(this.productService.patchProduct(this.product().id, dirtyValues));
@@ -212,13 +280,13 @@ export class ProductFormComponent implements OnInit {
       this.dialogRef.close(hasChanged);
     } catch (error) {
       console.error('Erro ao atualizar o produto:', error instanceof Error ? error.message : error);
-     }
-   }
+    }
+  }
 
   private async handleCreateSubmit(): Promise<void> {
     try {
       this.cdr.detach();
-      const formValue = this.productForm.getRawValue();
+      const formValue = this.getProcessedFormValue();
       await lastValueFrom(this.productService.createProduct(formValue as Partial<Product>));
       this.dialogRef.close(true);
     } catch (error) {
@@ -237,10 +305,22 @@ export class ProductFormComponent implements OnInit {
         .then(fullProduct => {
           if (fullProduct) {
             this.product.set(fullProduct);
-            this.productForm.patchValue(fullProduct);
+
+            this.especificacoes.clear();
+            const specs = fullProduct['especificacoes' as keyof Product] as { [key: string]: string } | undefined;
+            if (specs) {
+              Object.entries(specs).forEach(([chave, valor]) => {
+                this.especificacoes.push(this.fb.group({
+                  chave: [chave, Validators.required],
+                  valor: [valor, Validators.required]
+                }));
+              });
+            }
+
             if (fullProduct.materiaPrima) {
               this.materialTypes.set([fullProduct.materiaPrima as MaterialType]);
             }
+            this.cdr.detectChanges();
           }
         })
         .catch(err => console.error("Falha ao buscar detalhes completos do produto:", err));
@@ -340,31 +420,6 @@ export class ProductFormComponent implements OnInit {
     }
   }
 
-  private getDirtyValues(form: FormGroup | FormArray): { [key: string]: any } {
-    const dirtyValues: { [key: string]: any } = {};
-    for (const key of Object.keys(form.controls)) {
-      const control = (form.controls as any)[key];
-
-      if (!control.dirty) {
-        continue;
-      }
-
-      if (control instanceof FormGroup || control instanceof FormArray) {
-        const nestedDirtyValues = this.getDirtyValues(control);
-        if (Object.keys(nestedDirtyValues).length === 0) {
-          continue;
-        }
-
-        dirtyValues[key] = nestedDirtyValues;
-        continue;
-      }
-
-      dirtyValues[key] = control.value;
-    }
-
-    return dirtyValues;
-  }
-
   getConsumptionUnitViewValue(value: string): string {
     return this.consumptionUnitsMap.get(value) ?? value;
   }
@@ -400,7 +455,7 @@ export class ProductFormComponent implements OnInit {
       this.productForm.get('materiaPrima')?.setValue(originalSelection);
     }
   }
- }
+}
 
 export interface ProductFormData {
   product: Product;
