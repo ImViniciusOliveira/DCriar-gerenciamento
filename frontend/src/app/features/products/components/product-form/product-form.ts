@@ -34,7 +34,7 @@ export class ProductFormComponent implements OnInit {
   private static readonly CONFIRM_CHANGE_MESSAGE = (original: string, novo: string) =>
     `Deseja realmente alterar a matéria-prima de "${original}" para "${novo}"?`;
 
-  product!: Product;
+  readonly product: WritableSignal<Product>;
   isEditMode: boolean;
 
   productForm: FormGroup;
@@ -68,12 +68,12 @@ export class ProductFormComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: ProductFormData,
     private readonly fb: FormBuilder,
   ) {
-    this.product = data.product;
+    this.product = signal(data.product);
     this.isEditMode = data.isEditMode;
-    this.safeImageSrc = computed(() => this.previewUrl() ?? this.product?.fotoPrincipalUrl ?? null);
+    this.safeImageSrc = computed(() => this.previewUrl() ?? this.product()?.fotoPrincipalUrl ?? null);
 
     // Obtém a URL do endpoint HATEOAS, priorizando o link do produto e usando a raiz da API como fallback.
-    const getUrl = (link: string) => this.product?._links?.[link]?.href?.split('{')[0]
+    const getUrl = (link: string) => this.product()?._links?.[link]?.href?.split('{')[0]
                                   || this.apiRoot.endpoints()?._links?.[link]?.href?.split('{')[0];
 
     const searchUrl = getUrl('buscar-tipos-materia-prima');
@@ -97,30 +97,31 @@ export class ProductFormComponent implements OnInit {
     this.consumptionUnits = toSignal(this.consumptionUnits$, { initialValue: [] });
     this.consumptionUnitsMap = new Map(this.consumptionUnits().map(u => [u.value, u.viewValue]));
 
+    const currentProduct = this.product();
     this.productForm = this.fb.group({
-      tipoProduto: [this.product.tipoProduto || 'CORTE', Validators.required],
-      nome: [this.product.nome, Validators.required],
-      sku: [this.product.sku, Validators.required],
-      descricao: [this.product.descricao],
-      unidadesPorProduto: [this.product.unidadesPorProduto, [Validators.required, Validators.min(1)]],
-      ativo: [this.product.ativo],
-      materiaPrima: [this.product.materiaPrima, Validators.required],
+      tipoProduto: [currentProduct.tipoProduto || 'CORTE', Validators.required],
+      nome: [currentProduct.nome, Validators.required],
+      sku: [currentProduct.sku, Validators.required],
+      descricao: [currentProduct.descricao],
+      unidadesPorProduto: [currentProduct.unidadesPorProduto, [Validators.required, Validators.min(1)]],
+      ativo: [currentProduct.ativo],
+      materiaPrima: [currentProduct.materiaPrima, Validators.required],
 
       // Campos de ProdutoDeCorte
-      cor: [this.product.cor],
+      cor: [currentProduct.cor],
       dimensoes: this.fb.group({
-        larguraCm: [this.product.dimensoes?.larguraCm, [Validators.required, Validators.min(0.1)]],
-        comprimentoCm: [this.product.dimensoes?.comprimentoCm, [Validators.required, Validators.min(0.1)]]
+        larguraCm: [currentProduct.dimensoes?.larguraCm, [Validators.required, Validators.min(0.1)]],
+        comprimentoCm: [currentProduct.dimensoes?.comprimentoCm, [Validators.required, Validators.min(0.1)]]
       }),
 
       // Campos de ProdutoDeConsumoDireto
-      codigoFabricante: [this.product.codigoFabricante],
+      codigoFabricante: [currentProduct.codigoFabricante],
       especificacoes: this.fb.group({
         // Inicialização vazia, pode ser preenchido dinamicamente se necessário
       })
     });
 
-    this.setupFormControlsBasedOnProductType(this.product.tipoProduto || 'CORTE');
+    this.setupFormControlsBasedOnProductType(currentProduct.tipoProduto || 'CORTE', false);
 
     this.searchForm = this.fb.group({
       searchName: [''],
@@ -132,11 +133,11 @@ export class ProductFormComponent implements OnInit {
     }
 
     this.productForm.get('tipoProduto')?.valueChanges.subscribe(type => {
-      this.setupFormControlsBasedOnProductType(type);
+      this.setupFormControlsBasedOnProductType(type, true);
     });
   }
 
-  private setupFormControlsBasedOnProductType(type: 'CORTE' | 'CONSUMO_DIRETO'): void {
+  private setupFormControlsBasedOnProductType(type: 'CORTE' | 'CONSUMO_DIRETO', resetOppositeControls: boolean): void {
     const corteControls = ['cor', 'dimensoes'];
     const consumoControls = ['codigoFabricante', 'especificacoes'];
 
@@ -149,14 +150,20 @@ export class ProductFormComponent implements OnInit {
         }
       });
       consumoControls.forEach(name => {
-        this.productForm.get(name)?.disable();
-        this.productForm.get(name)?.reset();
+        const control = this.productForm.get(name);
+        control?.disable();
+        if (resetOppositeControls) {
+          control?.reset();
+        }
       });
     } else { // CONSUMO_DIRETO
       consumoControls.forEach(name => this.productForm.get(name)?.enable());
       corteControls.forEach(name => {
-        this.productForm.get(name)?.disable();
-        this.productForm.get(name)?.reset();
+        const control = this.productForm.get(name);
+        control?.disable();
+        if (resetOppositeControls) {
+          control?.reset();
+        }
         if (name === 'dimensoes') {
           this.productForm.get('dimensoes.larguraCm')?.clearValidators();
           this.productForm.get('dimensoes.comprimentoCm')?.clearValidators();
@@ -185,19 +192,19 @@ export class ProductFormComponent implements OnInit {
        if (this.selectedFile) {
          const updated = await this.uploadImage();
          if (updated) {
-           this.product = updated;
+           this.product.set(updated);
            hasChanged = true;
          }
        }
 
-       if (!this.product?.id) {
-         console.error('ID do produto não encontrado, não é possível atualizar.', this.product);
+       if (!this.product()?.id) {
+         console.error('ID do produto não encontrado, não é possível atualizar.', this.product());
          return;
        }
       const dirtyValues = this.getDirtyValues(this.productForm);
 
       if (Object.keys(dirtyValues).length > 0) {
-        await lastValueFrom(this.productService.patchProduct(this.product.id, dirtyValues));
+        await lastValueFrom(this.productService.patchProduct(this.product().id, dirtyValues));
         hasChanged = true;
       }
 
@@ -220,12 +227,23 @@ export class ProductFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.isEditMode && this.product.materiaPrima) {
-      this.materialTypes.set([this.product.materiaPrima as MaterialType]);
+    if (this.data.isCreationMode) {
+      return;
     }
 
-    if (this.isEditMode && this.product.fotoPrincipalUrl) {
-      this.previewUrl.set(this.product.fotoPrincipalUrl);
+    const selfUrl = this.product()?._links?.['self']?.href;
+    if (selfUrl) {
+      lastValueFrom(this.productService.getProductByUrl(selfUrl))
+        .then(fullProduct => {
+          if (fullProduct) {
+            this.product.set(fullProduct);
+            this.productForm.patchValue(fullProduct);
+            if (fullProduct.materiaPrima) {
+              this.materialTypes.set([fullProduct.materiaPrima as MaterialType]);
+            }
+          }
+        })
+        .catch(err => console.error("Falha ao buscar detalhes completos do produto:", err));
     }
   }
 
@@ -298,9 +316,9 @@ export class ProductFormComponent implements OnInit {
   }
 
   private async uploadImage(): Promise<Product | null> {
-    const uploadUrl = this.product?._links?.['upload-foto']?.href;
+    const uploadUrl = this.product()?._links?.['upload-foto']?.href;
     if (!this.selectedFile || !uploadUrl) {
-      return this.product;
+      return this.product();
     }
 
     this.isUploading.set(true);
@@ -310,7 +328,7 @@ export class ProductFormComponent implements OnInit {
       );
       if (updatedProduct) {
         this.previewUrl.set(updatedProduct.fotoPrincipalUrl);
-        this.product = { ...this.product, ...updatedProduct } as Product;
+        this.product.set({ ...this.product(), ...updatedProduct });
       }
       this.selectedFile = null;
       return updatedProduct;
@@ -351,13 +369,20 @@ export class ProductFormComponent implements OnInit {
     return this.consumptionUnitsMap.get(value) ?? value;
   }
 
+  getFormattedDimensions(dimensions: { larguraCm?: number; comprimentoCm?: number } | null | undefined): string {
+    if (dimensions && typeof dimensions.larguraCm === 'number' && typeof dimensions.comprimentoCm === 'number') {
+      return `${dimensions.larguraCm} x ${dimensions.comprimentoCm} cm`;
+    }
+    return 'N/A';
+  }
+
   compareMaterialTypes(o1: MaterialType, o2: MaterialType): boolean {
     return o1 && o2 ? o1.id === o2.id : o1 === o2;
   }
 
   async onMaterialTypeChange(event: { value: MaterialType }): Promise<void> {
     const newSelection = event.value;
-    const originalSelection = this.product.materiaPrima;
+    const originalSelection = this.product().materiaPrima;
 
     if (!originalSelection || !newSelection || originalSelection.id === newSelection.id) {
       return;

@@ -27,21 +27,50 @@
 
 }
 
-.image-preview-container {
-  position: relative;
-  margin-top: 8px;
-  margin-bottom: 16px;
+// Estilo unificado para o placeholder "Sem Imagem"
+.no-image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--mat-sys-on-surface-variant);
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+  }
+}
+
+// Estilo base para os contêineres de imagem
+.image-container {
+  width: 200px;
+  height: 200px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   background-color: var(--mat-sys-surface-container-lowest);
-  border-radius: 4px;
 
   img {
-    max-width: 200px;
-    max-height: 200px;
-    border: 1px solid var(--mat-sys-outline-variant);
-    border-radius: 4px;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+
+.image-upload-section {
+  margin: 16px 0;
+
+  .image-preview-container {
+    position: relative;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    // Herda os estilos de .image-container
   }
 
   .upload-overlay {
@@ -55,20 +84,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-}
-
-.image-upload-section {
-  margin: 16px 0;
-}
-
-.image-upload {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-
-  input[type="file"] {
-    display: none;
   }
 }
 
@@ -109,32 +124,7 @@
 
   .details-image {
     flex-shrink: 0;
-    width: 200px;
-    height: 200px;
-    border: 1px solid var(--mat-sys-outline-variant);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .no-image {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      color: var(--mat-sys-on-surface-variant);
-      mat-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-      }
-    }
+    // Herda os estilos de .image-container
   }
 
   .details-info {

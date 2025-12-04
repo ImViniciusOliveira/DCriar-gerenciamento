@@ -42,12 +42,14 @@
 
         @if (isEditMode) {<div class="image-upload-section">
           <label class="mat-body-2" for="fotoPrincipal">Foto Principal</label>
-          <div class="image-preview-container">
+          <div class="image-preview-container image-container">
             @if (safeImageSrc(); as src) {
-              <img [ngSrc]="src" alt="Pré-visualização da foto" fill>
+              <img [ngSrc]="src" alt="Pré-visualização da foto" width="200" height="200">
             } @else {
-              <mat-icon class="no-image-icon">image_not_supported</mat-icon>
-              <span>Sem imagem</span>
+              <div class="no-image">
+                <mat-icon>image_not_supported</mat-icon>
+                <span>Sem imagem</span>
+              </div>
             }
             @if (isUploading()) {
               <div class="upload-overlay">
@@ -85,10 +87,10 @@
               <mat-icon>search</mat-icon>
             </button>
           </div>
-          @if (isEditMode && product.materiaPrima) {
+          @if (isEditMode && product().materiaPrima) {
             <p class="original-material-info">
-              Matéria-Prima Original: <strong>{{ product.materiaPrima.nome }}
-                ({{ getConsumptionUnitViewValue(product.materiaPrima.unidadeDeConsumo) }})</strong>
+              Matéria-Prima Original: <strong>{{ product().materiaPrima.nome }}
+                ({{ getConsumptionUnitViewValue(product().materiaPrima.unidadeDeConsumo) }})</strong>
             </p>
           }
           <mat-form-field class="full-width">
@@ -143,9 +145,9 @@
 } @else {
   <mat-dialog-content class="details-content">
     <div class="details-container">
-      <div class="details-image">
+      <div class="details-image image-container">
         @if (safeImageSrc(); as src) {
-          <img [ngSrc]="src" alt="Foto do produto {{product.nome}}" fill>
+          <img [ngSrc]="src" alt="Foto do produto {{product().nome}}" width="200" height="200">
         } @else {
            <div class="no-image">
              <mat-icon>image_not_supported</mat-icon>
@@ -154,20 +156,20 @@
          }
       </div>
       <div class="details-info">
-        <p><strong>SKU:</strong> {{ product.sku }}</p>
-        <p><strong>Ativo:</strong> {{ product.ativo ? 'Sim' : 'Não' }}</p>
+        <p><strong>SKU:</strong> {{ product().sku }}</p>
+        <p><strong>Ativo:</strong> {{ product().ativo ? 'Sim' : 'Não' }}</p>
 
         <!-- Seção para Detalhes Específicos -->
         <fieldset class="specific-details">
-          <legend>Detalhes Específicos ({{ product.tipoProduto === 'CORTE' ? 'Corte' : 'Consumo Direto' }})</legend>
-          @if (product.tipoProduto === 'CORTE') {
-            <p><strong>Cor:</strong> {{ product.cor || 'N/A' }}</p>
-            <p><strong>Dimensões:</strong> {{ product.dimensoes?.larguraCm }} x {{ product.dimensoes?.comprimentoCm }} cm</p>
+          <legend>Detalhes Específicos ({{ product().tipoProduto === 'CORTE' ? 'Corte' : 'Consumo Direto' }})</legend>
+          @if (product().tipoProduto === 'CORTE') {
+            <p><strong>Cor:</strong> {{ product().cor || 'N/A' }}</p>
+            <p><strong>Dimensões:</strong> {{ getFormattedDimensions(product().dimensoes) }}</p>
           }
-          @if (product.tipoProduto === 'CONSUMO_DIRETO') {
-            <p><strong>Cód. Fabricante:</strong> {{ product.codigoFabricante || 'N/A' }}</p>
-            @if (product.especificacoes) {
-              @for (spec of product.especificacoes | keyvalue; track spec.key) {
+          @if (product().tipoProduto === 'CONSUMO_DIRETO') {
+            <p><strong>Cód. Fabricante:</strong> {{ product().codigoFabricante || 'N/A' }}</p>
+            @if (product().especificacoes) {
+              @for (spec of product().especificacoes | keyvalue; track spec.key) {
                 <p><strong>{{ spec.key | titlecase }}:</strong> {{ spec.value }}</p>
               }
             }
@@ -175,21 +177,21 @@
         </fieldset>
 
         <hr>
-        <p><strong>Estoque Físico Total:</strong> {{ product.estoqueFisicoTotal }} pacotes</p>
-        <p><strong>Estoque Distribuído:</strong> {{ product.estoqueDistribuidoTotal }} pacotes</p>
-        <p><strong>Disponível para Alocar:</strong> {{ product.estoqueDisponivelParaAlocar }} pacotes</p>
-        <p><strong>Unidades por Pacote:</strong> {{ product.unidadesPorProduto }}</p>
+        <p><strong>Estoque Físico Total:</strong> {{ product().estoqueFisicoTotal }} pacotes</p>
+        <p><strong>Estoque Distribuído:</strong> {{ product().estoqueDistribuidoTotal }} pacotes</p>
+        <p><strong>Disponível para Alocar:</strong> {{ product().estoqueDisponivelParaAlocar }} pacotes</p>
+        <p><strong>Unidades por Pacote:</strong> {{ product().unidadesPorProduto }}</p>
         <hr>
-        @if (product.materiaPrima) {
-          <p><strong>Matéria-Prima:</strong> {{ product.materiaPrima.nome }}</p>
-          <p><strong>Unidade de Consumo:</strong> {{ getConsumptionUnitViewValue(product.materiaPrima.unidadeDeConsumo) }}</p>
+        @if (product().materiaPrima) {
+          <p><strong>Matéria-Prima:</strong> {{ product().materiaPrima.nome }}</p>
+          <p><strong>Unidade de Consumo:</strong> {{ getConsumptionUnitViewValue(product().materiaPrima.unidadeDeConsumo) }}</p>
         }
       </div>
     </div>
-    @if (product.descricao) {
+    @if (product().descricao) {
       <div class="details-description">
         <h4>Descrição</h4>
-        <p>{{ product.descricao }}</p>
+        <p>{{ product().descricao }}</p>
       </div>
     }
   </mat-dialog-content>

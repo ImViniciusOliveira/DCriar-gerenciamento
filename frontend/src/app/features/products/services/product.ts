@@ -79,6 +79,10 @@ export class ProductService {
     );
   }
 
+  getProductByUrl(url: string): Observable<Product> {
+    return this.http.get<Product>(url);
+  }
+
   getNewProductTemplate(): Observable<Product> {
     return this.endpoints$.pipe(
       map(endpoints => this.getProductBaseUrl(endpoints)),
