@@ -18,6 +18,8 @@ import com.dcriar.domain.stock.repository.specification.LoteMateriaPrimaSpecific
 import com.dcriar.domain.stock.service.LoteMateriaPrimaService;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -187,17 +189,18 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<LoteMateriaPrimaResponseDTO> findAll(Long tipoMateriaPrimaId, Boolean apenasLotesPrincipais) {
+    public Page<LoteMateriaPrimaResponseDTO> findAll(Long tipoMateriaPrimaId, Boolean apenasLotesPrincipais, Pageable pageable) {
         Specification<LoteMateriaPrima> spec = LoteMateriaPrimaSpecification.comFiltros(tipoMateriaPrimaId, apenasLotesPrincipais);
 
-        return loteMateriaPrimaRepository.findAll(spec).stream()
-                .map(lote -> {
-                    BigDecimal saldo = calcularSaldo(lote);
-                    LoteMateriaPrimaResponseDTO dto = loteMateriaPrimaMapper.toResponseDTO(lote);
-                    dto.setSaldoEstoque(saldo);
-                    return dto;
-                })
-                .collect(Collectors.toList());
+        Page<LoteMateriaPrima> lotesPage = loteMateriaPrimaRepository.findAll(spec, pageable);
+
+        // Mapeia a Page de entidades para uma Page de DTOs
+        return lotesPage.map(lote -> {
+            BigDecimal saldo = calcularSaldo(lote);
+            LoteMateriaPrimaResponseDTO dto = loteMateriaPrimaMapper.toResponseDTO(lote);
+            dto.setSaldoEstoque(saldo);
+            return dto;
+        });
     }
 
     @Override
@@ -237,6 +240,17 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return movimentacaoEstoqueLoteRepository.findAllByLote(lote).stream()
                 .map(movimentacaoMapper::toResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        LoteMateriaPrima lote = findLoteById(id);
+        // TODO: Adicionar lógica de validação antes de excluir (ex: verificar se há movimentações)
+        if (!lote.getMovimentacoes().isEmpty()) {
+            throw new LoteEmUsoException(id);
+        }
+        loteMateriaPrimaRepository.delete(lote);
     }
 
     private LoteMateriaPrima findLoteById(Long id) {

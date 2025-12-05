@@ -5,6 +5,8 @@ import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
 import com.dcriar.api.hateoas.stock.model.LoteMateriaPrimaModel;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -47,6 +51,13 @@ public class LoteMateriaPrimaModelAssembler extends RepresentationModelAssembler
         }
 
         return model;
+    }
+
+    public Page<LoteMateriaPrimaModel> toModel(Page<LoteMateriaPrimaResponseDTO> page) {
+        List<LoteMateriaPrimaModel> content = page.getContent().stream()
+                .map(this::toModel)
+                .collect(Collectors.toList());
+        return new PageImpl<>(content, page.getPageable(), page.getTotalElements());
     }
 
     public ResponseEntity<LoteMateriaPrimaModel> toCreatedResponseEntity(@NonNull LoteMateriaPrimaResponseDTO dto) {

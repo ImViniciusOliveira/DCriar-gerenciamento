@@ -4,6 +4,8 @@ import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
 import com.dcriar.api.dto.response.stock.MovimentacaoResponseDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -29,13 +31,14 @@ public interface LoteMateriaPrimaService {
     LoteMateriaPrimaResponseDTO findById(Long id);
 
     /**
-     * Lista todos os lotes de matéria-prima, com a possibilidade de aplicar filtros.
+     * Lista todos os lotes de matéria-prima, com a possibilidade de aplicar filtros e paginação.
      *
      * @param tipoMateriaPrimaId O ID do tipo de matéria-prima para filtrar (opcional).
      * @param apenasLotesPrincipais Se true, filtra apenas lotes que não são sobras (opcional).
-     * @return Uma lista de {@link LoteMateriaPrimaResponseDTO} com os lotes filtrados.
+     * @param pageable Objeto Pageable para informações de paginação e ordenação.
+     * @return Uma {@link Page} de {@link LoteMateriaPrimaResponseDTO} com os lotes filtrados.
      */
-    List<LoteMateriaPrimaResponseDTO> findAll(Long tipoMateriaPrimaId, Boolean apenasLotesPrincipais);
+    Page<LoteMateriaPrimaResponseDTO> findAll(Long tipoMateriaPrimaId, Boolean apenasLotesPrincipais, Pageable pageable);
 
     /**
      * Registra uma nova movimentação de estoque para um lote de matéria-prima.
@@ -64,4 +67,11 @@ public interface LoteMateriaPrimaService {
      * @return O {@link LoteMateriaPrimaResponseDTO} do lote atualizado.
      */
     LoteMateriaPrimaResponseDTO update(Long id, LoteMateriaPrimaRequestDTO requestDTO);
+
+    /**
+     * Exclui um lote de matéria-prima pelo seu ID.
+     *
+     * @param id O ID do lote a ser excluído.
+     */
+    void delete(Long id);
 }

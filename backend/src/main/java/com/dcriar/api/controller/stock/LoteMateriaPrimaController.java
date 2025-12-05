@@ -17,6 +17,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -49,13 +53,14 @@ public class LoteMateriaPrimaController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar e buscar lotes de matéria-prima com filtros")
+    @Operation(summary = "Listar e buscar lotes de matéria-prima com filtros e paginação")
     @ApiResponse(responseCode = "200", description = "Lista de lotes retornada com sucesso")
-    public ResponseEntity<CollectionModel<LoteMateriaPrimaModel>> searchAll(
+    public ResponseEntity<Page<LoteMateriaPrimaModel>> searchAll(
             @RequestParam(required = false) Long tipoMateriaPrimaId,
-            @RequestParam(required = false) Boolean apenasLotesPrincipais) {
-        List<LoteMateriaPrimaResponseDTO> lotes = loteMateriaPrimaService.findAll(tipoMateriaPrimaId, apenasLotesPrincipais);
-        return ResponseEntity.ok(loteMateriaPrimaModelAssembler.toCollectionModel(lotes));
+            @RequestParam(required = false) Boolean apenasLotesPrincipais,
+            @PageableDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        Page<LoteMateriaPrimaResponseDTO> lotes = loteMateriaPrimaService.findAll(tipoMateriaPrimaId, apenasLotesPrincipais, pageable);
+        return ResponseEntity.ok(loteMateriaPrimaModelAssembler.toModel(lotes));
     }
 
     @GetMapping("/{id}")
@@ -67,6 +72,29 @@ public class LoteMateriaPrimaController {
     public ResponseEntity<LoteMateriaPrimaModel> findById(@PathVariable Long id) {
         LoteMateriaPrimaResponseDTO lote = loteMateriaPrimaService.findById(id);
         return loteMateriaPrimaModelAssembler.toOkResponseEntity(lote);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualizar um lote de matéria-prima existente")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lote atualizado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
+    })
+    public ResponseEntity<LoteMateriaPrimaModel> update(@PathVariable Long id, @RequestBody @Valid LoteMateriaPrimaRequestDTO requestDTO) {
+        LoteMateriaPrimaResponseDTO loteAtualizado = loteMateriaPrimaService.update(id, requestDTO);
+        return loteMateriaPrimaModelAssembler.toOkResponseEntity(loteAtualizado);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Excluir um lote de matéria-prima")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Lote excluído com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
+    })
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        loteMateriaPrimaService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{loteId}/movimentacoes")
