@@ -1,7 +1,7 @@
-import { UnidadeDeMedida } from "../../../../shared/models/unidade-de-medida.model";
-import { Auditable } from "../../../../shared/models/auditable.model";
-import { Hateoas } from "../../../../core/models/hateoas.model";
-import { PageInfo } from "../../../products/models/product.model"; // Reutilizando PageInfo
+import {Auditable} from '../../../shared/models/auditable.model';
+import {PageInfo} from '../../products/models/product.model';
+import {Hateoas} from '../../../core/models/hateoas.model';
+import {UnidadeDeMedida} from '../../../shared/models/unidade-de-medida.model';
 
 export interface TipoMateriaPrima extends Auditable {
   id: number;
@@ -21,5 +21,5 @@ export interface EmbeddedTipoMateriaPrima {
 
 export interface ApiResponseTipoMateriaPrima extends Hateoas {
   _embedded: EmbeddedTipoMateriaPrima;
-  page?: PageInfo; // Reutilizando PageInfo
+  page?: PageInfo;
 }
