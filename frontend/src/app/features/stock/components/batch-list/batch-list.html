@@ -1,63 +1,36 @@
-<mat-card>
-  <mat-card-header>
-    <mat-card-title>Lotes</mat-card-title>
-    <mat-card-subtitle>Gerenciamento de lotes</mat-card-subtitle>
-  </mat-card-header>
+<app-base-table
+  [title]="'Lotes'"
+  [subtitle]="'Gerenciamento de Lotes'"
+  [addButtonText]="'Adicionar Lote'"
+  [items]="items()"
+  [columns]="tableColumns"
+  [totalElements]="pagination.totalElements()"
+  [pageSize]="pagination.pageSize()"
+  [pageIndex]="pagination.pageIndex()"
+  (add)="onCreate()"
+  (pageChange)="onPageChange($event)"
+  (sortChange)="onSortChange($event)">
 
-  <mat-card-content>
-    <div class="header-actions">
-      <button mat-stroked-button color="primary" (click)="toggleMateriasPrima()">
-        <mat-icon>table_view</mat-icon>
-        Exibir Matérias-Primas
-      </button>
-    </div>
+  <div secondary-actions>
+    <button mat-stroked-button (click)="openMaterialTypeDialog()" class="secondary-action-button">
+      <mat-icon>view_list</mat-icon>
+      Exibir Matérias-Primas
+    </button>
+  </div>
 
-    <!-- Tabela principal de lotes -->
-    <app-base-table
-      [items]="lotes()"
-      [columns]="loteColumns"
-      [totalElements]="pagination.totalElements()"
-      [pageSize]="pagination.pageSize()"
-      [pageIndex]="pagination.pageIndex()"
-      (pageChange)="onPageChange($event)"
-      (sortChange)="onSortChange($event)">
-    </app-base-table>
+</app-base-table>
 
-    <!-- Templates para células da tabela de lotes -->
-    <ng-template #idTemplate let-lote>{{ lote.id }}</ng-template>
-    <ng-template #tipoTemplate let-lote>{{ lote.tipoMateriaPrima?.nome }}</ng-template>
-    <ng-template #saldoTemplate let-lote>{{ lote.saldoEstoque }}</ng-template>
-    <ng-template #unidadeTemplate let-lote>{{ lote.unidadeDeEstoque }}</ng-template>
-    <ng-template #dataCriacaoTemplate let-lote>{{ lote.dataCriacao | date:'short' }}</ng-template>
-    <ng-template #acoesTemplate let-lote>
-      <button mat-icon-button color="primary" (click)="editLote(lote)">
-        <mat-icon>edit</mat-icon>
-      </button>
-      <button mat-icon-button color="warn" (click)="deleteLote(lote)">
-        <mat-icon>delete</mat-icon>
-      </button>
-    </ng-template>
-
-    <!-- Materias-prima card (toggle) -->
-    @if (showMateriasPrima()) {
-      <mat-card style="margin-top: 16px;">
-        <mat-card-header>
-          <mat-card-title>Matérias-Primas</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <app-base-table
-            [items]="materiaPrimaItems()"
-            [columns]="materiaPrimaColumns"
-            [totalElements]="materiaPrimaItems().length"
-            [pageSize]="50"
-            [pageIndex]="0">
-          </app-base-table>
-        </mat-card-content>
-      </mat-card>
-    }
-
-    <!-- Templates para materia-prima (fora do bloco @if para que ViewChild as encontre) -->
-    <ng-template #materiaNomeTemplate let-item>{{ item.nome }}</ng-template>
-    <ng-template #materiaUnidadeTemplate let-item>{{ item.unidadeDeConsumo }}</ng-template>
-  </mat-card-content>
-</mat-card>
+<!-- Templates para células da tabela de lotes -->
+<ng-template #idTemplate let-lote>{{ lote.id }}</ng-template>
+<ng-template #tipoTemplate let-lote>{{ lote.tipoMateriaPrima?.nome }}</ng-template>
+<ng-template #saldoTemplate let-lote>{{ lote.saldoEstoque }}</ng-template>
+<ng-template #unidadeTemplate let-lote>{{ lote.unidadeDeEstoque }}</ng-template>
+<ng-template #dataCriacaoTemplate let-lote>{{ lote.dataCriacao | date:'short' }}</ng-template>
+<ng-template #acoesTemplate let-lote>
+  <button mat-icon-button color="primary" (click)="editLote(lote)">
+    <mat-icon>edit</mat-icon>
+  </button>
+  <button mat-icon-button color="warn" (click)="deleteLote(lote)">
+    <mat-icon>delete</mat-icon>
+  </button>
+</ng-template>

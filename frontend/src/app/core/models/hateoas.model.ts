@@ -8,3 +8,10 @@ export interface Hateoas {
     [key: string]: Link;
   };
 }
+
+export interface PageInfo {
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  number: number;
+}

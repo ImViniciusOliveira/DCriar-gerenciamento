@@ -1,5 +1,4 @@
-import { Hateoas } from '../../../core/models/hateoas.model';
-import { PageInfo } from '../../products/models/product.model';
+import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
 
 export interface MaterialType {
   id: number;

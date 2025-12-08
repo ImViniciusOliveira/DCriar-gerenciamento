@@ -1,4 +1,4 @@
-import { Hateoas } from '../../../core/models/hateoas.model';
+import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
 
 export interface MateriaPrima {
   id: number;
@@ -45,11 +45,4 @@ export interface EmbeddedProducts {
 export interface ApiResponseProducts extends Hateoas {
   _embedded: EmbeddedProducts;
   page?: PageInfo;
-}
-
-export interface PageInfo {
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  number: number;
 }

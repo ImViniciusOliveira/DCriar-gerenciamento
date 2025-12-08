@@ -1,7 +1,6 @@
-import {Auditable} from '../../../shared/models/auditable.model';
-import {PageInfo} from '../../products/models/product.model';
-import {Hateoas} from '../../../core/models/hateoas.model';
-import {UnidadeDeMedida} from '../../../shared/models/unidade-de-medida.model';
+import { Auditable } from '../../../shared/models/auditable.model';
+import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
+import { UnidadeDeMedida } from '../../../shared/models/unidade-de-medida.model';
 
 export interface TipoMateriaPrima extends Auditable {
   id: number;

@@ -1,6 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, filter, map, switchMap, shareReplay, take, of } from 'rxjs';
+import { toObservable } from '@angular/core/rxjs-interop';
+
+import { ApiRoot } from '../../../core/services/api-root';
 import { ApiResponseTipoMateriaPrima, TipoMateriaPrima, TipoMateriaPrimaRequest } from '../models/tipo-materia-prima.model';
 
 @Injectable({
@@ -8,9 +11,12 @@ import { ApiResponseTipoMateriaPrima, TipoMateriaPrima, TipoMateriaPrimaRequest 
 })
 export class TipoMateriaPrimaService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = '/api/v1/tipos-materia-prima';
+  private readonly apiRoot = inject(ApiRoot);
 
-  constructor() { }
+  private readonly endpoints$ = toObservable(this.apiRoot.endpoints).pipe(
+    filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
+    shareReplay(1)
+  );
 
   findAll(
     page: number,
@@ -20,34 +26,55 @@ export class TipoMateriaPrimaService {
     nome?: string,
     unidadeDeConsumo?: string
   ): Observable<ApiResponseTipoMateriaPrima> {
-    let params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString())
-      .set('sort', `${sort},${order}`);
+    return this.endpoints$.pipe(
+      take(1),
+      switchMap(endpoints => {
+        const url = endpoints._links?.['tipos-materia-prima']?.href; // Corrigido para kebab-case
+        if (!url) {
+          console.error('URL de tipos-materia-prima não encontrada na resposta da API raiz.');
+          // Adicionado _links para satisfazer o tipo
+          return of({ _embedded: { tiposMateriaPrima: [] }, _links: {}, page: { size: 0, totalElements: 0, totalPages: 0, number: 0 } } as ApiResponseTipoMateriaPrima);
+        }
 
-    if (nome) {
-      params = params.set('nome', nome);
-    }
-    if (unidadeDeConsumo) {
-      params = params.set('unidadeDeConsumo', unidadeDeConsumo);
-    }
+        const baseUrl = url.split('{')[0];
+        let params = new HttpParams()
+          .set('page', page.toString())
+          .set('size', size.toString())
+          .set('sort', `${sort},${order}`);
 
-    return this.http.get<ApiResponseTipoMateriaPrima>(this.apiUrl, { params });
+        if (nome) {
+          params = params.set('nome', nome);
+        }
+        if (unidadeDeConsumo) {
+          params = params.set('unidadeDeConsumo', unidadeDeConsumo);
+        }
+
+        return this.http.get<ApiResponseTipoMateriaPrima>(baseUrl, { params });
+      })
+    );
   }
 
+  // NOTE: The methods below still use a hardcoded path.
+  // They should also be updated to use the HATEOAS links from the response
+  // when their functionality is fully implemented.
+
   findById(id: number): Observable<TipoMateriaPrima> {
-    return this.http.get<TipoMateriaPrima>(`${this.apiUrl}/${id}`);
+    const apiUrl = '/api/v1/tipos-materia-prima'; // Placeholder
+    return this.http.get<TipoMateriaPrima>(`${apiUrl}/${id}`);
   }
 
   create(request: TipoMateriaPrimaRequest): Observable<TipoMateriaPrima> {
-    return this.http.post<TipoMateriaPrima>(this.apiUrl, request);
+    const apiUrl = '/api/v1/tipos-materia-prima'; // Placeholder
+    return this.http.post<TipoMateriaPrima>(apiUrl, request);
   }
 
   update(id: number, request: TipoMateriaPrimaRequest): Observable<TipoMateriaPrima> {
-    return this.http.put<TipoMateriaPrima>(`${this.apiUrl}/${id}`, request);
+    const apiUrl = '/api/v1/tipos-materia-prima'; // Placeholder
+    return this.http.put<TipoMateriaPrima>(`${apiUrl}/${id}`, request);
   }
 
   delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    const apiUrl = '/api/v1/tipos-materia-prima'; // Placeholder
+    return this.http.delete<void>(`${apiUrl}/${id}`);
   }
 }

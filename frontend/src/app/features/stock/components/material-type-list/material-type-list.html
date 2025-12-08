@@ -1,1 +1,24 @@
-<p>material-type-list works!</p>
+<app-base-table
+  [title]="'Matérias-Primas'"
+  [subtitle]="'Gerenciamento de Matérias-Primas'"
+  [addButtonText]="'Adicionar Matéria-Prima'"
+  [items]="items()"
+  [columns]="tableColumns"
+  [totalElements]="pagination.totalElements()"
+  [pageSize]="pagination.pageSize()"
+  [pageIndex]="pagination.pageIndex()"
+  (add)="onCreate()"
+  (pageChange)="onPageChange($event)"
+  (sortChange)="onSortChange($event)">
+</app-base-table>
+
+<ng-template #materiaNomeTemplate let-item>{{ item.nome }}</ng-template>
+<ng-template #materiaUnidadeTemplate let-item>{{ item.unidadeDeConsumo }}</ng-template>
+<ng-template #acoesTemplate let-item>
+  <button mat-icon-button color="primary" (click)="editItem(item)">
+    <mat-icon>edit</mat-icon>
+  </button>
+  <button mat-icon-button color="warn" (click)="deleteItem(item)">
+    <mat-icon>delete</mat-icon>
+  </button>
+</ng-template>
