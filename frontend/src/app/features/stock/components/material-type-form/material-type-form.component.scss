@@ -4,12 +4,14 @@
   min-width: 400px;
 }
 
+mat-dialog-content {
+  // Garante que o conteúdo que "vaza" para cima (como o label) não seja cortado.
+  overflow: visible !important;
+  padding-top: 20px; // Um bom valor inicial para dar espaço ao label.
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
-}
-
-mat-dialog-content {
-  padding-top: 20px;
 }

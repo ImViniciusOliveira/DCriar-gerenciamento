@@ -7,9 +7,9 @@
       <mat-form-field appearance="outline">
         <mat-label>Nome da Matéria-Prima</mat-label>
         <input matInput formControlName="nome" placeholder="Ex: Papel Couchê 300g">
-        <mat-error *ngIf="form.get('nome')?.hasError('required')">
-          O nome é obrigatório.
-        </mat-error>
+        @if (form.get('nome')?.hasError('required')) {
+          <mat-error>O nome é obrigatório.</mat-error>
+        }
       </mat-form-field>
 
       <!-- Campo Unidade de Consumo com Autocomplete -->
@@ -21,14 +21,19 @@
                matInput
                formControlName="unidadeDeConsumo"
                [matAutocomplete]="auto">
-        <mat-autocomplete #auto="matAutocomplete">
-          <mat-option *ngFor="let unidade of unidades$ | async" [value]="unidade">
-            {{ unidade }}
-          </mat-option>
+        <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayUnidade">
+          @for (unidade of unidades$ | async; track unidade.name) {
+            <mat-option [value]="unidade">
+              {{ unidade.descricao }}
+            </mat-option>
+          }
         </mat-autocomplete>
-        <mat-error *ngIf="form.get('unidadeDeConsumo')?.hasError('required')">
-          A unidade é obrigatória.
-        </mat-error>
+        @if (form.get('unidadeDeConsumo')?.hasError('required')) {
+          <mat-error>A unidade é obrigatória.</mat-error>
+        }
+        @if (form.get('unidadeDeConsumo')?.hasError('requireMatch')) {
+          <mat-error>Selecione uma opção válida.</mat-error>
+        }
       </mat-form-field>
     </div>
   </mat-dialog-content>
