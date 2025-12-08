@@ -5,6 +5,7 @@ import com.dcriar.api.controller.product.ProdutoController;
 import com.dcriar.api.controller.production.OrdemDeProducaoController;
 import com.dcriar.api.controller.sales.VendaController;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
+import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.hateoas.RepresentationModel;
@@ -33,11 +34,12 @@ public class ApiRootController {
     public RepresentationModel<?> getRoot() {
         RepresentationModel<?> rootModel = new RepresentationModel<>();
 
-        rootModel.add(linkTo(methodOn(ProdutoController.class).findAll()).withRel("produtos"));
-        rootModel.add(linkTo(methodOn(LoteMateriaPrimaController.class).searchAll(null, null, null)).withRel("lotes-materia-prima"));
-        rootModel.add(linkTo(methodOn(VendaController.class).findAll()).withRel("vendas"));
+        rootModel.add(linkTo(ProdutoController.class).withRel("produtos"));
+        rootModel.add(linkTo(LoteMateriaPrimaController.class).withRel("lotes-materia-prima"));
+        rootModel.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("tipos-materia-prima"));
+        rootModel.add(linkTo(VendaController.class).withRel("vendas"));
         rootModel.add(linkTo(methodOn(OrdemDeProducaoController.class).listarTodas()).withRel("ordens-de-producao"));
-        rootModel.add(linkTo(methodOn(CanalVendaController.class).findAll()).withRel("canais-venda"));
+        rootModel.add(linkTo(CanalVendaController.class).withRel("canais-venda"));
 
         return rootModel;
     }

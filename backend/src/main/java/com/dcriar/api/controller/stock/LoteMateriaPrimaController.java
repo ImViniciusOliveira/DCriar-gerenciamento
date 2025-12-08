@@ -10,6 +10,8 @@ import com.dcriar.api.hateoas.stock.model.LoteMateriaPrimaModel;
 import com.dcriar.api.hateoas.stock.model.MovimentacaoLoteModel;
 import com.dcriar.domain.stock.service.LoteMateriaPrimaService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,11 +19,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,12 +60,19 @@ public class LoteMateriaPrimaController {
     @GetMapping
     @Operation(summary = "Listar e buscar lotes de matéria-prima com filtros e paginação")
     @ApiResponse(responseCode = "200", description = "Lista de lotes retornada com sucesso")
-    public ResponseEntity<Page<LoteMateriaPrimaModel>> searchAll(
+    @Parameters({
+            @Parameter(name = "sort", description = "Critério de ordenação no formato: propriedade,asc|desc.", example = "id,asc")
+    })
+    public ResponseEntity<PagedModel<LoteMateriaPrimaModel>> searchAll(
+            @Parameter(description = "Filtrar por ID do tipo de matéria-prima")
             @RequestParam(required = false) Long tipoMateriaPrimaId,
+            @Parameter(description = "Filtrar apenas por lotes principais (se aplicável)")
             @RequestParam(required = false) Boolean apenasLotesPrincipais,
-            @PageableDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
-        Page<LoteMateriaPrimaResponseDTO> lotes = loteMateriaPrimaService.findAll(tipoMateriaPrimaId, apenasLotesPrincipais, pageable);
-        return ResponseEntity.ok(loteMateriaPrimaModelAssembler.toModel(lotes));
+            @ParameterObject @PageableDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable,
+            PagedResourcesAssembler<LoteMateriaPrimaResponseDTO> pagedResourcesAssembler) {
+        Page<LoteMateriaPrimaResponseDTO> lotesPage = loteMateriaPrimaService.findAll(tipoMateriaPrimaId, apenasLotesPrincipais, pageable);
+        PagedModel<LoteMateriaPrimaModel> pagedModel = pagedResourcesAssembler.toModel(lotesPage, loteMateriaPrimaModelAssembler);
+        return ResponseEntity.ok(pagedModel);
     }
 
     @GetMapping("/{id}")
