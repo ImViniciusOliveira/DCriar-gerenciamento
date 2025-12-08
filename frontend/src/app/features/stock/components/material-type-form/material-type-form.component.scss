@@ -1,0 +1,15 @@
+.dialog-container {
+  display: flex;
+  flex-direction: column;
+  min-width: 400px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+mat-dialog-content {
+  padding-top: 20px;
+}

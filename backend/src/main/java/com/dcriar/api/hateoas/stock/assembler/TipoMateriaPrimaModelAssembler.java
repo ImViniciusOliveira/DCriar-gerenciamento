@@ -1,5 +1,6 @@
 package com.dcriar.api.hateoas.stock.assembler;
 
+import com.dcriar.api.controller.enums.StockEnumController;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
 import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
 import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
@@ -36,16 +37,23 @@ public class TipoMateriaPrimaModelAssembler extends RepresentationModelAssembler
         TipoMateriaPrimaModel model = instantiateModel(dto);
         BeanUtils.copyProperties(dto, model);
 
-        // Link para o próprio recurso
-        model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findById(dto.getId())).withSelfRel());
-        // Link para a coleção de todos os tipos
-        model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel(IanaLinkRelations.COLLECTION));
+        // Links que são necessários tanto para criação quanto para edição
+        model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida()).withRel("unidades-de-medida"));
 
-        // Link para o recurso relacionado: listar todos os lotes deste tipo
-        String lotesUri = linkTo(LoteMateriaPrimaController.class).toUri().toString();
-        Link lotesLink = Link.of(UriComponentsBuilder.fromUriString(lotesUri)
-                .queryParam("tipoMateriaPrimaId", dto.getId()).build().toUriString(), "lotes");
-        model.add(lotesLink);
+        // Se o ID for nulo, estamos montando um template para criação (endpoint /new)
+        if (dto.getId() != null) {
+            // Para uma entidade existente, adiciona os links específicos de uma entidade
+            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findById(dto.getId())).withSelfRel());
+            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel(IanaLinkRelations.COLLECTION));
+            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).Update(dto.getId(), null)).withRel("update"));
+            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).deleteById(dto.getId())).withRel("delete"));
+
+            // Link para o recurso relacionado: listar todos os lotes deste tipo
+            String lotesUri = linkTo(LoteMateriaPrimaController.class).toUri().toString();
+            Link lotesLink = Link.of(UriComponentsBuilder.fromUriString(lotesUri)
+                    .queryParam("tipoMateriaPrimaId", dto.getId()).build().toUriString(), "lotes");
+            model.add(lotesLink);
+        }
 
         return model;
     }

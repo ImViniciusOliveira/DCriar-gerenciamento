@@ -1,0 +1,40 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>{{ data.title }}</h2>
+
+  <mat-dialog-content [formGroup]="form">
+    <div class="form-grid">
+      <!-- Campo Nome -->
+      <mat-form-field appearance="outline">
+        <mat-label>Nome da Matéria-Prima</mat-label>
+        <input matInput formControlName="nome" placeholder="Ex: Papel Couchê 300g">
+        <mat-error *ngIf="form.get('nome')?.hasError('required')">
+          O nome é obrigatório.
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Campo Unidade de Consumo com Autocomplete -->
+      <mat-form-field appearance="outline">
+        <mat-label>Unidade de Consumo</mat-label>
+        <input type="text"
+               placeholder="Selecione ou digite"
+               aria-label="Unidade de Consumo"
+               matInput
+               formControlName="unidadeDeConsumo"
+               [matAutocomplete]="auto">
+        <mat-autocomplete #auto="matAutocomplete">
+          <mat-option *ngFor="let unidade of unidades$ | async" [value]="unidade">
+            {{ unidade }}
+          </mat-option>
+        </mat-autocomplete>
+        <mat-error *ngIf="form.get('unidadeDeConsumo')?.hasError('required')">
+          A unidade é obrigatória.
+        </mat-error>
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="onCancel()">Cancelar</button>
+    <button mat-flat-button color="primary" (click)="onSave()" [disabled]="form.invalid">Salvar</button>
+  </mat-dialog-actions>
+</div>

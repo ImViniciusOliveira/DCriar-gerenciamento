@@ -74,6 +74,14 @@ public class TipoMateriaPrimaController {
         return null;
     }
 
+    @GetMapping("/new")
+    @Operation(summary = "Obter um modelo 'esqueleto' para criação de um novo tipo de matéria-prima")
+    @ApiResponse(responseCode = "200", description = "Modelo retornado com sucesso")
+    public ResponseEntity<TipoMateriaPrimaModel> getNewTemplate() {
+        // Retorna um DTO vazio para que o assembler possa adicionar os links HATEOAS necessários
+        return tipoMateriaPrimaModelAssembler.toOkResponseEntity(new TipoMateriaPrimaResponseDTO());
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Buscar tipo de matéria-prima por ID")
     public ResponseEntity<TipoMateriaPrimaModel> findById(@PathVariable Long id) {
