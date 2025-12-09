@@ -52,6 +52,18 @@ public class LoteMateriaPrima extends AuditableEntity {
     private UnidadeDeMedida unidadeDeEstoque;
 
     /**
+     * O custo total do lote no momento da entrada.
+     */
+    @Column(name = "custo_total_lote", nullable = false, precision = 10, scale = 4)
+    private BigDecimal custoTotalLote;
+
+    /**
+     * O motivo da criação ou entrada deste lote no estoque.
+     */
+    @Column(name = "motivo", nullable = false, length = 255)
+    private String motivo;
+
+    /**
      * Campo JSONB para armazenar atributos flexíveis do lote, como 'larguraMm' para rolos.
      * <p>
      * Permite adicionar informações específicas do lote sem a necessidade de alterar o esquema do banco de dados.
@@ -105,6 +117,8 @@ public class LoteMateriaPrima extends AuditableEntity {
                 .tipoMateriaPrima(tipoMateriaPrima)
                 .unidadeDeEstoque(dto.getUnidadeDeEstoque())
                 .atributos(dto.getAtributos())
+                .custoTotalLote(dto.getCustoTotalLote())
+                .motivo(dto.getMotivo())
                 // Adicione outros campos conforme necessário
                 .build();
     }
@@ -129,6 +143,11 @@ public class LoteMateriaPrima extends AuditableEntity {
         if (dto.getAtributos() != null) {
             this.atributos = dto.getAtributos();
         }
-        // Atualize outros campos conforme necessário
+        if (dto.getCustoTotalLote() != null) {
+            this.custoTotalLote = dto.getCustoTotalLote();
+        }
+        if (dto.getMotivo() != null) {
+            this.motivo = dto.getMotivo();
+        }
     }
 }
