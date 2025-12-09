@@ -1,19 +1,17 @@
-import { Component, Input, Output, EventEmitter, ViewChild, OnChanges, SimpleChanges, TemplateRef } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule, Sort } from '@angular/material/sort';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 export interface TableColumn<T> {
   key: string;
   header: string;
-  cellTemplate: TemplateRef<any>;
   sortable?: boolean;
   sortKey?: string;
+  cellTemplate: any;
 }
 
 @Component({
@@ -24,36 +22,34 @@ export interface TableColumn<T> {
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
-    MatProgressSpinnerModule,
-    MatCardModule,
     MatButtonModule,
-    MatIconModule,
+    MatIconModule
   ],
   templateUrl: './base-table.html',
   styleUrls: ['./base-table.scss']
 })
 export class BaseTable<T> implements OnChanges {
-  @Input() title: string = 'Itens';
-  @Input() subtitle: string = 'Gerenciamento de itens';
-  @Input() addButtonText: string = 'Adicionar Item';
-  @Input() paginatorAriaLabel: string = 'Selecione a página de itens';
-
   @Input() items: T[] = [];
   @Input() columns: TableColumn<T>[] = [];
-
   @Input() totalElements: number = 0;
   @Input() pageSize: number = 10;
   @Input() pageIndex: number = 0;
 
-  @Output() add = new EventEmitter<void>();
-  @Output() pageChange = new EventEmitter<PageEvent>();
+  @Output() pageChange = new EventEmitter<any>();
   @Output() sortChange = new EventEmitter<Sort>();
 
-  dataSource = new MatTableDataSource<T>();
-  columnKeys: string[] = [];
+  dataSource: MatTableDataSource<T>;
+  columnKeys: string[];
 
-  @ViewChild(MatSort) sort!: MatSort;
+  paginatorAriaLabel: string = 'Selecione a página';
+
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+
+  constructor() {
+    this.dataSource = new MatTableDataSource(this.items);
+    this.columnKeys = this.columns.map(c => c.key);
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['items']) {
@@ -64,16 +60,11 @@ export class BaseTable<T> implements OnChanges {
     }
   }
 
-  onAdd(): void {
-    this.add.emit();
-  }
-
-  onPageChange(event: PageEvent): void {
+  onPageChange(event: any): void {
     this.pageChange.emit(event);
   }
 
   onSortChange(sort: Sort): void {
-    this.paginator.pageIndex = 0;
     this.sortChange.emit(sort);
   }
 }

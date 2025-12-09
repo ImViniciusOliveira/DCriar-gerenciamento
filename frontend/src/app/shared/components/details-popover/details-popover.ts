@@ -10,10 +10,10 @@ export interface DetailItem {
   selector: 'app-details-popover',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './details-popover.component.html',
-  styleUrls: ['./details-popover.component.scss']
+  templateUrl: './details-popover.html',
+  styleUrls: ['./details-popover.scss']
 })
-export class DetailsPopoverComponent {
+export class DetailsPopover {
   @Input() items: DetailItem[] = [];
   @Input() triggerText: string = 'Exibir detalhes';
 }

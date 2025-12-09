@@ -9,7 +9,7 @@ import { BaseTable, TableColumn } from '../../../../shared/components/base-table
 import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { TipoMateriaPrima } from '../../models/tipo-materia-prima.model';
 import { TipoMateriaPrimaService } from '../../services/tipo-materia-prima.service';
-import { MaterialTypeFormComponent, MaterialTypeFormData } from '../material-type-form/material-type-form.component';
+import { MaterialTypeForm, MaterialTypeFormData } from '../material-type-form/material-type-form';
 
 @Component({
   selector: 'app-material-type-list',
@@ -108,7 +108,7 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
 
   private openFormDialog(dialogData: MaterialTypeFormData, successMessage: string): void {
     this.entityDialog.openFormDialog({
-      component: MaterialTypeFormComponent,
+      component: MaterialTypeForm,
       formData: dialogData,
       title: dialogData.title,
       width: '500px'

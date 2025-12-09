@@ -48,13 +48,13 @@ export function requireMatchUnidade(options: UnidadeOption[]): ValidatorFn {
     MatButtonModule, MatAutocompleteModule, MatSelectModule, MatIconModule,
     MatProgressSpinnerModule, InfiniteScrollDirective
   ],
-  templateUrl: './lote-materia-prima-form.component.html',
-  styleUrls: ['./lote-materia-prima-form.component.scss']
+  templateUrl: './lote-materia-prima-form.html',
+  styleUrls: ['./lote-materia-prima-form.scss']
 })
-export class LoteMateriaPrimaFormComponent implements OnInit {
+export class LoteMateriaPrimaForm implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly http = inject(HttpClient);
-  private readonly dialogRef = inject(MatDialogRef<LoteMateriaPrimaFormComponent>);
+  private readonly dialogRef = inject(MatDialogRef<LoteMateriaPrimaForm>);
   private readonly loteMateriaPrimaService = inject(LoteMateriaPrimaService);
   private readonly tipoMateriaPrimaService = inject(TipoMateriaPrimaService);
   private readonly entityDialog = inject(EntityDialogService);
@@ -71,12 +71,19 @@ export class LoteMateriaPrimaFormComponent implements OnInit {
   totalElementsTipos = 0;
   isSearchingTipos = false;
 
+  searchForm: FormGroup; // Formulário de busca para tipos de matéria-prima
+
   // Para Unidade de Estoque
   unidades$: Observable<UnidadeOption[]> = new Observable<UnidadeOption[]>();
   unidades: UnidadeOption[] = [];
 
   constructor() {
     this.isEditMode = !!this.data.template.id;
+
+    this.searchForm = this.fb.group({
+      searchName: [''],
+      searchUnit: ['']
+    });
   }
 
   async ngOnInit(): Promise<void> {
@@ -85,7 +92,7 @@ export class LoteMateriaPrimaFormComponent implements OnInit {
       unidadeDeEstoque: ['', [Validators.required]],
       quantidadeInicial: [this.data.template?.saldoEstoque || '', [Validators.required, Validators.min(0.01)]],
       custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01)]],
-      motivo: [this.data.template?.motivo || (this.isEditMode ? '' : 'Entrada inicial'), Validators.required],
+      motivo: [this.data.template?.motivo || '', Validators.required],
       atributos: this.fb.array([])
     });
 
@@ -98,7 +105,27 @@ export class LoteMateriaPrimaFormComponent implements OnInit {
   }
 
   async initializeForm(): Promise<void> {
-    await this.loadTiposMateriaPrima();
+    // Obter a URL de busca de tipos de matéria-prima do template
+    const url = this.data.template?._links?.['tipos-materia-prima']?.href;
+    if (url) {
+      this.tiposMateriaPrimaSearchUrl = url.split('{')[0];
+    } else {
+      console.error("URL para busca de matéria-prima não pôde ser determinada.");
+      // Desabilitar o campo de seleção se a URL não for encontrada
+      this.form.get('tipoMateriaPrimaId')?.disable();
+    }
+
+    await this.performSearchTipos(); // Realiza a busca inicial de tipos
+
+    // Se estiver em modo de edição e o tipo já estiver selecionado, garante que ele esteja na lista
+    if (this.isEditMode && this.data.template.tipoMateriaPrimaId) {
+      // Busca o tipo de matéria-prima selecionado individualmente para garantir que ele esteja na lista
+      const tipoSelecionado = await lastValueFrom(this.tipoMateriaPrimaService.findById(this.data.template.tipoMateriaPrimaId));
+      if (tipoSelecionado && !this.tiposMateriaPrima.some(t => t.id === tipoSelecionado.id)) {
+        this.tiposMateriaPrima = [tipoSelecionado, ...this.tiposMateriaPrima];
+      }
+    }
+
     this.loadUnidadesDeEstoque();
 
     // Preencher atributos se estiver em modo de edição
@@ -134,19 +161,38 @@ export class LoteMateriaPrimaFormComponent implements OnInit {
     this.atributos.removeAt(index);
   }
 
-  // Lógica para Tipo de Matéria-Prima
-  async loadTiposMateriaPrima(): Promise<void> {
-    const url = this.data.template?._links?.['tipos-materia-prima']?.href;
-    if (url) {
-      this.tiposMateriaPrimaSearchUrl = url.split('{')[0];
-      const response = await lastValueFrom(this.tipoMateriaPrimaService.findAll(0, this.pageSizeTipos, 'nome', 'asc'));
+  // Lógica para Tipo de Matéria-Prima (com busca e infinite scroll)
+  async performSearchTipos(): Promise<void> {
+    this.isSearchingTipos = true;
+    try {
+      this.currentPageTipos = 0;
+      this.tiposMateriaPrima = []; // Limpa a lista antes de uma nova busca
+
+      if (!this.tiposMateriaPrimaSearchUrl) {
+        console.error('Não é possível buscar matérias-primas: URL não encontrada.');
+        return;
+      }
+
+      const filters = { searchName: this.searchForm.value.searchName, searchUnit: this.searchForm.value.searchUnit };
+
+      const response = await lastValueFrom(
+        this.tipoMateriaPrimaService.findAll(
+          this.currentPageTipos,
+          this.pageSizeTipos,
+          'nome',
+          'asc',
+          filters.searchName,
+          filters.searchUnit
+        )
+      );
+
       this.tiposMateriaPrima = response._embedded?.tiposMateriaPrima || [];
       this.totalElementsTipos = response.page?.totalElements || 0;
-
-      // Se estiver em modo de edição, pré-seleciona o tipo de matéria-prima
-      if (this.isEditMode && this.data.template.tipoMateriaPrimaId) {
-        this.form.get('tipoMateriaPrimaId')?.setValue(this.data.template.tipoMateriaPrimaId);
-      }
+    } catch (err) {
+      console.error('Erro na busca por matéria-prima:', err);
+      this.entityDialog.showErrorSnackbar('Falha ao buscar tipos de matéria-prima.');
+    } finally {
+      this.isSearchingTipos = false;
     }
   }
 
@@ -154,17 +200,42 @@ export class LoteMateriaPrimaFormComponent implements OnInit {
     if (this.isSearchingTipos || this.tiposMateriaPrima.length >= this.totalElementsTipos) {
       return;
     }
+
     this.isSearchingTipos = true;
     this.currentPageTipos++;
 
-    const response = await lastValueFrom(this.tipoMateriaPrimaService.findAll(this.currentPageTipos, this.pageSizeTipos, 'nome', 'asc'));
-    const newTipos = response._embedded?.tiposMateriaPrima || [];
-    this.tiposMateriaPrima = [...this.tiposMateriaPrima, ...newTipos];
-    this.isSearchingTipos = false;
+    try {
+      if (!this.tiposMateriaPrimaSearchUrl) return;
+
+      const filters = { searchName: this.searchForm.value.searchName, searchUnit: this.searchForm.value.searchUnit };
+
+      const response = await lastValueFrom(this.tipoMateriaPrimaService.findAll(
+        this.currentPageTipos,
+        this.pageSizeTipos,
+        'nome',
+        'asc',
+        filters.searchName,
+        filters.searchUnit
+      ));
+
+      const newTipos = response._embedded?.tiposMateriaPrima || [];
+      this.tiposMateriaPrima = [...this.tiposMateriaPrima, ...newTipos];
+    } catch (err) {
+      console.error('Erro ao carregar mais matérias-primas:', err);
+      this.entityDialog.showErrorSnackbar('Falha ao carregar mais tipos de matéria-prima.');
+    } finally {
+      this.isSearchingTipos = false;
+    }
   }
 
-  compareTiposMateriaPrima(o1: TipoMateriaPrima, o2: TipoMateriaPrima): boolean {
-    return o1 && o2 ? o1.id === o2.id : o1 === o2;
+  compareTiposMateriaPrima(o1: TipoMateriaPrima | number, o2: TipoMateriaPrima | number): boolean {
+    if (typeof o1 === 'number' && typeof o2 === 'number') {
+      return o1 === o2;
+    }
+    if (typeof o1 === 'object' && typeof o2 === 'object') {
+      return o1 && o2 ? o1.id === o2.id : o1 === o2;
+    }
+    return false;
   }
 
   // Lógica para Unidade de Estoque
@@ -186,7 +257,7 @@ export class LoteMateriaPrimaFormComponent implements OnInit {
     }
   }
 
-  private _filterUnidades(value: string): UnidadeOption[] {
+  _filterUnidades(value: string): UnidadeOption[] {
     const filterValue = value.toLowerCase();
     return this.unidades.filter(unidade => unidade.descricao.toLowerCase().includes(filterValue));
   }

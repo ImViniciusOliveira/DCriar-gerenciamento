@@ -39,13 +39,13 @@ export function requireMatch(options: UnidadeOption[]): ValidatorFn {
     CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule,
     MatButtonModule, MatAutocompleteModule, MatDialogModule
   ],
-  templateUrl: './material-type-form.component.html',
-  styleUrls: ['./material-type-form.component.scss']
+  templateUrl: './material-type-form.html',
+  styleUrls: ['./material-type-form.scss']
 })
-export class MaterialTypeFormComponent implements OnInit {
+export class MaterialTypeForm implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly http = inject(HttpClient);
-  private readonly dialogRef = inject(MatDialogRef<MaterialTypeFormComponent>);
+  private readonly dialogRef = inject(MatDialogRef<MaterialTypeForm>);
   private readonly tipoMateriaPrimaService = inject(TipoMateriaPrimaService);
   private readonly entityDialog = inject(EntityDialogService);
   public readonly data: MaterialTypeFormData = inject(MAT_DIALOG_DATA);

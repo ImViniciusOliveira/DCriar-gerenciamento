@@ -1,18 +1,21 @@
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #fff;
-  text-transform: uppercase;
+.page-container {
+  padding: 2rem;
+}
 
-  &.pending {
-    background-color: #f59e0b; // amber-500
-  }
-  &.completed {
-    background-color: #10b981; // emerald-500
-  }
-  &.cancelled {
-    background-color: #ef4444; // red-500
-  }
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.header-title h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.header-title p {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
 }

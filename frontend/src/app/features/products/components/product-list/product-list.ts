@@ -17,7 +17,7 @@ import { ApiRoot } from '../../../../core/services/api-root';
 import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DetailsPopoverComponent } from '../../../../shared/components/details-popover/details-popover.component';
+import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover';
 
 @Component({
   selector: 'app-product-list',
@@ -30,7 +30,7 @@ import { DetailsPopoverComponent } from '../../../../shared/components/details-p
     MatTooltipModule,
     FilterStockPipe,
     BaseTable,
-    DetailsPopoverComponent
+    DetailsPopover
   ],
   templateUrl: './product-list.html',
   styleUrls: ['./product-list.scss'],

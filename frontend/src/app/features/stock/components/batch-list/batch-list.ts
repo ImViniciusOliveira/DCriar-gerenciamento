@@ -10,8 +10,8 @@ import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { LoteMateriaPrima } from '../../models/lote-materia-prima.model';
 import { LoteMateriaPrimaService } from '../../services/lote-materia-prima.service';
 import { MaterialTypeList } from '../material-type-list/material-type-list';
-import { DetailsPopoverComponent } from '../../../../shared/components/details-popover/details-popover.component';
-import { LoteMateriaPrimaFormComponent, LoteMateriaPrimaFormData } from '../lote-materia-prima-form/lote-materia-prima-form.component';
+import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover'; // Corrigido o nome do import
+import { LoteMateriaPrimaForm, LoteMateriaPrimaFormData } from '../lote-materia-prima-form/lote-materia-prima-form'; // Corrigido o nome do import
 
 @Component({
   selector: 'app-batch-list',
@@ -22,7 +22,7 @@ import { LoteMateriaPrimaFormComponent, LoteMateriaPrimaFormData } from '../lote
     MatIconModule,
     MatDialogModule,
     BaseTable,
-    DetailsPopoverComponent
+    DetailsPopover
   ],
   templateUrl: './batch-list.html',
   styleUrl: './batch-list.scss'
@@ -37,8 +37,6 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
   @ViewChild('tipoTemplate') tipoTemplate!: TemplateRef<any>;
   @ViewChild('saldoTemplate') saldoTemplate!: TemplateRef<any>;
   @ViewChild('unidadeTemplate') unidadeTemplate!: TemplateRef<any>;
-  @ViewChild('custoTotalLoteTemplate') custoTotalLoteTemplate!: TemplateRef<any>;
-  @ViewChild('motivoTemplate') motivoTemplate!: TemplateRef<any>;
   @ViewChild('atributosTemplate') atributosTemplate!: TemplateRef<any>;
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
 
@@ -47,8 +45,6 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
       { key: 'nomeTipoMateriaPrima', header: 'Matéria-Prima', sortable: true, cellTemplate: this.tipoTemplate },
       { key: 'saldoEstoque', header: 'Saldo', sortable: true, cellTemplate: this.saldoTemplate },
       { key: 'unidadeDeEstoque', header: 'Unidade', sortable: true, cellTemplate: this.unidadeTemplate },
-      { key: 'custoTotalLote', header: 'Custo Total', sortable: true, cellTemplate: this.custoTotalLoteTemplate },
-      { key: 'motivo', header: 'Motivo', sortable: true, cellTemplate: this.motivoTemplate },
       { key: 'atributos', header: 'Atributos', sortable: false, cellTemplate: this.atributosTemplate },
       { key: 'acoes', header: 'Ações', cellTemplate: this.acoesTemplate }
     ];
@@ -134,7 +130,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
 
   private openFormDialog(dialogData: LoteMateriaPrimaFormData, successMessage: string): void {
     this.entityDialog.openFormDialog({
-      component: LoteMateriaPrimaFormComponent,
+      component: LoteMateriaPrimaForm,
       formData: dialogData,
       title: dialogData.title,
       width: '800px'

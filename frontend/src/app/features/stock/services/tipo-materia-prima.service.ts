@@ -81,4 +81,10 @@ export class TipoMateriaPrimaService {
   findByUrl(url: string): Observable<TipoMateriaPrima> {
     return this.http.get<TipoMateriaPrima>(url);
   }
+
+  findById(id: number): Observable<TipoMateriaPrima> {
+    return this.getBaseUrl().pipe(
+      switchMap(baseUrl => this.http.get<TipoMateriaPrima>(`${baseUrl}/${id}`))
+    );
+  }
 }
