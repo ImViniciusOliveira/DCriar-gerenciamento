@@ -1,30 +1,34 @@
-import { InfiniteScrollDirective } from '../../../stock/services/infinite-scroll.directive';
 import {CommonModule, NgOptimizedImage} from '@angular/common';
 import { ChangeDetectorRef, Component, Inject, OnInit, WritableSignal, inject, signal, Signal, computed } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Product } from '../../models/product.model';
-import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormArray,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms';
 import { ProductService } from '../../services/product';
-import { MaterialTypeService } from '../../../stock/services/material-type.service';
-import { MaterialType } from '../../../stock/models/material-type.model';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
+import { MatSelectModule, MatSelectChange } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
-import { Observable, lastValueFrom, of, map } from 'rxjs';
+import { lastValueFrom } from 'rxjs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { provideNgxMask } from 'ngx-mask';
-import { ApiRoot } from '../../../../core/services/api-root';
-import { EnumOption, EnumService } from '../../../../core/services/enum.service';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { MateriaPrimaSearchComponent } from '../../../../shared/components/materia-prima-search/materia-prima-search';
+import { MaterialType } from '../../../stock/models/material-type.model';
 
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule, MatCheckboxModule, MatIconModule, InfiniteScrollDirective, MatProgressSpinnerModule, NgOptimizedImage],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatProgressSpinnerModule, NgOptimizedImage, MateriaPrimaSearchComponent],
   providers: [provideNgxMask()],
   templateUrl: './product-form.html',
   styleUrls: ['./product-form.scss']
@@ -43,28 +47,13 @@ export class ProductFormComponent implements OnInit {
   productForm: FormGroup;
   // Nome da variável injetada corrigido
   private readonly productService = inject(ProductService);
-  private readonly materialTypeService = inject(MaterialTypeService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
-  private readonly apiRoot = inject(ApiRoot);
-  private readonly enumService = inject(EnumService);
 
-  searchForm: FormGroup;
-  materialTypes: WritableSignal<MaterialType[]> = signal([]);
   selectedFile: File | null = null;
   previewUrl = signal<string | null>(null);
-  isSearching = signal(false);
   isUploading = signal(false);
   readonly safeImageSrc: Signal<string | null>;
-
-  private readonly currentPage = signal(0);
-  private readonly pageSize = 20;
-  private readonly totalElements = signal(0);
-  private readonly materialTypesSearchUrl: string | null;
-
-  readonly consumptionUnits$: Observable<EnumOption[]>;
-  readonly consumptionUnits: Signal<EnumOption[]>;
-  private readonly consumptionUnitsMap: Map<string, string | undefined>;
 
   private initialSpecifications: { [key: string]: string } = {};
 
@@ -76,31 +65,6 @@ export class ProductFormComponent implements OnInit {
     this.product = signal(data.product);
     this.isEditMode = data.isEditMode;
     this.safeImageSrc = computed(() => this.previewUrl() ?? this.product()?.fotoPrincipalUrl ?? null);
-
-    // Obtém a URL do endpoint HATEOAS, priorizando o link do produto e usando a raiz da API como fallback.
-    const getUrl = (link: string) => this.product()?._links?.[link]?.href?.split('{')[0]
-      || this.apiRoot.endpoints()?._links?.[link]?.href?.split('{')[0];
-
-    const searchUrl = getUrl('buscar-tipos-materia-prima');
-    const unitsUrl = getUrl('unidades-de-medida');
-
-    this.materialTypesSearchUrl = searchUrl ?? null;
-
-    if (!this.materialTypesSearchUrl) {
-      console.error("URL para busca de matéria-prima não pôde ser determinada. O formulário será desabilitado.");
-    }
-
-    if (unitsUrl) {
-      this.consumptionUnits$ = this.enumService.getConsumptionUnitsMap(unitsUrl).pipe(
-        map(unitsMap => Array.from(unitsMap.values()))
-      );
-    } else {
-      console.error('URL para unidades de medida não pôde ser determinada.');
-      this.consumptionUnits$ = of([]);
-    }
-
-    this.consumptionUnits = toSignal(this.consumptionUnits$, { initialValue: [] });
-    this.consumptionUnitsMap = new Map(this.consumptionUnits().map(u => [u.value, u.viewValue]));
 
     const currentProduct = this.product();
     this.productForm = this.fb.group({
@@ -126,15 +90,6 @@ export class ProductFormComponent implements OnInit {
 
     this.setupFormControlsBasedOnProductType(currentProduct.tipoProduto || 'CORTE', false);
 
-    this.searchForm = this.fb.group({
-      searchName: [''],
-      searchUnit: ['']
-    });
-
-    if (!this.materialTypesSearchUrl) {
-      this.productForm.get('materiaPrima')?.disable();
-    }
-
     this.productForm.get('tipoProduto')?.valueChanges.subscribe(type => {
       this.setupFormControlsBasedOnProductType(type, true);
     });
@@ -146,6 +101,10 @@ export class ProductFormComponent implements OnInit {
 
   get especificacoesControls(): FormGroup[] {
     return (this.productForm.get('especificacoes') as FormArray).controls as FormGroup[];
+  }
+
+  get materiaPrimaControl(): FormControl {
+    return this.productForm.get('materiaPrima') as FormControl;
   }
 
   addEspecificacao(): void {
@@ -340,7 +299,9 @@ export class ProductFormComponent implements OnInit {
         .then(fullProduct => {
           if (fullProduct) {
             this.product.set(fullProduct);
-
+            if (fullProduct.materiaPrima) {
+              this.productForm.get('materiaPrima')?.patchValue(fullProduct.materiaPrima);
+            }
             this.especificacoes.clear();
             const specs = fullProduct['especificacoes' as keyof Product] as { [key: string]: string } | undefined;
             if (specs) {
@@ -353,74 +314,10 @@ export class ProductFormComponent implements OnInit {
                 }));
               });
             }
-
-            if (fullProduct.materiaPrima) {
-              this.materialTypes.set([fullProduct.materiaPrima as MaterialType]);
-            }
             this.cdr.detectChanges();
           }
         })
         .catch(err => console.error("Falha ao buscar detalhes completos do produto:", err));
-    }
-  }
-
-  async performSearch(): Promise<void> {
-    this.isSearching.set(true);
-
-    try {
-      this.currentPage.set(0);
-      this.materialTypes.set([]);
-      this.productForm.get('materiaPrima')?.reset();
-
-      if (!this.materialTypesSearchUrl) {
-        console.error('Não é possível buscar matérias-primas: URL não encontrada no produto.');
-        return;
-      }
-
-      const filters = { nome: this.searchForm.value.searchName, unidadeDeConsumo: this.searchForm.value.searchUnit };
-
-      const response = await lastValueFrom(
-        this.materialTypeService.searchMaterialTypes(
-          this.materialTypesSearchUrl,
-          filters,
-          this.currentPage(),
-          this.pageSize
-        )
-      );
-
-      const newMaterials = response?._embedded?.['tipos-materia-prima'] || [];
-
-      this.materialTypes.set(newMaterials);
-      this.totalElements.set(response.page.totalElements);
-    } catch (err) {
-      console.error('Erro na busca por matéria-prima:', err);
-    } finally {
-      this.isSearching.set(false);
-    }
-  }
-
-  async loadMore(): Promise<void> {
-    if (this.isSearching() || this.materialTypes().length >= this.totalElements()) {
-      return;
-    }
-
-    this.isSearching.set(true);
-
-    try {
-      this.currentPage.update(page => page + 1);
-
-      if (!this.materialTypesSearchUrl) return;
-
-      const filters = { nome: this.searchForm.value.searchName, unidadeDeConsumo: this.searchForm.value.searchUnit };
-
-      const response = await lastValueFrom(this.materialTypeService.searchMaterialTypes(this.materialTypesSearchUrl, filters, this.currentPage(), this.pageSize));
-
-      const newMaterials = response?._embedded?.['tipos-materia-prima'] || [];
-      this.materialTypes.update(currentTypes => [...currentTypes, ...newMaterials]);
-    } catch (err) {
-      console.error('Erro ao carregar mais matérias-primas:', err);
-    } finally {
-      this.isSearching.set(false);
     }
   }
 
@@ -457,10 +354,6 @@ export class ProductFormComponent implements OnInit {
     }
   }
 
-  getConsumptionUnitViewValue(value: string): string {
-    return this.consumptionUnitsMap.get(value) ?? value;
-  }
-
   getFormattedDimensions(dimensions: { larguraCm?: number; comprimentoCm?: number } | null | undefined): string {
     if (dimensions && typeof dimensions.larguraCm === 'number' && typeof dimensions.comprimentoCm === 'number') {
       return `${dimensions.larguraCm} x ${dimensions.comprimentoCm} cm`;
@@ -468,12 +361,8 @@ export class ProductFormComponent implements OnInit {
     return 'N/A';
   }
 
-  compareMaterialTypes(o1: MaterialType, o2: MaterialType): boolean {
-    return o1 && o2 ? o1.id === o2.id : o1 === o2;
-  }
-
-  async onMaterialTypeChange(event: { value: MaterialType }): Promise<void> {
-    const newSelection = event.value;
+  async onMaterialTypeChange(event: MatSelectChange): Promise<void> {
+    const newSelection = event.value as MaterialType;
     const originalSelection = this.product().materiaPrima;
 
     if (!originalSelection || !newSelection || originalSelection.id === newSelection.id) {

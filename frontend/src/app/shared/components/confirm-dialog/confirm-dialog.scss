@@ -1,3 +1,5 @@
+// Alinha os botões de ação ("Cancelar", "Confirmar") para o final (direita)
+// do contêiner do diálogo, seguindo um padrão de design de UI comum.
 .mat-mdc-dialog-actions {
   justify-content: flex-end;
 }

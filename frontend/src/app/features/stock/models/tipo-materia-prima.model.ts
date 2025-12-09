@@ -1,24 +1,35 @@
-import { Auditable } from '../../../shared/models/auditable.model';
 import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
-import { UnidadeDeMedida } from '../../../shared/models/unidade-de-medida.model';
 
-export interface TipoMateriaPrima extends Auditable {
+/**
+ * Representa a entidade TipoMateriaPrima como recebida da API.
+ */
+export interface TipoMateriaPrima {
   id: number;
   nome: string;
-  unidadeDeConsumo: UnidadeDeMedida;
+  unidadeDeConsumo: string;
   _links?: Hateoas['_links'];
 }
 
+/**
+ * Representa o payload para criar ou atualizar um TipoMateriaPrima.
+ * Geralmente um subconjunto da interface principal, sem campos gerados pelo servidor.
+ */
 export interface TipoMateriaPrimaRequest {
   nome: string;
-  unidadeDeConsumo: UnidadeDeMedida;
+  unidadeDeConsumo: string;
 }
 
-export interface EmbeddedTipoMateriaPrima {
-  tiposMateriaPrima: TipoMateriaPrima[];
+/**
+ * Representa a estrutura aninhada `_embedded` para listas de TipoMateriaPrima.
+ */
+export interface EmbeddedTiposMateriaPrima {
+  'tipos-materia-prima': TipoMateriaPrima[];
 }
 
-export interface ApiResponseTipoMateriaPrima extends Hateoas {
-  _embedded: EmbeddedTipoMateriaPrima;
-  page?: PageInfo;
+/**
+ * Representa a resposta completa da API para uma busca paginada de TipoMateriaPrima.
+ */
+export interface ApiResponseTiposMateriaPrima extends Hateoas {
+  _embedded: EmbeddedTiposMateriaPrima;
+  page: PageInfo;
 }

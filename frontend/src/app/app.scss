@@ -1,5 +1,15 @@
+/**
+ * Define a estrutura de layout principal para o conteúdo da aplicação.
+ *
+ * - `max-width`: Impede que o conteúdo se estique indefinidamente em telas largas,
+ *   criando uma "coluna de leitura" confortável. Aumentado para 1600px para
+ *   acomodar melhor tabelas e layouts mais largos.
+ * - `margin: 0 auto`: Centraliza a coluna de conteúdo na tela.
+ * - `padding`: Garante um espaçamento interno para que o conteúdo não "cole"
+ *   nas bordas em telas menores.
+ */
 .main-content {
-  padding: 16px;
-  max-width: 1200px;
+  padding: 24px;
+  max-width: 2000px;
   margin: 0 auto;
 }

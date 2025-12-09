@@ -1,10 +1,4 @@
 import { Routes } from '@angular/router';
-import { DashboardPage } from './features/dashboard/dashboard-page/dashboard-page';
-import { ProductList } from './features/products/components/product-list/product-list';
-import { SaleListComponent } from './features/sales/components/sale-list/sale-list';
-import { ProductionOrderForm } from './features/production/components/production-order-form/production-order-form';
-import { BatchList } from './features/stock/components/batch-list/batch-list';
-import { MaterialTypeList } from './features/stock/components/material-type-list/material-type-list';
 
 export const routes: Routes = [
   {
@@ -14,28 +8,53 @@ export const routes: Routes = [
   },
   {
     path: 'dashboard',
-    component: DashboardPage,
+    title: 'D-Criar | Dashboard',
+    loadComponent: () =>
+      import('./features/dashboard/dashboard-page/dashboard-page').then(
+        (m) => m.DashboardPage
+      ),
   },
   {
     path: 'produtos',
-    component: ProductList,
+    title: 'D-Criar | Produtos',
+    loadComponent: () =>
+      import('./features/products/components/product-list/product-list').then(
+        (m) => m.ProductList
+      ),
   },
   {
     path: 'vendas',
-    component: SaleListComponent,
+    title: 'D-Criar | Vendas',
+    loadComponent: () =>
+      import('./features/sales/components/sale-list/sale-list').then(
+        (m) => m.SaleListComponent
+      ),
   },
   {
     path: 'ordens-de-producao',
-    component: ProductionOrderForm,
+    title: 'D-Criar | Ordens de Produção',
+    loadComponent: () =>
+      import(
+        './features/production/components/production-order-form/production-order-form'
+      ).then((m) => m.ProductionOrderForm),
   },
   {
     path: 'lotes-materia-prima',
-    component: BatchList,
+    title: 'D-Criar | Lotes de Matéria-Prima',
+    loadComponent: () =>
+      import('./features/stock/components/batch-list/batch-list').then(
+        (m) => m.BatchList
+      ),
   },
   {
     path: 'tipos-materia-prima',
-    component: MaterialTypeList,
+    title: 'D-Criar | Tipos de Matéria-Prima',
+    loadComponent: () =>
+      import(
+        './features/stock/components/material-type-list/material-type-list'
+      ).then((m) => m.MaterialTypeList),
   },
+  // Rota curinga: redireciona qualquer URL não encontrada para o dashboard.
   {
     path: '**',
     redirectTo: 'dashboard',

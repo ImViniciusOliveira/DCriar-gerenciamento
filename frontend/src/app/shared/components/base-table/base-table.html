@@ -1,8 +1,12 @@
 <div class="table-card">
   <div class="table-wrapper">
+    <!--
+      A fonte de dados da tabela é o `dataSource`.
+      As colunas são definidas dinamicamente com base no sinal `columns()`.
+    -->
     <table mat-table [dataSource]="dataSource" matSort (matSortChange)="onSortChange($event)">
-      <!-- Colunas Dinâmicas -->
-      @for (column of columns; track column.key) {
+      <!-- O loop `@for` agora itera sobre o valor do sinal `columns()`. -->
+      @for (column of columns(); track column.key) {
         <ng-container [matColumnDef]="column.key">
           <th mat-header-cell *matHeaderCellDef [mat-sort-header]="column.sortKey || column.key" [disabled]="!column.sortable">
             {{ column.header }}
@@ -15,17 +19,22 @@
           </td>
         </ng-container>
       }
-      <tr mat-header-row *matHeaderRowDef="columnKeys; sticky: true"></tr>
-      <tr mat-row *matRowDef="let row; columns: columnKeys"></tr>
+      <!-- As definições de linha agora leem o valor do sinal computado `columnKeys()`. -->
+      <tr mat-header-row *matHeaderRowDef="columnKeys(); sticky: true"></tr>
+      <tr mat-row *matRowDef="let _row; columns: columnKeys()"></tr>
     </table>
   </div>
 
+  <!--
+    O paginador agora é totalmente controlado por Sinais.
+    Cada propriedade (`length`, `pageSize`, `pageIndex`) lê o valor do seu respectivo sinal.
+  -->
   <mat-paginator
-    [length]="totalElements"
-    [pageSize]="pageSize"
-    [pageIndex]="pageIndex"
+    [length]="totalElements()"
+    [pageSize]="pageSize()"
+    [pageIndex]="pageIndex()"
     [pageSizeOptions]="[5, 10, 25, 100]"
     (page)="onPageChange($event)"
-    [attr.aria-label]="paginatorAriaLabel">
+    [attr.aria-label]="'Selecione a página'">
   </mat-paginator>
 </div>

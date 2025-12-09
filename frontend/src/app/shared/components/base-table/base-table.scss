@@ -1,21 +1,15 @@
-// Contêiner principal que substitui o mat-card para dar padding à página
-.page-container {
-  padding: 2rem;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-// O card agora contém o cabeçalho e a tabela
+// O contêiner principal da tabela, estilizado como um "card" com bordas e sombra.
 .table-card {
   display: flex;
   flex-direction: column;
   height: 100%;
   background-color: var(--mat-sys-surface);
-  border-radius: 8px; /* Arredondamento para o card da tabela */
+  border-radius: 8px;
   border: 1px solid var(--mat-sys-outline-variant);
-  overflow: hidden; // Garante que o border-radius se aplique à tabela
+  overflow: hidden; // Garante que o conteúdo interno (tabela) respeite as bordas arredondadas.
 }
 
+// O cabeçalho opcional da tabela, contendo título e botões de ação.
 .table-header {
   display: flex;
   align-items: center;
@@ -35,6 +29,7 @@
   font-size: 0.9rem;
 }
 
+// Um espaçador flexível que empurra os elementos seguintes (como botões) para a direita.
 .header-spacer {
   flex: 1 1 auto;
 }
@@ -43,14 +38,16 @@
   margin-left: 16px;
 }
 
+// O contêiner que envolve a tabela, permitindo que ela tenha scroll independente do resto da página.
 .table-wrapper {
-  flex-grow: 1;
-  overflow: auto; // Permite que a tabela tenha scroll se for muito grande
+  flex-grow: 1; // Faz com que este contêiner ocupe todo o espaço vertical disponível.
+  overflow: auto; // Adiciona uma barra de rolagem se o conteúdo da tabela for muito grande.
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  // `table-layout: fixed` melhora a performance de renderização da tabela.
   table-layout: fixed;
 }
 
@@ -61,11 +58,12 @@ th, td {
   vertical-align: middle;
 }
 
-// Remove a borda da última linha para um visual mais limpo
+// Remove a borda da última linha da tabela para um acabamento visual mais limpo.
 tbody tr:last-child td {
   border-bottom: none;
 }
 
+// Estilização padrão para as células do cabeçalho da tabela do Angular Material.
 .mat-mdc-header-cell {
   font-weight: 600;
   font-size: 0.9rem;
@@ -75,12 +73,13 @@ tbody tr:last-child td {
   background-color: var(--mat-sys-surface-container-high);
 }
 
+// Garante que o paginador não seja "espremido" ou encolhido pelo conteúdo da tabela.
 .mat-mdc-paginator {
   flex-shrink: 0;
   border-top: 1px solid var(--mat-sys-outline-variant);
 }
 
-// Estilo para botões de ações secundárias no cabeçalho
+// Estilo para botões de ações secundárias no cabeçalho.
 .secondary-action-button {
   margin-left: 8px;
 }

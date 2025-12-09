@@ -1,6 +1,0 @@
-export type UnidadeDeMedida =
-  'METRO_LINEAR' | 'CENTIMETRO_LINEAR' |
-  'METRO_QUADRADO' | 'CENTIMETRO_QUADRADO' |
-  'QUILOGRAMA' | 'GRAMA' |
-  'LITRO' | 'MILILITRO' |
-  'UNIDADE' | 'OUTROS';

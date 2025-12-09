@@ -186,7 +186,7 @@ export class LoteMateriaPrimaForm implements OnInit {
         )
       );
 
-      this.tiposMateriaPrima = response._embedded?.tiposMateriaPrima || [];
+      this.tiposMateriaPrima = response._embedded?.['tipos-materia-prima'] || [];
       this.totalElementsTipos = response.page?.totalElements || 0;
     } catch (err) {
       console.error('Erro na busca por matéria-prima:', err);
@@ -218,7 +218,7 @@ export class LoteMateriaPrimaForm implements OnInit {
         filters.searchUnit
       ));
 
-      const newTipos = response._embedded?.tiposMateriaPrima || [];
+      const newTipos = response._embedded?.['tipos-materia-prima'] || [];
       this.tiposMateriaPrima = [...this.tiposMateriaPrima, ...newTipos];
     } catch (err) {
       console.error('Erro ao carregar mais matérias-primas:', err);

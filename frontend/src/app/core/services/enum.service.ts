@@ -36,7 +36,7 @@ export class EnumService {
   getConsumptionUnitsMap(url: string): Observable<Map<string, EnumOption>> {
     const cacheKey = `map_${url}`;
     if (!this.cache[cacheKey]) {
-      this.cache[cacheKey] = this.getEnumOptions(url).pipe(
+      this.cache[cacheKey] = this.getEnumOptions(url, 'unidadesDeMedida').pipe(
         map(options => new Map(options.map(opt => [opt.value, opt]))),
         shareReplay(1)
       );
@@ -44,14 +44,17 @@ export class EnumService {
     return this.cache[cacheKey];
   }
 
-  getEnumOptions(url: string): Observable<EnumOption[]> {
-    if (!this.cache[url]) {
-      this.cache[url] = this.http.get<EmbeddedEnumResponse>(url).pipe(
+  getEnumOptions(url: string, embeddedKey: string): Observable<EnumOption[]> {
+    const cacheKey = `${url}_${embeddedKey}`;
+    if (!this.cache[cacheKey]) {
+      this.cache[cacheKey] = this.http.get<EmbeddedEnumResponse>(url).pipe(
         map(response => {
           const embedded = response?._embedded;
+          if (!embedded) {
+            return [];
+          }
 
-          const key = Object.keys(embedded)[0];
-          const items = embedded[key] || [];
+          const items = embedded[embeddedKey] || [];
 
           return items.map(item => ({
             value: item.name,
@@ -66,6 +69,6 @@ export class EnumService {
         })
       );
     }
-    return this.cache[url];
+    return this.cache[cacheKey];
   }
 }

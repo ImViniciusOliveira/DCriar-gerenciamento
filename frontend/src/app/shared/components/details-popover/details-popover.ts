@@ -1,11 +1,18 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+/**
+ * Representa um par de chave/valor para exibição no popover.
+ */
 export interface DetailItem {
   key: string;
   value: string | number;
 }
 
+/**
+ * Um componente reutilizável que exibe uma lista de detalhes (chave/valor)
+ * em um popover que aparece ao passar o mouse sobre um texto gatilho.
+ */
 @Component({
   selector: 'app-details-popover',
   standalone: true,
@@ -14,6 +21,9 @@ export interface DetailItem {
   styleUrls: ['./details-popover.scss']
 })
 export class DetailsPopover {
-  @Input() items: DetailItem[] = [];
-  @Input() triggerText: string = 'Exibir detalhes';
+  /** A lista de itens (chave/valor) a serem exibidos no popover. */
+  items = input<DetailItem[]>([]);
+
+  /** O texto que servirá como gatilho para exibir o popover. */
+  triggerText = input<string>('Exibir detalhes');
 }

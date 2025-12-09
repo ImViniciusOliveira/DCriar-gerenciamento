@@ -1,11 +1,15 @@
+// Garante que o componente se comporte como um bloco de layout padrão,
+// ocupando seu próprio espaço e permitindo o controle de dimensões.
 :host {
   display: block;
 }
 
+// O contêiner principal que gerencia o efeito de "hover".
 .details-cell-content {
   width: 100%;
-  word-break: break-word;
+  word-break: break-word; // Evita que textos longos quebrem o layout da célula.
 
+  // O "botão" ou "pílula" que é visível por padrão.
   .details-trigger {
     display: inline-flex;
     align-items: center;
@@ -15,14 +19,15 @@
     font-weight: 500;
     background-color: var(--mat-sys-surface-container-low);
     color: var(--mat-sys-on-surface);
-    cursor: default;
+    cursor: default; // O cursor padrão indica que não é um link clicável.
     border: 1px solid var(--mat-sys-outline-variant);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
   }
 
+  // O contêiner com os detalhes, que fica oculto por padrão.
   .details-text-container {
-    display: none;
+    display: none; // Começa invisível.
     flex-direction: column;
     gap: 4px;
     font-size: 0.85rem;
@@ -30,10 +35,14 @@
     line-height: 1.4;
   }
 
+  // --- A MÁGICA DO HOVER ---
+  // Quando o mouse passa sobre o contêiner principal (.details-cell-content)...
   &:hover {
+    // 1. O gatilho desaparece.
     .details-trigger {
       display: none;
     }
+    // 2. O contêiner com os detalhes aparece.
     .details-text-container {
       display: flex;
     }

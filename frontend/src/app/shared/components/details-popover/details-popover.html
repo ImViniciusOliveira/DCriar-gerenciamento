@@ -1,12 +1,18 @@
-@if (items && items.length > 0) {
+<!--
+  Renderiza o conteúdo apenas se a lista de 'items' não for nula e tiver pelo menos um item.
+  O acesso `items()` é a sintaxe para ler o valor de um Signal Input.
+-->
+@if (items() && items().length > 0) {
   <div class="details-cell-content">
-    <span class="details-trigger">{{ triggerText }}</span>
+    <!-- O texto do gatilho também é um signal e precisa ser chamado com `()` -->
+    <span class="details-trigger">{{ triggerText() }}</span>
     <div class="details-text-container">
-      @for(item of items; track item.key) {
+      @for(item of items(); track item.key) {
         <span><strong>{{ item.key | titlecase }}:</strong> {{ item.value }}</span>
       }
     </div>
   </div>
 } @else {
+  <!-- Se não houver itens, exibe um hífen para indicar um valor vazio. -->
   <span>-</span>
 }

@@ -1,8 +1,19 @@
+<!-- `mat-dialog-title` define o cabeçalho do diálogo e aplica os estilos corretos. -->
 <h1 mat-dialog-title>{{ data.title }}</h1>
+
+<!-- `mat-dialog-content` é o contêiner para o corpo principal do diálogo. -->
 <div mat-dialog-content>
   <p>{{ data.message }}</p>
 </div>
+
+<!--
+  `mat-dialog-actions` agrupa os botões de ação e aplica o layout correto (espaçamento, alinhamento).
+-->
 <div mat-dialog-actions>
   <button mat-button (click)="onCancel()">Cancelar</button>
+  <!--
+    `cdkFocusInitial` é uma diretiva de acessibilidade que move o foco do teclado
+    automaticamente para este botão quando o diálogo é aberto.
+  -->
   <button mat-flat-button color="warn" (click)="onConfirm()" cdkFocusInitial>Confirmar</button>
 </div>

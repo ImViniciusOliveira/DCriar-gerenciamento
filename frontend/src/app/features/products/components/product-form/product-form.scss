@@ -1,31 +1,6 @@
-.material-type-search {
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 4px;
-  padding: 16px;
-  margin-bottom: 16px;
-
-  legend {
-    padding: 0 8px;
-  }
-
-  .search-filters {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    margin-bottom: 16px;
-
-    mat-form-field {
-      flex: 1;
-    }
-  }
-
-  .original-material-info {
-    font-size: 12px;
-    color: var(--mat-sys-on-surface-variant);
-    margin: -8px 0 16px 0;
-  }
-
-}
+// Importa os estilos padrão do componente de busca para garantir consistência.
+// A regra `@use` é a sintaxe moderna do Sass, substituindo `@import`.
+@use "../../../../shared/components/materia-prima-search/materia-prima-search.scss";
 
 // Estilo unificado para o placeholder "Sem Imagem"
 .no-image {
@@ -150,11 +125,4 @@
 
 textarea[formControlName="descricao"] {
   min-height: 100px;
-}
-
-.spinner-option {
-  .mat-mdc-option-text {
-    display: flex;
-    justify-content: center;
-  }
 }

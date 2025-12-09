@@ -1,9 +1,19 @@
-<!-- Navbar no topo -->
-<app-top-navbar></app-top-navbar>
+<!-- O cabeçalho principal da aplicação, contendo a barra de navegação. -->
+<header>
+  <app-top-navbar></app-top-navbar>
+</header>
 
-<!-- Conteúdo das rotas -->
-<router-outlet></router-outlet>
+<!--
+  O contêiner principal para o conteúdo da página.
+  A classe 'main-content' aplica o espaçamento, a largura máxima e a centralização,
+  garantindo que o layout fique consistente e legível em todas as telas.
+-->
+<main class="main-content">
+  <!-- O Angular injeta aqui o componente correspondente à rota ativa. -->
+  <router-outlet></router-outlet>
+</main>
 
-<!-- Footer no final -->
-<app-footer></app-footer>
-
+<!-- O rodapé principal da aplicação. -->
+<footer>
+  <app-footer></app-footer>
+</footer>

@@ -4,7 +4,7 @@ import { Observable, filter, map, switchMap, take, shareReplay } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
-import { ApiResponseTipoMateriaPrima, TipoMateriaPrima, TipoMateriaPrimaRequest } from '../models/tipo-materia-prima.model';
+import { ApiResponseTiposMateriaPrima, TipoMateriaPrima, TipoMateriaPrimaRequest } from '../models/tipo-materia-prima.model';
 
 @Injectable({
   providedIn: 'root'
@@ -38,7 +38,7 @@ export class TipoMateriaPrimaService {
     order: string,
     nome?: string,
     unidadeDeConsumo?: string
-  ): Observable<ApiResponseTipoMateriaPrima> {
+  ): Observable<ApiResponseTiposMateriaPrima> {
     return this.getBaseUrl().pipe(
       switchMap(baseUrl => {
         let params = new HttpParams()
@@ -53,7 +53,7 @@ export class TipoMateriaPrimaService {
           params = params.set('unidadeDeConsumo', unidadeDeConsumo);
         }
 
-        return this.http.get<ApiResponseTipoMateriaPrima>(baseUrl, { params });
+        return this.http.get<ApiResponseTiposMateriaPrima>(baseUrl, { params });
       })
     );
   }
@@ -75,7 +75,9 @@ export class TipoMateriaPrimaService {
   }
 
   update(url: string, request: TipoMateriaPrimaRequest): Observable<TipoMateriaPrima> {
-    return this.http.patch<TipoMateriaPrima>(url, request);
+    return this.getBaseUrl().pipe(
+      switchMap(baseUrl => this.http.patch<TipoMateriaPrima>(url, request))
+    );
   }
 
   findByUrl(url: string): Observable<TipoMateriaPrima> {
