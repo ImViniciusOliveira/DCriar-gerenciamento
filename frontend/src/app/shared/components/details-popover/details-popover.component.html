@@ -1,0 +1,12 @@
+@if (items && items.length > 0) {
+  <div class="details-cell-content">
+    <span class="details-trigger">{{ triggerText }}</span>
+    <div class="details-text-container">
+      @for(item of items; track item.key) {
+        <span><strong>{{ item.key | titlecase }}:</strong> {{ item.value }}</span>
+      }
+    </div>
+  </div>
+} @else {
+  <span>-</span>
+}

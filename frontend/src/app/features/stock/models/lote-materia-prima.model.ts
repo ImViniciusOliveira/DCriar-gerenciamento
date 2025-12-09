@@ -2,15 +2,17 @@ import { Hateoas, PageInfo } from "../../../core/models/hateoas.model";
 
 export interface LoteMateriaPrima {
   id: string | number;
-  tipoMateriaPrima?: { id?: string | number; nome?: string };
+  tipoMateriaPrimaId: number;
+  nomeTipoMateriaPrima: string;
   saldoEstoque?: number;
   unidadeDeEstoque?: string;
-  dataCriacao?: string | Date;
+  atributos?: { [key: string]: any };
+  _links?: Hateoas['_links'];
 }
 
 export interface ApiResponseLotes extends Hateoas {
   _embedded: {
-    loteMateriaPrimaList: LoteMateriaPrima[];
+    ['lotes-materia-prima']: LoteMateriaPrima[];
   };
   page: PageInfo;
 }

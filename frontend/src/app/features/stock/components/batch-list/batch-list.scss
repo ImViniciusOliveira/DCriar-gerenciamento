@@ -1,0 +1,10 @@
+// Define uma largura fixa para a coluna de atributos para evitar
+// que ela se redimensione no hover, causando "saltos" no layout.
+.mat-column-atributos {
+  width: 350px;
+}
+
+// Centraliza o conteúdo da coluna de ações, se necessário
+.mat-column-acoes .mat-mdc-cell {
+  justify-content: center;
+}

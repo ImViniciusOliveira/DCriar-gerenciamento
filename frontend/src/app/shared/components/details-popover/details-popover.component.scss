@@ -1,0 +1,43 @@
+:host {
+  // O componente agora é apenas um bloco que preenche o espaço da célula da tabela.
+  // Ele não tem mais controle sobre sua própria largura.
+  display: block;
+}
+
+.details-cell-content {
+  width: 100%;
+  word-break: break-word;
+
+  .details-trigger {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: var(--mat-sys-surface-container-low);
+    color: var(--mat-sys-on-surface);
+    cursor: default;
+    border: 1px solid var(--mat-sys-outline-variant);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .details-text-container {
+    display: none; // Oculto por padrão
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.85rem;
+    text-align: left;
+    line-height: 1.4;
+  }
+
+  &:hover {
+    .details-trigger {
+      display: none; // Esconde o gatilho no hover
+    }
+    .details-text-container {
+      display: flex; // Mostra os detalhes no hover
+    }
+  }
+}

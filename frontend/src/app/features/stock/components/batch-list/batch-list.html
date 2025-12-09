@@ -1,6 +1,6 @@
 <app-base-table
   [title]="'Lotes'"
-  [subtitle]="'Gerenciamento de Lotes'"
+  [subtitle]="'Gerenciamento de Lotes de Matéria-Prima'"
   [addButtonText]="'Adicionar Lote'"
   [items]="items()"
   [columns]="tableColumns"
@@ -21,11 +21,14 @@
 </app-base-table>
 
 <!-- Templates para células da tabela de lotes -->
-<ng-template #idTemplate let-lote>{{ lote.id }}</ng-template>
-<ng-template #tipoTemplate let-lote>{{ lote.tipoMateriaPrima?.nome }}</ng-template>
+<ng-template #tipoTemplate let-lote>{{ lote.nomeTipoMateriaPrima }}</ng-template>
 <ng-template #saldoTemplate let-lote>{{ lote.saldoEstoque }}</ng-template>
 <ng-template #unidadeTemplate let-lote>{{ lote.unidadeDeEstoque }}</ng-template>
-<ng-template #dataCriacaoTemplate let-lote>{{ lote.dataCriacao | date:'short' }}</ng-template>
+
+<ng-template #atributosTemplate let-lote>
+  <app-details-popover [items]="getAtributosAsArray(lote.atributos)" triggerText="Exibir atributos"></app-details-popover>
+</ng-template>
+
 <ng-template #acoesTemplate let-lote>
   <button mat-icon-button color="primary" (click)="editLote(lote)">
     <mat-icon>edit</mat-icon>

@@ -9,6 +9,7 @@ import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { LoteMateriaPrima } from '../../models/lote-materia-prima.model';
 import { LoteMateriaPrimaService } from '../../services/lote-materia-prima.service';
 import { MaterialTypeList } from '../material-type-list/material-type-list';
+import { DetailsPopoverComponent } from '../../../../shared/components/details-popover/details-popover.component';
 
 @Component({
   selector: 'app-batch-list',
@@ -18,7 +19,8 @@ import { MaterialTypeList } from '../material-type-list/material-type-list';
     MatButtonModule,
     MatIconModule,
     MatDialogModule,
-    BaseTable
+    BaseTable,
+    DetailsPopoverComponent
   ],
   templateUrl: './batch-list.html',
   styleUrl: './batch-list.scss'
@@ -30,20 +32,18 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
 
   tableColumns: TableColumn<LoteMateriaPrima>[] = [];
 
-  @ViewChild('idTemplate') idTemplate!: TemplateRef<any>;
   @ViewChild('tipoTemplate') tipoTemplate!: TemplateRef<any>;
   @ViewChild('saldoTemplate') saldoTemplate!: TemplateRef<any>;
   @ViewChild('unidadeTemplate') unidadeTemplate!: TemplateRef<any>;
-  @ViewChild('dataCriacaoTemplate') dataCriacaoTemplate!: TemplateRef<any>;
+  @ViewChild('atributosTemplate') atributosTemplate!: TemplateRef<any>;
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'id', header: 'ID Lote', sortable: true, cellTemplate: this.idTemplate },
-      { key: 'tipoMateriaPrima', header: 'Matéria-Prima', sortable: false, cellTemplate: this.tipoTemplate },
+      { key: 'nomeTipoMateriaPrima', header: 'Matéria-Prima', sortable: true, cellTemplate: this.tipoTemplate },
       { key: 'saldoEstoque', header: 'Saldo', sortable: true, cellTemplate: this.saldoTemplate },
       { key: 'unidadeDeEstoque', header: 'Unidade', sortable: true, cellTemplate: this.unidadeTemplate },
-      { key: 'dataCriacao', header: 'Data de Entrada', sortable: true, cellTemplate: this.dataCriacaoTemplate },
+      { key: 'atributos', header: 'Atributos', sortable: false, cellTemplate: this.atributosTemplate },
       { key: 'acoes', header: 'Ações', cellTemplate: this.acoesTemplate }
     ];
     this.cdr.detectChanges();
@@ -71,16 +71,21 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
 
   onCreate(): void {
     console.log('Adicionar novo lote');
-    // Placeholder para a lógica de criação
   }
 
   editLote(lote: LoteMateriaPrima): void {
     console.log('editar', lote);
-    // placeholder: open edit dialog when implemented
   }
 
   deleteLote(lote: LoteMateriaPrima): void {
     console.log('deletar', lote);
-    // placeholder: confirm & delete when implemented
+  }
+
+  // Função para converter o objeto de atributos em um array para o template
+  getAtributosAsArray(atributos: { [key: string]: any }): { key: string, value: any }[] {
+    if (!atributos) {
+      return [];
+    }
+    return Object.entries(atributos).map(([key, value]) => ({ key, value }));
   }
 }

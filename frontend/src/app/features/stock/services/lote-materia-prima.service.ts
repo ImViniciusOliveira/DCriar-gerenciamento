@@ -23,8 +23,8 @@ export class LoteMateriaPrimaService {
         const url = endpoints._links?.['lotes-materia-prima']?.href;
         if (!url) {
           console.error('URL de lotes-materia-prima não encontrada na resposta da API raiz.');
-          // Adicionado _links para satisfazer o tipo
-          return of({ _embedded: { loteMateriaPrimaList: [] }, _links: {}, page: { size: 0, totalElements: 0, totalPages: 0, number: 0 } } as ApiResponseLotes);
+          // Corrigido para usar a chave correta
+          return of({ _embedded: { 'lotes-materia-prima': [] }, _links: {}, page: { size: 0, totalElements: 0, totalPages: 0, number: 0 } } as ApiResponseLotes);
         }
 
         const baseUrl = url.split('{')[0];

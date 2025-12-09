@@ -17,6 +17,7 @@ import { ApiRoot } from '../../../../core/services/api-root';
 import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { DetailsPopoverComponent } from '../../../../shared/components/details-popover/details-popover.component';
 
 @Component({
   selector: 'app-product-list',
@@ -29,6 +30,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     MatTooltipModule,
     FilterStockPipe,
     BaseTable,
+    DetailsPopoverComponent
   ],
   templateUrl: './product-list.html',
   styleUrls: ['./product-list.scss'],
@@ -173,10 +175,6 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
       // Uma melhoria futura seria recarregar apenas se 'saved' for true.
       this.loadItems();
     });
-  }
-
-  getChannelDisplayName(channelKey: string): string {
-    return channelKey;
   }
 
   getProductDetails(product: Product): { key: string, value: string }[] {

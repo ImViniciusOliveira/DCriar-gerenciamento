@@ -23,40 +23,15 @@
   <br />
   <small>({{ product.unidadesPorProduto }} unidades cada)</small>
 </ng-template>
+
 <ng-template #detalhesTemplate let-product>
-  @if (product.tipoProduto === 'CORTE' || product.tipoProduto === 'CONSUMO_DIRETO') {
-    <div class="details-cell-content">
-      <span class="details-trigger">Exibir detalhes</span>
-      <div class="details-text-container">
-        @for(detail of getProductDetails(product); track detail.key) {
-          <span><strong>{{ detail.key | titlecase }}:</strong> {{ detail.value }}</span>
-        }
-      </div>
-    </div>
-  } @else {
-    <span>-</span>
-  }
+  <app-details-popover [items]="getProductDetails(product)" triggerText="Exibir detalhes"></app-details-popover>
 </ng-template>
+
 <ng-template #estoquePorCanalTemplate let-product>
-  @if (product.estoquePorCanal) {
-    @if ((product.estoquePorCanal | keyvalue | filterStock:0); as activeChannels) {
-      @if (activeChannels.length) {
-        <div class="details-cell-content">
-          <span class="details-trigger">Exibir canais</span>
-          <div class="details-text-container">
-            @for(channel of activeChannels; track channel.key) {
-              <span><strong>{{ getChannelDisplayName(channel.key) | titlecase }}:</strong> {{ channel.value }}</span>
-            }
-          </div>
-        </div>
-      } @else {
-        <span>Nenhum</span>
-      }
-    } @else {
-      <span>Nenhum</span>
-    }
-  }
+  <app-details-popover [items]="(product.estoquePorCanal | keyvalue | filterStock:0)" triggerText="Exibir canais"></app-details-popover>
 </ng-template>
+
 <ng-template #acoesTemplate let-product>
   <button mat-icon-button color="primary" title="Visualizar" (click)="onView(product)">
     <mat-icon>visibility</mat-icon>

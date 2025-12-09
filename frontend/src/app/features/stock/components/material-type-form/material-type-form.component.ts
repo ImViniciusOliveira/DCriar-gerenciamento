@@ -8,27 +8,24 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { HttpClient } from '@angular/common/http';
 import { Observable, startWith, map } from 'rxjs';
-import { TipoMateriaPrima } from '../../models/tipo-materia-prima.model';
+import { TipoMateriaPrima, TipoMateriaPrimaRequest } from '../../models/tipo-materia-prima.model';
+import { TipoMateriaPrimaService } from '../../services/tipo-materia-prima.service';
+import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 
-// Definição dos dados que o diálogo espera receber
 export interface MaterialTypeFormData {
-  template: TipoMateriaPrima; // O "esqueleto" ou o item a ser editado
+  template: TipoMateriaPrima;
   title: string;
 }
 
-// Interface para o nosso objeto de unidade
 export interface UnidadeOption {
   name: string;
   descricao: string;
 }
 
-// Validador customizado
 export function requireMatch(options: UnidadeOption[]): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const value = control.value;
-    if (!value) {
-      return null;
-    }
+    if (!value) { return null; }
     const valueAsString = typeof value === 'string' ? value : value.name;
     const match = options.some(option => option.name === valueAsString);
     return match ? null : { requireMatch: true };
@@ -39,13 +36,8 @@ export function requireMatch(options: UnidadeOption[]): ValidatorFn {
   selector: 'app-material-type-form',
   standalone: true,
   imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatAutocompleteModule,
-    MatDialogModule
+    CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule,
+    MatButtonModule, MatAutocompleteModule, MatDialogModule
   ],
   templateUrl: './material-type-form.component.html',
   styleUrls: ['./material-type-form.component.scss']
@@ -54,13 +46,18 @@ export class MaterialTypeFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly http = inject(HttpClient);
   private readonly dialogRef = inject(MatDialogRef<MaterialTypeFormComponent>);
+  private readonly tipoMateriaPrimaService = inject(TipoMateriaPrimaService);
+  private readonly entityDialog = inject(EntityDialogService);
   public readonly data: MaterialTypeFormData = inject(MAT_DIALOG_DATA);
 
   form!: FormGroup;
   unidades$!: Observable<UnidadeOption[]>;
   unidades: UnidadeOption[] = [];
+  isEditMode = false;
 
   ngOnInit(): void {
+    this.isEditMode = !!this.data.template.id;
+
     this.form = this.fb.group({
       nome: [this.data.template?.nome || '', Validators.required],
       unidadeDeConsumo: ['', [Validators.required]]
@@ -70,14 +67,7 @@ export class MaterialTypeFormComponent implements OnInit {
 
     this.unidades$ = this.form.get('unidadeDeConsumo')!.valueChanges.pipe(
       startWith(''),
-      map(value => {
-        // Se o valor for uma string, o usuário está digitando. Filtramos.
-        if (typeof value === 'string') {
-          return this._filterUnidades(value);
-        }
-        // Se não for string (é um objeto ou nulo), mostramos a lista completa.
-        return this.unidades.slice();
-      })
+      map(value => (typeof value === 'string' ? this._filterUnidades(value) : this.unidades.slice()))
     );
   }
 
@@ -105,21 +95,35 @@ export class MaterialTypeFormComponent implements OnInit {
   }
 
   displayUnidade(unidade: UnidadeOption): string {
-    return unidade && unidade.descricao ? unidade.descricao : '';
+    return unidade?.descricao || '';
   }
 
   onSave(): void {
-    if (this.form.valid) {
-      const formValue = { ...this.form.value };
-      // Garante que estamos enviando apenas a 'key' do enum, e não o objeto inteiro
-      if (formValue.unidadeDeConsumo && typeof formValue.unidadeDeConsumo === 'object') {
-        formValue.unidadeDeConsumo = formValue.unidadeDeConsumo.name;
-      }
-      this.dialogRef.close(formValue);
+    if (this.form.invalid) {
+      return;
     }
+
+    const formValue = { ...this.form.value };
+    formValue.unidadeDeConsumo = formValue.unidadeDeConsumo.name;
+    const request: TipoMateriaPrimaRequest = formValue;
+
+    const operation = this.isEditMode
+      ? this.tipoMateriaPrimaService.update(this.data.template._links!['update']!.href, request)
+      : this.tipoMateriaPrimaService.create(request);
+
+    operation.subscribe({
+      next: () => {
+        this.dialogRef.close(true); // Sucesso!
+      },
+      error: (err) => {
+        console.error('Falha ao salvar matéria-prima:', err);
+        this.entityDialog.showErrorSnackbar('Falha ao salvar. Verifique os dados e tente novamente.');
+        // Não fecha o diálogo em caso de erro, permitindo que o usuário corrija.
+      }
+    });
   }
 
   onCancel(): void {
-    this.dialogRef.close();
+    this.dialogRef.close(false);
   }
 }
