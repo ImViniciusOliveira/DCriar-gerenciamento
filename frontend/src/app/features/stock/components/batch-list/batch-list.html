@@ -31,6 +31,8 @@
 <ng-template #tipoTemplate let-lote>{{ lote.nomeTipoMateriaPrima }}</ng-template>
 <ng-template #saldoTemplate let-lote>{{ lote.saldoEstoque }}</ng-template>
 <ng-template #unidadeTemplate let-lote>{{ lote.unidadeDeEstoque }}</ng-template>
+<ng-template #custoTotalLoteTemplate let-lote>{{ lote.custoTotalLote | currency:'BRL':'symbol':'1.2-2' }}</ng-template>
+<ng-template #motivoTemplate let-lote>{{ lote.motivo }}</ng-template>
 
 <ng-template #atributosTemplate let-lote>
   <app-details-popover [items]="getAtributosAsArray(lote.atributos)" triggerText="Exibir atributos"></app-details-popover>

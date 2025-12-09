@@ -37,6 +37,8 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
   @ViewChild('tipoTemplate') tipoTemplate!: TemplateRef<any>;
   @ViewChild('saldoTemplate') saldoTemplate!: TemplateRef<any>;
   @ViewChild('unidadeTemplate') unidadeTemplate!: TemplateRef<any>;
+  @ViewChild('custoTotalLoteTemplate') custoTotalLoteTemplate!: TemplateRef<any>;
+  @ViewChild('motivoTemplate') motivoTemplate!: TemplateRef<any>;
   @ViewChild('atributosTemplate') atributosTemplate!: TemplateRef<any>;
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
 
@@ -45,6 +47,8 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
       { key: 'nomeTipoMateriaPrima', header: 'Matéria-Prima', sortable: true, cellTemplate: this.tipoTemplate },
       { key: 'saldoEstoque', header: 'Saldo', sortable: true, cellTemplate: this.saldoTemplate },
       { key: 'unidadeDeEstoque', header: 'Unidade', sortable: true, cellTemplate: this.unidadeTemplate },
+      { key: 'custoTotalLote', header: 'Custo Total', sortable: true, cellTemplate: this.custoTotalLoteTemplate },
+      { key: 'motivo', header: 'Motivo', sortable: true, cellTemplate: this.motivoTemplate },
       { key: 'atributos', header: 'Atributos', sortable: false, cellTemplate: this.atributosTemplate },
       { key: 'acoes', header: 'Ações', cellTemplate: this.acoesTemplate }
     ];

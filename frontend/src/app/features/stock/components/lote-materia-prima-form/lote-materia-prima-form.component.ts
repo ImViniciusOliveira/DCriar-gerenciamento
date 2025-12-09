@@ -85,7 +85,7 @@ export class LoteMateriaPrimaFormComponent implements OnInit {
       unidadeDeEstoque: ['', [Validators.required]],
       quantidadeInicial: [this.data.template?.saldoEstoque || '', [Validators.required, Validators.min(0.01)]],
       custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01)]],
-      motivo: [this.data.template?.motivo || '', Validators.required],
+      motivo: [this.data.template?.motivo || (this.isEditMode ? '' : 'Entrada inicial'), Validators.required],
       atributos: this.fb.array([])
     });
 
