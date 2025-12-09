@@ -1,16 +1,25 @@
-<app-base-table
-  [title]="'Produtos'"
-  [subtitle]="'Gerenciamento de produtos'"
-  [addButtonText]="'Adicionar Produto'"
-  [items]="items()"
-  [columns]="tableColumns"
-  [totalElements]="pagination.totalElements()"
-  [pageSize]="pagination.pageSize()"
-  [pageIndex]="pagination.pageIndex()"
-  (add)="onCreate()"
-  (pageChange)="onPageChange($event)"
-  (sortChange)="onSortChange($event)">
-</app-base-table>
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-title">
+      <h2>Produtos</h2>
+      <p>Gerenciamento de produtos acabados</p>
+    </div>
+    <button mat-raised-button color="primary" (click)="onCreate()">
+      <mat-icon>add</mat-icon>
+      Adicionar Produto
+    </button>
+  </div>
+
+  <app-base-table
+    [items]="items()"
+    [columns]="tableColumns"
+    [totalElements]="pagination.totalElements()"
+    [pageSize]="pagination.pageSize()"
+    [pageIndex]="pagination.pageIndex()"
+    (pageChange)="onPageChange($event)"
+    (sortChange)="onSortChange($event)">
+  </app-base-table>
+</div>
 
 <!-- Templates para as Células da Tabela -->
 <ng-template #skuTemplate let-product>{{ product.sku }}</ng-template>

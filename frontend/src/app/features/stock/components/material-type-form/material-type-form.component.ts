@@ -113,12 +113,11 @@ export class MaterialTypeFormComponent implements OnInit {
 
     operation.subscribe({
       next: () => {
-        this.dialogRef.close(true); // Sucesso!
+        this.dialogRef.close(true);
       },
       error: (err) => {
         console.error('Falha ao salvar matéria-prima:', err);
         this.entityDialog.showErrorSnackbar('Falha ao salvar. Verifique os dados e tente novamente.');
-        // Não fecha o diálogo em caso de erro, permitindo que o usuário corrija.
       }
     });
   }

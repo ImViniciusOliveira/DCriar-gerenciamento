@@ -1,35 +1,38 @@
-.page-card {
+// Contêiner principal que substitui o mat-card para dar padding à página
+.page-container {
+  padding: 2rem;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+// O card agora contém o cabeçalho e a tabela
+.table-card {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background-color: var(--mat-sys-surface);
+  border-radius: 8px; /* Arredondamento para o card da tabela */
+  border: 1px solid var(--mat-sys-outline-variant);
+  overflow: hidden; // Garante que o border-radius se aplique à tabela
 }
 
-.table-wrapper {
-  flex-grow: 1;
-  overflow: auto;
+.table-header {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
 }
 
-.table-container {
-  height: 100%;
-  overflow: auto;
+.header-title h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
-table {
-  width: 100%;
-  // Esta é a correção crucial.
-  // Força a tabela a obedecer as larguras definidas para as colunas (ex: .mat-column-atributos),
-  // impedindo que o conteúdo redimensione as colunas dinamicamente.
-  table-layout: fixed;
-}
-
-.mat-mdc-header-cell {
-  font-weight: 500;
+.header-title p {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
   font-size: 0.9rem;
-  background-color: var(--mat-sys-surface-container-low);
-}
-
-.mat-mdc-paginator {
-  flex-shrink: 0;
 }
 
 .header-spacer {
@@ -40,7 +43,44 @@ table {
   margin-left: 16px;
 }
 
+.table-wrapper {
+  flex-grow: 1;
+  overflow: auto; // Permite que a tabela tenha scroll se for muito grande
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+th, td {
+  padding: 0.75rem 1.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  vertical-align: middle;
+}
+
+// Remove a borda da última linha para um visual mais limpo
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.mat-mdc-header-cell {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background-color: var(--mat-sys-surface-container-high);
+}
+
+.mat-mdc-paginator {
+  flex-shrink: 0;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
 // Estilo para botões de ações secundárias no cabeçalho
-::ng-deep .secondary-action-button {
+.secondary-action-button {
   margin-left: 8px;
 }

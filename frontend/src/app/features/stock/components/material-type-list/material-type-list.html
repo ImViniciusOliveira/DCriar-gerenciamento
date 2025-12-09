@@ -1,16 +1,26 @@
-<app-base-table
-  [title]="'Matérias-Primas'"
-  [subtitle]="'Gerenciamento de Matérias-Primas'"
-  [addButtonText]="'Adicionar Matéria-Prima'"
-  [items]="items()"
-  [columns]="tableColumns"
-  [totalElements]="pagination.totalElements()"
-  [pageSize]="pagination.pageSize()"
-  [pageIndex]="pagination.pageIndex()"
-  (add)="onCreate()"
-  (pageChange)="onPageChange($event)"
-  (sortChange)="onSortChange($event)">
-</app-base-table>
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-title">
+      <h2>Matérias-Primas</h2>
+      <p>Gerenciamento de tipos de matérias-primas</p>
+    </div>
+    <button mat-raised-button color="primary" (click)="onCreate()">
+      <mat-icon>add</mat-icon>
+      Adicionar Matéria-Prima
+    </button>
+  </div>
+
+  <app-base-table
+    [items]="items()"
+    [columns]="tableColumns"
+    [totalElements]="pagination.totalElements()"
+    [pageSize]="pagination.pageSize()"
+    [pageIndex]="pagination.pageIndex()"
+    (add)="onCreate()"
+    (pageChange)="onPageChange($event)"
+    (sortChange)="onSortChange($event)">
+  </app-base-table>
+</div>
 
 <ng-template #materiaNomeTemplate let-item>{{ item.nome }}</ng-template>
 <ng-template #materiaUnidadeTemplate let-item>{{ item.unidadeDeConsumo }}</ng-template>

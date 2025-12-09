@@ -81,7 +81,6 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
     console.log('deletar', lote);
   }
 
-  // Função para converter o objeto de atributos em um array para o template
   getAtributosAsArray(atributos: { [key: string]: any }): { key: string, value: any }[] {
     if (!atributos) {
       return [];

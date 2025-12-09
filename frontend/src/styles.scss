@@ -48,7 +48,7 @@ html {
     ),
     typography: mat.define-typography(
       (
-        plain-family: 'Roboto, sans-serif'
+        plain-family: 'Inter, sans-serif'
       )
     ),
     density: 0
@@ -62,7 +62,7 @@ html, body {
 body {
   background-color: var(--mat-sys-background);
   color: var(--mat-sys-on-background);
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
 }
@@ -90,4 +90,38 @@ a[mat-button]:hover,
 a[mat-flat-button]:hover,
 a[mat-raised-button]:hover {
   filter: brightness(1.15);
+}
+
+.mdc-button {
+  border-radius: 6px !important;
+  padding: 0.6rem 1.2rem !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  height: auto !important;
+  line-height: normal !important;
+}
+
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-flat-button.mat-primary {
+  color: var(--mat-sys-on-primary) !important;
+  background-color: var(--color-primary-action) !important;
+}
+
+.mat-mdc-button .mat-icon,
+.mat-mdc-raised-button .mat-icon,
+.mat-mdc-flat-button .mat-icon {
+  margin-right: 0.5rem;
+}
+
+.mat-mdc-dialog-surface {
+  border-radius: 8px !important;
+}
+
+.mat-mdc-dialog-container {
+  border: none !important;
+}
+
+.mat-mdc-dialog-content {
+  border-radius: 8px !important;
+  overflow: hidden !important;
 }

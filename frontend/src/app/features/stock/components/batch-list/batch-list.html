@@ -1,24 +1,31 @@
-<app-base-table
-  [title]="'Lotes'"
-  [subtitle]="'Gerenciamento de Lotes de Matéria-Prima'"
-  [addButtonText]="'Adicionar Lote'"
-  [items]="items()"
-  [columns]="tableColumns"
-  [totalElements]="pagination.totalElements()"
-  [pageSize]="pagination.pageSize()"
-  [pageIndex]="pagination.pageIndex()"
-  (add)="onCreate()"
-  (pageChange)="onPageChange($event)"
-  (sortChange)="onSortChange($event)">
-
-  <div secondary-actions>
-    <button mat-stroked-button (click)="openMaterialTypeDialog()" class="secondary-action-button">
-      <mat-icon>view_list</mat-icon>
-      Exibir Matérias-Primas
-    </button>
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-title">
+      <h2>Lotes de Matéria-Prima</h2>
+      <p>Gerenciamento de lotes de matéria-prima em estoque</p>
+    </div>
+    <div class="header-actions">
+      <button mat-stroked-button (click)="openMaterialTypeDialog()" class="secondary-action-button">
+        <mat-icon>view_list</mat-icon>
+        Exibir Matérias-Primas
+      </button>
+      <button mat-raised-button color="primary" (click)="onCreate()">
+        <mat-icon>add</mat-icon>
+        Adicionar Lote
+      </button>
+    </div>
   </div>
 
-</app-base-table>
+  <app-base-table
+    [items]="items()"
+    [columns]="tableColumns"
+    [totalElements]="pagination.totalElements()"
+    [pageSize]="pagination.pageSize()"
+    [pageIndex]="pagination.pageIndex()"
+    (pageChange)="onPageChange($event)"
+    (sortChange)="onSortChange($event)">
+  </app-base-table>
+</div>
 
 <!-- Templates para células da tabela de lotes -->
 <ng-template #tipoTemplate let-lote>{{ lote.nomeTipoMateriaPrima }}</ng-template>

@@ -5,9 +5,8 @@
 }
 
 mat-dialog-content {
-  // Garante que o conteúdo que "vaza" para cima (como o label) não seja cortado.
   overflow: visible !important;
-  padding-top: 20px; // Um bom valor inicial para dar espaço ao label.
+  padding-top: 20px;
 }
 
 .form-grid {

@@ -1,1 +1,26 @@
-/* Estilos para a lista de tipos de matéria-prima */
+.page-container {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-shrink: 0;
+}
+
+.header-title h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.header-title p {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
