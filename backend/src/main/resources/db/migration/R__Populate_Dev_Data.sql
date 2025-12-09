@@ -36,15 +36,16 @@ INSERT INTO tipos_materia_prima (nome, unidade_de_consumo, data_criacao, data_at
     ('Ilhós de Latão #0', 'UNIDADE', NOW(), NOW());
 
 -- ETAPA B: LOTES FÍSICOS NO ESTOQUE
-INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, atributos, lote_de_origem_id, data_criacao, data_atualizacao) VALUES
-    (1, 'UNIDADE', '{ "formato": "SRA3 (320x450mm)" }', null, NOW(), NOW()),
-    (2, 'METRO_QUADRADO', '{ "larguraMm": 1600 }', null, NOW(), NOW()),
-    (3, 'METRO_QUADRADO', '{ "larguraMm": 1200 }', null, NOW(), NOW()),
-    (4, 'UNIDADE', '{ "formato": "A3 (297x420mm)" }', null, NOW(), NOW()),
-    (5, 'UNIDADE', '{ "formato": "A4 (210x297mm)" }', null, NOW(), NOW()),
-    (6, 'LITRO', '{ "fornecedor": "InkMaster" }', null, NOW(), NOW()),
-    (7, 'METRO_LINEAR', '{ "metragem_total_m": 50 }', null, NOW(), NOW()),
-    (8, 'UNIDADE', '{ "quantidade_caixa": 1000 }', null, NOW(), NOW());
+-- Adicionados custo_total_lote e motivo para cada lote
+INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, custo_total_lote, motivo, atributos, lote_de_origem_id, data_criacao, data_atualizacao) VALUES
+    (1, 'UNIDADE', 150.00, 'Compra NF-1001', '{ "formato": "SRA3 (320x450mm)" }', null, NOW(), NOW()),
+    (2, 'METRO_QUADRADO', 250.00, 'Compra NF-1002', '{ "larguraMm": 1600 }', null, NOW(), NOW()),
+    (3, 'METRO_QUADRADO', 120.00, 'Compra NF-1003', '{ "larguraMm": 1200 }', null, NOW(), NOW()),
+    (4, 'UNIDADE', 80.00, 'Compra NF-1004', '{ "formato": "A3 (297x420mm)" }', null, NOW(), NOW()),
+    (5, 'UNIDADE', 50.00, 'Compra NF-1005', '{ "formato": "A4 (210x297mm)" }', null, NOW(), NOW()),
+    (6, 'LITRO', 300.00, 'Compra NF-1006', '{ "fornecedor": "InkMaster" }', null, NOW(), NOW()),
+    (7, 'METRO_LINEAR', 75.00, 'Compra NF-1007', '{ "metragem_total_m": 50 }', null, NOW(), NOW()),
+    (8, 'UNIDADE', 200.00, 'Compra NF-1008', '{ "quantidade_caixa": 1000 }', null, NOW(), NOW());
 
 -- ETAPA C: REGISTRAR AS ENTRADAS DE ESTOQUE DE INSUMOS
 INSERT INTO movimentacoes_estoque_lote (lote_id, data, tipo, quantidade, motivo) VALUES
