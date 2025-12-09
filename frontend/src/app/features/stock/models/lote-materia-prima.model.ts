@@ -4,10 +4,21 @@ export interface LoteMateriaPrima {
   id: string | number;
   tipoMateriaPrimaId: number;
   nomeTipoMateriaPrima: string;
-  saldoEstoque?: number;
   unidadeDeEstoque?: string;
+  saldoEstoque?: number;
+  custoTotalLote?: number;
   atributos?: { [key: string]: any };
+  motivo?: string;
   _links?: Hateoas['_links'];
+}
+
+export interface LoteMateriaPrimaRequest {
+  tipoMateriaPrimaId: number;
+  unidadeDeEstoque: string;
+  quantidadeInicial: number;
+  custoTotalLote: number;
+  atributos?: { [key: string]: any };
+  motivo: string;
 }
 
 export interface ApiResponseLotes extends Hateoas {

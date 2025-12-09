@@ -9,23 +9,20 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { HttpClient } from '@angular/common/http';
-import { Observable, startWith, map, lastValueFrom } from 'rxjs';
+import { Observable, lastValueFrom } from 'rxjs';
+import { startWith, map } from 'rxjs/operators';
+
 import { LoteMateriaPrima, LoteMateriaPrimaRequest } from '../../models/lote-materia-prima.model';
 import { TipoMateriaPrima } from '../../models/tipo-materia-prima.model';
 import { LoteMateriaPrimaService } from '../../services/lote-materia-prima.service';
 import { TipoMateriaPrimaService } from '../../services/tipo-materia-prima.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
-import { InfiniteScrollDirective } from '../../services/infinite-scroll.directive';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { InfiniteScrollDirective } from '../../services/infinite-scroll.directive';
 
 export interface LoteMateriaPrimaFormData {
   template: LoteMateriaPrima;
   title: string;
-}
-
-export interface AtributoOption {
-  chave: string;
-  valor: string;
 }
 
 export interface UnidadeOption {
@@ -33,7 +30,6 @@ export interface UnidadeOption {
   descricao: string;
 }
 
-// Validador customizado para Unidade de Estoque
 export function requireMatchUnidade(options: UnidadeOption[]): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const value = control.value;
@@ -49,8 +45,8 @@ export function requireMatchUnidade(options: UnidadeOption[]): ValidatorFn {
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatAutocompleteModule, MatSelectModule, MatIconModule, InfiniteScrollDirective,
-    MatProgressSpinnerModule
+    MatButtonModule, MatAutocompleteModule, MatSelectModule, MatIconModule,
+    MatProgressSpinnerModule, InfiniteScrollDirective
   ],
   templateUrl: './lote-materia-prima-form.component.html',
   styleUrls: ['./lote-materia-prima-form.component.scss']
@@ -83,7 +79,7 @@ export class LoteMateriaPrimaFormComponent implements OnInit {
     this.isEditMode = !!this.data.template.id;
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.form = this.fb.group({
       tipoMateriaPrimaId: [this.data.template?.tipoMateriaPrimaId || '', Validators.required],
       unidadeDeEstoque: ['', [Validators.required]],
@@ -93,7 +89,16 @@ export class LoteMateriaPrimaFormComponent implements OnInit {
       atributos: this.fb.array([])
     });
 
-    this.loadTiposMateriaPrima();
+    await this.initializeForm();
+
+    this.unidades$ = this.form.get('unidadeDeEstoque')!.valueChanges.pipe(
+      startWith(''),
+      map(value => (typeof value === 'string' ? this._filterUnidades(value) : this.unidades.slice()))
+    );
+  }
+
+  async initializeForm(): Promise<void> {
+    await this.loadTiposMateriaPrima();
     this.loadUnidadesDeEstoque();
 
     // Preencher atributos se estiver em modo de edição
@@ -135,7 +140,7 @@ export class LoteMateriaPrimaFormComponent implements OnInit {
     if (url) {
       this.tiposMateriaPrimaSearchUrl = url.split('{')[0];
       const response = await lastValueFrom(this.tipoMateriaPrimaService.findAll(0, this.pageSizeTipos, 'nome', 'asc'));
-      this.tiposMateriaPrima = response._embedded?.['tipos-materia-prima'] || [];
+      this.tiposMateriaPrima = response._embedded?.tiposMateriaPrima || [];
       this.totalElementsTipos = response.page?.totalElements || 0;
 
       // Se estiver em modo de edição, pré-seleciona o tipo de matéria-prima
@@ -153,7 +158,7 @@ export class LoteMateriaPrimaFormComponent implements OnInit {
     this.currentPageTipos++;
 
     const response = await lastValueFrom(this.tipoMateriaPrimaService.findAll(this.currentPageTipos, this.pageSizeTipos, 'nome', 'asc'));
-    const newTipos = response._embedded?.['tipos-materia-prima'] || [];
+    const newTipos = response._embedded?.tiposMateriaPrima || [];
     this.tiposMateriaPrima = [...this.tiposMateriaPrima, ...newTipos];
     this.isSearchingTipos = false;
   }

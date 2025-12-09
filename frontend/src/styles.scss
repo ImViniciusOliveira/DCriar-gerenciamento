@@ -123,5 +123,6 @@ a[mat-raised-button]:hover {
 
 .mat-mdc-dialog-content {
   border-radius: 8px !important;
-  overflow: hidden !important;
+  overflow-y: auto !important;
+  max-height: calc(100vh - 200px) !important;
 }
