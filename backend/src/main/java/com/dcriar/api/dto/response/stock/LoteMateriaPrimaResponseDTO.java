@@ -35,9 +35,15 @@ public class LoteMateriaPrimaResponseDTO {
     @Schema(description = "O saldo de estoque atual deste lote.", example = "49.0000")
     private BigDecimal saldoEstoque;
 
+    @Schema(description = "Custo total do lote no momento da entrada.", example = "150.00")
+    private BigDecimal custoTotalLote;
+
     @Schema(description = "Atributos flexíveis que descrevem as especificações deste lote físico.", example = "{\"larguraMm\": 610}")
     private Map<String, Object> atributos;
 
     @Schema(description = "ID do lote que deu origem a este (se for um retalho).", nullable = true, example = "1")
     private Long loteDeOrigemId;
+
+    @Schema(description = "Motivo da criação ou entrada deste lote no estoque.", example = "Compra regular - Pedido #789")
+    private String motivo;
 }

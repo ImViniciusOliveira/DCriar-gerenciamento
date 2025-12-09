@@ -37,17 +37,28 @@ public class LoteMateriaPrimaModelAssembler extends RepresentationModelAssembler
         LoteMateriaPrimaModel model = instantiateModel(dto);
         BeanUtils.copyProperties(dto, model);
 
-        model.add(linkTo(methodOn(LoteMateriaPrimaController.class).findById(dto.getId())).withSelfRel());
-        model.add(linkTo(LoteMateriaPrimaController.class).withRel("lotes"));
+        // Links padrão para um lote existente
+        if (dto.getId() != null) {
+            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).findById(dto.getId())).withSelfRel());
+            // Para update e delete, usamos o ID do próprio lote
+            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).update(dto.getId(), null)).withRel("update"));
+            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).delete(dto.getId())).withRel("delete"));
+            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).listarMovimentacoes(dto.getId())).withRel("movimentacoes"));
+            // Para registrar movimentação, também precisamos do ID do lote
+            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).registrarMovimentacao(dto.getId(), null)).withRel("registrar-movimentacao"));
 
-        if (model.getTipoMateriaPrimaId() != null) {
-            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findById(model.getTipoMateriaPrimaId())).withRel("tipo-materia-prima"));
-        }
-
-        model.add(linkTo(methodOn(LoteMateriaPrimaController.class).listarMovimentacoes(dto.getId())).withRel("movimentacoes"));
-
-        if (model.getLoteDeOrigemId() != null) {
-            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).findById(model.getLoteDeOrigemId())).withRel("lote-de-origem"));
+            if (model.getTipoMateriaPrimaId() != null) {
+                model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findById(model.getTipoMateriaPrimaId())).withRel("tipo-materia-prima"));
+            }
+            if (model.getLoteDeOrigemId() != null) {
+                model.add(linkTo(methodOn(LoteMateriaPrimaController.class).findById(model.getLoteDeOrigemId())).withRel("lote-de-origem"));
+            }
+        } else {
+            // Links para o esqueleto de criação
+            model.add(linkTo(LoteMateriaPrimaController.class).withRel("create")); // Link para a coleção para POST
+            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("tipos-materia-prima"));
+            // Adicionar link para unidades de medida no esqueleto
+            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).getNewTemplate()).withRel("unidades-de-medida"));
         }
 
         return model;

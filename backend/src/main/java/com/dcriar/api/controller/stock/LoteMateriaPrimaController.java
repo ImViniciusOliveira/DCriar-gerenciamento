@@ -75,6 +75,13 @@ public class LoteMateriaPrimaController {
         return ResponseEntity.ok(pagedModel);
     }
 
+    @GetMapping("/new")
+    @Operation(summary = "Obter um modelo 'esqueleto' para criação de um novo lote")
+    @ApiResponse(responseCode = "200", description = "Modelo retornado com sucesso")
+    public ResponseEntity<LoteMateriaPrimaModel> getNewTemplate() {
+        return loteMateriaPrimaModelAssembler.toOkResponseEntity(new LoteMateriaPrimaResponseDTO());
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Buscar um lote por ID")
     @ApiResponses(value = {

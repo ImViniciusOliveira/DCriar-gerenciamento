@@ -46,4 +46,7 @@ public class LoteMateriaPrimaModel extends RepresentationModel<LoteMateriaPrimaM
 
     @Schema(description = "ID do lote de origem, se este for um lote de retalho/sobra.", nullable = true, example = "1")
     private Long loteDeOrigemId;
+
+    @Schema(description = "Motivo da criação ou entrada deste lote no estoque.", example = "Compra regular - Pedido #789")
+    private String motivo;
 }
