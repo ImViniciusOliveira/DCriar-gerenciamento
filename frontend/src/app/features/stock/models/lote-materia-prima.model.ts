@@ -1,5 +1,9 @@
 import { Hateoas, PageInfo } from "../../../core/models/hateoas.model";
 
+/**
+ * Representa um Lote de Matéria-Prima.
+ * Contém informações sobre o estoque, custos e atributos específicos do lote.
+ */
 export interface LoteMateriaPrima {
   id: string | number;
   tipoMateriaPrimaId: number;
@@ -12,6 +16,9 @@ export interface LoteMateriaPrima {
   _links?: Hateoas['_links'];
 }
 
+/**
+ * Payload para criação ou atualização de um Lote de Matéria-Prima.
+ */
 export interface LoteMateriaPrimaRequest {
   tipoMateriaPrimaId: number;
   unidadeDeEstoque: string;
@@ -21,6 +28,9 @@ export interface LoteMateriaPrimaRequest {
   motivo: string;
 }
 
+/**
+ * Resposta paginada da API para a listagem de lotes.
+ */
 export interface ApiResponseLotes extends Hateoas {
   _embedded: {
     ['lotes-materia-prima']: LoteMateriaPrima[];

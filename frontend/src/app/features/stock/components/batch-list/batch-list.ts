@@ -1,17 +1,18 @@
-import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, effect, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, catchError, of } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { LoteMateriaPrima } from '../../models/lote-materia-prima.model';
 import { LoteMateriaPrimaService } from '../../services/lote-materia-prima.service';
 import { MaterialTypeList } from '../material-type-list/material-type-list';
-import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover'; // Corrigido o nome do import
-import { LoteMateriaPrimaForm, LoteMateriaPrimaFormData } from '../lote-materia-prima-form/lote-materia-prima-form'; // Corrigido o nome do import
+import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover';
+import { LoteMateriaPrimaForm, LoteMateriaPrimaFormData } from '../lote-materia-prima-form/lote-materia-prima-form';
 
 @Component({
   selector: 'app-batch-list',
@@ -25,7 +26,8 @@ import { LoteMateriaPrimaForm, LoteMateriaPrimaFormData } from '../lote-materia-
     DetailsPopover
   ],
   templateUrl: './batch-list.html',
-  styleUrl: './batch-list.scss'
+  styleUrls: ['./batch-list.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewInit {
   private readonly cdr = inject(ChangeDetectorRef);
@@ -40,6 +42,29 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
   @ViewChild('atributosTemplate') atributosTemplate!: TemplateRef<any>;
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
 
+  constructor() {
+    super();
+
+    const lotesResponse = toSignal(
+      this.loteService.lotesMateriaPrima$.pipe(
+        catchError((error) => {
+          console.error('Erro ao carregar lotes:', error);
+          this.entityDialog.showErrorSnackbar('Falha ao carregar a lista de lotes.');
+          return of(undefined);
+        })
+      )
+    );
+
+    effect(() => {
+      const response = lotesResponse();
+      if (response && response._embedded && response.page) {
+        const items = response._embedded['lotes-materia-prima'] ?? [];
+        this.pagination.updateTotalElements(response.page.totalElements);
+        this.items.set(items);
+      }
+    });
+  }
+
   ngAfterViewInit(): void {
     this.tableColumns = [
       { key: 'nomeTipoMateriaPrima', header: 'Matéria-Prima', sortable: true, cellTemplate: this.tipoTemplate },
@@ -52,14 +77,13 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
   }
 
   override loadItems(): void {
-    const page = this.pagination.pageIndex();
-    const size = this.pagination.pageSize();
     const sort = this.pagination.sortActive();
     const order = this.pagination.sortDirection();
 
-    this.loteService.findAll(page, size, sort, order).subscribe((response: any) => {
-      this.items.set(response._embedded?.['lotes-materia-prima'] || []);
-      this.pagination.updateTotalElements(response.page?.totalElements || 0);
+    this.loteService.updateSearchParams({
+      page: this.pagination.pageIndex(),
+      size: this.pagination.pageSize(),
+      sort: `${sort},${order}`
     });
   }
 
@@ -118,7 +142,6 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
         this.loteService.delete(deleteUrl).subscribe({
           next: () => {
             this.entityDialog.showSuccessSnackbar('Lote excluído com sucesso!');
-            this.loadItems();
           },
           error: () => {
             this.entityDialog.showErrorSnackbar('Falha ao excluir o lote.');
@@ -137,7 +160,6 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
     }).subscribe(saved => {
       if (saved) {
         this.entityDialog.showSuccessSnackbar(successMessage);
-        this.loadItems();
       }
     });
   }
