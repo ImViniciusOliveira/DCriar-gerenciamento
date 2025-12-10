@@ -1,6 +1,6 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, filter, map, switchMap, tap, shareReplay, take, catchError, of } from 'rxjs';
+import { Observable, filter, map, switchMap, tap, shareReplay, take, catchError, of, combineLatest } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
@@ -15,81 +15,78 @@ export class ProductService {
   private readonly http = inject(HttpClient);
   private readonly apiRoot = inject(ApiRoot);
 
-  private readonly refresh$ = new BehaviorSubject<void>(undefined);
+  /**
+   * Signal para forçar a atualização da lista.
+   * Configurado com `equal: () => false` para disparar sempre que setado, mesmo com o mesmo valor.
+   */
+  private readonly refreshTrigger = signal<void>(undefined, { equal: () => false });
 
-  private readonly endpoints$ = toObservable(this.apiRoot.endpoints).pipe(
-    filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
-    shareReplay(1)
-  );
+  /**
+   * Signal que armazena os parâmetros atuais de paginação e ordenação.
+   * Possui uma função de igualdade personalizada para evitar disparos se os valores forem idênticos.
+   */
+  private readonly productSearchParams = signal<{ page: number; size: number; sort: string }>({
+    page: 0,
+    size: 10,
+    sort: 'id,asc'
+  }, {
+    equal: (a, b) => a.page === b.page && a.size === b.size && a.sort === b.sort
+  });
 
-  getProducts(page: number = 0, size: number = 10, sort: string = 'nome,ASC'): Observable<ApiResponseProducts> {
-    return this.endpoints$.pipe(
-      take(1),
-      map(endpoints => {
-        const productsRootUrl = endpoints._links?.['produtos']?.href;
-        if (!productsRootUrl) {
-          throw new Error('URL de produtos não encontrada na resposta da API raiz.');
+  private readonly refresh$ = toObservable(this.refreshTrigger);
+  private readonly productSearchParams$ = toObservable(this.productSearchParams);
+
+  /**
+   * Observable reativo que emite a lista de produtos combinada com o estoque.
+   * Atualiza automaticamente quando os parâmetros de busca mudam ou o refresh é acionado.
+   */
+  readonly products$: Observable<ApiResponseProducts>;
+
+  constructor() {
+    this.products$ = this.endpoints$.pipe(
+      switchMap(endpoints => {
+        if (!endpoints || !endpoints._links?.['produtos']?.href) {
+          return of(this.createEmptyResponse());
         }
-        return productsRootUrl.split('{')[0];
-      }),
-      switchMap(baseUrl => {
-        const finalUrl = `${baseUrl}?page=${page}&size=${size}&sort=${sort}`;
-        // A API agora retorna duas listas de produtos, então precisamos ajustar o tipo de retorno esperado.
-        return this.http.get<any>(finalUrl).pipe(
-          map(response => {
-            const embedded = response._embedded;
-            const products = [
-              ...(embedded?.produtoDeCorteModelList || []),
-              ...(embedded?.produtoDeConsumoDiretoModelList || [])
-            ];
 
-            // Ordena a lista combinada no lado do cliente para garantir a consistência.
-            const [sortField, sortOrder] = sort.split(',');
-            products.sort((a, b) => {
-              // Função auxiliar para acessar propriedades aninhadas (ex: 'dimensoes.larguraCm')
-              const getNestedValue = (obj: any, path: string) => path.split('.').reduce((o, key) => o && o[key], obj);
+        return combineLatest([
+          this.productSearchParams$,
+          this.refresh$
+        ]).pipe(
+          switchMap(([params, _]) => {
+            const productsRootUrl = endpoints._links?.['produtos']?.href;
+            if (!productsRootUrl) {
+               return of(this.createEmptyResponse());
+            }
 
-              const valueA = getNestedValue(a, sortField);
-              const valueB = getNestedValue(b, sortField);
+            const baseUrl = productsRootUrl.split('{')[0];
+            const finalUrl = `${baseUrl}?page=${params.page}&size=${params.size}&sort=${params.sort}`;
 
-              // Lida com valores nulos ou indefinidos para que fiquem no final
-              if (valueA == null) return 1;
-              if (valueB == null) return -1;
-
-              if (valueA < valueB) {
-                return sortOrder === 'asc' ? -1 : 1;
-              }
-              if (valueA > valueB) {
-                return sortOrder === 'asc' ? 1 : -1;
-              }
-              return 0;
-            });
-
-            // Recalcula os dados de paginação com base na lista combinada.
-            const totalElementsCombined = products.length;
-            const totalPagesCombined = Math.ceil(totalElementsCombined / size);
-
-            // Remontamos a resposta no formato que a aplicação espera (ApiResponseProducts)
-            // e atualizamos os dados de paginação.
-            return {
-              _embedded: { produtos: products },
-              _links: response._links,
-              page: {
-                size: size,
-                totalElements: totalElementsCombined,
-                totalPages: totalPagesCombined,
-                number: page
-              }
-            } as ApiResponseProducts;
+            return this.http.get<any>(finalUrl).pipe(
+              switchMap(productsApiResponse => this.enrichProductsWithStock(productsApiResponse)),
+              map(responseWithMergedStocks => this.sortAndPaginateClientSide(responseWithMergedStocks, params)),
+              catchError(err => {
+                console.error(`Falha ao buscar produtos na página ${params.page}, tamanho ${params.size}`, err);
+                return of(this.createEmptyResponse());
+              })
+            );
           })
         );
       }),
-      catchError(err => {
-        console.error(`Falha ao buscar produtos na página ${page}, tamanho ${size}`, err);
-        // Em caso de erro, retorna uma resposta vazia para não quebrar a UI.
-        return of({ _embedded: { produtos: [] }, _links: {}, page: { size: 0, totalElements: 0, totalPages: 0, number: 0 } } as ApiResponseProducts);
-      })
+      shareReplay(1)
     );
+  }
+
+  private readonly endpoints$ = toObservable(this.apiRoot.endpoints).pipe(
+    shareReplay(1)
+  );
+
+  getProducts(): Observable<ApiResponseProducts> {
+    return this.products$;
+  }
+
+  updateSearchParams(page: number, size: number, sort: string): void {
+    this.productSearchParams.set({ page, size, sort });
   }
 
   getProductByUrl(url: string): Observable<Product> {
@@ -98,23 +95,27 @@ export class ProductService {
 
   getNewProductTemplate(): Observable<Product> {
     return this.endpoints$.pipe(
+      filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
       map(endpoints => this.getProductBaseUrl(endpoints)),
       switchMap(baseUrl => this.http.get<Product>(`${baseUrl}/new`)),
       take(1)
     );
   }
+
   deleteProduct(url: string): Observable<void> {
     return this.http.delete<void>(url).pipe(
-      tap(() => this.refresh$.next())
+      tap(() => this.refreshTrigger.set(undefined))
     );
   }
+
   createProduct(product: Partial<Product>): Observable<Product> {
     const payload = this.mapToPayload(product);
     return this.endpoints$.pipe(
+      filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
       take(1),
       map(endpoints => this.getProductBaseUrl(endpoints)),
       switchMap(url => this.http.post<Product>(url, payload)),
-      tap(() => this.refresh$.next())
+      tap(() => this.refreshTrigger.set(undefined))
     );
   }
 
@@ -123,9 +124,10 @@ export class ProductService {
     const payload = this.mapToPayload(product);
 
     return this.endpoints$.pipe(
+      filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
       map(endpoints => this.getProductBaseUrl(endpoints)),
       switchMap(baseUrl => this.http.patch<Product>(`${baseUrl}/${productId}`, payload)),
-      tap(() => this.refresh$.next()),
+      tap(() => this.refreshTrigger.set(undefined)),
       take(1)
     );
   }
@@ -135,24 +137,15 @@ export class ProductService {
     formData.append('file', file);
 
     return this.http.post<Product>(uploadUrl, formData)
-      .pipe(tap(() => this.refresh$.next()));
+      .pipe(tap(() => this.refreshTrigger.set(undefined)));
   }
 
-  /**
-   * Busca o estoque por canal para uma lista de IDs de produtos.
-   * @param productIds Um array com os IDs dos produtos.
-   * @param stockUrl A URL completa do endpoint para buscar os estoques.
-   * @returns Um Observable com um mapa de [productId] para seu mapa de estoque por canal.
-   */
   getStocksForProducts(productIds: number[], stockUrl: string): Observable<{ [productId: string]: { [channelKey: string]: number } }> {
     if (productIds.length === 0) {
       return of({});
     }
 
-    // Remove a parte do template da URL, que pode ou não existir.
     const baseUrl = stockUrl.split('{')[0];
-    // Usa o objeto URL para adicionar os parâmetros de forma segura,
-    // evitando duplicatas de '?'
     const url = new URL(baseUrl);
     url.searchParams.set('produtoIds', productIds.join(','));
 
@@ -168,17 +161,80 @@ export class ProductService {
     );
   }
 
-  /**
-   * Mapeia um objeto de produto para o payload esperado pela API.
-   */
+  private enrichProductsWithStock(productsApiResponse: any): Observable<ApiResponseProducts> {
+    const productsFromApi = [
+      ...(productsApiResponse?._embedded?.produtoDeCorteModelList || []),
+      ...(productsApiResponse?._embedded?.produtoDeConsumoDiretoModelList || [])
+    ];
+    const stockUrl = productsApiResponse?._links?.['estoques-por-produtos']?.href;
+
+    if (productsFromApi.length === 0 || !stockUrl) {
+      return of({
+        ...productsApiResponse,
+        _embedded: { produtos: productsFromApi }
+      });
+    }
+
+    const productIds = productsFromApi.map((p: Product) => p.id);
+    return this.getStocksForProducts(productIds, stockUrl).pipe(
+      map(allStocks => {
+        const mergedProducts = productsFromApi.map((product: Product) => ({
+          ...product,
+          estoquePorCanal: allStocks[product.id] || {},
+        }));
+        return {
+          ...productsApiResponse,
+          _embedded: { produtos: mergedProducts }
+        };
+      }),
+      catchError(() => {
+        console.warn('Falha ao buscar estoque para produtos, retornando produtos sem estoque por canal.');
+        return of({
+          ...productsApiResponse,
+          _embedded: { produtos: productsFromApi }
+        });
+      })
+    );
+  }
+
+  private sortAndPaginateClientSide(response: ApiResponseProducts, params: { size: number, sort: string }): ApiResponseProducts {
+    const products = response._embedded.produtos;
+    const [sortField, sortOrder] = params.sort.split(',');
+
+    products.sort((a: any, b: any) => {
+      const getNestedValue = (obj: any, path: string) => path.split('.').reduce((o, key) => o && o[key], obj);
+      const valueA = getNestedValue(a, sortField);
+      const valueB = getNestedValue(b, sortField);
+
+      if (valueA == null) return 1;
+      if (valueB == null) return -1;
+
+      if (valueA < valueB) return sortOrder === 'asc' ? -1 : 1;
+      if (valueA > valueB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    const totalElementsCombined = products.length;
+    const totalPagesCombined = Math.ceil(totalElementsCombined / params.size);
+
+    return {
+      _embedded: { produtos: products },
+      _links: response._links,
+      page: {
+        size: params.size,
+        totalElements: totalElementsCombined,
+        totalPages: totalPagesCombined,
+        number: response.page?.number ?? 0
+      }
+    } as ApiResponseProducts;
+  }
+
   private mapToPayload(product: Partial<Product>): any {
     const payload: any = { ...product };
-
     if (payload.materiaPrima) {
       payload.tipoMateriaPrimaId = payload.materiaPrima.id;
       delete payload.materiaPrima;
     }
-
     return payload;
   }
 
@@ -192,5 +248,9 @@ export class ProductService {
       throw new Error('URL de produtos não encontrada na resposta da API');
     }
     return url.split('{')[0];
+  }
+
+  private createEmptyResponse(): ApiResponseProducts {
+    return { _embedded: { produtos: [] }, _links: {}, page: { size: 0, totalElements: 0, totalPages: 0, number: 0 } };
   }
 }

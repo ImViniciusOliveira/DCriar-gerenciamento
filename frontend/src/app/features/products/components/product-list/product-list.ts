@@ -77,40 +77,25 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
 
   // Implementação do método abstrato da classe base
   override loadItems(): void {
-    this.productService.getProducts(
+    // Atualiza os parâmetros de busca no serviço
+    this.productService.updateSearchParams(
       this.pagination.pageIndex(),
       this.pagination.pageSize(),
       this.pagination.sortString()
-    ).pipe(
-      switchMap((productsResponse: any) => {
+    );
+
+    // Assina o Observable de produtos do serviço (que já reage às mudanças de parâmetros)
+    this.productService.getProducts().subscribe({
+      next: (productsResponse) => {
         const products = productsResponse?._embedded?.produtos ?? [];
-        const stockUrl = productsResponse?._links?.['estoques-por-produtos']?.href;
         this.pagination.updateTotalElements(productsResponse?.page?.totalElements ?? 0);
-
-        if (products.length === 0 || !stockUrl) {
-          return of(products);
-        }
-
-        const productIds = products.map((p: Product) => p.id);
-        return this.productService.getStocksForProducts(productIds, stockUrl).pipe(
-          map(allStocks => this.mergeStockData(products, allStocks)),
-          catchError(() => of(products))
-        );
-      })
-    ).subscribe({
-      next: (finalProducts) => this.items.set(finalProducts), // Usa a propriedade 'items' da classe base
+        this.items.set(products);
+      },
       error: (error) => {
         console.error('Erro ao carregar produtos:', error);
         this.entityDialog.showErrorSnackbar(ProductList.Texts.loadError);
       }
     });
-  }
-
-  private mergeStockData(products: Product[], allStocks: { [productId: string]: { [channelKey: string]: number } }): Product[] {
-    return products.map(product => ({
-      ...product,
-      estoquePorCanal: allStocks[product.id] || {},
-    }));
   }
 
   // Métodos de CRUD específicos de Produtos
