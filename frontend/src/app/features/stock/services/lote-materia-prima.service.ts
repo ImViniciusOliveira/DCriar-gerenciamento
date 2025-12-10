@@ -27,6 +27,9 @@ export class LoteMateriaPrimaService {
     page: 0,
     size: 10,
     sort: 'id,asc'
+  }, {
+    // Evita disparar nova busca se os parâmetros forem idênticos
+    equal: (a, b) => a.page === b.page && a.size === b.size && a.sort === b.sort
   });
 
   private readonly refresh$ = toObservable(this.refreshTrigger);
@@ -74,11 +77,6 @@ export class LoteMateriaPrimaService {
       shareReplay(1)
     );
   }
-
-  getLotesMateriaPrima(): Observable<ApiResponseLotes> {
-    return this.lotesMateriaPrima$;
-  }
-
   /**
    * Atualiza os parâmetros de busca, disparando uma nova requisição.
    */
@@ -98,6 +96,7 @@ export class LoteMateriaPrimaService {
 
   /**
    * Cria um novo lote.
+   * @param request
    * @param skipRefresh Se true, não dispara a atualização da lista.
    */
   create(request: LoteMateriaPrimaRequest, skipRefresh = false): Observable<LoteMateriaPrima> {
@@ -109,6 +108,8 @@ export class LoteMateriaPrimaService {
 
   /**
    * Atualiza um lote existente.
+   * @param url
+   * @param request
    * @param skipRefresh Se true, não dispara a atualização da lista.
    */
   update(url: string, request: LoteMateriaPrimaRequest, skipRefresh = false): Observable<LoteMateriaPrima> {

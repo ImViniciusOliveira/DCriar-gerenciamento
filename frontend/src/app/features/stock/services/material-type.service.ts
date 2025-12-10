@@ -22,16 +22,8 @@ export class MaterialTypeService {
   private readonly http = inject(HttpClient);
   private readonly apiRoot = inject(ApiRoot);
 
-  /**
-   * Signal para forçar a atualização da lista.
-   * Configurado com `equal: () => false` para disparar sempre que setado.
-   */
   private readonly refreshTrigger = signal<void>(undefined, { equal: () => false });
 
-  /**
-   * Signal que armazena os parâmetros atuais de busca.
-   * Padronizado com o ProductService: 'sort' contém campo e direção (ex: 'id,asc').
-   */
   private readonly searchParams = signal<{
     page: number;
     size: number;
@@ -42,6 +34,14 @@ export class MaterialTypeService {
     page: 0,
     size: 10,
     sort: 'id,asc'
+  }, {
+    // Evita disparar nova busca se os parâmetros forem idênticos
+    equal: (a, b) =>
+      a.page === b.page &&
+      a.size === b.size &&
+      a.sort === b.sort &&
+      a.nome === b.nome &&
+      a.unidadeDeConsumo === b.unidadeDeConsumo
   });
 
   private readonly refresh$ = toObservable(this.refreshTrigger);

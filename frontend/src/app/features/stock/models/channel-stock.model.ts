@@ -6,13 +6,3 @@ export interface Channel {
   canalNome: string;
   quantidade: number;
 }
-
-/**
- * Representa o estoque de um produto distribuído por canais.
- * Utilizado para visualizar a disponibilidade do produto em diferentes frentes de venda.
- */
-export interface ProductChannelStock {
-  produtoId: number;
-  produtoNome: string;
-  canais: Channel[];
-}

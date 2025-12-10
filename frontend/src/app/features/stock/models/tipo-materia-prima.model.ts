@@ -1,4 +1,4 @@
-import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
+import { Hateoas } from '../../../core/models/hateoas.model';
 
 /**
  * Representa a entidade TipoMateriaPrima como recebida da API.
@@ -17,19 +17,4 @@ export interface TipoMateriaPrima {
 export interface TipoMateriaPrimaRequest {
   nome: string;
   unidadeDeConsumo: string;
-}
-
-/**
- * Representa a estrutura aninhada `_embedded` para listas de TipoMateriaPrima.
- */
-export interface EmbeddedTiposMateriaPrima {
-  'tipos-materia-prima': TipoMateriaPrima[];
-}
-
-/**
- * Representa a resposta completa da API para uma busca paginada de TipoMateriaPrima.
- */
-export interface ApiResponseTiposMateriaPrima extends Hateoas {
-  _embedded: EmbeddedTiposMateriaPrima;
-  page: PageInfo;
 }
