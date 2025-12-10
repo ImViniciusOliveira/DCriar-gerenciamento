@@ -6,11 +6,22 @@ import { KeyValue } from '@angular/common';
   standalone: true,
 })
 export class FilterStockPipe implements PipeTransform {
+  /**
+   * Filtra uma lista de KeyValue pairs (geralmente de um objeto de estoque)
+   * para retornar apenas os itens cujo valor (quantidade) é maior que um limite.
+   * @param items A lista de KeyValue, geralmente vinda do pipe `keyvalue`.
+   * @param threshold O valor mínimo (não inclusivo) para o estoque ser exibido.
+   * @returns Uma nova lista contendo apenas os itens que passaram no filtro.
+   */
   transform(
-    items: KeyValue<string, number>[] | null,
+    items: ReadonlyArray<KeyValue<unknown, any>> | null,
     threshold: number
-  ): KeyValue<string, number>[] {
-    if (!items) return [];
-    return items.filter(item => item.value > threshold);
+  ): any[] {
+    if (!items) {
+      return [];
+    }
+    // A lógica de filtro permanece a mesma.
+    // O TypeScript agora aceita a entrada genérica do keyvalue.
+    return items.filter(item => (item.value as number) > threshold);
   }
 }
