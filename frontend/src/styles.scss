@@ -57,14 +57,16 @@ html {
 
 html, body {
   height: 100%;
+  margin: 0; // Adicionado para zerar margens padrão do navegador
+  padding: 0; // Adicionado para zerar paddings padrão do navegador
 }
 
 body {
   background-color: var(--mat-sys-background);
   color: var(--mat-sys-on-background);
   font-family: 'Inter', sans-serif;
-  margin: 0;
-  padding: 0;
+  // margin: 0; // Removido, pois já está em html, body
+  // padding: 0; // Removido, pois já está em html, body
 }
 
 $accent-colors: (

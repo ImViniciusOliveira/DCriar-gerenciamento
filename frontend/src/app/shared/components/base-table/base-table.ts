@@ -15,6 +15,9 @@ export interface TableColumn<T> {
   header: string;
   sortable?: boolean;
   sortKey?: string;
+  // A tipagem correta para o contexto do ngTemplateOutlet.
+  // Isso informa ao TypeScript que o template espera um objeto de contexto
+  // com uma propriedade `$implicit` do tipo T, resolvendo o warning de 'T' não utilizado.
   cellTemplate: TemplateRef<{ $implicit: T }>;
 }
 
@@ -50,10 +53,7 @@ export class BaseTable<T> {
   @Output() sortChange = new EventEmitter<Sort>();
 
   // --- Sinais Internos e Computados ---
-  // A fonte de dados para a tabela do Angular Material.
   protected readonly dataSource: MatTableDataSource<T>;
-  // Um sinal computado que extrai as chaves das colunas.
-  // Ele reage automaticamente a qualquer mudança no `columns` input.
   protected readonly columnKeys = computed(() => this.columns().map(c => c.key));
 
   // --- Referências de View (ViewChild) ---
@@ -73,12 +73,22 @@ export class BaseTable<T> {
     effect(() => {
       // Quando os sinais de `paginator` e `sort` estiverem disponíveis,
       // conecta-os à fonte de dados da tabela.
-      this.dataSource.paginator = this.paginator();
-      this.dataSource.sort = this.sort();
+      const currentPaginator = this.paginator();
+      const currentSort = this.sort();
+
+      if (currentPaginator) {
+        this.dataSource.paginator = currentPaginator;
+        // Força o paginador a atualizar seu estado visual
+        currentPaginator.pageIndex = this.pageIndex();
+        currentPaginator.pageSize = this.pageSize();
+        currentPaginator.length = this.totalElements();
+      }
+      if (currentSort) {
+        this.dataSource.sort = currentSort;
+      }
     });
   }
 
-  // Os métodos de evento permanecem os mesmos, emitindo para o componente pai.
   onPageChange(event: PageEvent): void {
     this.pageChange.emit(event);
   }

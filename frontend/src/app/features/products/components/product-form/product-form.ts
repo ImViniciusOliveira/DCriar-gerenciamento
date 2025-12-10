@@ -1,4 +1,4 @@
-import {CommonModule, NgOptimizedImage} from '@angular/common';
+import {CommonModule} from '@angular/common';
 import { ChangeDetectorRef, Component, Inject, OnInit, WritableSignal, inject, signal, Signal, computed } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Product } from '../../models/product.model';
@@ -28,7 +28,7 @@ import { MaterialType } from '../../../stock/models/material-type.model';
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatProgressSpinnerModule, NgOptimizedImage, MateriaPrimaSearchComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatProgressSpinnerModule, MateriaPrimaSearchComponent],
   providers: [provideNgxMask()],
   templateUrl: './product-form.html',
   styleUrls: ['./product-form.scss']
@@ -45,7 +45,6 @@ export class ProductFormComponent implements OnInit {
   isEditMode: boolean;
 
   productForm: FormGroup;
-  // Nome da variável injetada corrigido
   private readonly productService = inject(ProductService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
@@ -75,15 +74,11 @@ export class ProductFormComponent implements OnInit {
       unidadesPorProduto: [currentProduct.unidadesPorProduto, [Validators.required, Validators.min(1)]],
       ativo: [currentProduct.ativo],
       materiaPrima: [currentProduct.materiaPrima, Validators.required],
-
-      // Campos de ProdutoDeCorte
       cor: [currentProduct.cor],
       dimensoes: this.fb.group({
         larguraCm: [currentProduct.dimensoes?.larguraCm, [Validators.required, Validators.min(0.1)]],
         comprimentoCm: [currentProduct.dimensoes?.comprimentoCm, [Validators.required, Validators.min(0.1)]]
       }),
-
-      // Campos de ProdutoDeConsumoDireto
       codigoFabricante: [currentProduct.codigoFabricante],
       especificacoes: this.fb.array([])
     });
@@ -93,6 +88,39 @@ export class ProductFormComponent implements OnInit {
     this.productForm.get('tipoProduto')?.valueChanges.subscribe(type => {
       this.setupFormControlsBasedOnProductType(type, true);
     });
+  }
+
+  ngOnInit(): void {
+    if (this.data.isCreationMode) {
+      return;
+    }
+
+    const selfUrl = this.product()?._links?.['self']?.href;
+    if (selfUrl) {
+      lastValueFrom(this.productService.getProductByUrl(selfUrl))
+        .then(fullProduct => {
+          if (fullProduct) {
+            this.product.set(fullProduct);
+            if (fullProduct.materiaPrima) {
+              this.productForm.get('materiaPrima')?.patchValue(fullProduct.materiaPrima);
+            }
+            this.especificacoes.clear();
+            const specs = fullProduct['especificacoes' as keyof Product] as { [key: string]: string } | undefined;
+            if (specs) {
+              this.initialSpecifications = { ...specs };
+              Object.entries(specs).forEach(([chave, valor]) => {
+                this.especificacoes.push(this.fb.group({
+                  chave: [chave, Validators.required],
+                  valor: [valor, Validators.required],
+                  isNew: [false]
+                }));
+              });
+            }
+            this.cdr.detectChanges();
+          }
+        })
+        .catch(err => console.error("Falha ao buscar detalhes completos do produto:", err));
+    }
   }
 
   get especificacoes(): FormArray {
@@ -115,7 +143,6 @@ export class ProductFormComponent implements OnInit {
     }));
     this.cdr.detectChanges();
 
-    // Rola o container do diálogo para o final
     setTimeout(() => {
       const dialogContent = (this.dialogRef as any)._containerInstance._elementRef.nativeElement.querySelector('mat-dialog-content');
       if (dialogContent) {
@@ -128,7 +155,6 @@ export class ProductFormComponent implements OnInit {
     const specGroup = this.especificacoes.at(index);
     const isNew = specGroup.get('isNew')?.value;
 
-    // Se for um campo novo, remove diretamente
     if (isNew) {
       this.especificacoes.removeAt(index);
       this.productForm.get('especificacoes')?.markAsDirty();
@@ -136,7 +162,6 @@ export class ProductFormComponent implements OnInit {
       return;
     }
 
-    // Se for um campo existente, mostra o diálogo de confirmação
     const key = specGroup.get('chave')?.value;
     const dialogData: ConfirmDialogData = {
       title: ProductFormComponent.CONFIRM_DELETE_SPEC_TITLE,
@@ -156,6 +181,7 @@ export class ProductFormComponent implements OnInit {
   private setupFormControlsBasedOnProductType(type: 'CORTE' | 'CONSUMO_DIRETO', resetOppositeControls: boolean): void {
     const corteControls = ['cor', 'dimensoes'];
     const consumoControls = ['codigoFabricante', 'especificacoes'];
+    const corControl = this.productForm.get('cor');
 
     if (type === 'CORTE') {
       corteControls.forEach(name => {
@@ -165,6 +191,8 @@ export class ProductFormComponent implements OnInit {
           this.productForm.get('dimensoes.comprimentoCm')?.setValidators([Validators.required, Validators.min(0.1)]);
         }
       });
+      corControl?.setValidators(Validators.required);
+
       consumoControls.forEach(name => {
         const control = this.productForm.get(name);
         control?.disable();
@@ -178,6 +206,8 @@ export class ProductFormComponent implements OnInit {
       });
     } else { // CONSUMO_DIRETO
       consumoControls.forEach(name => this.productForm.get(name)?.enable());
+      corControl?.clearValidators();
+
       corteControls.forEach(name => {
         const control = this.productForm.get(name);
         control?.disable();
@@ -190,6 +220,9 @@ export class ProductFormComponent implements OnInit {
         }
       });
     }
+    corControl?.updateValueAndValidity();
+    this.productForm.get('dimensoes.larguraCm')?.updateValueAndValidity();
+    this.productForm.get('dimensoes.comprimentoCm')?.updateValueAndValidity();
   }
 
   async onSubmit(): Promise<void> {
@@ -197,10 +230,17 @@ export class ProductFormComponent implements OnInit {
       return;
     }
 
-    if (this.isEditMode) {
-      await this.handleEditSubmit();
-    } else {
-      await this.handleCreateSubmit();
+    this.isUploading.set(true);
+    try {
+      if (this.isEditMode) {
+        await this.handleEditSubmit();
+      } else {
+        await this.handleCreateSubmit();
+      }
+    } catch (error) {
+      console.error('Falha no envio do formulário:', error);
+    } finally {
+      this.isUploading.set(false);
     }
   }
 
@@ -217,108 +257,69 @@ export class ProductFormComponent implements OnInit {
   }
 
   private async handleEditSubmit(): Promise<void> {
-    this.isUploading.set(true);
-    try {
-      let hasChanged = false;
+    let hasChanged = false;
 
-      if (this.selectedFile) {
-        const updated = await this.uploadImage();
-        if (updated) {
-          this.product.set(updated);
-          hasChanged = true;
-        }
-      }
-
-      if (!this.product()?.id) {
-        console.error('ID do produto não encontrado, não é possível atualizar.', this.product());
-        return;
-      }
-
-      const dirtyValues: { [key: string]: any } = {};
-      let especificacoesIsDirty = false;
-
-      Object.keys(this.productForm.controls).forEach(key => {
-        const control = this.productForm.get(key);
-        if (control && control.dirty) {
-          if (key === 'especificacoes') {
-            especificacoesIsDirty = true;
-          } else {
-            dirtyValues[key] = control.value;
-          }
-        }
-      });
-
-      if (especificacoesIsDirty) {
-        const currentSpecs: { [key: string]: string } = {};
-        (this.productForm.get('especificacoes')?.value || []).forEach((spec: { chave: string; valor: string }) => {
-          if (spec.chave) {
-            currentSpecs[spec.chave] = spec.valor;
-          }
-        });
-
-        const specsPayload: { [key: string]: string | null } = { ...currentSpecs };
-        Object.keys(this.initialSpecifications).forEach(initialKey => {
-          if (!currentSpecs.hasOwnProperty(initialKey)) {
-            specsPayload[initialKey] = null; // Mark for deletion
-          }
-        });
-        dirtyValues['especificacoes'] = specsPayload;
-      }
-
-      if (Object.keys(dirtyValues).length > 0) {
-        await lastValueFrom(this.productService.patchProduct(this.product().id, dirtyValues));
+    if (this.selectedFile) {
+      const updated = await this.uploadImage(this.product());
+      if (updated) {
+        this.product.set(updated);
         hasChanged = true;
       }
-
-      this.cdr.detach();
-      this.dialogRef.close(hasChanged);
-    } catch (error) {
-      console.error('Erro ao atualizar o produto:', error instanceof Error ? error.message : error);
     }
-  }
 
-  private async handleCreateSubmit(): Promise<void> {
-    try {
-      this.cdr.detach();
-      const formValue = this.getProcessedFormValue();
-      await lastValueFrom(this.productService.createProduct(formValue as Partial<Product>));
-      this.dialogRef.close(true);
-    } catch (error) {
-      console.error('Erro ao criar o produto:', error instanceof Error ? error.message : error);
-    }
-  }
-
-  ngOnInit(): void {
-    if (this.data.isCreationMode) {
+    if (!this.product()?.id) {
+      console.error('ID do produto não encontrado, não é possível atualizar.', this.product());
       return;
     }
 
-    const selfUrl = this.product()?._links?.['self']?.href;
-    if (selfUrl) {
-      lastValueFrom(this.productService.getProductByUrl(selfUrl))
-        .then(fullProduct => {
-          if (fullProduct) {
-            this.product.set(fullProduct);
-            if (fullProduct.materiaPrima) {
-              this.productForm.get('materiaPrima')?.patchValue(fullProduct.materiaPrima);
-            }
-            this.especificacoes.clear();
-            const specs = fullProduct['especificacoes' as keyof Product] as { [key: string]: string } | undefined;
-            if (specs) {
-              this.initialSpecifications = { ...specs }; // Store initial state
-              Object.entries(specs).forEach(([chave, valor]) => {
-                this.especificacoes.push(this.fb.group({
-                  chave: [chave, Validators.required],
-                  valor: [valor, Validators.required],
-                  isNew: [false]
-                }));
-              });
-            }
-            this.cdr.detectChanges();
-          }
-        })
-        .catch(err => console.error("Falha ao buscar detalhes completos do produto:", err));
+    const dirtyValues: { [key: string]: any } = {};
+    let especificacoesIsDirty = false;
+
+    Object.keys(this.productForm.controls).forEach(key => {
+      const control = this.productForm.get(key);
+      if (control && control.dirty) {
+        if (key === 'especificacoes') {
+          especificacoesIsDirty = true;
+        } else {
+          dirtyValues[key] = control.value;
+        }
+      }
+    });
+
+    if (especificacoesIsDirty) {
+      const currentSpecs: { [key: string]: string } = {};
+      (this.productForm.get('especificacoes')?.value || []).forEach((spec: { chave: string; valor: string }) => {
+        if (spec.chave) {
+          currentSpecs[spec.chave] = spec.valor;
+        }
+      });
+
+      const specsPayload: { [key: string]: string | null } = { ...currentSpecs };
+      Object.keys(this.initialSpecifications).forEach(initialKey => {
+        if (!currentSpecs.hasOwnProperty(initialKey)) {
+          specsPayload[initialKey] = null;
+        }
+      });
+      dirtyValues['especificacoes'] = specsPayload;
     }
+
+    if (Object.keys(dirtyValues).length > 0) {
+      await lastValueFrom(this.productService.patchProduct(this.product().id, dirtyValues));
+      hasChanged = true;
+    }
+
+    this.dialogRef.close(hasChanged);
+  }
+
+  private async handleCreateSubmit(): Promise<void> {
+    const formValue = this.getProcessedFormValue();
+    const newProduct = await lastValueFrom(this.productService.createProduct(formValue as Partial<Product>));
+
+    if (this.selectedFile && newProduct) {
+      await this.uploadImage(newProduct);
+    }
+
+    this.dialogRef.close(true);
   }
 
   onFileSelected(event: Event): void {
@@ -326,31 +327,29 @@ export class ProductFormComponent implements OnInit {
     if (input.files && input.files.length > 0) {
       this.selectedFile = input.files[0];
       this.previewUrl.set(URL.createObjectURL(this.selectedFile));
+      this.cdr.detectChanges();
     }
   }
 
-  private async uploadImage(): Promise<Product | null> {
-    const uploadUrl = this.product()?._links?.['upload-foto']?.href;
+  private async uploadImage(product: Product): Promise<Product | null> {
+    const uploadUrl = product?._links?.['upload-foto']?.href;
     if (!this.selectedFile || !uploadUrl) {
-      return this.product();
+      return product;
     }
 
-    this.isUploading.set(true);
     try {
       const updatedProduct = await lastValueFrom(
         this.productService.uploadProductPhoto(uploadUrl, this.selectedFile)
       );
       if (updatedProduct) {
         this.previewUrl.set(updatedProduct.fotoPrincipalUrl);
-        this.product.set({ ...this.product(), ...updatedProduct });
+        this.product.set({ ...product, ...updatedProduct });
       }
       this.selectedFile = null;
       return updatedProduct;
     } catch (err) {
       console.error('Falha durante o upload da imagem:', err);
       throw err;
-    } finally {
-      this.isUploading.set(false);
     }
   }
 

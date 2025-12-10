@@ -65,9 +65,22 @@ export class ProductService {
               return 0;
             });
 
+            // Recalcula os dados de paginação com base na lista combinada.
+            const totalElementsCombined = products.length;
+            const totalPagesCombined = Math.ceil(totalElementsCombined / size);
+
             // Remontamos a resposta no formato que a aplicação espera (ApiResponseProducts)
-            response._embedded.produtos = products;
-            return response as ApiResponseProducts;
+            // e atualizamos os dados de paginação.
+            return {
+              _embedded: { produtos: products },
+              _links: response._links,
+              page: {
+                size: size,
+                totalElements: totalElementsCombined,
+                totalPages: totalPagesCombined,
+                number: page
+              }
+            } as ApiResponseProducts;
           })
         );
       }),

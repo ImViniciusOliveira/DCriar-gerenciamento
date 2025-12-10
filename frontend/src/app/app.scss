@@ -1,15 +1,25 @@
 /**
- * Define a estrutura de layout principal para o conteúdo da aplicação.
- *
- * - `max-width`: Impede que o conteúdo se estique indefinidamente em telas largas,
- *   criando uma "coluna de leitura" confortável. Aumentado para 1600px para
- *   acomodar melhor tabelas e layouts mais largos.
- * - `margin: 0 auto`: Centraliza a coluna de conteúdo na tela.
- * - `padding`: Garante um espaçamento interno para que o conteúdo não "cole"
- *   nas bordas em telas menores.
+ * Estilos globais para o layout da aplicação.
+ * O componente raiz (`app-root`) é configurado como um contêiner flexível
+ * para garantir que o rodapé (`footer`) fique sempre na parte inferior da tela.
  */
+:host { /* Este :host se refere ao app-root */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; // Garante que o app-root ocupe pelo menos 100% da altura da viewport.
+}
+
+main {
+  flex-grow: 1; // Faz com que o conteúdo principal ocupe todo o espaço disponível.
+  overflow: auto; // Permite rolagem no conteúdo principal se ele exceder a altura.
+  display: flex; // Adicionado para que o .main-content possa preencher a altura.
+  flex-direction: column; // Adicionado para que o .main-content possa preencher a altura.
+}
+
 .main-content {
   padding: 24px;
-  max-width: 2000px;
+  max-width: 1600px;
   margin: 0 auto;
+  width: 100%; // Garante que o main-content ocupe a largura total do main.
+  height: 100%; // Garante que o main-content ocupe a altura total do main.
 }

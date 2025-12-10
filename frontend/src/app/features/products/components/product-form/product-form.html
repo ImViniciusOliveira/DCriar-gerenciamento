@@ -40,29 +40,37 @@
         </mat-form-field>
       </div>
 
-      @if (isEditMode) {<div class="image-upload-section">
-        <label class="mat-body-2" for="fotoPrincipal">Foto Principal</label>
-        <div class="image-preview-container image-container">
-          @if (safeImageSrc(); as src) {
-            <img [ngSrc]="src" alt="Pré-visualização da foto" width="200" height="200">
-          } @else {
-            <div class="no-image">
-              <mat-icon>image_not_supported</mat-icon>
-              <span>Sem imagem</span>
-            </div>
-          }
-          @if (isUploading()) {
-            <div class="upload-overlay">
-              <mat-spinner diameter="40"></mat-spinner>
-            </div>
-          }
+      <!-- A seção de upload agora é exibida tanto na edição quanto na criação. -->
+      @if (isEditMode || data.isCreationMode) {
+        <div class="image-upload-section">
+          <label class="mat-body-2" for="fotoPrincipal">Foto Principal</label>
+          <div class="image-preview-container image-container">
+            @if (safeImageSrc(); as src) {
+              <!--
+                Para o preview de imagem local (blob: URL), usamos [src] em vez de [ngSrc].
+                O NgOptimizedImage é otimizado para URLs de servidor e pode ter problemas
+                com URLs de objeto temporárias.
+              -->
+              <img [src]="src" alt="Pré-visualização da foto" width="200" height="200">
+            } @else {
+              <div class="no-image">
+                <mat-icon>image_not_supported</mat-icon>
+                <span>Sem imagem</span>
+              </div>
+            }
+            @if (isUploading()) {
+              <div class="upload-overlay">
+                <mat-spinner diameter="40"></mat-spinner>
+              </div>
+            }
+          </div>
+          <input type="file" id="fotoPrincipal" (change)="onFileSelected($event)" accept="image/png, image/jpeg" hidden #fileInput>
+          <button mat-stroked-button type="button" (click)="fileInput.click()">
+            <mat-icon>attach_file</mat-icon>
+            Selecionar Arquivo
+          </button>
         </div>
-        <input type="file" id="fotoPrincipal" (change)="onFileSelected($event)" accept="image/png, image/jpeg" hidden #fileInput>
-        <button mat-stroked-button type="button" (click)="fileInput.click()">
-          <mat-icon>attach_file</mat-icon>
-          Selecionar Arquivo
-        </button>
-      </div>}
+      }
 
       <mat-checkbox formControlName="ativo" class="form-checkbox">Ativo</mat-checkbox>
 
@@ -128,7 +136,11 @@
     <div class="details-container">
       <div class="details-image image-container">
         @if (safeImageSrc(); as src) {
-          <img [ngSrc]="src" alt="Foto do produto {{product().nome}}" width="200" height="200">
+          <!--
+            Todas as imagens neste componente agora usam [src] em vez de [ngSrc],
+            pois o NgOptimizedImage foi removido para evitar conflitos com URLs de objeto (blob:).
+          -->
+          <img [src]="src" alt="Foto do produto {{product().nome}}" width="200" height="200">
         } @else {
           <div class="no-image">
             <mat-icon>image_not_supported</mat-icon>
