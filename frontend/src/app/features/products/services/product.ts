@@ -108,18 +108,18 @@ export class ProductService {
     );
   }
 
-  createProduct(product: Partial<Product>): Observable<Product> {
+  createProduct(product: Partial<Product>, skipRefresh = false): Observable<Product> {
     const payload = this.mapToPayload(product);
     return this.endpoints$.pipe(
       filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
       take(1),
       map(endpoints => this.getProductBaseUrl(endpoints)),
       switchMap(url => this.http.post<Product>(url, payload)),
-      tap(() => this.refreshTrigger.set(undefined))
+      tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }
 
-  patchProduct(productId: number, product: Partial<Product>): Observable<Product> {
+  patchProduct(productId: number, product: Partial<Product>, skipRefresh = false): Observable<Product> {
     delete product.id;
     const payload = this.mapToPayload(product);
 
@@ -127,17 +127,17 @@ export class ProductService {
       filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
       map(endpoints => this.getProductBaseUrl(endpoints)),
       switchMap(baseUrl => this.http.patch<Product>(`${baseUrl}/${productId}`, payload)),
-      tap(() => this.refreshTrigger.set(undefined)),
+      tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); }),
       take(1)
     );
   }
 
-  uploadProductPhoto(uploadUrl: string, file: File): Observable<Product> {
+  uploadProductPhoto(uploadUrl: string, file: File, skipRefresh = false): Observable<Product> {
     const formData = new FormData();
     formData.append('file', file);
 
     return this.http.post<Product>(uploadUrl, formData)
-      .pipe(tap(() => this.refreshTrigger.set(undefined)));
+      .pipe(tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); }));
   }
 
   getStocksForProducts(productIds: number[], stockUrl: string): Observable<{ [productId: string]: { [channelKey: string]: number } }> {

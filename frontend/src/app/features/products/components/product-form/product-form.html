@@ -1,5 +1,16 @@
 <h2 mat-dialog-title>{{ data.title }}</h2>
-@if (isEditMode || data.isCreationMode) {
+
+<!--
+  Lógica de Exibição:
+  Alterna entre o formulário de edição/criação e a visualização de detalhes (somente leitura)
+  baseado no signal isEditMode.
+-->
+@if (isEditMode() || data.isCreationMode) {
+  <!--
+    (keydown.enter)="$event.preventDefault()":
+    Previne o envio acidental do formulário ao pressionar Enter em campos de texto.
+    O envio deve ser feito explicitamente pelo botão de salvar.
+  -->
   <form [formGroup]="productForm" (ngSubmit)="onSubmit()" (keydown.enter)="$event.preventDefault()">
     <mat-dialog-content>
       <div class="form-row">
@@ -22,6 +33,8 @@
           <mat-label>SKU</mat-label>
           <input matInput formControlName="sku" required>
         </mat-form-field>
+
+        <!-- Exibe o campo Cor apenas se estiver habilitado (lógica controlada pelo TS baseada no tipo) -->
         @if (productForm.get('cor')?.enabled) {
           <mat-form-field>
             <mat-label>Cor</mat-label>
@@ -40,16 +53,15 @@
         </mat-form-field>
       </div>
 
-      <!-- A seção de upload agora é exibida tanto na edição quanto na criação. -->
-      @if (isEditMode || data.isCreationMode) {
+      <!-- Seção de Upload de Imagem -->
+      @if (isEditMode() || data.isCreationMode) {
         <div class="image-upload-section">
           <label class="mat-body-2" for="fotoPrincipal">Foto Principal</label>
           <div class="image-preview-container image-container">
             @if (safeImageSrc(); as src) {
               <!--
-                Para o preview de imagem local (blob: URL), usamos [src] em vez de [ngSrc].
-                O NgOptimizedImage é otimizado para URLs de servidor e pode ter problemas
-                com URLs de objeto temporárias.
+                Nota: Usamos [src] padrão em vez de NgOptimizedImage [ngSrc] aqui
+                porque URLs de blob (preview local) não são suportadas pelo otimizador.
               -->
               <img [src]="src" alt="Pré-visualização da foto" width="200" height="200">
             } @else {
@@ -74,13 +86,15 @@
 
       <mat-checkbox formControlName="ativo" class="form-checkbox">Ativo</mat-checkbox>
 
+      <!-- Componente isolado para busca de matéria-prima -->
       <app-materia-prima-search
         [product]="product()"
         [formControl]="materiaPrimaControl"
-        [isEditMode]="isEditMode"
+        [isEditMode]="isEditMode()"
         (selectionChange)="onMaterialTypeChange($event)">
       </app-materia-prima-search>
 
+      <!-- Campos Específicos: Dimensões (Apenas para CORTE) -->
       @if (productForm.get('dimensoes')?.enabled) {
         <h3 class="dimensions-title mat-subheading-2">Dimensões Unitárias</h3>
         <div class="dimensions-group" formGroupName="dimensoes">
@@ -95,6 +109,7 @@
         </div>
       }
 
+      <!-- Campos Específicos: Especificações (Apenas para CONSUMO_DIRETO) -->
       @if (productForm.get('especificacoes')?.enabled) {
         <h3 class="dimensions-title mat-subheading-2">Detalhes de Consumo</h3>
         <div class="form-row">
@@ -104,6 +119,7 @@
           </mat-form-field>
         </div>
         <div formArrayName="especificacoes">
+          <!-- track $index é usado para controles dinâmicos sem ID persistente -->
           @for (specGroup of especificacoesControls; track $index) {
             <div class="form-row spec-row" [formGroup]="specGroup">
               <mat-form-field>
@@ -132,14 +148,11 @@
     </mat-dialog-actions>
   </form>
 } @else {
+  <!-- Modo Visualização (Detalhes) -->
   <mat-dialog-content class="details-content">
     <div class="details-container">
       <div class="details-image image-container">
         @if (safeImageSrc(); as src) {
-          <!--
-            Todas as imagens neste componente agora usam [src] em vez de [ngSrc],
-            pois o NgOptimizedImage foi removido para evitar conflitos com URLs de objeto (blob:).
-          -->
           <img [src]="src" alt="Foto do produto {{product().nome}}" width="200" height="200">
         } @else {
           <div class="no-image">
@@ -152,7 +165,6 @@
         <p><strong>SKU:</strong> {{ product().sku }}</p>
         <p><strong>Ativo:</strong> {{ product().ativo ? 'Sim' : 'Não' }}</p>
 
-        <!-- Seção para Detalhes Específicos -->
         <fieldset class="specific-details">
           <legend>Detalhes Específicos ({{ product().tipoProduto === 'CORTE' ? 'Corte' : 'Consumo Direto' }})</legend>
           @if (product().tipoProduto === 'CORTE') {
@@ -162,6 +174,7 @@
           @if (product().tipoProduto === 'CONSUMO_DIRETO') {
             <p><strong>Cód. Fabricante:</strong> {{ product().codigoFabricante || 'N/A' }}</p>
             @if (product().especificacoes) {
+              <!-- Itera sobre o mapa de especificações (chave: valor) -->
               @for (spec of product().especificacoes | keyvalue; track spec.key) {
                 <p><strong>{{ spec.key | titlecase }}:</strong> {{ spec.value }}</p>
               }

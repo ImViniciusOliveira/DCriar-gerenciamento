@@ -1,8 +1,11 @@
-// Importa os estilos padrão do componente de busca para garantir consistência.
-// A regra `@use` é a sintaxe moderna do Sass, substituindo `@import`.
+// Importa os estilos padrão do componente de busca para garantir consistência visual.
+// A regra `@use` é a sintaxe moderna do Sass, substituindo o antigo `@import`.
 @use "../../../../shared/components/materia-prima-search/materia-prima-search.scss";
 
-// Estilo unificado para o placeholder "Sem Imagem"
+// --- Estilos de Imagem ---
+
+// Placeholder para quando não há imagem selecionada ou carregada.
+// Centraliza o ícone e o texto dentro do contêiner.
 .no-image {
   display: flex;
   flex-direction: column;
@@ -11,6 +14,7 @@
   width: 100%;
   height: 100%;
   color: var(--mat-sys-on-surface-variant);
+
   mat-icon {
     font-size: 48px;
     width: 48px;
@@ -18,7 +22,8 @@
   }
 }
 
-// Estilo base para os contêineres de imagem
+// Contêiner base para imagens (tanto no formulário quanto nos detalhes).
+// Define tamanho fixo, bordas e garante que a imagem cubra a área (object-fit: cover).
 .image-container {
   width: 200px;
   height: 200px;
@@ -33,34 +38,38 @@
   img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: cover; // Garante que a imagem preencha o quadrado sem distorcer
   }
 }
 
-
+// Seção específica de upload no formulário.
 .image-upload-section {
   margin: 16px 0;
 
   .image-preview-container {
-    position: relative;
+    position: relative; // Necessário para posicionar o overlay de loading
     margin-top: 8px;
     margin-bottom: 16px;
-    // Herda os estilos de .image-container
+    // Herda os estilos visuais de .image-container
   }
 
+  // Overlay escuro com spinner que aparece durante o upload da imagem.
   .upload-overlay {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(var(--mat-sys-surface-rgb), 0.8);
+    background-color: rgba(var(--mat-sys-surface-rgb), 0.8); // Fundo semitransparente
     border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 10; // Garante que fique sobre a imagem
   }
 }
+
+// --- Layout do Formulário ---
 
 .product-form {
   display: flex;
@@ -68,21 +77,25 @@
   gap: 8px;
 }
 
+// Linhas de formulário com múltiplos campos lado a lado.
 .form-row, .dimensions-group {
   display: flex;
   gap: 16px;
 
+  // Garante que os campos ocupem espaço igual
   mat-form-field {
     flex: 1;
   }
 }
 
+// Títulos de seção (ex: Dimensões, Detalhes de Consumo)
 .dimensions-title {
     margin-top: 16px;
     margin-bottom: 8px;
     color: var(--mat-sys-on-surface-variant);
 }
 
+// Alinha os botões de ação (Salvar/Cancelar) à direita
 .mat-mdc-dialog-actions {
     justify-content: flex-end;
 }
@@ -91,19 +104,20 @@
   margin: 16px 0;
 }
 
+// --- Layout de Detalhes (Modo Visualização) ---
+
 .details-content {
   .details-container {
     display: flex;
-    gap: 24px;
+    gap: 24px; // Espaçamento entre a imagem e as informações
   }
 
   .details-image {
-    flex-shrink: 0;
-    // Herda os estilos de .image-container
+    flex-shrink: 0; // Impede que a imagem encolha em telas menores
   }
 
   .details-info {
-    flex-grow: 1;
+    flex-grow: 1; // As informações ocupam o restante do espaço
   }
 
   .details-description {
@@ -111,11 +125,13 @@
     h4 {
       margin-bottom: 8px;
     }
+    // Preserva quebras de linha e espaços do texto original
     p {
       white-space: pre-wrap;
     }
   }
 
+  // Separador visual sutil
   hr {
     border: none;
     border-top: 1px solid var(--mat-sys-outline-variant);
@@ -123,6 +139,7 @@
   }
 }
 
+// Aumenta a altura mínima da área de descrição para melhor UX
 textarea[formControlName="descricao"] {
   min-height: 100px;
 }
