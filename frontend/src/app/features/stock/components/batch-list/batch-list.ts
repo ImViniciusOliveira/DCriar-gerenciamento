@@ -91,7 +91,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
     this.dialog.open(MaterialTypeList, {
       width: '80vw',
       maxWidth: '900px',
-      height: '80vh'
+      height: '80vh' // Revertido para o valor original
     });
   }
 

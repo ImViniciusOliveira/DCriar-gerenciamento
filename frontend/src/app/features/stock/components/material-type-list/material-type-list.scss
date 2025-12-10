@@ -1,18 +1,48 @@
-.page-container {
+// Força o componente a se comportar como um contêiner flex que preenche
+// o espaço do diálogo, evitando que ele próprio crie um scroll.
+:host {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  box-sizing: border-box;
+  overflow: hidden;
 }
 
+// Contêiner que organiza o layout interno.
+.dialog-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; // Necessário para o overflow funcionar em um filho flex.
+  padding: 0 24px;
+}
+
+// Cabeçalho da página, que não deve encolher.
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  padding-top: 24px;
+  margin-bottom: 1.5rem;
   flex-shrink: 0;
 }
 
+// Contêiner da tabela. Ele não rola, apenas delimita o espaço.
+.table-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden; // Garante que este contêiner não crie um scroll.
+  padding-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+// A base-table dentro do contêiner é quem deve ocupar o espaço e rolar.
+app-base-table {
+  flex: 1;
+  min-height: 0;
+}
+
+// Estilos de texto padrão.
 .header-title h2 {
   margin: 0;
   font-size: 1.5rem;
