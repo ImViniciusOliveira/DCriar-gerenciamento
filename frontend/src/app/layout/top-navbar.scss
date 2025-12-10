@@ -1,25 +1,31 @@
+// Estilos aplicados à barra de ferramentas do Material Design dentro do componente.
 :host mat-toolbar {
   background-color: var(--mat-sys-surface-container-highest);
   color: var(--mat-sys-on-surface);
 }
 
+// Estilos para o link principal (logo/nome da aplicação) na barra de navegação.
 .home-link {
   font-size: 20px;
   font-weight: 500;
-  text-decoration: none;
-  color: inherit;
-  transition: opacity 0.2s ease-in-out;
+  text-decoration: none; // Remove o sublinhado padrão dos links.
+  color: inherit; // Herda a cor do texto do elemento pai (mat-toolbar).
+  transition: opacity 0.2s ease-in-out; // Adiciona uma transição suave ao passar o mouse.
 
+  // Efeito de hover para o link principal.
   &:hover {
-    opacity: 0.8;
+    opacity: 0.8; // Diminui a opacidade para indicar interatividade.
   }
 }
 
+// Um espaçador flexível que empurra os elementos adjacentes para as extremidades.
 .spacer {
   flex: 1 1 auto;
 }
 
+// Estilos para os links de navegação individuais.
 .nav-link {
+  // Adiciona uma margem à esquerda do texto quando ele está ao lado de um ícone.
   mat-icon + span {
     margin-left: 8px;
   }

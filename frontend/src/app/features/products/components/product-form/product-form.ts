@@ -239,6 +239,8 @@ export class ProductFormComponent implements OnInit {
       }
     } catch (error) {
       console.error('Falha no envio do formulário:', error);
+      // Exibe um snackbar de erro para o usuário.
+      this.dialogRef.close(false);
     } finally {
       this.isUploading.set(false);
     }
@@ -337,20 +339,15 @@ export class ProductFormComponent implements OnInit {
       return product;
     }
 
-    try {
-      const updatedProduct = await lastValueFrom(
-        this.productService.uploadProductPhoto(uploadUrl, this.selectedFile)
-      );
-      if (updatedProduct) {
-        this.previewUrl.set(updatedProduct.fotoPrincipalUrl);
-        this.product.set({ ...product, ...updatedProduct });
-      }
-      this.selectedFile = null;
-      return updatedProduct;
-    } catch (err) {
-      console.error('Falha durante o upload da imagem:', err);
-      throw err;
+    const updatedProduct = await lastValueFrom(
+      this.productService.uploadProductPhoto(uploadUrl, this.selectedFile)
+    );
+    if (updatedProduct) {
+      this.previewUrl.set(updatedProduct.fotoPrincipalUrl);
+      this.product.set({ ...product, ...updatedProduct });
     }
+    this.selectedFile = null;
+    return updatedProduct;
   }
 
   getFormattedDimensions(dimensions: { larguraCm?: number; comprimentoCm?: number } | null | undefined): string {

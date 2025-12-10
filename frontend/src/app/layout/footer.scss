@@ -1,5 +1,8 @@
 :host {
   display: block;
+  // O posicionamento do footer é controlado pela estrutura flexbox
+  // do componente raiz (`app-root`) para que ele fique no final da página,
+  // empurrado pelo conteúdo.
 }
 
 // Estilos aplicados à barra de ferramentas do Material Design dentro do footer.

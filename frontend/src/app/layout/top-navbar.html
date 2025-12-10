@@ -5,7 +5,11 @@
 
   <span class="spacer"></span>
 
-  @for (link of availableNavLinks; track link.path) {
+  <!--
+    O loop @for agora itera sobre o valor do sinal computado `availableNavLinks()`.
+    Isso garante que a navegação seja atualizada reativamente quando os endpoints da API mudarem.
+  -->
+  @for (link of availableNavLinks(); track link.path) {
     <a mat-button [routerLink]="link.path" class="nav-link">
       @if(link.icon) {
         <mat-icon>{{ link.icon }}</mat-icon>

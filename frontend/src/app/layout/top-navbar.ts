@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { ApiRoot } from '../core/services/api-root';
@@ -6,9 +6,16 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 
-// Define a estrutura de um link de navegação
+/**
+ * Define a estrutura de um link de navegação.
+ */
 type NavLink = { path: string; label: string; icon?: string };
 
+/**
+ * Componente da barra de navegação superior da aplicação.
+ * Ele exibe links de navegação que são gerados dinamicamente
+ * com base nos endpoints disponíveis na API (HATEOAS).
+ */
 @Component({
   selector: 'app-top-navbar',
   imports: [
@@ -23,9 +30,10 @@ type NavLink = { path: string; label: string; icon?: string };
   standalone: true,
 })
 export class TopNavbar {
-  apiRoot = inject(ApiRoot);
+  // Injeta o serviço ApiRoot para acessar os endpoints da API.
+  private readonly apiRoot = inject(ApiRoot);
 
-  // Define a ordem desejada dos links de navegação.
+  // Define a ordem desejada dos links de navegação na barra.
   private readonly navOrder: string[] = [
     'dashboard',
     'produtos',
@@ -34,6 +42,7 @@ export class TopNavbar {
     'vendas'
   ];
 
+  // Mapeia as chaves dos endpoints para objetos NavLink com labels e ícones.
   private readonly navLinksMap: Record<string, NavLink> = {
     'dashboard': { path: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
     'produtos': { path: 'produtos', label: 'Produtos', icon: 'inventory_2' },
@@ -42,15 +51,23 @@ export class TopNavbar {
     'vendas': { path: 'vendas', label: 'Vendas', icon: 'point_of_sale' },
   };
 
-  get availableNavLinks(): NavLink[] {
+  /**
+   * Sinal computado que retorna os links de navegação disponíveis.
+   * Ele reage automaticamente a mudanças nos endpoints da API.
+   *
+   * O filtro `key in endpoints._links` garante que apenas links para
+   * endpoints que a API realmente expõe sejam exibidos.
+   */
+  readonly availableNavLinks = computed(() => {
     const endpoints = this.apiRoot.endpoints();
-    if (!endpoints?._links) {
+    // Verifica se endpoints e _links existem antes de tentar acessá-los.
+    if (!endpoints || !endpoints._links) {
       return [];
     }
 
-    // Usa o array `navOrder` para garantir a sequência correta dos links.
     return this.navOrder
-      .filter(key => key in endpoints._links)
+      // O '!' afirma que _links não é nulo aqui.
+      .filter(key => key in endpoints._links!)
       .map(key => this.navLinksMap[key]);
-  }
+  });
 }

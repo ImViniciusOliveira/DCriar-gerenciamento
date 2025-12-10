@@ -146,7 +146,12 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
 
   async onCreate(): Promise<void> {
     try {
-      await lastValueFrom(this.apiRoot.endpoints$);
+      // Acessa o valor do signal `endpoints` chamando-o como uma função.
+      const endpoints = this.apiRoot.endpoints();
+      // Verifica se `endpoints` e `_links` existem antes de prosseguir.
+      if (!endpoints || !endpoints._links) {
+        throw new Error('Endpoints da API não carregados ou _links ausentes.');
+      }
       const newProductTemplate = await lastValueFrom(this.productService.getNewProductTemplate());
       this.openProductDialog({
         product: newProductTemplate,
@@ -171,8 +176,6 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
       if (saved && successMessage) {
         this.entityDialog.showSuccessSnackbar(successMessage);
       }
-      // Recarrega sempre para garantir dados atualizados, mesmo que a operação seja cancelada.
-      // Uma melhoria futura seria recarregar apenas se 'saved' for true.
       this.loadItems();
     });
   }
