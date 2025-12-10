@@ -1,19 +1,15 @@
-import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, effect } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { of, lastValueFrom, map, switchMap, catchError } from 'rxjs';
+import { lastValueFrom, catchError, of } from 'rxjs';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
-
-// Coisas específicas de Produtos
 import { Product } from '../../models/product.model';
 import { ProductService } from '../../services/product';
 import { ProductFormComponent, ProductFormData } from '../product-form/product-form';
-
-// Outros imports
-import { ApiRoot } from '../../../../core/services/api-root';
 import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -36,6 +32,10 @@ import { DetailsPopover } from '../../../../shared/components/details-popover/de
   styleUrls: ['./product-list.scss'],
 })
 export class ProductList extends BaseList<Product> implements AfterViewInit {
+  private readonly productService = inject(ProductService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  /** Textos estáticos para diálogos e snackbars. */
   private static readonly Texts = {
     deleteConfirmTitle: 'Confirmar Exclusão',
     deleteSuccess: 'Produto excluído com sucesso!',
@@ -46,14 +46,10 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
     createError: 'Não foi possível iniciar o cadastro de um novo produto.',
   };
 
-  // Serviços específicos de Produtos
-  private readonly productService = inject(ProductService);
-  private readonly apiRoot = inject(ApiRoot);
-  private readonly cdr = inject(ChangeDetectorRef);
-
-  // Estado específico de Produtos
+  /** Colunas da tabela de produtos. */
   tableColumns: TableColumn<Product>[] = [];
-// Referências aos templates do HTML
+
+  // --- Referências aos templates do HTML para as células da tabela ---
   @ViewChild('skuTemplate') skuTemplate!: TemplateRef<any>;
   @ViewChild('nomeTemplate') nomeTemplate!: TemplateRef<any>;
   @ViewChild('ativoTemplate') ativoTemplate!: TemplateRef<any>;
@@ -61,6 +57,32 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
   @ViewChild('detalhesTemplate') detalhesTemplate!: TemplateRef<any>;
   @ViewChild('estoquePorCanalTemplate') estoquePorCanalTemplate!: TemplateRef<any>;
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
+
+  constructor() {
+    super();
+    // Converte o Observable de produtos do serviço em um signal.
+    // O tratamento de erro é feito via pipe catchError, pois a opção 'reject' não está disponível.
+    const productsResponse = toSignal(
+      this.productService.getProducts().pipe(
+        catchError((error) => {
+          console.error('Erro ao carregar produtos:', error);
+          this.entityDialog.showErrorSnackbar(ProductList.Texts.loadError);
+          // Retorna undefined ou um valor vazio para manter o signal válido
+          return of(undefined);
+        })
+      )
+    );
+
+    // Efeito que reage a novas emissões do `productsResponse` signal.
+    effect(() => {
+      const response = productsResponse();
+      if (response) {
+        const products = response._embedded?.produtos ?? [];
+        this.pagination.updateTotalElements(response.page?.totalElements ?? 0);
+        this.items.set(products); // Atualiza o signal `items` da classe base.
+      }
+    });
+  }
 
   ngAfterViewInit(): void {
     this.tableColumns = [
@@ -72,50 +94,37 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
       { key: 'estoquePorCanal', header: 'Canais', sortable: false, cellTemplate: this.estoquePorCanalTemplate },
       { key: 'acoes', header: 'Ações', sortable: false, cellTemplate: this.acoesTemplate },
     ];
+    // Garante que as colunas sejam renderizadas após a inicialização da view.
     this.cdr.detectChanges();
   }
 
-  // Implementação do método abstrato da classe base
+  /**
+   * Chamado pela BaseList quando a paginação ou ordenação muda.
+   * A única responsabilidade é notificar o serviço sobre os novos parâmetros.
+   */
   override loadItems(): void {
-    // Atualiza os parâmetros de busca no serviço
     this.productService.updateSearchParams(
       this.pagination.pageIndex(),
       this.pagination.pageSize(),
       this.pagination.sortString()
     );
-
-    // Assina o Observable de produtos do serviço (que já reage às mudanças de parâmetros)
-    this.productService.getProducts().subscribe({
-      next: (productsResponse) => {
-        const products = productsResponse?._embedded?.produtos ?? [];
-        this.pagination.updateTotalElements(productsResponse?.page?.totalElements ?? 0);
-        this.items.set(products);
-      },
-      error: (error) => {
-        console.error('Erro ao carregar produtos:', error);
-        this.entityDialog.showErrorSnackbar(ProductList.Texts.loadError);
-      }
-    });
   }
 
-  // Métodos de CRUD específicos de Produtos
   onDelete(product: Product): void {
     this.entityDialog.openConfirmDeleteDialog(product.nome, ProductList.Texts.deleteConfirmTitle)
       .subscribe((confirmed: boolean) => {
-        if (confirmed) {
-          const deleteUrl = product._links?.['deletar-produto']?.href;
-          if (!deleteUrl) {
-            this.entityDialog.showErrorSnackbar(ProductList.Texts.deleteError);
-            return;
-          }
-          this.productService.deleteProduct(deleteUrl).subscribe({
-            next: () => {
-              this.entityDialog.showSuccessSnackbar(ProductList.Texts.deleteSuccess);
-              this.loadItems();
-            },
-            error: () => this.entityDialog.showErrorSnackbar(ProductList.Texts.deleteError)
-          });
+        if (!confirmed) return;
+
+        const deleteUrl = product._links?.['deletar-produto']?.href;
+        if (!deleteUrl) {
+          this.entityDialog.showErrorSnackbar(ProductList.Texts.deleteError);
+          return;
         }
+        // A lista será atualizada automaticamente pelo `refreshTrigger` no serviço.
+        this.productService.deleteProduct(deleteUrl).subscribe({
+          next: () => this.entityDialog.showSuccessSnackbar(ProductList.Texts.deleteSuccess),
+          error: () => this.entityDialog.showErrorSnackbar(ProductList.Texts.deleteError)
+        });
       });
   }
 
@@ -131,12 +140,6 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
 
   async onCreate(): Promise<void> {
     try {
-      // Acessa o valor do signal `endpoints` chamando-o como uma função.
-      const endpoints = this.apiRoot.endpoints();
-      // Verifica se `endpoints` e `_links` existem antes de prosseguir.
-      if (!endpoints || !endpoints._links) {
-        throw new Error('Endpoints da API não carregados ou _links ausentes.');
-      }
       const newProductTemplate = await lastValueFrom(this.productService.getNewProductTemplate());
       this.openProductDialog({
         product: newProductTemplate,
@@ -154,17 +157,20 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
     this.entityDialog.openFormDialog({
       component: ProductFormComponent,
       formData: dialogData,
-      title: dialogData.title, // Propriedade 'title' adicionada
+      title: dialogData.title,
       width: '90vw',
       maxWidth: '900px',
     }).subscribe((saved: boolean) => {
       if (saved && successMessage) {
         this.entityDialog.showSuccessSnackbar(successMessage);
       }
-      this.loadItems();
+      // A lista é atualizada automaticamente pelo `refreshTrigger` no serviço.
     });
   }
 
+  /**
+   * Formata os detalhes de um produto para exibição no popover.
+   */
   getProductDetails(product: Product): { key: string, value: string }[] {
     const details: { key: string, value: string }[] = [];
     if (product.tipoProduto === 'CORTE') {

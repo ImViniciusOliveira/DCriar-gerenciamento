@@ -1,3 +1,4 @@
+/* Cabeçalho da página contendo título e botão de ação */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -5,28 +6,37 @@
   margin-bottom: 2rem;
 }
 
+/* Estilização do título principal */
 .header-title h2 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
 }
 
+/* Estilização do subtítulo/descrição */
 .header-title p {
   margin: 0;
   color: var(--mat-sys-on-surface-variant);
 }
 
+/* --- Ajustes de largura das colunas da tabela --- */
+
+/* Coluna de detalhes (popover) precisa de mais espaço */
 .mat-column-detalhes {
   width: 250px;
 }
 
+/* Coluna de status (ícone ativo/inativo) pode ser estreita */
 .mat-column-ativo {
   width: 65px;
 }
+
+/* Coluna de ações (botões) precisa acomodar 3 ícones */
 .mat-column-acoes {
   width: 160px;
 }
 
+/* Centraliza o conteúdo das colunas de status e ações */
 .mat-column-ativo .mat-mdc-cell,
 .mat-column-acoes .mat-mdc-cell {
   justify-content: center;

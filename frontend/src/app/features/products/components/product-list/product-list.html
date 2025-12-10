@@ -10,6 +10,7 @@
     </button>
   </div>
 
+  <!-- Componente de tabela base que recebe os dados via signals -->
   <app-base-table
     [items]="items()"
     [columns]="tableColumns"
@@ -21,26 +22,43 @@
   </app-base-table>
 </div>
 
-<!-- Templates para as Células da Tabela -->
+<!--
+  Templates para as Células da Tabela
+  Cada ng-template define como o conteúdo de uma coluna específica será renderizado.
+  A diretiva `let-product` expõe o objeto do item da linha atual.
+-->
+
+<!-- Template para a coluna SKU -->
 <ng-template #skuTemplate let-product>{{ product.sku }}</ng-template>
+
+<!-- Template para a coluna Nome -->
 <ng-template #nomeTemplate let-product>{{ product.nome }}</ng-template>
+
+<!-- Template para a coluna Ativo, exibindo um ícone de status -->
 <ng-template #ativoTemplate let-product>
-  <mat-icon>{{ product.ativo ? 'check_circle' : 'cancel' }}</mat-icon>
+  <mat-icon [color]="product.ativo ? 'primary' : 'warn'">
+    {{ product.ativo ? 'check_circle' : 'cancel' }}
+  </mat-icon>
 </ng-template>
+
+<!-- Template para a coluna Estoque, exibindo total e unidades -->
 <ng-template #estoqueTemplate let-product>
   {{ product.estoqueFisicoTotal }} pacotes
   <br />
   <small>({{ product.unidadesPorProduto }} unidades cada)</small>
 </ng-template>
 
+<!-- Template para a coluna Detalhes, usando um popover para exibir informações adicionais -->
 <ng-template #detalhesTemplate let-product>
   <app-details-popover [items]="getProductDetails(product)" triggerText="Exibir detalhes"></app-details-popover>
 </ng-template>
 
+<!-- Template para a coluna Estoque por Canal, usando um popover e o pipe de filtro -->
 <ng-template #estoquePorCanalTemplate let-product>
   <app-details-popover [items]="(product.estoquePorCanal | keyvalue | filterStock:0)" triggerText="Exibir canais"></app-details-popover>
 </ng-template>
 
+<!-- Template para a coluna de Ações, com botões de visualizar, editar e excluir -->
 <ng-template #acoesTemplate let-product>
   <button mat-icon-button color="primary" title="Visualizar" (click)="onView(product)">
     <mat-icon>visibility</mat-icon>
