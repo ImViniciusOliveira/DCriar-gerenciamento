@@ -1,5 +1,5 @@
 import { Component, computed, EventEmitter, inject, Input, OnInit, Output, signal, Signal, WritableSignal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,7 +26,6 @@ import { MaterialTypeService } from '../../../features/stock/services/material-t
   selector: 'app-materia-prima-search',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MatFormFieldModule,
@@ -35,8 +34,8 @@ import { MaterialTypeService } from '../../../features/stock/services/material-t
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    InfiniteScrollDirective,
-  ],
+    InfiniteScrollDirective
+],
   templateUrl: './materia-prima-search.html',
   styleUrls: ['./materia-prima-search.scss'],
 })

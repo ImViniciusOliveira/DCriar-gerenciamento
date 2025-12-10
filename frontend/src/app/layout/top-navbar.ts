@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { ApiRoot } from '../core/services/api-root';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -19,12 +19,11 @@ type NavLink = { path: string; label: string; icon?: string };
 @Component({
   selector: 'app-top-navbar',
   imports: [
-    CommonModule,
     MatToolbarModule,
     MatButtonModule,
     RouterModule,
-    MatIconModule,
-  ],
+    MatIconModule
+],
   templateUrl: './top-navbar.html',
   styleUrl: './top-navbar.scss',
   standalone: true,

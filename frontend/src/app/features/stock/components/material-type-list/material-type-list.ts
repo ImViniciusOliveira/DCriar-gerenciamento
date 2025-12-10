@@ -1,5 +1,5 @@
 import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -14,7 +14,7 @@ import { MaterialTypeForm, MaterialTypeFormData } from '../material-type-form/ma
 @Component({
   selector: 'app-material-type-list',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule, BaseTable],
+  imports: [MatButtonModule, MatIconModule, MatDialogModule, BaseTable],
   templateUrl: './material-type-list.html',
   styleUrl: './material-type-list.scss'
 })
