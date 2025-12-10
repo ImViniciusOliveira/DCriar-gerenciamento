@@ -11,7 +11,7 @@
           @for (tipo of tiposMateriaPrima; track tipo.id) {
             <mat-option [value]="tipo.id">{{ tipo.nome }}</mat-option>
           }
-          @if (isSearchingTipos) {
+          @if (isLoadingTipos) {
             <mat-option disabled class="spinner-option">
               <mat-spinner diameter="20"></mat-spinner>
             </mat-option>
@@ -92,7 +92,7 @@
             </mat-form-field>
             <mat-form-field appearance="outline">
               <mat-label>Valor do Atributo</mat-label>
-              <input matInput formControlName="valor" placeholder="Ex: 600mm, Papelaria X" required>
+              <input matInput formControlName="valor" placeholder="Ex: Papelaria X" required>
             </mat-form-field>
             <button mat-icon-button type="button" (click)="removeAtributo($index)" title="Remover Atributo">
               <mat-icon>remove_circle_outline</mat-icon>

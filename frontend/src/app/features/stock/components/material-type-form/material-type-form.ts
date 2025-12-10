@@ -9,7 +9,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { HttpClient } from '@angular/common/http';
 import { Observable, startWith, map } from 'rxjs';
 import { TipoMateriaPrima, TipoMateriaPrimaRequest } from '../../models/tipo-materia-prima.model';
-import { TipoMateriaPrimaService } from '../../services/tipo-materia-prima.service';
+import { MaterialTypeService } from '../../services/material-type.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 
 export interface MaterialTypeFormData {
@@ -46,7 +46,7 @@ export class MaterialTypeForm implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly http = inject(HttpClient);
   private readonly dialogRef = inject(MatDialogRef<MaterialTypeForm>);
-  private readonly tipoMateriaPrimaService = inject(TipoMateriaPrimaService);
+  private readonly tipoMateriaPrimaService = inject(MaterialTypeService);
   private readonly entityDialog = inject(EntityDialogService);
   public readonly data: MaterialTypeFormData = inject(MAT_DIALOG_DATA);
 

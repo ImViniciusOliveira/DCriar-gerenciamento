@@ -16,7 +16,7 @@ import { lastValueFrom } from 'rxjs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { provideNgxMask } from 'ngx-mask';
 import { MateriaPrimaSearchComponent } from '../../../../shared/components/materia-prima-search/materia-prima-search';
-import { MaterialType } from '../../../stock/models/material-type.model';
+import { TipoMateriaPrima } from '../../../stock/models/material-type.model';
 
 /**
  * Componente de formulário para criação e edição de produtos.
@@ -441,7 +441,7 @@ export class ProductFormComponent implements OnInit {
    * pois isso pode impactar custos e estoque.
    */
   async onMaterialTypeChange(event: MatSelectChange): Promise<void> {
-    const newSelection = event.value as MaterialType;
+    const newSelection = event.value as TipoMateriaPrima;
     const originalSelection = this.product().materiaPrima;
 
     if (!originalSelection || !newSelection || originalSelection.id === newSelection.id) {

@@ -1,56 +1,100 @@
-import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
-
+import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, effect, ChangeDetectionStrategy } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule } from '@angular/material/dialog';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, catchError, of } from 'rxjs';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { TipoMateriaPrima } from '../../models/tipo-materia-prima.model';
-import { TipoMateriaPrimaService } from '../../services/tipo-materia-prima.service';
+import { MaterialTypeService } from '../../services/material-type.service';
 import { MaterialTypeForm, MaterialTypeFormData } from '../material-type-form/material-type-form';
 
+/**
+ * Componente de listagem de Tipos de Matéria-Prima.
+ *
+ * Utiliza a estratégia `OnPush` e Signals para reagir automaticamente às mudanças
+ * de estado no serviço `MaterialTypeService`.
+ */
 @Component({
   selector: 'app-material-type-list',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatDialogModule, BaseTable],
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule, BaseTable],
   templateUrl: './material-type-list.html',
-  styleUrl: './material-type-list.scss'
+  styleUrls: ['./material-type-list.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements AfterViewInit {
-  private readonly tipoService = inject(TipoMateriaPrimaService);
+  private readonly tipoService = inject(MaterialTypeService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   tableColumns: TableColumn<TipoMateriaPrima>[] = [];
 
+  // Referências aos templates de célula definidos no HTML
   @ViewChild('materiaNomeTemplate') materiaNomeTemplate!: TemplateRef<any>;
   @ViewChild('materiaUnidadeTemplate') materiaUnidadeTemplate!: TemplateRef<any>;
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
 
+  constructor() {
+    super();
+
+    // Converte o fluxo de dados do serviço em um Signal de leitura.
+    // Isso permite que o componente reaja a atualizações (filtros, paginação, refresh) automaticamente.
+    const tiposMateriaPrimaResponse = toSignal(
+      this.tipoService.getTiposMateriaPrima().pipe(
+        catchError((error) => {
+          console.error('Erro ao carregar tipos de matéria-prima:', error);
+          this.entityDialog.showErrorSnackbar('Falha ao carregar a lista.');
+          return of(undefined);
+        })
+      )
+    );
+
+    // Efeito colateral que sincroniza o estado do Signal com a BaseList.
+    // Atualiza a lista de itens e os metadados de paginação sempre que o serviço emite novos dados.
+    effect(() => {
+      const response = tiposMateriaPrimaResponse();
+      if (response) {
+        const items = response._embedded?.['tipos-materia-prima'] ?? [];
+        this.pagination.updateTotalElements(response.page?.totalElements ?? 0);
+        this.items.set(items);
+      }
+    });
+  }
+
   ngAfterViewInit(): void {
+    // Configura as colunas da tabela.
+    // Necessário fazer no AfterViewInit pois depende dos @ViewChild templates.
     this.tableColumns = [
       { key: 'nome', header: 'Nome', sortable: true, cellTemplate: this.materiaNomeTemplate },
       { key: 'unidadeDeConsumo', header: 'Unidade', sortable: false, cellTemplate: this.materiaUnidadeTemplate },
       { key: 'actions', header: 'Ações', cellTemplate: this.acoesTemplate }
     ];
+    // Marca para verificação pois alteramos dados que afetam a view após a inicialização
     this.cdr.detectChanges();
   }
 
+  /**
+   * Sobrescreve o método da BaseList.
+   * Em vez de fazer a requisição manualmente, apenas atualiza os parâmetros no serviço.
+   * O Signal no construtor cuidará de receber os novos dados.
+   */
   override loadItems(): void {
-    const page = this.pagination.pageIndex();
-    const size = this.pagination.pageSize();
     const sort = this.pagination.sortActive();
     const order = this.pagination.sortDirection();
 
-    this.tipoService.findAll(page, size, sort, order).subscribe((response: any) => {
-      this.items.set(response._embedded?.['tipos-materia-prima'] || []);
-      this.pagination.updateTotalElements(response.page?.totalElements || 0);
+    this.tipoService.updateSearchParams({
+      page: this.pagination.pageIndex(),
+      size: this.pagination.pageSize(),
+      sort: `${sort},${order}`
     });
   }
 
   async onCreate(): Promise<void> {
     try {
+      // Busca o template HATEOAS para criação
       const template = await lastValueFrom(this.tipoService.getNewTemplate());
       this.openFormDialog({
         template,
@@ -93,10 +137,10 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
       'Confirmar Exclusão'
     ).subscribe(confirmed => {
       if (confirmed) {
+        // O serviço cuidará de atualizar a lista automaticamente após o delete bem-sucedido
         this.tipoService.delete(deleteUrl).subscribe({
           next: () => {
             this.entityDialog.showSuccessSnackbar('Matéria-prima excluída com sucesso!');
-            this.loadItems();
           },
           error: () => {
             this.entityDialog.showErrorSnackbar('Falha ao excluir a matéria-prima.');
@@ -115,7 +159,6 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
     }).subscribe(saved => {
       if (saved) {
         this.entityDialog.showSuccessSnackbar(successMessage);
-        this.loadItems();
       }
     });
   }
