@@ -86,10 +86,9 @@
 
       <mat-checkbox formControlName="ativo" class="form-checkbox">Ativo</mat-checkbox>
 
-      <!-- Componente isolado para busca de matéria-prima -->
+      <!-- Componente genérico para busca de matéria-prima. -->
       <app-materia-prima-search
-        [product]="product()"
-        [formControl]="materiaPrimaControl"
+        [control]="materiaPrimaControl"
         [isEditMode]="isEditMode()"
         (selectionChange)="onMaterialTypeChange($event)">
       </app-materia-prima-search>

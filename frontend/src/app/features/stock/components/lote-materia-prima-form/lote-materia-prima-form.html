@@ -3,11 +3,10 @@
 <form [formGroup]="form" (ngSubmit)="onSave()">
   <mat-dialog-content>
     <div class="form-grid">
-      <!-- Componente de busca de matéria-prima -->
+      <!-- Componente genérico para busca de matéria-prima. -->
       <div class="full-width">
         <app-materia-prima-search
-          [product]="productForSearch"
-          [formControl]="materiaPrimaControl"
+          [control]="materiaPrimaControl"
           [isEditMode]="isEditMode()">
         </app-materia-prima-search>
       </div>

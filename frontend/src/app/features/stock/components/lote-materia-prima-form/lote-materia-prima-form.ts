@@ -15,7 +15,6 @@ import { MaterialTypeService } from '../../services/material-type.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MateriaPrimaSearchComponent } from '../../../../shared/components/materia-prima-search/materia-prima-search';
-import { Product } from '../../../products/models/product.model';
 
 export interface LoteMateriaPrimaFormData {
   template: LoteMateriaPrima;
@@ -24,7 +23,7 @@ export interface LoteMateriaPrimaFormData {
 
 /**
  * Formulário para criação e edição de Lotes de Matéria-Prima.
- * Utiliza o componente app-materia-prima-search para seleção do tipo.
+ * Utiliza o componente genérico `app-materia-prima-search` para a seleção do tipo.
  */
 @Component({
   selector: 'app-lote-materia-prima-form',
@@ -49,15 +48,11 @@ export class LoteMateriaPrimaForm implements OnInit {
   form: FormGroup;
   isEditMode = signal(false);
 
-  // O 'product' aqui é um mock para satisfazer o componente de busca.
-  // Ele precisa dos _links para encontrar as URLs de busca.
-  productForSearch: Partial<Product> = { _links: this.data.template._links };
-
   constructor() {
     this.isEditMode.set(!!this.data.template.id);
 
     this.form = this.fb.group({
-      // Este control vai receber o objeto TipoMateriaPrima completo do componente de busca
+      // Este control recebe o objeto TipoMateriaPrima completo do componente de busca.
       materiaPrima: [null, Validators.required],
       quantidadeInicial: [this.data.template?.saldoEstoque || '', [Validators.required, Validators.min(0.01)]],
       custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01)]],
@@ -71,7 +66,8 @@ export class LoteMateriaPrimaForm implements OnInit {
   }
 
   async initializeForm(): Promise<void> {
-    // Se estiver editando, busca o objeto TipoMateriaPrima completo para popular o form
+    // Se estiver editando, busca o objeto TipoMateriaPrima completo para popular o form.
+    // O componente de busca lidará com este valor assíncrono para mostrar a "última matéria-prima".
     if (this.isEditMode() && this.data.template.tipoMateriaPrimaId) {
       try {
         const tipoMateriaPrima = await lastValueFrom(this.materialTypeService.findById(this.data.template.tipoMateriaPrimaId));
@@ -98,7 +94,7 @@ export class LoteMateriaPrimaForm implements OnInit {
     return (this.form.get('atributos') as FormArray).controls as FormGroup[];
   }
 
-  // Getter para facilitar o acesso ao FormControl no template
+  // Getter para facilitar o acesso ao FormControl no template.
   get materiaPrimaControl(): FormControl {
     return this.form.get('materiaPrima') as FormControl;
   }
@@ -129,10 +125,10 @@ export class LoteMateriaPrimaForm implements OnInit {
       }
     });
 
-    // Monta o payload da requisição com os dados corretos
+    // Monta o payload da requisição com os dados corretos.
     const request: LoteMateriaPrimaRequest = {
       tipoMateriaPrimaId: materiaPrima.id,
-      unidadeDeEstoque: materiaPrima.unidadeDeConsumo, // A unidade de estoque é a unidade de consumo da matéria-prima
+      unidadeDeEstoque: materiaPrima.unidadeDeConsumo, // A unidade de estoque é a unidade de consumo da matéria-prima.
       quantidadeInicial: formValue.quantidadeInicial,
       custoTotalLote: formValue.custoTotalLote,
       motivo: formValue.motivo,
