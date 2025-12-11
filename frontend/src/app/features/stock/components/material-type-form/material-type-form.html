@@ -1,9 +1,5 @@
 <h2 mat-dialog-title>{{ data.title }}</h2>
 
-<!--
-  O formGroup é aplicado a um elemento <form> que envolve o conteúdo e as ações,
-  permitindo o uso de (ngSubmit) e garantindo a semântica correta.
--->
 <form [formGroup]="form" (ngSubmit)="onSave()">
   <mat-dialog-content>
     <div class="form-grid">
@@ -25,6 +21,7 @@
                matInput
                formControlName="unidadeDeConsumo"
                [matAutocomplete]="auto"
+               (focus)="onFocus()"
                required>
         <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayUnidade">
           <!-- Itera sobre o signal 'filteredUnidades' que é recalculado automaticamente -->

@@ -1,13 +1,4 @@
-import {
-  Component,
-  OnInit,
-  inject,
-  signal,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  computed,
-  effect
-} from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -86,6 +77,8 @@ export class MaterialTypeForm implements OnInit {
   filteredUnidades = computed(() => {
     const filter = this.filterValue().toLowerCase();
     const unidades = this.allUnidades();
+    // Se o filtro for vazio ou igual ao valor selecionado (objeto), mostra tudo.
+    // Isso permite que ao clicar, se já houver um valor válido, a lista completa apareça.
     return unidades.filter(unidade =>
       unidade.descricao.toLowerCase().includes(filter)
     );
@@ -105,11 +98,13 @@ export class MaterialTypeForm implements OnInit {
     const valueChanges$ = this.form.get('unidadeDeConsumo')!.valueChanges.pipe(startWith(''));
     const valueSignal = toSignal(valueChanges$, { initialValue: '' });
 
-    // Efeito que sincroniza o valor do input (que pode ser um objeto ou string)
-    // com o signal de filtro (que é sempre uma string).
+    // Efeito que sincroniza o valor do input com o signal de filtro.
     effect(() => {
       const value = valueSignal();
-      const stringValue = (typeof value === 'string' ? value : value?.descricao || '');
+      // Se o valor for um objeto (item selecionado), não filtramos (string vazia)
+      // para que a lista completa esteja disponível se o usuário abrir o dropdown novamente.
+      // Se for string (usuário digitando), usamos ela para filtrar.
+      const stringValue = typeof value === 'string' ? value : '';
       this.filterValue.set(stringValue);
     });
   }
@@ -161,6 +156,18 @@ export class MaterialTypeForm implements OnInit {
    */
   displayUnidade(unidade: UnidadeOption): string {
     return unidade?.descricao || '';
+  }
+
+  /**
+   * Método chamado ao focar no input.
+   * Limpa o filtro para mostrar todas as opções, melhorando a UX.
+   */
+  onFocus(): void {
+    // Se o valor atual for um objeto (já selecionado), reseta o filtro para mostrar tudo.
+    const currentValue = this.form.get('unidadeDeConsumo')?.value;
+    if (typeof currentValue !== 'string') {
+        this.filterValue.set('');
+    }
   }
 
   onSave(): void {
