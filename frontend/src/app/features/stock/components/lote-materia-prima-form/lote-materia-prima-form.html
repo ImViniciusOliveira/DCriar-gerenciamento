@@ -3,48 +3,14 @@
 <form [formGroup]="form" (ngSubmit)="onSave()">
   <mat-dialog-content>
     <div class="form-grid">
-      <!-- Tipo de Matéria-Prima -->
-      <mat-form-field appearance="outline">
-        <mat-label>Tipo de Matéria-Prima</mat-label>
-        <mat-select formControlName="tipoMateriaPrimaId" required [compareWith]="compareTiposMateriaPrima"
-                    appInfiniteScroll (infiniteScroll)="loadMoreTiposMateriaPrima()">
-          @for (tipo of tiposMateriaPrima(); track tipo.id) {
-            <mat-option [value]="tipo.id">{{ tipo.nome }}</mat-option>
-          }
-          @if (isLoadingTipos()) {
-            <mat-option disabled class="spinner-option">
-              <mat-spinner diameter="20"></mat-spinner>
-            </mat-option>
-          }
-        </mat-select>
-        @if (form.get('tipoMateriaPrimaId')?.hasError('required')) {
-          <mat-error>O tipo de matéria-prima é obrigatório.</mat-error>
-        }
-      </mat-form-field>
-
-      <!-- Unidade de Estoque -->
-      <mat-form-field appearance="outline">
-        <mat-label>Unidade de Estoque</mat-label>
-        <input type="text"
-               placeholder="Selecione ou digite"
-               aria-label="Unidade de Estoque"
-               matInput
-               formControlName="unidadeDeEstoque"
-               [matAutocomplete]="autoUnidade">
-        <mat-autocomplete #autoUnidade="matAutocomplete" [displayWith]="displayUnidade">
-          @for (unidade of unidades$ | async; track unidade.name) {
-            <mat-option [value]="unidade">
-              {{ unidade.descricao }}
-            </mat-option>
-          }
-        </mat-autocomplete>
-        @if (form.get('unidadeDeEstoque')?.hasError('required')) {
-          <mat-error>A unidade de estoque é obrigatória.</mat-error>
-        }
-        @if (form.get('unidadeDeEstoque')?.hasError('requireMatchUnidade')) {
-          <mat-error>Selecione uma unidade válida.</mat-error>
-        }
-      </mat-form-field>
+      <!-- Componente de busca de matéria-prima -->
+      <div class="full-width">
+        <app-materia-prima-search
+          [product]="productForSearch"
+          [formControl]="materiaPrimaControl"
+          [isEditMode]="isEditMode()">
+        </app-materia-prima-search>
+      </div>
 
       <!-- Quantidade Inicial -->
       <mat-form-field appearance="outline">

@@ -34,7 +34,8 @@ import { MaterialTypeService } from '../../../features/stock/services/material-t
   styleUrls: ['./materia-prima-search.scss'],
 })
 export class MateriaPrimaSearchComponent implements OnInit {
-  @Input({ required: true }) product!: Product;
+  // Aceita um Produto parcial, pois só precisamos dos _links.
+  @Input({ required: true }) product!: Partial<Product>;
   @Input({ required: true }) formControl!: any;
   @Input() isEditMode = false;
   @Output() selectionChange = new EventEmitter<MatSelectChange>();
@@ -121,9 +122,9 @@ export class MateriaPrimaSearchComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.originalMateriaPrima = this.product.materiaPrima;
-    if (this.product.materiaPrima) {
-      this.materialTypes.set([this.product.materiaPrima as TipoMateriaPrima]);
+    this.originalMateriaPrima = this.formControl.value;
+    if (this.formControl.value) {
+      this.materialTypes.set([this.formControl.value as TipoMateriaPrima]);
     }
 
     // Conecta o formulário de busca ao serviço
