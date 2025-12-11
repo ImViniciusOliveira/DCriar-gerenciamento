@@ -27,9 +27,9 @@
 </div>
 
 <!-- Definição dos templates para as células da tabela. -->
-<ng-template #materiaNomeTemplate let-item>{{ item.nome }}</ng-template>
-<ng-template #materiaUnidadeTemplate let-item>{{ item.unidadeDeConsumo }}</ng-template>
-<ng-template #acoesTemplate let-item>
+<ng-template #nameTemplate let-item>{{ item.nome }}</ng-template>
+<ng-template #unitTemplate let-item>{{ item.unidadeDeConsumo }}</ng-template>
+<ng-template #actionsTemplate let-item>
   <button mat-icon-button color="primary" (click)="editItem(item)">
     <mat-icon>edit</mat-icon>
   </button>

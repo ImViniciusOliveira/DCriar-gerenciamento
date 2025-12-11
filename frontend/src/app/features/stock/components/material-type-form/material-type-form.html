@@ -1,12 +1,16 @@
-<div class="dialog-container">
-  <h2 mat-dialog-title>{{ data.title }}</h2>
+<h2 mat-dialog-title>{{ data.title }}</h2>
 
-  <mat-dialog-content [formGroup]="form">
+<!--
+  O formGroup é aplicado a um elemento <form> que envolve o conteúdo e as ações,
+  permitindo o uso de (ngSubmit) e garantindo a semântica correta.
+-->
+<form [formGroup]="form" (ngSubmit)="onSave()">
+  <mat-dialog-content>
     <div class="form-grid">
       <!-- Campo Nome -->
       <mat-form-field appearance="outline">
         <mat-label>Nome da Matéria-Prima</mat-label>
-        <input matInput formControlName="nome" placeholder="Ex: Papel Couchê 300g">
+        <input matInput formControlName="nome" placeholder="Ex: Papel Couchê 300g" required>
         @if (form.get('nome')?.hasError('required')) {
           <mat-error>O nome é obrigatório.</mat-error>
         }
@@ -20,7 +24,8 @@
                aria-label="Unidade de Consumo"
                matInput
                formControlName="unidadeDeConsumo"
-               [matAutocomplete]="auto">
+               [matAutocomplete]="auto"
+               required>
         <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayUnidade">
           @for (unidade of unidades$ | async; track unidade.name) {
             <mat-option [value]="unidade">
@@ -39,7 +44,9 @@
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
-    <button mat-stroked-button (click)="onCancel()">Cancelar</button>
-    <button mat-flat-button color="primary" (click)="onSave()" [disabled]="form.invalid">Salvar</button>
+    <button mat-button type="button" (click)="onCancel()">Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
+      {{ isEditMode() ? 'Salvar Alterações' : 'Salvar' }}
+    </button>
   </mat-dialog-actions>
-</div>
+</form>

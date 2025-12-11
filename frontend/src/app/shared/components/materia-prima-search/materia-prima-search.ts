@@ -77,7 +77,7 @@ export class MateriaPrimaSearchComponent implements OnInit {
     );
 
     this.consumptionUnits = toSignal(consumptionUnits$, { initialValue: [] });
-    this.consumptionUnitsMap = computed(() => new Map(this.consumptionUnits().map(u => [u.value, u.viewValue])));
+    this.consumptionUnitsMap = computed(() => new Map(this.consumptionUnits().map((u: EnumOption) => [u.value, u.viewValue])));
 
     this.searchForm = this.fb.group({
       searchName: [''],

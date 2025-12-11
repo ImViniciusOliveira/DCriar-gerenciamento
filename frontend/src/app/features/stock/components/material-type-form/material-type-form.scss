@@ -1,14 +1,10 @@
-.dialog-container {
-  display: flex;
-  flex-direction: column;
-  min-width: 400px;
-}
-
+// Garante que o conteúdo do diálogo tenha um espaçamento superior.
 mat-dialog-content {
-  overflow: visible !important;
   padding-top: 20px;
 }
 
+// Layout em grid para os campos do formulário.
+// Com uma única coluna, os campos ficam um abaixo do outro.
 .form-grid {
   display: grid;
   grid-template-columns: 1fr;

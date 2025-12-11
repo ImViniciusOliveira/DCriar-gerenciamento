@@ -8,7 +8,7 @@ import { lastValueFrom, catchError, of } from 'rxjs';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
-import { TipoMateriaPrima } from '../../models/tipo-materia-prima.model';
+import { TipoMateriaPrima } from '../../models/material-type.model';
 import { MaterialTypeService } from '../../services/material-type.service';
 import { MaterialTypeForm, MaterialTypeFormData } from '../material-type-form/material-type-form';
 
@@ -27,23 +27,23 @@ import { MaterialTypeForm, MaterialTypeFormData } from '../material-type-form/ma
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements AfterViewInit {
-  private readonly tipoService = inject(MaterialTypeService);
+  private readonly materialTypeService = inject(MaterialTypeService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   tableColumns: TableColumn<TipoMateriaPrima>[] = [];
 
   // Referências aos templates de célula definidos no HTML
-  @ViewChild('materiaNomeTemplate') materiaNomeTemplate!: TemplateRef<any>;
-  @ViewChild('materiaUnidadeTemplate') materiaUnidadeTemplate!: TemplateRef<any>;
-  @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
+  @ViewChild('nameTemplate') nameTemplate!: TemplateRef<any>;
+  @ViewChild('unitTemplate') unitTemplate!: TemplateRef<any>;
+  @ViewChild('actionsTemplate') actionsTemplate!: TemplateRef<any>;
 
   constructor() {
     super();
 
     // Converte o fluxo de dados do serviço em um Signal de leitura.
     // Isso permite que o componente reaja a atualizações (filtros, paginação, refresh) automaticamente.
-    const tiposMateriaPrimaResponse = toSignal(
-      this.tipoService.getTiposMateriaPrima().pipe(
+    const materialTypesResponse = toSignal(
+      this.materialTypeService.getTiposMateriaPrima().pipe(
         catchError((error) => {
           console.error('Erro ao carregar tipos de matéria-prima:', error);
           this.entityDialog.showErrorSnackbar('Falha ao carregar a lista.');
@@ -55,7 +55,7 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
     // Efeito colateral que sincroniza o estado do Signal com a BaseList.
     // Atualiza a lista de itens e os metadados de paginação sempre que o serviço emite novos dados.
     effect(() => {
-      const response = tiposMateriaPrimaResponse();
+      const response = materialTypesResponse();
       if (response) {
         const items = response._embedded?.['tipos-materia-prima'] ?? [];
         this.pagination.updateTotalElements(response.page?.totalElements ?? 0);
@@ -68,9 +68,9 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
     // Configura as colunas da tabela.
     // Necessário fazer no AfterViewInit pois depende dos @ViewChild templates.
     this.tableColumns = [
-      { key: 'nome', header: 'Nome', sortable: true, cellTemplate: this.materiaNomeTemplate },
-      { key: 'unidadeDeConsumo', header: 'Unidade', sortable: false, cellTemplate: this.materiaUnidadeTemplate },
-      { key: 'actions', header: 'Ações', cellTemplate: this.acoesTemplate }
+      { key: 'nome', header: 'Nome', sortable: true, cellTemplate: this.nameTemplate },
+      { key: 'unidadeDeConsumo', header: 'Unidade', sortable: false, cellTemplate: this.unitTemplate },
+      { key: 'actions', header: 'Ações', cellTemplate: this.actionsTemplate }
     ];
     // Marca para verificação pois alteramos dados que afetam a view após a inicialização
     this.cdr.detectChanges();
@@ -85,7 +85,7 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
     const sort = this.pagination.sortActive();
     const order = this.pagination.sortDirection();
 
-    this.tipoService.updateSearchParams({
+    this.materialTypeService.updateSearchParams({
       page: this.pagination.pageIndex(),
       size: this.pagination.pageSize(),
       sort: `${sort},${order}`
@@ -95,7 +95,7 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
   async onCreate(): Promise<void> {
     try {
       // Busca o template HATEOAS para criação
-      const template = await lastValueFrom(this.tipoService.getNewTemplate());
+      const template = await lastValueFrom(this.materialTypeService.getNewTemplate());
       this.openFormDialog({
         template,
         title: 'Cadastrar Matéria-Prima'
@@ -114,7 +114,7 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
     }
 
     try {
-      const itemToEdit = await lastValueFrom(this.tipoService.findByUrl(selfUrl));
+      const itemToEdit = await lastValueFrom(this.materialTypeService.findByUrl(selfUrl));
       this.openFormDialog({
         template: itemToEdit,
         title: 'Editar Matéria-Prima'
@@ -138,7 +138,7 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
     ).subscribe(confirmed => {
       if (confirmed) {
         // O serviço cuidará de atualizar a lista automaticamente após o delete bem-sucedido
-        this.tipoService.delete(deleteUrl).subscribe({
+        this.materialTypeService.delete(deleteUrl).subscribe({
           next: () => {
             this.entityDialog.showSuccessSnackbar('Matéria-prima excluída com sucesso!');
           },
