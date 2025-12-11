@@ -1,4 +1,13 @@
-import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  computed,
+  effect
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -7,12 +16,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { HttpClient } from '@angular/common/http';
-import { Observable, startWith, map } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { startWith } from 'rxjs/operators';
 
 import { TipoMateriaPrima, TipoMateriaPrimaRequest } from '../../models/material-type.model';
 import { MaterialTypeService } from '../../services/material-type.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
+import { ApiRoot } from '../../../../core/services/api-root';
 
 export interface MaterialTypeFormData {
   template: TipoMateriaPrima;
@@ -38,6 +48,10 @@ export function requireMatch(options: UnidadeOption[]): ValidatorFn {
   };
 }
 
+/**
+ * Formulário para criação e edição de Tipos de Matéria-Prima.
+ * Utiliza uma arquitetura reativa com Signals para gerenciar o estado do autocomplete.
+ */
 @Component({
   selector: 'app-material-type-form',
   standalone: true,
@@ -55,12 +69,28 @@ export class MaterialTypeForm implements OnInit {
   private readonly dialogRef = inject(MatDialogRef<MaterialTypeForm>);
   private readonly materialTypeService = inject(MaterialTypeService);
   private readonly entityDialog = inject(EntityDialogService);
-  private readonly cdr = inject(ChangeDetectorRef); // Injetado para controle manual
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly apiRoot = inject(ApiRoot);
   public readonly data: MaterialTypeFormData = inject(MAT_DIALOG_DATA);
 
   form: FormGroup;
-  unidades$!: Observable<UnidadeOption[]>;
-  unidades = signal<UnidadeOption[]>([]);
+
+  // Signal que armazena a lista completa de unidades carregada da API.
+  allUnidades = signal<UnidadeOption[]>([]);
+
+  // Signal que armazena o valor digitado pelo usuário no campo de autocomplete.
+  filterValue = signal<string>('');
+
+  // Signal computado que filtra as unidades com base no valor digitado.
+  // É recalculado automaticamente sempre que `filterValue` ou `allUnidades` mudam.
+  filteredUnidades = computed(() => {
+    const filter = this.filterValue().toLowerCase();
+    const unidades = this.allUnidades();
+    return unidades.filter(unidade =>
+      unidade.descricao.toLowerCase().includes(filter)
+    );
+  });
+
   isEditMode = signal(false);
 
   constructor() {
@@ -70,50 +100,65 @@ export class MaterialTypeForm implements OnInit {
       nome: [this.data.template?.nome || '', Validators.required],
       unidadeDeConsumo: ['', [Validators.required]]
     });
+
+    // Converte o Observable de `valueChanges` do campo em um signal.
+    const valueChanges$ = this.form.get('unidadeDeConsumo')!.valueChanges.pipe(startWith(''));
+    const valueSignal = toSignal(valueChanges$, { initialValue: '' });
+
+    // Efeito que sincroniza o valor do input (que pode ser um objeto ou string)
+    // com o signal de filtro (que é sempre uma string).
+    effect(() => {
+      const value = valueSignal();
+      const stringValue = (typeof value === 'string' ? value : value?.descricao || '');
+      this.filterValue.set(stringValue);
+    });
   }
 
   ngOnInit(): void {
     this.loadUnidadesDeMedida();
-
-    this.unidades$ = this.form.get('unidadeDeConsumo')!.valueChanges.pipe(
-      takeUntilDestroyed(),
-      startWith(''),
-      map(value => (typeof value === 'string' ? this._filterUnidades(value) : this.unidades().slice()))
-    );
   }
 
   /**
-   * Carrega as unidades de medida a partir do link HATEOAS do template.
+   * Carrega as unidades de medida a partir do link HATEOAS.
+   * Usa o link do template (edição) ou do ApiRoot (criação).
    */
   loadUnidadesDeMedida(): void {
-    const url = this.data.template?._links?.['unidades-de-medida']?.href;
-    if (url) {
-      this.http.get<any>(url).subscribe(response => {
+    const url = this.data.template?._links?.['unidades-de-medida']?.href || this.apiRoot.endpoints()?._links?.['unidades-de-medida']?.href;
+
+    if (!url) {
+      console.error('URL de unidades-de-medida não encontrada.');
+      return;
+    }
+
+    this.http.get<any>(url).subscribe({
+      next: (response) => {
         const embedded = response._embedded;
         if (embedded && embedded.unidadesDeMedida) {
           const unidades: UnidadeOption[] = embedded.unidadesDeMedida.map((item: any) => ({ name: item.name, descricao: item.descricao }));
-          this.unidades.set(unidades);
 
-          // Re-aplica validadores e valor inicial após carregar as opções
+          this.allUnidades.set(unidades);
+
           this.form.get('unidadeDeConsumo')?.setValidators([Validators.required, requireMatch(unidades)]);
+
           if (this.data.template?.unidadeDeConsumo) {
             const unidadeInicial = unidades.find(u => u.name === this.data.template.unidadeDeConsumo);
             this.form.get('unidadeDeConsumo')?.setValue(unidadeInicial);
           }
+
           this.form.get('unidadeDeConsumo')?.updateValueAndValidity();
 
-          // AVISA o Angular para verificar este componente, pois uma operação assíncrona terminou.
+          // Notifica o Angular para verificar o componente, pois a chamada HTTP é assíncrona.
           this.cdr.markForCheck();
         }
-      });
-    }
+      },
+      error: (err) => console.error('Erro ao carregar unidades:', err)
+    });
   }
 
-  private _filterUnidades(value: string): UnidadeOption[] {
-    const filterValue = value.toLowerCase();
-    return this.unidades().filter(unidade => unidade.descricao.toLowerCase().includes(filterValue));
-  }
-
+  /**
+   * Função para o `[displayWith]` do autocomplete, garantindo que o campo
+   * mostre a descrição da unidade em vez do objeto.
+   */
   displayUnidade(unidade: UnidadeOption): string {
     return unidade?.descricao || '';
   }
@@ -132,13 +177,8 @@ export class MaterialTypeForm implements OnInit {
       : this.materialTypeService.create(request);
 
     operation.subscribe({
-      next: () => {
-        this.dialogRef.close(true);
-      },
-      error: (err) => {
-        console.error('Falha ao salvar matéria-prima:', err);
-        this.entityDialog.showErrorSnackbar('Falha ao salvar. Verifique os dados e tente novamente.');
-      }
+      next: () => this.dialogRef.close(true),
+      error: () => this.entityDialog.showErrorSnackbar('Falha ao salvar. Verifique os dados.')
     });
   }
 

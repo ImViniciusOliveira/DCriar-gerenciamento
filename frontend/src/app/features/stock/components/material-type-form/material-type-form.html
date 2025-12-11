@@ -27,7 +27,8 @@
                [matAutocomplete]="auto"
                required>
         <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayUnidade">
-          @for (unidade of unidades$ | async; track unidade.name) {
+          <!-- Itera sobre o signal 'filteredUnidades' que é recalculado automaticamente -->
+          @for (unidade of filteredUnidades(); track unidade.name) {
             <mat-option [value]="unidade">
               {{ unidade.descricao }}
             </mat-option>

@@ -14,6 +14,12 @@ import { MaterialTypeList } from '../material-type-list/material-type-list';
 import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover';
 import { LoteMateriaPrimaForm, LoteMateriaPrimaFormData } from '../lote-materia-prima-form/lote-materia-prima-form';
 
+/**
+ * Componente de listagem de Lotes de Matéria-Prima.
+ *
+ * Utiliza a estratégia `OnPush` e Signals para reagir automaticamente às mudanças
+ * de estado no serviço `LoteMateriaPrimaService`.
+ */
 @Component({
   selector: 'app-batch-list',
   standalone: true,
@@ -36,6 +42,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
 
   tableColumns: TableColumn<LoteMateriaPrima>[] = [];
 
+  // Referências aos templates de célula definidos no HTML
   @ViewChild('tipoTemplate') tipoTemplate!: TemplateRef<any>;
   @ViewChild('saldoTemplate') saldoTemplate!: TemplateRef<any>;
   @ViewChild('unidadeTemplate') unidadeTemplate!: TemplateRef<any>;
@@ -45,6 +52,8 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
   constructor() {
     super();
 
+    // Converte o fluxo de dados do serviço em um Signal de leitura.
+    // Isso permite que o componente reaja a atualizações (filtros, paginação, refresh) automaticamente.
     const lotesResponse = toSignal(
       this.loteService.lotesMateriaPrima$.pipe(
         catchError((error) => {
@@ -55,6 +64,8 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
       )
     );
 
+    // Efeito colateral que sincroniza o estado do Signal com a BaseList.
+    // Atualiza a lista de itens e os metadados de paginação sempre que o serviço emite novos dados.
     effect(() => {
       const response = lotesResponse();
       if (response && response._embedded && response.page) {
@@ -66,6 +77,8 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
   }
 
   ngAfterViewInit(): void {
+    // Configura as colunas da tabela.
+    // Necessário fazer no AfterViewInit pois depende dos @ViewChild templates.
     this.tableColumns = [
       { key: 'nomeTipoMateriaPrima', header: 'Matéria-Prima', sortable: true, cellTemplate: this.tipoTemplate },
       { key: 'saldoEstoque', header: 'Saldo', sortable: true, cellTemplate: this.saldoTemplate },
@@ -73,9 +86,15 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
       { key: 'atributos', header: 'Atributos', sortable: false, cellTemplate: this.atributosTemplate },
       { key: 'acoes', header: 'Ações', cellTemplate: this.acoesTemplate }
     ];
+    // Marca para verificação pois alteramos dados que afetam a view após a inicialização
     this.cdr.detectChanges();
   }
 
+  /**
+   * Sobrescreve o método da BaseList.
+   * Em vez de fazer a requisição manualmente, apenas atualiza os parâmetros no serviço.
+   * O Signal no construtor cuidará de receber os novos dados.
+   */
   override loadItems(): void {
     const sort = this.pagination.sortActive();
     const order = this.pagination.sortDirection();
@@ -87,16 +106,20 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
     });
   }
 
+  /**
+   * Abre o diálogo para gerenciamento de Tipos de Matéria-Prima.
+   */
   openMaterialTypeDialog(): void {
     this.dialog.open(MaterialTypeList, {
       width: '80vw',
       maxWidth: '900px',
-      height: '80vh' // Revertido para o valor original
+      height: '80vh'
     });
   }
 
   async onCreate(): Promise<void> {
     try {
+      // Busca o template HATEOAS para criação
       const template = await lastValueFrom(this.loteService.getNewTemplate());
       this.openFormDialog({
         template,
@@ -139,6 +162,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
       'Confirmar Exclusão'
     ).subscribe(confirmed => {
       if (confirmed) {
+        // O serviço cuidará de atualizar a lista automaticamente após o delete bem-sucedido
         this.loteService.delete(deleteUrl).subscribe({
           next: () => {
             this.entityDialog.showSuccessSnackbar('Lote excluído com sucesso!');
@@ -164,6 +188,9 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
     });
   }
 
+  /**
+   * Converte o objeto de atributos em um array para exibição na tabela.
+   */
   getAtributosAsArray(atributos: { [key: string]: any }): { key: string, value: any }[] {
     if (!atributos) {
       return [];
