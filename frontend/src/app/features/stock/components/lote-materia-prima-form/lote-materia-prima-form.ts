@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, effect, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, effect, ChangeDetectionStrategy, ChangeDetectorRef, signal, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -11,10 +11,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { HttpClient } from '@angular/common/http';
 import { Observable, lastValueFrom, of } from 'rxjs';
 import { startWith, map, debounceTime, distinctUntilChanged, catchError } from 'rxjs/operators';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
 import { LoteMateriaPrima, LoteMateriaPrimaRequest } from '../../models/lote-materia-prima.model';
-import { TipoMateriaPrima } from '../../models/tipo-materia-prima.model';
+import { TipoMateriaPrima } from '../../models/material-type.model';
 import { LoteMateriaPrimaService } from '../../services/lote-materia-prima.service';
 import { MaterialTypeService } from '../../services/material-type.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
@@ -31,6 +31,9 @@ export interface UnidadeOption {
   descricao: string;
 }
 
+/**
+ * Validador para garantir que a unidade selecionada é válida.
+ */
 export function requireMatchUnidade(options: UnidadeOption[]): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const value = control.value;
@@ -41,6 +44,12 @@ export function requireMatchUnidade(options: UnidadeOption[]): ValidatorFn {
   };
 }
 
+/**
+ * Formulário para criação e edição de Lotes de Matéria-Prima.
+ *
+ * Utiliza arquitetura reativa com Signals e OnPush.
+ * Gerencia a busca paginada de tipos de matéria-prima e o carregamento dinâmico de unidades.
+ */
 @Component({
   selector: 'app-lote-materia-prima-form',
   standalone: true,
@@ -51,66 +60,42 @@ export function requireMatchUnidade(options: UnidadeOption[]): ValidatorFn {
   ],
   templateUrl: './lote-materia-prima-form.html',
   styleUrls: ['./lote-materia-prima-form.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush // Ativa a alta performance
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LoteMateriaPrimaForm implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly http = inject(HttpClient);
   private readonly dialogRef = inject(MatDialogRef<LoteMateriaPrimaForm>);
   private readonly loteMateriaPrimaService = inject(LoteMateriaPrimaService);
-  private readonly tipoMateriaPrimaService = inject(MaterialTypeService);
+  private readonly materialTypeService = inject(MaterialTypeService);
   private readonly entityDialog = inject(EntityDialogService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef); // Injetado para limpeza
   public readonly data: LoteMateriaPrimaFormData = inject(MAT_DIALOG_DATA);
 
-  form!: FormGroup;
-  isEditMode = false;
+  form: FormGroup;
+  isEditMode = signal(false);
 
-  // --- Reativo para Tipos de Matéria-Prima ---
-  tiposMateriaPrima: TipoMateriaPrima[] = [];
+  // --- Estado Reativo para Tipos de Matéria-Prima ---
+  tiposMateriaPrima = signal<TipoMateriaPrima[]>([]);
   searchForm: FormGroup;
-  isLoadingTipos = false;
-  totalElementsTipos = 0;
+  isLoadingTipos = signal(false);
+  totalElementsTipos = signal(0);
   private currentPage = 0;
   private readonly pageSize = 20;
 
-  // Para Unidade de Estoque
-  unidades$: Observable<UnidadeOption[]> = new Observable<UnidadeOption[]>();
-  unidades: UnidadeOption[] = [];
+  // --- Estado Reativo para Unidades ---
+  unidades$!: Observable<UnidadeOption[]>;
+  unidades = signal<UnidadeOption[]>([]);
 
   constructor() {
-    this.isEditMode = !!this.data.template.id;
+    this.isEditMode.set(!!this.data.template.id);
 
     this.searchForm = this.fb.group({
       searchName: [''],
       searchUnit: ['']
     });
 
-    // Efeito para reagir a mudanças no serviço e atualizar a lista
-    const tiposResponse = toSignal(
-      this.tipoMateriaPrimaService.getTiposMateriaPrima().pipe(
-        catchError(() => {
-          this.entityDialog.showErrorSnackbar('Falha ao carregar tipos de matéria-prima.');
-          return of(undefined);
-        })
-      )
-    );
-
-    effect(() => {
-      this.isLoadingTipos = false;
-      const response = tiposResponse();
-      if (response) {
-        const newItems = response._embedded?.['tipos-materia-prima'] ?? [];
-        if (response.page.number === 0) {
-          this.tiposMateriaPrima = newItems;
-        } else {
-          this.tiposMateriaPrima = [...this.tiposMateriaPrima, ...newItems];
-        }
-        this.totalElementsTipos = response.page.totalElements;
-      }
-    });
-  }
-
-  async ngOnInit(): Promise<void> {
     this.form = this.fb.group({
       tipoMateriaPrimaId: [this.data.template?.tipoMateriaPrimaId || '', Validators.required],
       unidadeDeEstoque: ['', [Validators.required]],
@@ -120,15 +105,43 @@ export class LoteMateriaPrimaForm implements OnInit {
       atributos: this.fb.array([])
     });
 
+    // Reage às mudanças na lista de tipos de matéria-prima do serviço
+    const tiposResponse = toSignal(
+      this.materialTypeService.getTiposMateriaPrima().pipe(
+        catchError(() => {
+          this.entityDialog.showErrorSnackbar('Falha ao carregar tipos de matéria-prima.');
+          return of(undefined);
+        })
+      )
+    );
+
+    effect(() => {
+      this.isLoadingTipos.set(false);
+      const response = tiposResponse();
+      if (response) {
+        const newItems = response._embedded?.['tipos-materia-prima'] ?? [];
+        if (response.page.number === 0) {
+          this.tiposMateriaPrima.set(newItems);
+        } else {
+          this.tiposMateriaPrima.update(current => [...current, ...newItems]);
+        }
+        this.totalElementsTipos.set(response.page.totalElements);
+      }
+    });
+  }
+
+  async ngOnInit(): Promise<void> {
     await this.initializeForm();
 
     this.unidades$ = this.form.get('unidadeDeEstoque')!.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef), // Limpeza automática
       startWith(''),
-      map(value => (typeof value === 'string' ? this._filterUnidades(value) : this.unidades.slice()))
+      map(value => (typeof value === 'string' ? this._filterUnidades(value) : this.unidades().slice()))
     );
 
-    // Conecta o formulário de busca ao serviço
+    // Conecta a busca de tipos ao serviço
     this.searchForm.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef),
       debounceTime(300),
       distinctUntilChanged()
     ).subscribe(values => {
@@ -139,25 +152,23 @@ export class LoteMateriaPrimaForm implements OnInit {
   async initializeForm(): Promise<void> {
     this.performSearchTipos(); // Busca inicial
 
-    if (this.isEditMode && this.data.template.tipoMateriaPrimaId) {
-      const tipoSelecionado = await lastValueFrom(this.tipoMateriaPrimaService.findById(this.data.template.tipoMateriaPrimaId));
-      if (tipoSelecionado && !this.tiposMateriaPrima.some(t => t.id === tipoSelecionado.id)) {
-        this.tiposMateriaPrima = [tipoSelecionado, ...this.tiposMateriaPrima];
+    // Se estiver editando, garante que o tipo selecionado esteja na lista
+    if (this.isEditMode() && this.data.template.tipoMateriaPrimaId) {
+      const tipoSelecionado = await lastValueFrom(this.materialTypeService.findById(this.data.template.tipoMateriaPrimaId));
+      if (tipoSelecionado && !this.tiposMateriaPrima().some(t => t.id === tipoSelecionado.id)) {
+        this.tiposMateriaPrima.update(current => [tipoSelecionado, ...current]);
       }
     }
 
     this.loadUnidadesDeEstoque();
 
-    if (this.isEditMode && this.data.template.atributos) {
+    if (this.isEditMode() && this.data.template.atributos) {
       Object.entries(this.data.template.atributos).forEach(([key, value]) => {
         this.addAtributo(key, value as string);
       });
     }
 
-    if (this.isEditMode && this.data.template.unidadeDeEstoque) {
-      const unidadeInicial = this.unidades.find(u => u.name === this.data.template.unidadeDeEstoque);
-      this.form.get('unidadeDeEstoque')?.setValue(unidadeInicial);
-    }
+    // A unidade de estoque será setada após o carregamento das opções em loadUnidadesDeEstoque
   }
 
   get atributos(): FormArray {
@@ -182,25 +193,25 @@ export class LoteMateriaPrimaForm implements OnInit {
   // --- Lógica para Tipo de Matéria-Prima ---
 
   performSearchTipos(nome?: string, unidade?: string): void {
-    this.isLoadingTipos = true;
+    this.isLoadingTipos.set(true);
     this.currentPage = 0;
-    this.tipoMateriaPrimaService.updateSearchParams({
+    this.materialTypeService.updateSearchParams({
       page: this.currentPage,
       size: this.pageSize,
-      sort: 'nome,asc', // Ordenação padrão
+      sort: 'nome,asc',
       nome: nome,
       unidadeDeConsumo: unidade
     });
   }
 
   loadMoreTiposMateriaPrima(): void {
-    if (this.isLoadingTipos || this.tiposMateriaPrima.length >= this.totalElementsTipos) {
+    if (this.isLoadingTipos() || this.tiposMateriaPrima().length >= this.totalElementsTipos()) {
       return;
     }
 
-    this.isLoadingTipos = true;
+    this.isLoadingTipos.set(true);
     this.currentPage++;
-    this.tipoMateriaPrimaService.updateSearchParams({ page: this.currentPage });
+    this.materialTypeService.updateSearchParams({ page: this.currentPage });
   }
 
   compareTiposMateriaPrima(o1: TipoMateriaPrima | number, o2: TipoMateriaPrima | number): boolean {
@@ -217,21 +228,27 @@ export class LoteMateriaPrimaForm implements OnInit {
       this.http.get<any>(url).subscribe(response => {
         const embedded = response._embedded;
         if (embedded && embedded.unidadesDeMedida) {
-          this.unidades = embedded.unidadesDeMedida.map((item: any) => ({ name: item.name, descricao: item.descricao }));
-          this.form.get('unidadeDeEstoque')?.setValidators([Validators.required, requireMatchUnidade(this.unidades)]);
-          if (this.isEditMode && this.data.template.unidadeDeEstoque) {
-            const unidadeInicial = this.unidades.find(u => u.name === this.data.template.unidadeDeEstoque);
+          const unidades: UnidadeOption[] = embedded.unidadesDeMedida.map((item: any) => ({ name: item.name, descricao: item.descricao }));
+          this.unidades.set(unidades);
+
+          this.form.get('unidadeDeEstoque')?.setValidators([Validators.required, requireMatchUnidade(unidades)]);
+
+          if (this.isEditMode() && this.data.template.unidadeDeEstoque) {
+            const unidadeInicial = unidades.find(u => u.name === this.data.template.unidadeDeEstoque);
             this.form.get('unidadeDeEstoque')?.setValue(unidadeInicial);
           }
           this.form.get('unidadeDeEstoque')?.updateValueAndValidity();
+
+          // Importante: Notifica o Angular para atualizar a view após a resposta assíncrona
+          this.cdr.markForCheck();
         }
       });
     }
   }
 
-  _filterUnidades(value: string): UnidadeOption[] {
+  private _filterUnidades(value: string): UnidadeOption[] {
     const filterValue = value.toLowerCase();
-    return this.unidades.filter(unidade => unidade.descricao.toLowerCase().includes(filterValue));
+    return this.unidades().filter(unidade => unidade.descricao.toLowerCase().includes(filterValue));
   }
 
   displayUnidade(unidade: UnidadeOption): string {
@@ -257,13 +274,13 @@ export class LoteMateriaPrimaForm implements OnInit {
 
     const request: LoteMateriaPrimaRequest = formValue;
 
-    const operation = this.isEditMode
+    const operation = this.isEditMode()
       ? this.loteMateriaPrimaService.update(this.data.template._links!['update']!.href, request)
       : this.loteMateriaPrimaService.create(request);
 
     operation.subscribe({
       next: () => {
-        this.entityDialog.showSuccessSnackbar(this.isEditMode ? 'Lote atualizado com sucesso!' : 'Lote cadastrado com sucesso!');
+        this.entityDialog.showSuccessSnackbar(this.isEditMode() ? 'Lote atualizado com sucesso!' : 'Lote cadastrado com sucesso!');
         this.dialogRef.close(true);
       },
       error: (err) => {

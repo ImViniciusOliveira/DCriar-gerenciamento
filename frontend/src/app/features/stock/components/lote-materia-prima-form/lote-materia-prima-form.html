@@ -8,10 +8,10 @@
         <mat-label>Tipo de Matéria-Prima</mat-label>
         <mat-select formControlName="tipoMateriaPrimaId" required [compareWith]="compareTiposMateriaPrima"
                     appInfiniteScroll (infiniteScroll)="loadMoreTiposMateriaPrima()">
-          @for (tipo of tiposMateriaPrima; track tipo.id) {
+          @for (tipo of tiposMateriaPrima(); track tipo.id) {
             <mat-option [value]="tipo.id">{{ tipo.nome }}</mat-option>
           }
-          @if (isLoadingTipos) {
+          @if (isLoadingTipos()) {
             <mat-option disabled class="spinner-option">
               <mat-spinner diameter="20"></mat-spinner>
             </mat-option>
@@ -108,9 +108,9 @@
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
-    <button mat-button (click)="onCancel()">Cancelar</button>
+    <button mat-button type="button" (click)="onCancel()">Cancelar</button>
     <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
-      {{ isEditMode ? 'Salvar Alterações' : 'Registrar Lote' }}
+      {{ isEditMode() ? 'Salvar Alterações' : 'Registrar Lote' }}
     </button>
   </mat-dialog-actions>
 </form>
