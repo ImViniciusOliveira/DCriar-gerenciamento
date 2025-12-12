@@ -3,13 +3,25 @@
 <form [formGroup]="form" (ngSubmit)="onSave()">
   <mat-dialog-content>
     <div class="form-grid">
-      <!-- Componente genérico para busca de matéria-prima. -->
+      <!-- Componente de busca de matéria-prima -->
       <div class="full-width">
         <app-materia-prima-search
           [control]="materiaPrimaControl"
-          [isEditMode]="isEditMode()">
+          [isEditMode]="isEditMode()"
+          (selectionChange)="onMaterialTypeChange($event)">
         </app-materia-prima-search>
       </div>
+
+      <!-- Unidade de Estoque -->
+      <mat-form-field appearance="outline">
+        <mat-label>Unidade de Estoque</mat-label>
+        <mat-select formControlName="unidadeDeEstoque">
+          @for (unit of unidadesDeMedida(); track unit.value) {
+            <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>Como este lote será medido no estoque.</mat-hint>
+      </mat-form-field>
 
       <!-- Quantidade Inicial -->
       <mat-form-field appearance="outline">
@@ -45,15 +57,33 @@
       </mat-form-field>
     </div>
 
-    <!-- Atributos Dinâmicos -->
+    <!-- Seção de Especificações Obrigatórias (condicional) -->
+    @if (requiresLargura()) {
+      <fieldset class="specific-attributes">
+        <legend>Especificações do Material</legend>
+        <mat-form-field appearance="outline">
+          <mat-label>Largura (mm)</mat-label>
+          <input matInput type="number" formControlName="larguraMm" required min="1">
+          <mat-hint>Obrigatório para lotes em Metro Linear.</mat-hint>
+          @if (form.get('larguraMm')?.hasError('required')) {
+            <mat-error>A largura é obrigatória para este tipo de lote.</mat-error>
+          }
+          @if (form.get('larguraMm')?.hasError('min')) {
+            <mat-error>A largura deve ser maior que zero.</mat-error>
+          }
+        </mat-form-field>
+      </fieldset>
+    }
+
+    <!-- Atributos Adicionais -->
     <fieldset class="dynamic-attributes">
-      <legend>Atributos do Lote</legend>
+      <legend>Atributos Adicionais</legend>
       <div formArrayName="atributos">
         @for (attrGroup of atributosControls; track $index) {
           <div class="attribute-row" [formGroup]="attrGroup">
             <mat-form-field appearance="outline">
               <mat-label>Nome do Atributo</mat-label>
-              <input matInput formControlName="chave" placeholder="Ex: Largura, Fornecedor" required>
+              <input matInput formControlName="chave" placeholder="Ex: Fornecedor" required>
             </mat-form-field>
             <mat-form-field appearance="outline">
               <mat-label>Valor do Atributo</mat-label>
