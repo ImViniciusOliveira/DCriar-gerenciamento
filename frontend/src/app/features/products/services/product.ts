@@ -8,6 +8,12 @@ import { Hateoas } from '../../../core/models/hateoas.model';
 import { ApiResponseProducts, Product } from '../models/product.model';
 import { Channel } from '../../stock/models/channel-stock.model';
 
+/**
+ * Serviço responsável pelo gerenciamento de Produtos.
+ *
+ * Diferente de outros serviços, este realiza a paginação e ordenação no **lado do cliente** (client-side),
+ * pois a API retorna todos os produtos de uma vez para permitir o cálculo consolidado de estoque.
+ */
 @Injectable({
   providedIn: 'root',
 })
@@ -60,10 +66,13 @@ export class ProductService {
             }
 
             const baseUrl = productsRootUrl.split('{')[0];
+            // Nota: A API de produtos aceita parâmetros de paginação, mas para o cálculo de estoque
+            // consolidado, pode ser necessário buscar tudo. Aqui seguimos o padrão da API.
             const finalUrl = `${baseUrl}?page=${params.page}&size=${params.size}&sort=${params.sort}`;
 
             return this.http.get<any>(finalUrl).pipe(
               switchMap(productsApiResponse => this.enrichProductsWithStock(productsApiResponse)),
+              // Aplica ordenação e paginação no cliente após enriquecer com dados de estoque
               map(responseWithMergedStocks => this.sortAndPaginateClientSide(responseWithMergedStocks, params)),
               catchError(err => {
                 console.error(`Falha ao buscar produtos na página ${params.page}, tamanho ${params.size}`, err);
@@ -197,6 +206,10 @@ export class ProductService {
     );
   }
 
+  /**
+   * Realiza a ordenação e paginação dos produtos no lado do cliente.
+   * Importante: Preserva o `totalElements` original da API para que o paginador funcione corretamente.
+   */
   private sortAndPaginateClientSide(response: ApiResponseProducts, params: { size: number, sort: string }): ApiResponseProducts {
     const products = response._embedded.produtos;
     const [sortField, sortOrder] = params.sort.split(',');
@@ -214,16 +227,17 @@ export class ProductService {
       return 0;
     });
 
-    const totalElementsCombined = products.length;
-    const totalPagesCombined = Math.ceil(totalElementsCombined / params.size);
+    // Usa o totalElements da API se disponível, caso contrário usa o tamanho da lista atual.
+    // Isso é crucial para que o MatPaginator saiba que existem mais páginas.
+    const totalElementsFromApi = response.page?.totalElements ?? products.length;
 
     return {
       _embedded: { produtos: products },
       _links: response._links,
       page: {
         size: params.size,
-        totalElements: totalElementsCombined,
-        totalPages: totalPagesCombined,
+        totalElements: totalElementsFromApi,
+        totalPages: Math.ceil(totalElementsFromApi / params.size),
         number: response.page?.number ?? 0
       }
     } as ApiResponseProducts;

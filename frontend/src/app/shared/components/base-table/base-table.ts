@@ -15,16 +15,13 @@ export interface TableColumn<T> {
   header: string;
   sortable?: boolean;
   sortKey?: string;
-  // A tipagem correta para o contexto do ngTemplateOutlet.
-  // Isso informa ao TypeScript que o template espera um objeto de contexto
-  // com uma propriedade `$implicit` do tipo T, resolvendo o warning de 'T' não utilizado.
   cellTemplate: TemplateRef<{ $implicit: T }>;
 }
 
 /**
  * Um componente de tabela genérico e reutilizável, construído sobre o Angular Material.
- * Ele é configurado através de inputs e emite eventos para paginação e ordenação,
- * delegando a lógica de busca de dados para o componente pai.
+ * É projetado para funcionar com paginação e ordenação no servidor (server-side),
+ * recebendo seus dados e estado de paginação via inputs.
  */
 @Component({
   selector: 'app-base-table',
@@ -63,22 +60,20 @@ export class BaseTable<T> {
   constructor() {
     this.dataSource = new MatTableDataSource<T>([]);
 
-    // Um `effect` é usado para reagir a mudanças nos sinais e executar
-    // efeitos colaterais, substituindo a necessidade do `ngOnChanges`.
+    // Reage a mudanças nos dados de entrada e atualiza a tabela.
     effect(() => {
-      // Quando o sinal `items` mudar, atualiza os dados da tabela.
       this.dataSource.data = this.items();
     });
 
+    // Reage a mudanças nos inputs de paginação e atualiza o MatPaginator.
     effect(() => {
-      // Quando os sinais de `paginator` e `sort` estiverem disponíveis,
-      // conecta-os à fonte de dados da tabela.
       const currentPaginator = this.paginator();
       const currentSort = this.sort();
 
       if (currentPaginator) {
-        this.dataSource.paginator = currentPaginator;
-        // Força o paginador a atualizar seu estado visual
+        // IMPORTANTE: Não conectamos o paginador ao dataSource (this.dataSource.paginator = currentPaginator)
+        // porque estamos usando paginação no servidor. Se conectássemos, o MatTableDataSource
+        // assumiria o controle e basearia o 'length' apenas nos dados da página atual, quebrando a navegação.
         currentPaginator.pageIndex = this.pageIndex();
         currentPaginator.pageSize = this.pageSize();
         currentPaginator.length = this.totalElements();

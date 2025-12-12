@@ -14,6 +14,7 @@ import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover';
+import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 
 @Component({
   selector: 'app-product-list',
@@ -30,12 +31,14 @@ import { DetailsPopover } from '../../../../shared/components/details-popover/de
   ],
   templateUrl: './product-list.html',
   styleUrls: ['./product-list.scss'],
+  // Fornece uma instância local do PaginationHandler para esta lista.
+  // Isso isola o estado da paginação (tamanho da página, etc.) de outras listas na aplicação.
+  providers: [PaginationHandler]
 })
 export class ProductList extends BaseList<Product> implements AfterViewInit {
   private readonly productService = inject(ProductService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  /** Textos estáticos para diálogos e snackbars. */
   private static readonly Texts = {
     deleteConfirmTitle: 'Confirmar Exclusão',
     deleteSuccess: 'Produto excluído com sucesso!',
@@ -46,10 +49,8 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
     createError: 'Não foi possível iniciar o cadastro de um novo produto.',
   };
 
-  /** Colunas da tabela de produtos. */
   tableColumns: TableColumn<Product>[] = [];
 
-  // --- Referências aos templates do HTML para as células da tabela ---
   @ViewChild('skuTemplate') skuTemplate!: TemplateRef<any>;
   @ViewChild('nomeTemplate') nomeTemplate!: TemplateRef<any>;
   @ViewChild('ativoTemplate') ativoTemplate!: TemplateRef<any>;
@@ -60,26 +61,24 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
 
   constructor() {
     super();
-    // Converte o Observable de produtos do serviço em um signal.
-    // O tratamento de erro é feito via pipe catchError, pois a opção 'reject' não está disponível.
+    // Converte o Observable de produtos do serviço em um signal para consumo reativo.
     const productsResponse = toSignal(
       this.productService.getProducts().pipe(
         catchError((error) => {
           console.error('Erro ao carregar produtos:', error);
           this.entityDialog.showErrorSnackbar(ProductList.Texts.loadError);
-          // Retorna undefined ou um valor vazio para manter o signal válido
           return of(undefined);
         })
       )
     );
 
-    // Efeito que reage a novas emissões do `productsResponse` signal.
+    // Reage a novas emissões do serviço e atualiza o estado da lista.
     effect(() => {
       const response = productsResponse();
       if (response) {
         const products = response._embedded?.produtos ?? [];
         this.pagination.updateTotalElements(response.page?.totalElements ?? 0);
-        this.items.set(products); // Atualiza o signal `items` da classe base.
+        this.items.set(products);
       }
     });
   }
@@ -94,13 +93,12 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
       { key: 'estoquePorCanal', header: 'Canais', sortable: false, cellTemplate: this.estoquePorCanalTemplate },
       { key: 'acoes', header: 'Ações', sortable: false, cellTemplate: this.acoesTemplate },
     ];
-    // Garante que as colunas sejam renderizadas após a inicialização da view.
     this.cdr.detectChanges();
   }
 
   /**
-   * Chamado pela BaseList quando a paginação ou ordenação muda.
-   * A única responsabilidade é notificar o serviço sobre os novos parâmetros.
+   * Notifica o serviço sobre mudanças na paginação ou ordenação.
+   * A atualização da lista ocorre reativamente através do `effect` no construtor.
    */
   override loadItems(): void {
     this.productService.updateSearchParams(
@@ -120,7 +118,6 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
           this.entityDialog.showErrorSnackbar(ProductList.Texts.deleteError);
           return;
         }
-        // A lista será atualizada automaticamente pelo `refreshTrigger` no serviço.
         this.productService.deleteProduct(deleteUrl).subscribe({
           next: () => this.entityDialog.showSuccessSnackbar(ProductList.Texts.deleteSuccess),
           error: () => this.entityDialog.showErrorSnackbar(ProductList.Texts.deleteError)
@@ -164,13 +161,9 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
       if (saved && successMessage) {
         this.entityDialog.showSuccessSnackbar(successMessage);
       }
-      // A lista é atualizada automaticamente pelo `refreshTrigger` no serviço.
     });
   }
 
-  /**
-   * Formata os detalhes de um produto para exibição no popover.
-   */
   getProductDetails(product: Product): { key: string, value: string }[] {
     const details: { key: string, value: string }[] = [];
     if (product.tipoProduto === 'CORTE') {
