@@ -11,6 +11,7 @@ import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { TipoMateriaPrima } from '../../models/material-type.model';
 import { MaterialTypeService } from '../../services/material-type.service';
 import { MaterialTypeForm, MaterialTypeFormData } from '../material-type-form/material-type-form';
+import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 
 /**
  * Componente de listagem de Tipos de Matéria-Prima.
@@ -24,7 +25,8 @@ import { MaterialTypeForm, MaterialTypeFormData } from '../material-type-form/ma
   imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule, BaseTable],
   templateUrl: './material-type-list.html',
   styleUrls: ['./material-type-list.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [PaginationHandler]
 })
 export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements AfterViewInit {
   private readonly materialTypeService = inject(MaterialTypeService);

@@ -35,8 +35,6 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
   templateUrl: './batch-list.html',
   styleUrls: ['./batch-list.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  // Fornece uma instância local do PaginationHandler para esta lista.
-  // Isso isola o estado da paginação (tamanho da página, etc.) de outras listas na aplicação.
   providers: [PaginationHandler]
 })
 export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewInit {
