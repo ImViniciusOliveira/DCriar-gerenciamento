@@ -1,10 +1,10 @@
 import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, effect, ChangeDetectionStrategy } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { lastValueFrom, catchError, of } from 'rxjs';
-import { toSignal } from '@angular/core/rxjs-interop';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
@@ -13,6 +13,7 @@ import { LoteMateriaPrimaService } from '../../services/lote-materia-prima.servi
 import { MaterialTypeList } from '../material-type-list/material-type-list';
 import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover';
 import { LoteMateriaPrimaForm, LoteMateriaPrimaFormData } from '../lote-materia-prima-form/lote-materia-prima-form';
+import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 
 /**
  * Componente de listagem de Lotes de Matéria-Prima.
@@ -33,7 +34,10 @@ import { LoteMateriaPrimaForm, LoteMateriaPrimaFormData } from '../lote-materia-
   ],
   templateUrl: './batch-list.html',
   styleUrls: ['./batch-list.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  // Fornece uma instância local do PaginationHandler para esta lista.
+  // Isso isola o estado da paginação (tamanho da página, etc.) de outras listas na aplicação.
+  providers: [PaginationHandler]
 })
 export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewInit {
   private readonly cdr = inject(ChangeDetectorRef);
@@ -52,8 +56,8 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
   constructor() {
     super();
 
-    // Converte o fluxo de dados do serviço em um Signal de leitura.
-    // Isso permite que o componente reaja a atualizações (filtros, paginação, refresh) automaticamente.
+    // Converte o Observable de lotes do serviço em um signal para consumo reativo.
+    // O tratamento de erro é feito aqui para garantir que o signal sempre tenha um valor válido.
     const lotesResponse = toSignal(
       this.loteService.lotesMateriaPrima$.pipe(
         catchError((error) => {
@@ -64,13 +68,13 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
       )
     );
 
-    // Efeito colateral que sincroniza o estado do Signal com a BaseList.
-    // Atualiza a lista de itens e os metadados de paginação sempre que o serviço emite novos dados.
+    // Reage a novas emissões do serviço e atualiza o estado da lista.
+    // Sincroniza os dados recebidos com o estado interno da BaseList e do PaginationHandler.
     effect(() => {
       const response = lotesResponse();
-      if (response && response._embedded && response.page) {
-        const items = response._embedded['lotes-materia-prima'] ?? [];
-        this.pagination.updateTotalElements(response.page.totalElements);
+      if (response) {
+        const items = response._embedded?.['lotes-materia-prima'] ?? [];
+        this.pagination.updateTotalElements(response.page?.totalElements ?? 0);
         this.items.set(items);
       }
     });
@@ -91,18 +95,14 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
   }
 
   /**
-   * Sobrescreve o método da BaseList.
-   * Em vez de fazer a requisição manualmente, apenas atualiza os parâmetros no serviço.
-   * O Signal no construtor cuidará de receber os novos dados.
+   * Notifica o serviço sobre mudanças na paginação ou ordenação.
+   * A atualização da lista ocorre reativamente através do `effect` no construtor.
    */
   override loadItems(): void {
-    const sort = this.pagination.sortActive();
-    const order = this.pagination.sortDirection();
-
     this.loteService.updateSearchParams({
       page: this.pagination.pageIndex(),
       size: this.pagination.pageSize(),
-      sort: `${sort},${order}`
+      sort: this.pagination.sortString()
     });
   }
 
@@ -190,6 +190,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
 
   /**
    * Converte o objeto de atributos em um array para exibição na tabela.
+   * Necessário porque o template itera sobre uma lista, mas os atributos vêm como um mapa.
    */
   getAtributosAsArray(atributos: { [key: string]: any }): { key: string, value: any }[] {
     if (!atributos) {
