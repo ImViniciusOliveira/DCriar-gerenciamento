@@ -1,5 +1,6 @@
 package com.dcriar.api.hateoas.stock.assembler;
 
+import com.dcriar.api.controller.enums.StockEnumController;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
 import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
@@ -55,10 +56,9 @@ public class LoteMateriaPrimaModelAssembler extends RepresentationModelAssembler
             }
         } else {
             // Links para o esqueleto de criação
-            model.add(linkTo(LoteMateriaPrimaController.class).withRel("create")); // Link para a coleção para POST
-            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("tipos-materia-prima"));
-            // Adicionar link para unidades de medida no esqueleto
-            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).getNewTemplate()).withRel("unidades-de-medida"));
+            model.add(linkTo(LoteMateriaPrimaController.class).withRel("create"));
+            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("tipos-materia-prima"));            // Adiciona o link correto para buscar as opções de unidades de medida.
+            model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida()).withRel("unidades-de-medida"));
         }
 
         return model;
