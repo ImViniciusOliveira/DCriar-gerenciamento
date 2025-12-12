@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, Signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, Signal, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -27,9 +27,9 @@ export interface LoteMateriaPrimaFormData {
 }
 
 /**
- * Formulário para criação e edição de Lotes de Matéria-Prima.
- * Adapta-se dinamicamente à matéria-prima selecionada, exigindo atributos
- * específicos como 'larguraMm' quando a unidade de estoque é METRO_LINEAR.
+ * Formulário inteligente para Lotes de Matéria-Prima.
+ * Adapta-se dinamicamente para garantir a conformidade com as regras de negócio do backend,
+ * como a exigência de largura para materiais em rolo e a compatibilidade entre unidades.
  */
 @Component({
   selector: 'app-lote-materia-prima-form',
@@ -55,12 +55,15 @@ export class LoteMateriaPrimaForm implements OnInit {
 
   form: FormGroup;
   isEditMode = signal(false);
-  /** Signal que determina se o campo 'larguraMm' deve ser exibido e obrigatório. */
   requiresLargura: Signal<boolean>;
 
-  /** Signal que contém a lista de opções para o select 'Unidade de Estoque'. */
-  unidadesDeMedida: Signal<EnumOption[]>;
+  private readonly todasUnidadesDeMedida: Signal<EnumOption[]>;
+  /** Opções de 'Unidade de Estoque' filtradas com base na matéria-prima selecionada para evitar combinações inválidas. */
+  opcoesUnidadeEstoque: Signal<EnumOption[]>;
+
   private readonly unitsUrl = signal<string | null>(null);
+  /** Signal que armazena a matéria-prima atualmente selecionada para alimentar a lógica reativa. */
+  private materiaPrimaSignal = signal<TipoMateriaPrima | null>(null);
 
   private static readonly Texts = {
     CONFIRM_DELETE_ATTR_TITLE: 'Confirmar Remoção',
@@ -81,52 +84,67 @@ export class LoteMateriaPrimaForm implements OnInit {
     });
 
     const unidadeEstoque$ = this.form.get('unidadeDeEstoque')!.valueChanges;
-    // Reage à seleção da unidade de estoque para determinar se a largura é necessária.
     this.requiresLargura = toSignal(unidadeEstoque$.pipe(map(unidade => unidade === 'METRO_LINEAR')), { initialValue: false });
 
-    // Converte o signal da URL em um Observable para que o `switchMap` possa reagir a ele.
-    const unitsUrl$ = toObservable(this.unitsUrl).pipe(
-      filter((url): url is string => !!url)
+    const unitsUrl$ = toObservable(this.unitsUrl).pipe(filter((url): url is string => !!url));
+    this.todasUnidadesDeMedida = toSignal(
+      unitsUrl$.pipe(switchMap(url => this.enumService.getEnumOptions(url, 'unidadesDeMedida'))),
+      { initialValue: [] }
     );
 
-    // Busca as unidades de medida de forma reativa assim que a URL for descoberta.
-    this.unidadesDeMedida = toSignal(
-      unitsUrl$.pipe(
-        switchMap(url => this.enumService.getEnumOptions(url, 'unidadesDeMedida'))
-      ), { initialValue: [] }
-    );
+    // Filtra as opções de unidade de estoque para prevenir erros de negócio no backend.
+    this.opcoesUnidadeEstoque = computed(() => {
+      const materiaPrima = this.materiaPrimaSignal();
+      const todasUnidades = this.todasUnidadesDeMedida();
 
-    // Ajusta a validação do campo de largura sempre que a unidade de estoque mudar.
+      // REGRA: A unidade de estoque METRO_LINEAR só é permitida se a unidade de consumo da matéria-prima for CENTIMETRO_QUADRADO.
+      if (materiaPrima && materiaPrima.unidadeDeConsumo !== 'CENTIMETRO_QUADRADO') {
+        return todasUnidades.filter(u => u.value !== 'METRO_LINEAR');
+      }
+
+      return todasUnidades;
+    });
+
+    // Garante que, se as opções de unidade mudarem e o valor selecionado se tornar inválido, o campo seja limpo.
+    effect(() => {
+      const opcoes = this.opcoesUnidadeEstoque();
+      const control = this.form.get('unidadeDeEstoque');
+      const valorAtual = control?.value;
+
+      if (valorAtual && opcoes.length > 0 && !opcoes.some(opt => opt.value === valorAtual)) {
+        control.setValue(null, { emitEvent: false });
+      }
+    });
+
     unidadeEstoque$.pipe(takeUntilDestroyed()).subscribe(unidade => {
       this.updateLarguraValidation(unidade);
     });
   }
 
   ngOnInit(): void {
-    // Pega a URL para as unidades de medida do link HATEOAS fornecido pelo backend.
     const url = this.data.template._links?.['unidades-de-medida']?.href;
     if (url) {
       this.unitsUrl.set(url);
     } else {
-      console.error("URL para 'unidades-de-medida' não encontrada no template do lote. O select de unidades ficará vazio.");
+      console.error("URL para 'unidades-de-medida' não encontrada no template do lote.");
     }
 
-    this.initializeForm();
+    // Inicia o carregamento dos dados do formulário sem bloquear a inicialização do componente.
+    this.initializeForm().catch(err => console.error('Erro na inicialização do formulário:', err));
   }
 
-  /**
-   * Prepara o formulário, populando-o com dados existentes se estiver em modo de edição.
-   */
   async initializeForm(): Promise<void> {
     if (this.isEditMode() && this.data.template.tipoMateriaPrimaId) {
       try {
         const tipoMateriaPrima = await lastValueFrom(this.materialTypeService.findById(this.data.template.tipoMateriaPrimaId));
-        this.form.get('materiaPrima')?.setValue(tipoMateriaPrima);
+        this.materiaPrimaSignal.set(tipoMateriaPrima);
+        this.form.patchValue({
+          materiaPrima: tipoMateriaPrima,
+          unidadeDeEstoque: this.data.template.unidadeDeEstoque
+        });
 
-        const unidadeEstoque = this.data.template.unidadeDeEstoque;
-        this.form.get('unidadeDeEstoque')?.setValue(unidadeEstoque);
-        if (unidadeEstoque) {
-          this.updateLarguraValidation(unidadeEstoque);
+        if (this.data.template.unidadeDeEstoque) {
+          this.updateLarguraValidation(this.data.template.unidadeDeEstoque);
         }
 
       } catch (error) {
@@ -138,7 +156,6 @@ export class LoteMateriaPrimaForm implements OnInit {
     if (this.isEditMode() && this.data.template.atributos) {
       this.atributos.clear();
       Object.entries(this.data.template.atributos).forEach(([key, value]) => {
-        // Separa o atributo 'larguraMm' para o campo dedicado.
         if (key === 'larguraMm') {
           this.form.get('larguraMm')?.setValue(value);
         } else {
@@ -161,19 +178,15 @@ export class LoteMateriaPrimaForm implements OnInit {
     return this.form.get('materiaPrima') as FormControl;
   }
 
-  /**
-   * Ao selecionar uma matéria-prima, define a 'unidadeDeEstoque' sugerida
-   * com base na 'unidadeDeConsumo' do material.
-   */
   onMaterialTypeChange(event: MatSelectChange): void {
     const materialType = event.value as TipoMateriaPrima;
-    this.form.get('unidadeDeEstoque')?.setValue(materialType.unidadeDeConsumo);
+    this.materiaPrimaSignal.set(materialType);
+    this.form.patchValue({
+      materiaPrima: materialType,
+      unidadeDeEstoque: materialType.unidadeDeConsumo
+    });
   }
 
-  /**
-   * Adiciona ou remove o validador 'required' do campo 'larguraMm'
-   * com base na unidade de estoque selecionada.
-   */
   private updateLarguraValidation(unidade: string | null): void {
     const larguraControl = this.form.get('larguraMm');
     if (unidade === 'METRO_LINEAR') {
@@ -185,18 +198,14 @@ export class LoteMateriaPrimaForm implements OnInit {
     larguraControl?.updateValueAndValidity();
   }
 
-  /**
-   * Adiciona um novo atributo dinâmico ao formulário.
-   */
   addAtributo(chave: string = '', valor: string = '', isNew: boolean = true): void {
     this.atributos.push(this.fb.group({
       chave: [chave, Validators.required],
       valor: [valor, Validators.required],
-      isNew: [isNew] // Controle interno para a lógica de remoção
+      isNew: [isNew]
     }));
 
     if (isNew) {
-      // Scroll automático para o novo elemento adicionado.
       setTimeout(() => {
         const dialogContent = (this.dialogRef as any)._containerInstance._elementRef.nativeElement.querySelector('mat-dialog-content');
         if (dialogContent) {
@@ -206,9 +215,6 @@ export class LoteMateriaPrimaForm implements OnInit {
     }
   }
 
-  /**
-   * Remove um atributo, pedindo confirmação se ele já existia.
-   */
   async removeAtributo(index: number): Promise<void> {
     const attrGroup = this.atributos.at(index);
     const isNew = attrGroup.get('isNew')?.value;
@@ -235,9 +241,6 @@ export class LoteMateriaPrimaForm implements OnInit {
     }
   }
 
-  /**
-   * Processa e salva os dados do formulário.
-   */
   onSave(): void {
     if (this.form.invalid) {
       return;
@@ -246,7 +249,6 @@ export class LoteMateriaPrimaForm implements OnInit {
     const formValue = this.form.getRawValue();
     const materiaPrima: TipoMateriaPrima = formValue.materiaPrima;
 
-    // Junta os atributos dinâmicos com o atributo de largura, se aplicável.
     const atributosMap: { [key: string]: any } = {};
     (formValue.atributos || []).forEach((attr: { chave: string; valor: string }) => {
       if (attr.chave) {

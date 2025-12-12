@@ -16,7 +16,7 @@
       <mat-form-field appearance="outline">
         <mat-label>Unidade de Estoque</mat-label>
         <mat-select formControlName="unidadeDeEstoque">
-          @for (unit of unidadesDeMedida(); track unit.value) {
+          @for (unit of opcoesUnidadeEstoque(); track unit.value) {
             <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
           }
         </mat-select>
