@@ -46,12 +46,7 @@ public class VendaModelAssembler extends RepresentationModelAssemblerSupport<Ven
      * Links adicionados:
      * <ul>
      *   <li>Auto (self)</li>
-     *   <li>Outros links relevantes do recurso de venda</li>
      * </ul>
-     * Exemplo de uso:
-     * <pre>
-     *   VendaModel model = vendaModelAssembler.toModel(vendaResponseDTO);
-     * </pre>
      * @param dto DTO de resposta da venda
      * @return Modelo HATEOAS enriquecido
      */
@@ -76,7 +71,6 @@ public class VendaModelAssembler extends RepresentationModelAssemblerSupport<Ven
         }
 
         model.add(linkTo(methodOn(VendaController.class).findById(dto.getId())).withSelfRel());
-        model.add(linkTo(methodOn(VendaController.class).findAll()).withRel("vendas"));
 
         return model;
     }

@@ -6,6 +6,8 @@ import com.dcriar.api.hateoas.sales.assembler.VendaModelAssembler;
 import com.dcriar.api.hateoas.sales.model.VendaModel;
 import com.dcriar.domain.sales.service.VendaService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,11 +15,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.hateoas.CollectionModel;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * Controller responsável por expor os endpoints da API para o recurso de Vendas.
@@ -53,18 +59,24 @@ public class VendaController {
     }
 
     /**
-     * Lista todas as vendas registradas no sistema.
+     * Lista todas as vendas registradas no sistema de forma paginada.
      * <p>
-     * Exemplo de uso: GET /api/v1/vendas
+     * Exemplo de uso: GET /api/v1/vendas?page=0&size=10&sort=id,asc
      *
-     * @return Lista de vendas com links HATEOAS
+     * @return Lista de vendas com links HATEOAS e informações de paginação.
      */
     @GetMapping
     @Operation(summary = "Listar todas as vendas")
     @ApiResponse(responseCode = "200", description = "Lista de vendas retornada com sucesso.")
-    public ResponseEntity<CollectionModel<VendaModel>> findAll() {
-        List<VendaResponseDTO> vendas = vendaService.findAll();
-        return ResponseEntity.ok(vendaModelAssembler.toCollectionModel(vendas));
+    @Parameters({
+            @Parameter(name = "sort", description = "Critério de ordenação no formato: propriedade,asc|desc.", example = "id,asc")
+    })
+    public ResponseEntity<PagedModel<VendaModel>> findAll(
+            @ParameterObject @PageableDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable,
+            PagedResourcesAssembler<VendaResponseDTO> pagedResourcesAssembler) {
+        Page<VendaResponseDTO> vendasPage = vendaService.findAll(pageable);
+        PagedModel<VendaModel> pagedModel = pagedResourcesAssembler.toModel(vendasPage, vendaModelAssembler);
+        return ResponseEntity.ok(pagedModel);
     }
 
     /**

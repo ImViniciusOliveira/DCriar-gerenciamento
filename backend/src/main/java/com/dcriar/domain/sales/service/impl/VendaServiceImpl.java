@@ -23,6 +23,8 @@ import com.dcriar.domain.sales.repository.VendaRepository;
 import com.dcriar.domain.sales.service.VendaService;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -116,8 +118,9 @@ public class VendaServiceImpl implements VendaService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<VendaResponseDTO> findAll() {
-        return vendaRepository.findAll().stream().map(vendaMapper::toResponseDTO).collect(Collectors.toList());
+    public Page<VendaResponseDTO> findAll(Pageable pageable) {
+        return vendaRepository.findAll(pageable)
+                .map(vendaMapper::toResponseDTO);
     }
 
     @Override

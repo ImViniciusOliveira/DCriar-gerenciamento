@@ -2,8 +2,8 @@ package com.dcriar.domain.sales.service;
 
 import com.dcriar.api.dto.request.sales.VendaRequestDTO;
 import com.dcriar.api.dto.response.sales.VendaResponseDTO;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Interface que define o contrato para a lógica de negócio de Vendas (Sales).
@@ -16,11 +16,12 @@ public interface VendaService {
     VendaResponseDTO registrarVenda(VendaRequestDTO requestDTO);
 
     /**
-     * Lista todas as vendas registadas no sistema.
+     * Lista todas as vendas registadas no sistema de forma paginada.
      *
-     * @return Uma lista com os DTOs de resposta de todas as vendas.
+     * @param pageable Objeto com as informações de paginação.
+     * @return Uma página de DTOs de resposta de vendas.
      */
-    List<VendaResponseDTO> findAll();
+    Page<VendaResponseDTO> findAll(Pageable pageable);
 
     /**
      * Busca uma venda específica pelo seu ID.
@@ -30,4 +31,3 @@ public interface VendaService {
      */
     VendaResponseDTO findById(Long id);
 }
-
