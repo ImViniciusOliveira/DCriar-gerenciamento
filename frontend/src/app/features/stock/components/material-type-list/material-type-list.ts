@@ -26,7 +26,7 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
   templateUrl: './material-type-list.html',
   styleUrls: ['./material-type-list.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [PaginationHandler]
+  providers: [PaginationHandler, MaterialTypeService]
 })
 export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements AfterViewInit {
   private readonly materialTypeService = inject(MaterialTypeService);

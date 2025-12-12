@@ -26,8 +26,8 @@ export const routes: Routes = [
     path: 'vendas',
     title: 'D-Criar | Vendas',
     loadComponent: () =>
-      import('./features/sales/components/sale-list/sale-list').then(
-        (m) => m.SaleListComponent
+      import('./features/sales/components/sales-list/sales-list').then(
+        (m) => m.SalesList
       ),
   },
   {
