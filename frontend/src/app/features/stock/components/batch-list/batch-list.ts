@@ -62,7 +62,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
   @ViewChild('actionsTemplate') actionsTemplate!: TemplateRef<any>;
 
   constructor() {
-    super();
+    super('batches'); // Passa a chave única para a classe base.
 
     const lotesResponse = toSignal(
       this.batchService.batches$.pipe(

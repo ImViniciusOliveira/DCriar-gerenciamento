@@ -63,7 +63,7 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
 
   constructor() {
-    super();
+    super('products'); // Passa a chave única para a classe base.
     const productsResponse = toSignal(
       this.productService.getProducts().pipe(
         catchError((error) => {
