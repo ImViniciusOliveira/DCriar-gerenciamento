@@ -30,7 +30,7 @@ export abstract class BaseList<T> {
    */
   abstract loadItems(): void;
 
-  constructor() {
+  protected constructor() {
     // --- LÓGICA REATIVA ---
     // Este `effect` é o coração da classe base. Ele cria uma dependência
     // com os sinais de paginação e ordenação.

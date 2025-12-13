@@ -8,7 +8,7 @@ import { lastValueFrom, catchError, of } from 'rxjs';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
-import { TipoMateriaPrima } from '../../models/material-type.model';
+import { MaterialType } from '../../models/material-type.model';
 import { MaterialTypeService } from '../../services/material-type.service';
 import { MaterialTypeForm, MaterialTypeFormData } from '../material-type-form/material-type-form';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
@@ -28,11 +28,11 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PaginationHandler, MaterialTypeService]
 })
-export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements AfterViewInit {
+export class MaterialTypeList extends BaseList<MaterialType> implements AfterViewInit {
   private readonly materialTypeService = inject(MaterialTypeService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  tableColumns: TableColumn<TipoMateriaPrima>[] = [];
+  tableColumns: TableColumn<MaterialType>[] = [];
 
   // Referências aos templates de célula definidos no HTML
   @ViewChild('nameTemplate') nameTemplate!: TemplateRef<any>;
@@ -45,7 +45,7 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
     // Converte o fluxo de dados do serviço em um Signal de leitura.
     // Isso permite que o componente reaja a atualizações (filtros, paginação, refresh) automaticamente.
     const materialTypesResponse = toSignal(
-      this.materialTypeService.getTiposMateriaPrima().pipe(
+      this.materialTypeService.getMaterialTypes().pipe(
         catchError((error) => {
           console.error('Erro ao carregar tipos de matéria-prima:', error);
           this.entityDialog.showErrorSnackbar('Falha ao carregar a lista.');
@@ -108,7 +108,7 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
     }
   }
 
-  async editItem(item: TipoMateriaPrima): Promise<void> {
+  async editItem(item: MaterialType): Promise<void> {
     const selfUrl = item._links?.['self']?.href;
     if (!selfUrl) {
       this.entityDialog.showErrorSnackbar('Não foi possível encontrar o recurso.');
@@ -127,7 +127,7 @@ export class MaterialTypeList extends BaseList<TipoMateriaPrima> implements Afte
     }
   }
 
-  deleteItem(item: TipoMateriaPrima): void {
+  deleteItem(item: MaterialType): void {
     const deleteUrl = item._links?.['delete']?.href;
     if (!deleteUrl) {
       this.entityDialog.showErrorSnackbar('Não foi possível encontrar a ação de exclusão.');

@@ -8,7 +8,7 @@ import { lastValueFrom, catchError, of } from 'rxjs';
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { Product } from '../../models/product.model';
-import { ProductService } from '../../services/product';
+import { ProductService } from '../../services/product.service';
 import { ProductFormComponent, ProductFormData } from '../product-form/product-form';
 import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';

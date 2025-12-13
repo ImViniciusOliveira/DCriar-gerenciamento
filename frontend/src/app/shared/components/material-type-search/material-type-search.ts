@@ -11,7 +11,7 @@ import { of } from 'rxjs';
 import { filter, map, switchMap, debounceTime, distinctUntilChanged, catchError, take } from 'rxjs/operators';
 import { ApiRoot } from '../../../core/services/api-root';
 import { EnumOption, EnumService } from '../../../core/services/enum.service';
-import { TipoMateriaPrima } from '../../../features/stock/models/material-type.model';
+import { ApiResponseMaterialTypes, MaterialType } from '../../../features/stock/models/material-type.model';
 import { InfiniteScrollDirective } from '../../../features/stock/services/infinite-scroll.directive';
 import { MaterialTypeService } from '../../../features/stock/services/material-type.service';
 
@@ -20,7 +20,7 @@ import { MaterialTypeService } from '../../../features/stock/services/material-t
  * Utiliza Angular Signals para um gerenciamento de estado moderno e reativo.
  */
 @Component({
-  selector: 'app-materia-prima-search',
+  selector: 'app-material-type-search',
   standalone: true,
   imports: [
     FormsModule,
@@ -33,10 +33,10 @@ import { MaterialTypeService } from '../../../features/stock/services/material-t
     MatProgressSpinnerModule,
     InfiniteScrollDirective
   ],
-  templateUrl: './materia-prima-search.html',
-  styleUrls: ['./materia-prima-search.scss'],
+  templateUrl: './material-type-search.html',
+  styleUrls: ['./material-type-search.scss'],
 })
-export class MateriaPrimaSearchComponent implements OnInit {
+export class MaterialTypeSearch implements OnInit {
   // --- Entradas e Saídas Modernas com Signals ---
   /**
    * O FormControl que será vinculado ao mat-select interno.
@@ -57,11 +57,11 @@ export class MateriaPrimaSearchComponent implements OnInit {
 
   // --- Estado Interno do Componente com Signals ---
   searchForm: FormGroup;
-  materialTypes: WritableSignal<TipoMateriaPrima[]> = signal([]);
+  materialTypes: WritableSignal<MaterialType[]> = signal([]);
   isSearching = signal(false);
   totalElements = signal(0);
   /** Armazena a matéria-prima original para exibição no modo de edição. */
-  originalMateriaPrima = signal<TipoMateriaPrima | undefined>(undefined);
+  originalMateriaPrima = signal<MaterialType | undefined>(undefined);
 
   // --- Paginação ---
   private currentPage = 0;
@@ -103,12 +103,12 @@ export class MateriaPrimaSearchComponent implements OnInit {
 
     // Reage à resposta do serviço de busca de matéria-prima.
     const materialTypesResponse = toSignal(
-      this.materialTypeService.getTiposMateriaPrima().pipe(catchError(() => of(undefined)))
+      this.materialTypeService.getMaterialTypes().pipe(catchError(() => of(undefined)))
     );
 
     effect(() => {
       this.isSearching.set(false);
-      const response = materialTypesResponse();
+      const response: ApiResponseMaterialTypes | undefined = materialTypesResponse();
       if (response) {
         const newItems = response._embedded?.['tipos-materia-prima'] ?? [];
         // Se for a primeira página, substitui a lista; senão, concatena.
@@ -144,7 +144,7 @@ export class MateriaPrimaSearchComponent implements OnInit {
         filter(value => !!value), // Ignora valores nulos.
         take(1), // Pega apenas o primeiro valor e encerra.
         takeUntilDestroyed(this.destroyRef) // Garante a limpeza da subscrição.
-      ).subscribe((initialValue: TipoMateriaPrima) => {
+      ).subscribe((initialValue: MaterialType) => {
         if (!this.originalMateriaPrima()) {
           this.originalMateriaPrima.set(initialValue);
           // Garante que o valor inicial esteja na lista de opções do select.
@@ -198,7 +198,7 @@ export class MateriaPrimaSearchComponent implements OnInit {
   }
 
   /** Função para o `mat-select` comparar objetos e saber qual está selecionado. */
-  compareMaterialTypes(o1: TipoMateriaPrima, o2: TipoMateriaPrima): boolean {
+  compareMaterialTypes(o1: MaterialType, o2: MaterialType): boolean {
     return o1 && o2 ? o1.id === o2.id : o1 === o2;
   }
 }

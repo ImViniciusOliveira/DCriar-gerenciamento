@@ -4,7 +4,7 @@ import { Observable, filter, switchMap, shareReplay, take, map, combineLatest, o
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
-import { ApiResponseLotes, LoteMateriaPrima, LoteMateriaPrimaRequest } from '../models/lote-materia-prima.model';
+import { ApiResponseBatches, Batch, BatchRequest } from '../models/batch.model';
 
 /**
  * Serviço para gerenciamento de Lotes de Matéria-Prima.
@@ -13,7 +13,7 @@ import { ApiResponseLotes, LoteMateriaPrima, LoteMateriaPrimaRequest } from '../
  * (filtros, paginação) e atualiza a lista de lotes automaticamente.
  */
 @Injectable({ providedIn: 'root' })
-export class LoteMateriaPrimaService {
+export class BatchService {
   private readonly http = inject(HttpClient);
   private readonly apiRoot = inject(ApiRoot);
 
@@ -44,10 +44,10 @@ export class LoteMateriaPrimaService {
    * Observable reativo que emite a lista de lotes.
    * Atualiza automaticamente quando os parâmetros de busca mudam ou um refresh é acionado.
    */
-  readonly lotesMateriaPrima$: Observable<ApiResponseLotes>;
+  readonly batches$: Observable<ApiResponseBatches>;
 
   constructor() {
-    this.lotesMateriaPrima$ = this.endpoints$.pipe(
+    this.batches$ = this.endpoints$.pipe(
       switchMap(endpoints => {
         const url = endpoints._links?.['lotes-materia-prima']?.href;
         if (!url) {
@@ -65,7 +65,7 @@ export class LoteMateriaPrimaService {
               .set('size', params.size.toString())
               .set('sort', params.sort);
 
-            return this.http.get<ApiResponseLotes>(baseUrl, { params: httpParams }).pipe(
+            return this.http.get<ApiResponseBatches>(baseUrl, { params: httpParams }).pipe(
               catchError(err => {
                 console.error('Erro ao buscar lotes de matéria-prima', err);
                 return of(this.createEmptyResponse());
@@ -84,14 +84,14 @@ export class LoteMateriaPrimaService {
     this.searchParams.update(current => ({ ...current, ...params }));
   }
 
-  getNewTemplate(): Observable<LoteMateriaPrima> {
+  getNewTemplate(): Observable<Batch> {
     return this.getBaseUrl().pipe(
-      switchMap(baseUrl => this.http.get<LoteMateriaPrima>(`${baseUrl}/new`))
+      switchMap(baseUrl => this.http.get<Batch>(`${baseUrl}/new`))
     );
   }
 
-  findByUrl(url: string): Observable<LoteMateriaPrima> {
-    return this.http.get<LoteMateriaPrima>(url);
+  findByUrl(url: string): Observable<Batch> {
+    return this.http.get<Batch>(url);
   }
 
   /**
@@ -99,9 +99,9 @@ export class LoteMateriaPrimaService {
    * @param request
    * @param skipRefresh Se true, não dispara a atualização da lista.
    */
-  create(request: LoteMateriaPrimaRequest, skipRefresh = false): Observable<LoteMateriaPrima> {
+  create(request: BatchRequest, skipRefresh = false): Observable<Batch> {
     return this.getBaseUrl().pipe(
-      switchMap(baseUrl => this.http.post<LoteMateriaPrima>(baseUrl, request)),
+      switchMap(baseUrl => this.http.post<Batch>(baseUrl, request)),
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }
@@ -112,8 +112,8 @@ export class LoteMateriaPrimaService {
    * @param request
    * @param skipRefresh Se true, não dispara a atualização da lista.
    */
-  update(url: string, request: LoteMateriaPrimaRequest, skipRefresh = false): Observable<LoteMateriaPrima> {
-    return this.http.put<LoteMateriaPrima>(url, request).pipe(
+  update(url: string, request: BatchRequest, skipRefresh = false): Observable<Batch> {
+    return this.http.put<Batch>(url, request).pipe(
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }
@@ -140,7 +140,7 @@ export class LoteMateriaPrimaService {
     );
   }
 
-  private createEmptyResponse(): ApiResponseLotes {
+  private createEmptyResponse(): ApiResponseBatches {
     return {
       _embedded: { 'lotes-materia-prima': [] },
       _links: {},

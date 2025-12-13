@@ -10,19 +10,19 @@ import { lastValueFrom } from 'rxjs';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, switchMap } from 'rxjs/operators';
 
-import { LoteMateriaPrima, LoteMateriaPrimaRequest } from '../../models/lote-materia-prima.model';
-import { TipoMateriaPrima } from '../../models/material-type.model';
-import { LoteMateriaPrimaService } from '../../services/lote-materia-prima.service';
+import { Batch, BatchRequest } from '../../models/batch.model';
+import { MaterialType } from '../../models/material-type.model';
+import { BatchService } from '../../services/batch.service';
 import { MaterialTypeService } from '../../services/material-type.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MateriaPrimaSearchComponent } from '../../../../shared/components/materia-prima-search/materia-prima-search';
+import { MaterialTypeSearch } from '../../../../shared/components/material-type-search/material-type-search';
 import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
 
-export interface LoteMateriaPrimaFormData {
-  template: LoteMateriaPrima;
+export interface BatchFormData {
+  template: Batch;
   title: string;
 }
 
@@ -32,26 +32,26 @@ export interface LoteMateriaPrimaFormData {
  * como a exigência de largura para materiais em rolo e a compatibilidade entre unidades.
  */
 @Component({
-  selector: 'app-lote-materia-prima-form',
+  selector: 'app-batch-form',
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MateriaPrimaSearchComponent, MatSelectModule
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MaterialTypeSearch, MatSelectModule
   ],
-  templateUrl: './lote-materia-prima-form.html',
-  styleUrls: ['./lote-materia-prima-form.scss'],
+  templateUrl: './batch-form.html',
+  styleUrls: ['./batch-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class LoteMateriaPrimaForm implements OnInit {
+export class BatchForm implements OnInit {
   private readonly fb = inject(FormBuilder);
-  private readonly dialogRef = inject(MatDialogRef<LoteMateriaPrimaForm>);
+  private readonly dialogRef = inject(MatDialogRef<BatchForm>);
   private readonly dialog = inject(MatDialog);
-  private readonly loteMateriaPrimaService = inject(LoteMateriaPrimaService);
+  private readonly batchService = inject(BatchService);
   private readonly materialTypeService = inject(MaterialTypeService);
   private readonly entityDialog = inject(EntityDialogService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly enumService = inject(EnumService);
-  public readonly data: LoteMateriaPrimaFormData = inject(MAT_DIALOG_DATA);
+  public readonly data: BatchFormData = inject(MAT_DIALOG_DATA);
 
   form: FormGroup;
   isEditMode = signal(false);
@@ -63,7 +63,7 @@ export class LoteMateriaPrimaForm implements OnInit {
 
   private readonly unitsUrl = signal<string | null>(null);
   /** Signal que armazena a matéria-prima atualmente selecionada para alimentar a lógica reativa. */
-  private materiaPrimaSignal = signal<TipoMateriaPrima | null>(null);
+  private materiaPrimaSignal = signal<MaterialType | null>(null);
 
   private static readonly Texts = {
     CONFIRM_DELETE_ATTR_TITLE: 'Confirmar Remoção',
@@ -179,7 +179,7 @@ export class LoteMateriaPrimaForm implements OnInit {
   }
 
   onMaterialTypeChange(event: MatSelectChange): void {
-    const materialType = event.value as TipoMateriaPrima;
+    const materialType = event.value as MaterialType;
     this.materiaPrimaSignal.set(materialType);
     this.form.patchValue({
       materiaPrima: materialType,
@@ -227,8 +227,8 @@ export class LoteMateriaPrimaForm implements OnInit {
 
     const key = attrGroup.get('chave')?.value;
     const dialogData: ConfirmDialogData = {
-      title: LoteMateriaPrimaForm.Texts.CONFIRM_DELETE_ATTR_TITLE,
-      message: LoteMateriaPrimaForm.Texts.CONFIRM_DELETE_ATTR_MESSAGE(key || 'este atributo')
+      title: BatchForm.Texts.CONFIRM_DELETE_ATTR_TITLE,
+      message: BatchForm.Texts.CONFIRM_DELETE_ATTR_MESSAGE(key || 'este atributo')
     };
 
     const dialogRef = this.dialog.open(ConfirmDialog, { data: dialogData });
@@ -247,7 +247,7 @@ export class LoteMateriaPrimaForm implements OnInit {
     }
 
     const formValue = this.form.getRawValue();
-    const materiaPrima: TipoMateriaPrima = formValue.materiaPrima;
+    const materiaPrima: MaterialType = formValue.materiaPrima;
 
     const atributosMap: { [key: string]: any } = {};
     (formValue.atributos || []).forEach((attr: { chave: string; valor: string }) => {
@@ -260,7 +260,7 @@ export class LoteMateriaPrimaForm implements OnInit {
       atributosMap['larguraMm'] = formValue.larguraMm;
     }
 
-    const request: LoteMateriaPrimaRequest = {
+    const request: BatchRequest = {
       tipoMateriaPrimaId: materiaPrima.id,
       unidadeDeEstoque: formValue.unidadeDeEstoque,
       quantidadeInicial: formValue.quantidadeInicial,
@@ -270,8 +270,8 @@ export class LoteMateriaPrimaForm implements OnInit {
     };
 
     const operation = this.isEditMode()
-      ? this.loteMateriaPrimaService.update(this.data.template._links!['update']!.href, request)
-      : this.loteMateriaPrimaService.create(request);
+      ? this.batchService.update(this.data.template._links!['update']!.href, request)
+      : this.batchService.create(request);
 
     operation.subscribe({
       next: () => {

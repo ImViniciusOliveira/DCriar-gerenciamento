@@ -87,11 +87,11 @@
       <mat-checkbox formControlName="ativo" class="form-checkbox">Ativo</mat-checkbox>
 
       <!-- Componente genérico para busca de matéria-prima. -->
-      <app-materia-prima-search
-        [control]="materiaPrimaControl"
+      <app-material-type-search
+        [control]="materialTypeControl"
         [isEditMode]="isEditMode()"
         (selectionChange)="onMaterialTypeChange($event)">
-      </app-materia-prima-search>
+      </app-material-type-search>
 
       <!-- Campos Específicos: Dimensões (Apenas para CORTE) -->
       @if (productForm.get('dimensoes')?.enabled) {
@@ -119,7 +119,7 @@
         </div>
         <div formArrayName="especificacoes">
           <!-- track $index é usado para controles dinâmicos sem ID persistente -->
-          @for (specGroup of especificacoesControls; track $index) {
+          @for (specGroup of specificationsControls; track $index) {
             <div class="form-row spec-row" [formGroup]="specGroup">
               <mat-form-field>
                 <mat-label>Característica</mat-label>
@@ -129,13 +129,13 @@
                 <mat-label>Descrição</mat-label>
                 <input matInput formControlName="valor">
               </mat-form-field>
-              <button mat-icon-button type="button" (click)="removeEspecificacao($index)" title="Remover Especificação">
+              <button mat-icon-button type="button" (click)="removeSpecification($index)" title="Remover Especificação">
                 <mat-icon>remove_circle_outline</mat-icon>
               </button>
             </div>
           }
         </div>
-        <button mat-stroked-button type="button" (click)="addEspecificacao()">
+        <button mat-stroked-button type="button" (click)="addSpecification()">
           <mat-icon>add</mat-icon>
           Adicionar Especificação
         </button>

@@ -8,18 +8,18 @@ import { lastValueFrom, catchError, of } from 'rxjs';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
-import { LoteMateriaPrima } from '../../models/lote-materia-prima.model';
-import { LoteMateriaPrimaService } from '../../services/lote-materia-prima.service';
+import { Batch } from '../../models/batch.model';
+import { BatchService } from '../../services/batch.service';
 import { MaterialTypeList } from '../material-type-list/material-type-list';
 import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover';
-import { LoteMateriaPrimaForm, LoteMateriaPrimaFormData } from '../lote-materia-prima-form/lote-materia-prima-form';
+import { BatchForm, BatchFormData } from '../batch-form/batch-form';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 
 /**
  * Componente de listagem de Lotes de Matéria-Prima.
  *
  * Utiliza a estratégia `OnPush` e Signals para reagir automaticamente às mudanças
- * de estado no serviço `LoteMateriaPrimaService`.
+ * de estado no serviço `BatchService`.
  */
 @Component({
   selector: 'app-batch-list',
@@ -37,12 +37,12 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PaginationHandler]
 })
-export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewInit {
+export class BatchList extends BaseList<Batch> implements AfterViewInit {
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly loteService = inject(LoteMateriaPrimaService);
+  private readonly batchService = inject(BatchService);
   private readonly dialog = inject(MatDialog);
 
-  tableColumns: TableColumn<LoteMateriaPrima>[] = [];
+  tableColumns: TableColumn<Batch>[] = [];
 
   // Referências aos templates de célula definidos no HTML
   @ViewChild('tipoTemplate') tipoTemplate!: TemplateRef<any>;
@@ -57,7 +57,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
     // Converte o Observable de lotes do serviço em um signal para consumo reativo.
     // O tratamento de erro é feito aqui para garantir que o signal sempre tenha um valor válido.
     const lotesResponse = toSignal(
-      this.loteService.lotesMateriaPrima$.pipe(
+      this.batchService.batches$.pipe(
         catchError((error) => {
           console.error('Erro ao carregar lotes:', error);
           this.entityDialog.showErrorSnackbar('Falha ao carregar a lista de lotes.');
@@ -97,7 +97,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
    * A atualização da lista ocorre reativamente através do `effect` no construtor.
    */
   override loadItems(): void {
-    this.loteService.updateSearchParams({
+    this.batchService.updateSearchParams({
       page: this.pagination.pageIndex(),
       size: this.pagination.pageSize(),
       sort: this.pagination.sortString()
@@ -118,7 +118,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
   async onCreate(): Promise<void> {
     try {
       // Busca o template HATEOAS para criação
-      const template = await lastValueFrom(this.loteService.getNewTemplate());
+      const template = await lastValueFrom(this.batchService.getNewTemplate());
       this.openFormDialog({
         template,
         title: 'Registrar Entrada de Lote'
@@ -129,7 +129,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
     }
   }
 
-  async editLote(lote: LoteMateriaPrima): Promise<void> {
+  async editLote(lote: Batch): Promise<void> {
     const selfUrl = lote._links?.['self']?.href;
     if (!selfUrl) {
       this.entityDialog.showErrorSnackbar('Não foi possível encontrar o recurso.');
@@ -137,7 +137,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
     }
 
     try {
-      const itemToEdit = await lastValueFrom(this.loteService.findByUrl(selfUrl));
+      const itemToEdit = await lastValueFrom(this.batchService.findByUrl(selfUrl));
       this.openFormDialog({
         template: itemToEdit,
         title: 'Editar Lote'
@@ -148,7 +148,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
     }
   }
 
-  deleteLote(lote: LoteMateriaPrima): void {
+  deleteLote(lote: Batch): void {
     const deleteUrl = lote._links?.['delete']?.href;
     if (!deleteUrl) {
       this.entityDialog.showErrorSnackbar('Não foi possível encontrar a ação de exclusão.');
@@ -161,7 +161,7 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
     ).subscribe(confirmed => {
       if (confirmed) {
         // O serviço cuidará de atualizar a lista automaticamente após o delete bem-sucedido
-        this.loteService.delete(deleteUrl).subscribe({
+        this.batchService.delete(deleteUrl).subscribe({
           next: () => {
             this.entityDialog.showSuccessSnackbar('Lote excluído com sucesso!');
           },
@@ -173,9 +173,9 @@ export class BatchList extends BaseList<LoteMateriaPrima> implements AfterViewIn
     });
   }
 
-  private openFormDialog(dialogData: LoteMateriaPrimaFormData, successMessage: string): void {
+  private openFormDialog(dialogData: BatchFormData, successMessage: string): void {
     this.entityDialog.openFormDialog({
-      component: LoteMateriaPrimaForm,
+      component: BatchForm,
       formData: dialogData,
       title: dialogData.title,
       width: '800px'

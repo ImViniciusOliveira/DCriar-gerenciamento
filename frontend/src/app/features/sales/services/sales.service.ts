@@ -4,8 +4,14 @@ import { Observable, filter, switchMap, shareReplay, take, map, combineLatest, o
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
-import { ApiResponseVendas, Venda, VendaRequest } from '../models/sales.model';
+import { ApiResponseSales, Sale, SaleRequest } from '../models/sales.model';
 
+/**
+ * Serviço para gerenciamento de Vendas.
+ *
+ * Implementa uma arquitetura reativa com Signals para gerenciar o estado da busca
+ * (filtros, paginação) e atualiza a lista de vendas automaticamente.
+ */
 @Injectable({
   providedIn: 'root'
 })
@@ -35,7 +41,11 @@ export class SalesService {
     shareReplay(1)
   );
 
-  readonly sales$: Observable<ApiResponseVendas>;
+  /**
+   * Observable reativo que emite a lista de vendas.
+   * Atualiza automaticamente quando os parâmetros de busca mudam ou um refresh é acionado.
+   */
+  readonly sales$: Observable<ApiResponseSales>;
 
   constructor() {
     this.sales$ = this.endpoints$.pipe(
@@ -56,7 +66,7 @@ export class SalesService {
               .set('size', params.size.toString())
               .set('sort', params.sort);
 
-            return this.http.get<ApiResponseVendas>(baseUrl, { params: httpParams }).pipe(
+            return this.http.get<ApiResponseSales>(baseUrl, { params: httpParams }).pipe(
               catchError(err => {
                 console.error('Erro ao buscar vendas', err);
                 return of(this.createEmptyResponse());
@@ -69,33 +79,50 @@ export class SalesService {
     );
   }
 
+  /**
+   * Atualiza os parâmetros de busca, disparando uma nova requisição.
+   */
   updateSearchParams(params: Partial<{ page: number; size: number; sort: string; }>): void {
     this.searchParams.update(current => ({ ...current, ...params }));
   }
 
-  getNewTemplate(): Observable<Venda> {
+  getNewTemplate(): Observable<Sale> {
     return this.getBaseUrl().pipe(
-      switchMap(baseUrl => this.http.get<Venda>(`${baseUrl}/new`))
+      switchMap(baseUrl => this.http.get<Sale>(`${baseUrl}/new`))
     );
   }
 
-  findByUrl(url: string): Observable<Venda> {
-    return this.http.get<Venda>(url);
+  findByUrl(url: string): Observable<Sale> {
+    return this.http.get<Sale>(url);
   }
 
-  create(request: VendaRequest, skipRefresh = false): Observable<Venda> {
+  /**
+   * Cria uma nova venda.
+   * @param request
+   * @param skipRefresh Se true, não dispara a atualização da lista.
+   */
+  create(request: SaleRequest, skipRefresh = false): Observable<Sale> {
     return this.getBaseUrl().pipe(
-      switchMap(baseUrl => this.http.post<Venda>(baseUrl, request)),
+      switchMap(baseUrl => this.http.post<Sale>(baseUrl, request)),
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }
 
-  update(url: string, request: VendaRequest, skipRefresh = false): Observable<Venda> {
-    return this.http.put<Venda>(url, request).pipe(
+  /**
+   * Atualiza uma venda existente.
+   * @param url
+   * @param request
+   * @param skipRefresh Se true, não dispara a atualização da lista.
+   */
+  update(url: string, request: SaleRequest, skipRefresh = false): Observable<Sale> {
+    return this.http.put<Sale>(url, request).pipe(
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }
 
+  /**
+   * Remove uma venda.
+   */
   delete(url: string): Observable<void> {
     return this.http.delete<void>(url).pipe(
       tap(() => this.refreshTrigger.set(undefined))
@@ -115,7 +142,7 @@ export class SalesService {
     );
   }
 
-  private createEmptyResponse(): ApiResponseVendas {
+  private createEmptyResponse(): ApiResponseSales {
     return {
       _embedded: { vendaModelList: [] },
       _links: {},

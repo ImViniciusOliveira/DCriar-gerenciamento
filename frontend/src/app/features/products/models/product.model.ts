@@ -1,19 +1,10 @@
 import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
-
-/**
- * Representa a matéria-prima base de um produto.
- */
-export interface MateriaPrima {
-  id: number;
-  nome: string;
-  unidadeDeConsumo: string;
-  _links?: Hateoas['_links'];
-}
+import { MaterialType } from '../../stock/models/material-type.model';
 
 /**
  * Dimensões físicas aplicáveis a produtos de corte.
  */
-export interface Dimensoes {
+export interface Dimensions {
   larguraCm: number;
   comprimentoCm: number;
 }
@@ -21,7 +12,7 @@ export interface Dimensoes {
 /**
  * Mapa dinâmico de especificações técnicas.
  */
-export type Especificacoes = Record<string, string>;
+export type Specifications = Record<string, string>;
 
 /**
  * Modelo principal de Produto.
@@ -39,16 +30,16 @@ export interface Product {
   estoqueDistribuidoTotal: number;
   estoqueDisponivelParaAlocar: number;
   fotoPrincipalUrl: string;
-  materiaPrima: MateriaPrima;
+  materiaPrima: MaterialType;
   _links?: Hateoas['_links'];
 
   /** Propriedades exclusivas para produtos do tipo CORTE */
   cor?: string;
-  dimensoes?: Dimensoes;
+  dimensoes?: Dimensions;
 
   /** Propriedades exclusivas para produtos do tipo CONSUMO_DIRETO */
   codigoFabricante?: string;
-  especificacoes?: Especificacoes;
+  especificacoes?: Specifications;
 
   /**
    * Dados de estoque por canal, injetados dinamicamente pelo ProductService.

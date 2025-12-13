@@ -10,13 +10,13 @@ import { HttpClient } from '@angular/common/http';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { startWith } from 'rxjs/operators';
 
-import { TipoMateriaPrima, TipoMateriaPrimaRequest } from '../../models/material-type.model';
+import { MaterialType, MaterialTypeRequest } from '../../models/material-type.model';
 import { MaterialTypeService } from '../../services/material-type.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { ApiRoot } from '../../../../core/services/api-root';
 
 export interface MaterialTypeFormData {
-  template: TipoMateriaPrima;
+  template: MaterialType;
   title: string;
 }
 
@@ -177,7 +177,7 @@ export class MaterialTypeForm implements OnInit {
 
     const formValue = { ...this.form.value };
     formValue.unidadeDeConsumo = formValue.unidadeDeConsumo.name;
-    const request: TipoMateriaPrimaRequest = formValue;
+    const request: MaterialTypeRequest = formValue;
 
     const operation = this.isEditMode()
       ? this.materialTypeService.update(this.data.template._links!['update']!.href, request)

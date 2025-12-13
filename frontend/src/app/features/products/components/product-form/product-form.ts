@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Product } from '../../models/product.model';
 import { FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ProductService } from '../../services/product';
+import { ProductService } from '../../services/product.service';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule, MatSelectChange } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
@@ -15,8 +15,8 @@ import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/
 import { lastValueFrom } from 'rxjs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { provideNgxMask } from 'ngx-mask';
-import { MateriaPrimaSearchComponent } from '../../../../shared/components/materia-prima-search/materia-prima-search';
-import { TipoMateriaPrima } from '../../../stock/models/material-type.model';
+import { MaterialTypeSearch } from '../../../../shared/components/material-type-search/material-type-search';
+import { MaterialType } from '../../../stock/models/material-type.model';
 
 /**
  * Componente de formulário para criação e edição de produtos.
@@ -30,7 +30,7 @@ import { TipoMateriaPrima } from '../../../stock/models/material-type.model';
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatProgressSpinnerModule, MateriaPrimaSearchComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatProgressSpinnerModule, MaterialTypeSearch],
   providers: [provideNgxMask()],
   templateUrl: './product-form.html',
   styleUrls: ['./product-form.scss'],
@@ -129,12 +129,12 @@ export class ProductFormComponent implements OnInit {
             }
 
             // Popula o FormArray de especificações dinâmicas
-            this.especificacoes.clear();
+            this.specifications.clear();
             const specs = fullProduct.especificacoes;
             if (specs) {
               this.initialSpecifications.set({ ...specs });
               Object.entries(specs).forEach(([chave, valor]) => {
-                this.especificacoes.push(this.fb.group({
+                this.specifications.push(this.fb.group({
                   chave: [chave, Validators.required],
                   valor: [valor, Validators.required],
                   isNew: [false] // Marca como existente para controle de remoção
@@ -151,15 +151,15 @@ export class ProductFormComponent implements OnInit {
 
   // --- Getters Auxiliares ---
 
-  get especificacoes(): FormArray {
+  get specifications(): FormArray {
     return this.productForm.get('especificacoes') as FormArray;
   }
 
-  get especificacoesControls(): FormGroup[] {
+  get specificationsControls(): FormGroup[] {
     return (this.productForm.get('especificacoes') as FormArray).controls as FormGroup[];
   }
 
-  get materiaPrimaControl(): FormControl {
+  get materialTypeControl(): FormControl {
     return this.productForm.get('materiaPrima') as FormControl;
   }
 
@@ -169,8 +169,8 @@ export class ProductFormComponent implements OnInit {
    * Adiciona uma nova linha de especificação técnica ao formulário.
    * Faz o scroll automático para o final da lista para melhor UX.
    */
-  addEspecificacao(): void {
-    this.especificacoes.push(this.fb.group({
+  addSpecification(): void {
+    this.specifications.push(this.fb.group({
       chave: ['', Validators.required],
       valor: ['', Validators.required],
       isNew: [true]
@@ -192,12 +192,12 @@ export class ProductFormComponent implements OnInit {
    *
    * @param index Índice do item no FormArray
    */
-  async removeEspecificacao(index: number): Promise<void> {
-    const specGroup = this.especificacoes.at(index);
+  async removeSpecification(index: number): Promise<void> {
+    const specGroup = this.specifications.at(index);
     const isNew = specGroup.get('isNew')?.value;
 
     if (isNew) {
-      this.especificacoes.removeAt(index);
+      this.specifications.removeAt(index);
       this.productForm.get('especificacoes')?.markAsDirty();
       return;
     }
@@ -212,7 +212,7 @@ export class ProductFormComponent implements OnInit {
     const confirmed = await lastValueFrom(dialogRef.afterClosed());
 
     if (confirmed) {
-      this.especificacoes.removeAt(index);
+      this.specifications.removeAt(index);
       this.productForm.get('especificacoes')?.markAsDirty();
       this.cdr.markForCheck();
     }
@@ -248,7 +248,7 @@ export class ProductFormComponent implements OnInit {
         control?.disable();
         if (resetOppositeControls) {
           if (name === 'especificacoes') {
-            this.especificacoes.clear();
+            this.specifications.clear();
           } else {
             control?.reset();
           }
@@ -441,7 +441,7 @@ export class ProductFormComponent implements OnInit {
    * pois isso pode impactar custos e estoque.
    */
   async onMaterialTypeChange(event: MatSelectChange): Promise<void> {
-    const newSelection = event.value as TipoMateriaPrima;
+    const newSelection = event.value as MaterialType;
     const originalSelection = this.product().materiaPrima;
 
     if (!originalSelection || !newSelection || originalSelection.id === newSelection.id) {

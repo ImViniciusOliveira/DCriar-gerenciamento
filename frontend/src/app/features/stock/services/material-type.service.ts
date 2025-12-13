@@ -4,7 +4,11 @@ import { Observable, filter, map, switchMap, take, shareReplay, tap, combineLate
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
-import { ApiResponseTiposMateriaPrima, TipoMateriaPrima, TipoMateriaPrimaRequest } from '../models/material-type.model';
+import {
+  ApiResponseMaterialTypes,
+  MaterialType,
+  MaterialTypeRequest
+} from '../models/material-type.model';
 
 /**
  * Serviço responsável pelo gerenciamento de Tipos de Matéria-Prima.
@@ -56,10 +60,10 @@ export class MaterialTypeService {
    * Observable reativo que emite a lista de tipos de matéria-prima.
    * Atualiza automaticamente quando os parâmetros mudam ou o refresh é acionado.
    */
-  readonly tiposMateriaPrima$: Observable<ApiResponseTiposMateriaPrima>;
+  readonly materialTypes$: Observable<ApiResponseMaterialTypes>;
 
   constructor() {
-    this.tiposMateriaPrima$ = this.endpoints$.pipe(
+    this.materialTypes$ = this.endpoints$.pipe(
       switchMap(endpoints => {
         const url = endpoints._links?.['tipos-materia-prima']?.href;
         if (!url) {
@@ -99,8 +103,8 @@ export class MaterialTypeService {
     );
   }
 
-  getTiposMateriaPrima(): Observable<ApiResponseTiposMateriaPrima> {
-    return this.tiposMateriaPrima$;
+  getMaterialTypes(): Observable<ApiResponseMaterialTypes> {
+    return this.materialTypes$;
   }
 
   /**
@@ -116,9 +120,9 @@ export class MaterialTypeService {
     this.searchParams.update(current => ({ ...current, ...params }));
   }
 
-  getNewTemplate(): Observable<TipoMateriaPrima> {
+  getNewTemplate(): Observable<MaterialType> {
     return this.getBaseUrl().pipe(
-      switchMap(baseUrl => this.http.get<TipoMateriaPrima>(`${baseUrl}/new`))
+      switchMap(baseUrl => this.http.get<MaterialType>(`${baseUrl}/new`))
     );
   }
 
@@ -127,9 +131,9 @@ export class MaterialTypeService {
    * @param request
    * @param skipRefresh Se true, não atualiza a lista automaticamente (útil para operações em lote).
    */
-  create(request: TipoMateriaPrimaRequest, skipRefresh = false): Observable<TipoMateriaPrima> {
+  create(request: MaterialTypeRequest, skipRefresh = false): Observable<MaterialType> {
     return this.getBaseUrl().pipe(
-      switchMap(baseUrl => this.http.post<TipoMateriaPrima>(baseUrl, request)),
+      switchMap(baseUrl => this.http.post<MaterialType>(baseUrl, request)),
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }
@@ -146,19 +150,19 @@ export class MaterialTypeService {
    * @param request
    * @param skipRefresh Se true, não atualiza a lista automaticamente.
    */
-  update(url: string, request: TipoMateriaPrimaRequest, skipRefresh = false): Observable<TipoMateriaPrima> {
-    return this.http.patch<TipoMateriaPrima>(url, request).pipe(
+  update(url: string, request: MaterialTypeRequest, skipRefresh = false): Observable<MaterialType> {
+    return this.http.patch<MaterialType>(url, request).pipe(
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }
 
-  findByUrl(url: string): Observable<TipoMateriaPrima> {
-    return this.http.get<TipoMateriaPrima>(url);
+  findByUrl(url: string): Observable<MaterialType> {
+    return this.http.get<MaterialType>(url);
   }
 
-  findById(id: number): Observable<TipoMateriaPrima> {
+  findById(id: number): Observable<MaterialType> {
     return this.getBaseUrl().pipe(
-      switchMap(baseUrl => this.http.get<TipoMateriaPrima>(`${baseUrl}/${id}`))
+      switchMap(baseUrl => this.http.get<MaterialType>(`${baseUrl}/${id}`))
     );
   }
 
@@ -168,7 +172,7 @@ export class MaterialTypeService {
    * Normaliza a resposta da API e aplica ordenação no cliente.
    * Suporta propriedades aninhadas (ex: 'categoria.nome').
    */
-  private normalizeAndSortResponse(response: any, params: { sort: string, size: number }): ApiResponseTiposMateriaPrima {
+  private normalizeAndSortResponse(response: any, params: { sort: string, size: number }): ApiResponseMaterialTypes {
     const items = response?._embedded?.['tipos-materia-prima'] || response?._embedded?.['tipoMateriaPrimaModelList'] || [];
     const [sortField, sortOrder] = params.sort.split(',');
 
@@ -210,7 +214,7 @@ export class MaterialTypeService {
     );
   }
 
-  private createEmptyResponse(): ApiResponseTiposMateriaPrima {
+  private createEmptyResponse(): ApiResponseMaterialTypes {
     return {
       _embedded: { 'tipos-materia-prima': [] },
       _links: {},
