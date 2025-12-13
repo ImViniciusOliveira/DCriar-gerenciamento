@@ -26,7 +26,7 @@
 // Estilos para os links de navegação individuais.
 .nav-link {
   position: relative; // Necessário para posicionar o pseudo-elemento ::after
-  color: var(--text-muted-color); // Cor cinza para links inativos
+  color: var(--text-muted-color) !important; // Força a cor cinza para links inativos
   font-weight: 500;
   border-radius: 6px; // Arredondamento completo
   padding: 8px 16px;
@@ -40,7 +40,7 @@
 
   // Estilo para o link ativo, aplicado pela diretiva `routerLinkActive`.
   &.active-link {
-    color: var(--primary-color); // Cor azul para o texto do link ativo
+    color: var(--primary-color) !important; // Cor azul para o texto do link ativo
     background-color: rgba(var(--mat-sys-primary-rgb), 0.1); // Fundo azul bem claro
 
     // O sublinhado agora é um pseudo-elemento para não interferir no border-radius.

@@ -1,5 +1,13 @@
 @use '../../../../shared/styles/page-layout';
 
+// Estilo para o botão de ação secundária no cabeçalho.
+.secondary-action-button {
+  background-color: var(--secondary-color) !important;
+  color: #ffffff !important;
+  border-color: var(--secondary-color) !important;
+  border-radius: 6px !important;
+}
+
 // Define uma largura maior para a coluna de atributos
 .mat-column-atributos {
   width: 350px;

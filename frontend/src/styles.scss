@@ -7,7 +7,6 @@
 @include mat.core();
 
 // 2. Definição das Variáveis de Design System (Tokenização Manual)
-// Baseado no protótipo visual aprovado (Estilo Bootstrap/Tailwind)
 $color-primary: #3B82F6;
 $color-primary-hover: #2563EB;
 $color-secondary: #6c757d;
@@ -19,7 +18,6 @@ $color-text-muted: #6C757D;
 $color-border: #DEE2E6;
 
 // 3. Exposição de Variáveis CSS (:root)
-// Permite o uso dos tokens de cor em componentes não-Material e HTML puro
 :root {
   --primary-color: #{$color-primary};
   --primary-hover-color: #{$color-primary-hover};
@@ -33,26 +31,24 @@ $color-border: #DEE2E6;
 }
 
 // 4. Configuração do Tema Material 3
-// Integra a paleta gerada matematicamente com as configurações de tipografia e densidade
 $dcriar-theme: mat.define-theme((
   color: (
     theme-type: light,
     primary: dcriar-colors.$primary-palette,
     tertiary: dcriar-colors.$tertiary-palette,
-    use-system-variables: true // Habilita o uso de variáveis CSS nativas do Material
+    use-system-variables: true
   ),
   typography: (
     plain-family: 'Inter, sans-serif',
     brand-family: 'Inter, sans-serif',
   ),
   density: (
-    scale: 0 // Densidade padrão (ajustar para -1 ou -2 para interfaces de dados intensivos)
+    scale: 0
   )
 ));
 
 // 5. Aplicação do Tema Global
 html {
-  // Injeção dos estilos de componente baseados no tema definido
   @include mat.all-component-themes($dcriar-theme);
 
   // Sobrescrita de Tokens de Sistema para garantir fidelidade à marca
@@ -60,7 +56,7 @@ html {
   --mat-sys-on-primary: #ffffff;
   --mat-sys-background: #{$color-background};
   --mat-sys-surface: #{$color-surface};
-  --mat-sys-outline-variant: #{$color-border}; // Força a cor da borda padrão do Material
+  --mat-sys-outline-variant: #{$color-border};
 }
 
 html, body {
@@ -136,4 +132,18 @@ app-base-table .mat-mdc-table {
 .mat-mdc-form-field-type-mat-input .mdc-notched-outline > .mdc-notched-outline__notch,
 .mat-mdc-form-field-type-mat-input .mdc-notched-outline > .mdc-notched-outline__trailing {
   border-color: var(--border-color) !important;
+}
+
+// Ajusta o arredondamento dos diálogos (modais).
+.mat-mdc-dialog-surface {
+  border-radius: 8px !important;
+}
+
+// --- Ajustes para Botões de Texto (ex: Cancelar) ---
+.mat-mdc-text-button {
+  // Ajusta o arredondamento do efeito de clique (ripple) e do hover.
+  .mat-mdc-button-persistent-ripple,
+  &::before { // O ::before é o overlay do hover
+    border-radius: 6px !important;
+  }
 }
