@@ -14,10 +14,8 @@ import { MaterialTypeForm, MaterialTypeFormData } from '../material-type-form/ma
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 
 /**
- * Componente de listagem de Tipos de Matéria-Prima.
- *
- * Utiliza a estratégia `OnPush` e Signals para reagir automaticamente às mudanças
- * de estado no serviço `MaterialTypeService`.
+ * Componente de listagem para Tipos de Matéria-Prima.
+ * Gerencia a exibição de dados em tabela, paginação e ações de CRUD (criar, editar, deletar).
  */
 @Component({
   selector: 'app-material-type-list',
@@ -32,9 +30,21 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
   private readonly materialTypeService = inject(MaterialTypeService);
   private readonly cdr = inject(ChangeDetectorRef);
 
+  private static readonly Texts = {
+    deleteConfirmTitle: 'Confirmar Exclusão',
+    deleteSuccess: 'Matéria-prima excluída com sucesso!',
+    saveSuccess: 'Matéria-prima atualizada com sucesso!',
+    createSuccess: 'Matéria-prima cadastrada com sucesso!',
+    deleteError: 'Falha ao excluir a matéria-prima.',
+    loadError: 'Falha ao carregar a lista.',
+    createError: 'Não foi possível iniciar o cadastro.',
+    resourceError: 'Não foi possível encontrar o recurso.',
+    createTitle: 'Cadastrar Matéria-Prima',
+    editTitle: 'Editar Matéria-Prima'
+  };
+
   tableColumns: TableColumn<MaterialType>[] = [];
 
-  // Referências aos templates de célula definidos no HTML
   @ViewChild('nameTemplate') nameTemplate!: TemplateRef<any>;
   @ViewChild('unitTemplate') unitTemplate!: TemplateRef<any>;
   @ViewChild('actionsTemplate') actionsTemplate!: TemplateRef<any>;
@@ -42,20 +52,16 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
   constructor() {
     super();
 
-    // Converte o fluxo de dados do serviço em um Signal de leitura.
-    // Isso permite que o componente reaja a atualizações (filtros, paginação, refresh) automaticamente.
     const materialTypesResponse = toSignal(
       this.materialTypeService.getMaterialTypes().pipe(
         catchError((error) => {
           console.error('Erro ao carregar tipos de matéria-prima:', error);
-          this.entityDialog.showErrorSnackbar('Falha ao carregar a lista.');
+          this.entityDialog.showErrorSnackbar(MaterialTypeList.Texts.loadError);
           return of(undefined);
         })
       )
     );
 
-    // Efeito colateral que sincroniza o estado do Signal com a BaseList.
-    // Atualiza a lista de itens e os metadados de paginação sempre que o serviço emite novos dados.
     effect(() => {
       const response = materialTypesResponse();
       if (response) {
@@ -67,21 +73,17 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
   }
 
   ngAfterViewInit(): void {
-    // Configura as colunas da tabela.
-    // Necessário fazer no AfterViewInit pois depende dos @ViewChild templates.
     this.tableColumns = [
       { key: 'nome', header: 'Nome', sortable: true, cellTemplate: this.nameTemplate },
       { key: 'unidadeDeConsumo', header: 'Unidade', sortable: false, cellTemplate: this.unitTemplate },
       { key: 'actions', header: 'Ações', cellTemplate: this.actionsTemplate }
     ];
-    // Marca para verificação pois alteramos dados que afetam a view após a inicialização
     this.cdr.detectChanges();
   }
 
   /**
-   * Sobrescreve o método da BaseList.
-   * Em vez de fazer a requisição manualmente, apenas atualiza os parâmetros no serviço.
-   * O Signal no construtor cuidará de receber os novos dados.
+   * Notifica o serviço sobre mudanças de paginação ou ordenação.
+   * A UI é atualizada reativamente pelo `effect` no construtor.
    */
   override loadItems(): void {
     const sort = this.pagination.sortActive();
@@ -94,58 +96,54 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
     });
   }
 
+  /**
+   * Abre o formulário para a criação de um novo Tipo de Matéria-Prima.
+   */
   async onCreate(): Promise<void> {
     try {
-      // Busca o template HATEOAS para criação
       const template = await lastValueFrom(this.materialTypeService.getNewTemplate());
       this.openFormDialog({
         template,
-        title: 'Cadastrar Matéria-Prima'
-      }, 'Matéria-prima cadastrada com sucesso!');
+        title: MaterialTypeList.Texts.createTitle
+      }, MaterialTypeList.Texts.createSuccess);
     } catch (error) {
       console.error('Erro ao buscar template para nova matéria-prima:', error);
-      this.entityDialog.showErrorSnackbar('Não foi possível iniciar o cadastro.');
+      this.entityDialog.showErrorSnackbar(MaterialTypeList.Texts.createError);
     }
   }
 
-  async onEdit(item: MaterialType): Promise<void> {
-    const selfUrl = item._links?.['self']?.href;
-    if (!selfUrl) {
-      this.entityDialog.showErrorSnackbar('Não foi possível encontrar o recurso.');
-      return;
-    }
-
-    try {
-      const itemToEdit = await lastValueFrom(this.materialTypeService.findByUrl(selfUrl));
-      this.openFormDialog({
-        template: itemToEdit,
-        title: 'Editar Matéria-Prima'
-      }, 'Matéria-prima atualizada com sucesso!');
-    } catch (error) {
-      console.error('Erro ao buscar dados para edição:', error);
-      this.entityDialog.showErrorSnackbar('Falha ao carregar dados para edição.');
-    }
+  /**
+   * Abre o formulário de edição para o item selecionado.
+   */
+  onEdit(item: MaterialType): void {
+    const itemCopy = structuredClone(item);
+    this.openFormDialog({
+      template: itemCopy,
+      title: MaterialTypeList.Texts.editTitle
+    }, MaterialTypeList.Texts.saveSuccess);
   }
 
+  /**
+   * Solicita confirmação e remove o item selecionado.
+   */
   onDelete(item: MaterialType): void {
     const deleteUrl = item._links?.['delete']?.href;
     if (!deleteUrl) {
-      this.entityDialog.showErrorSnackbar('Não foi possível encontrar a ação de exclusão.');
+      this.entityDialog.showErrorSnackbar(MaterialTypeList.Texts.resourceError);
       return;
     }
 
     this.entityDialog.openConfirmDeleteDialog(
       `'${item.nome}'`,
-      'Confirmar Exclusão'
+      MaterialTypeList.Texts.deleteConfirmTitle
     ).subscribe(confirmed => {
       if (confirmed) {
-        // O serviço cuidará de atualizar a lista automaticamente após o delete bem-sucedido
         this.materialTypeService.delete(deleteUrl).subscribe({
           next: () => {
-            this.entityDialog.showSuccessSnackbar('Matéria-prima excluída com sucesso!');
+            this.entityDialog.showSuccessSnackbar(MaterialTypeList.Texts.deleteSuccess);
           },
           error: () => {
-            this.entityDialog.showErrorSnackbar('Falha ao excluir a matéria-prima.');
+            this.entityDialog.showErrorSnackbar(MaterialTypeList.Texts.deleteError);
           }
         });
       }

@@ -21,9 +21,14 @@ export interface DetailItem {
   styleUrls: ['./details-popover.scss']
 })
 export class DetailsPopover {
-  /** A lista de itens (chave/valor) a serem exibidos no popover. */
+  /**
+   * A lista de itens (chave/valor) a serem exibidos no popover.
+   * Utiliza a função `input()` do Angular 17+ para uma declaração de entrada mais moderna.
+   */
   items = input<DetailItem[]>([]);
 
-  /** O texto que servirá como gatilho para exibir o popover. */
+  /**
+   * O texto que servirá como gatilho para exibir o popover.
+   */
   triggerText = input<string>('Exibir detalhes');
 }

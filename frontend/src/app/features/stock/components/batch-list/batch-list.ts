@@ -16,10 +16,8 @@ import { BatchForm, BatchFormData } from '../batch-form/batch-form';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 
 /**
- * Componente de listagem de Lotes de Matéria-Prima.
- *
- * Utiliza a estratégia `OnPush` e Signals para reagir automaticamente às mudanças
- * de estado no serviço `BatchService`.
+ * Componente de listagem para Lotes de Matéria-Prima.
+ * Gerencia a exibição de dados em tabela, paginação e ações de CRUD (criar, editar, deletar).
  */
 @Component({
   selector: 'app-batch-list',
@@ -57,7 +55,6 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
 
   tableColumns: TableColumn<Batch>[] = [];
 
-  // Referências aos templates de célula definidos no HTML
   @ViewChild('typeTemplate') typeTemplate!: TemplateRef<any>;
   @ViewChild('balanceTemplate') balanceTemplate!: TemplateRef<any>;
   @ViewChild('unitTemplate') unitTemplate!: TemplateRef<any>;
@@ -67,7 +64,6 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
   constructor() {
     super();
 
-    // Converte o Observable de lotes do serviço em um signal para consumo reativo.
     const lotesResponse = toSignal(
       this.batchService.batches$.pipe(
         catchError((error) => {
@@ -78,7 +74,6 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
       )
     );
 
-    // Reage a novas emissões do serviço e atualiza o estado da lista.
     effect(() => {
       const response = lotesResponse();
       if (response) {
@@ -100,6 +95,10 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
+  /**
+   * Notifica o serviço sobre mudanças de paginação ou ordenação.
+   * A UI é atualizada reativamente pelo `effect` no construtor.
+   */
   override loadItems(): void {
     this.batchService.updateSearchParams({
       page: this.pagination.pageIndex(),
@@ -108,6 +107,9 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
     });
   }
 
+  /**
+   * Abre o diálogo para gerenciamento de Tipos de Matéria-Prima.
+   */
   openMaterialTypeDialog(): void {
     this.dialog.open(MaterialTypeList, {
       width: '80vw',
@@ -116,6 +118,9 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
     });
   }
 
+  /**
+   * Abre o formulário para a criação de um novo Lote.
+   */
   async onCreate(): Promise<void> {
     try {
       const template = await lastValueFrom(this.batchService.getNewTemplate());
@@ -129,6 +134,9 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
     }
   }
 
+  /**
+   * Abre o formulário de edição para o lote selecionado.
+   */
   onEdit(lote: Batch): void {
     const loteCopy = structuredClone(lote);
     this.openFormDialog({
@@ -137,6 +145,9 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
     }, BatchList.Texts.saveSuccess);
   }
 
+  /**
+   * Solicita confirmação e remove o lote selecionado.
+   */
   onDelete(lote: Batch): void {
     const deleteUrl = lote._links?.['delete']?.href;
     if (!deleteUrl) {
@@ -174,6 +185,9 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
     });
   }
 
+  /**
+   * Converte o objeto de atributos em um array para exibição no popover.
+   */
   getAttributesAsArray(atributos: { [key: string]: any }): { key: string, value: any }[] {
     if (!atributos) {
       return [];

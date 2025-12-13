@@ -1,0 +1,23 @@
+// Estilos compartilhados para layouts de formulários.
+
+// Layout em grid para os campos principais do formulário.
+// Permite fácil alinhamento em uma ou mais colunas.
+.form-grid {
+  display: grid;
+  gap: 16px;
+
+  // Por padrão, uma coluna.
+  grid-template-columns: 1fr;
+}
+
+// Modificador para um grid de duas colunas em telas maiores.
+@media (min-width: 600px) {
+  .form-grid.two-columns {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+// Classe para fazer um campo ocupar a largura total do grid.
+.full-width {
+  grid-column: span 2;
+}

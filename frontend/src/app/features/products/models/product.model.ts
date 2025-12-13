@@ -2,7 +2,7 @@ import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
 import { MaterialType } from '../../stock/models/material-type.model';
 
 /**
- * Dimensões físicas aplicáveis a produtos de corte.
+ * Representa as dimensões físicas de um produto, aplicável a produtos de corte.
  */
 export interface Dimensions {
   larguraCm: number;
@@ -10,13 +10,14 @@ export interface Dimensions {
 }
 
 /**
- * Mapa dinâmico de especificações técnicas.
+ * Representa o mapa de especificações técnicas de um produto, como um objeto chave-valor.
  */
 export type Specifications = Record<string, string>;
 
 /**
- * Modelo principal de Produto.
- * Unifica propriedades de produtos de Corte e Consumo Direto.
+ * Representa a entidade Produto no sistema.
+ * Mapeia a estrutura de dados retornada pela API, unificando as propriedades
+ * dos tipos 'CORTE' e 'CONSUMO_DIRETO' e incluindo links HATEOAS.
  */
 export interface Product {
   id: number;
@@ -33,11 +34,11 @@ export interface Product {
   materiaPrima: MaterialType;
   _links?: Hateoas['_links'];
 
-  /** Propriedades exclusivas para produtos do tipo CORTE */
+  /** Propriedades exclusivas para produtos do tipo CORTE. */
   cor?: string;
   dimensoes?: Dimensions;
 
-  /** Propriedades exclusivas para produtos do tipo CONSUMO_DIRETO */
+  /** Propriedades exclusivas para produtos do tipo CONSUMO_DIRETO. */
   codigoFabricante?: string;
   especificacoes?: Specifications;
 
@@ -49,14 +50,15 @@ export interface Product {
 }
 
 /**
- * Estrutura da lista de produtos embutida na resposta da API.
+ * Estrutura aninhada `_embedded` específica para a lista de Produtos.
  */
 export interface EmbeddedProducts {
   produtos: Product[];
 }
 
 /**
- * Resposta paginada da API de produtos.
+ * Estrutura de resposta padrão da API para listagens paginadas de Produtos.
+ * Contém os dados em `_embedded`, links de navegação e metadados de paginação.
  */
 export interface ApiResponseProducts extends Hateoas {
   _embedded: EmbeddedProducts;

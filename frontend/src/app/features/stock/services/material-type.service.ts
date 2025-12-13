@@ -12,12 +12,8 @@ import {
 
 /**
  * Serviço responsável pelo gerenciamento de Tipos de Matéria-Prima.
- *
- * Implementa o padrão de arquitetura reativa com Signals para gerenciamento de estado
- * de paginação e filtros, além de otimização de requisições (skipRefresh).
- *
- * Padroniza a resposta da API, tratando nomes de propriedades com hífen (ex: 'tipos-materia-prima')
- * e garantindo uma ordenação consistente no lado do cliente.
+ * Implementa uma arquitetura reativa para lidar com paginação, filtros e atualizações de dados,
+ * centralizando a lógica de comunicação com a API para esta entidade.
  */
 @Injectable({
   providedIn: 'root'
@@ -39,7 +35,6 @@ export class MaterialTypeService {
     size: 10,
     sort: 'id,asc'
   }, {
-    // Evita disparar nova busca se os parâmetros forem idênticos
     equal: (a, b) =>
       a.page === b.page &&
       a.size === b.size &&
@@ -57,8 +52,9 @@ export class MaterialTypeService {
   );
 
   /**
-   * Observable reativo que emite a lista de tipos de matéria-prima.
-   * Atualiza automaticamente quando os parâmetros mudam ou o refresh é acionado.
+   * Observable reativo que emite a lista de Tipos de Matéria-Prima.
+   * É acionado sempre que os parâmetros de busca mudam ou um refresh manual é solicitado,
+   * mantendo os componentes atualizados automaticamente.
    */
   readonly materialTypes$: Observable<ApiResponseMaterialTypes>;
 
@@ -103,12 +99,15 @@ export class MaterialTypeService {
     );
   }
 
+  /**
+   * Retorna o fluxo observável principal de Tipos de Matéria-Prima.
+   */
   getMaterialTypes(): Observable<ApiResponseMaterialTypes> {
     return this.materialTypes$;
   }
 
   /**
-   * Atualiza os parâmetros de busca, disparando uma nova requisição automaticamente.
+   * Atualiza os parâmetros de busca, o que dispara uma nova emissão no `materialTypes$`.
    */
   updateSearchParams(params: Partial<{
     page: number;
@@ -120,6 +119,9 @@ export class MaterialTypeService {
     this.searchParams.update(current => ({ ...current, ...params }));
   }
 
+  /**
+   * Retorna um template HATEOAS para a criação de um novo Tipo de Matéria-Prima.
+   */
   getNewTemplate(): Observable<MaterialType> {
     return this.getBaseUrl().pipe(
       switchMap(baseUrl => this.http.get<MaterialType>(`${baseUrl}/new`))
@@ -127,9 +129,9 @@ export class MaterialTypeService {
   }
 
   /**
-   * Cria um novo tipo de matéria-prima.
-   * @param request
-   * @param skipRefresh Se true, não atualiza a lista automaticamente (útil para operações em lote).
+   * Cria um novo Tipo de Matéria-Prima na API.
+   * @param request O payload para a criação.
+   * @param skipRefresh Se true, não dispara a atualização da lista (útil para operações em lote).
    */
   create(request: MaterialTypeRequest, skipRefresh = false): Observable<MaterialType> {
     return this.getBaseUrl().pipe(
@@ -138,6 +140,9 @@ export class MaterialTypeService {
     );
   }
 
+  /**
+   * Remove um Tipo de Matéria-Prima pela sua URL.
+   */
   delete(url: string): Observable<void> {
     return this.http.delete<void>(url).pipe(
       tap(() => this.refreshTrigger.set(undefined))
@@ -145,10 +150,10 @@ export class MaterialTypeService {
   }
 
   /**
-   * Atualiza um registro existente.
-   * @param url
-   * @param request
-   * @param skipRefresh Se true, não atualiza a lista automaticamente.
+   * Atualiza um Tipo de Matéria-Prima existente na API.
+   * @param url A URL do recurso a ser atualizado.
+   * @param request O payload com as alterações.
+   * @param skipRefresh Se true, não dispara a atualização da lista.
    */
   update(url: string, request: MaterialTypeRequest, skipRefresh = false): Observable<MaterialType> {
     return this.http.patch<MaterialType>(url, request).pipe(
@@ -156,22 +161,22 @@ export class MaterialTypeService {
     );
   }
 
+  /**
+   * Busca um Tipo de Matéria-Prima específico pela sua URL completa.
+   */
   findByUrl(url: string): Observable<MaterialType> {
     return this.http.get<MaterialType>(url);
   }
 
+  /**
+   * Busca um Tipo de Matéria-Prima específico pelo seu ID.
+   */
   findById(id: number): Observable<MaterialType> {
     return this.getBaseUrl().pipe(
       switchMap(baseUrl => this.http.get<MaterialType>(`${baseUrl}/${id}`))
     );
   }
 
-  // --- Métodos Auxiliares Privados ---
-
-  /**
-   * Normaliza a resposta da API e aplica ordenação no cliente.
-   * Suporta propriedades aninhadas (ex: 'categoria.nome').
-   */
   private normalizeAndSortResponse(response: any, params: { sort: string, size: number }): ApiResponseMaterialTypes {
     const items = response?._embedded?.['tipos-materia-prima'] || response?._embedded?.['tipoMateriaPrimaModelList'] || [];
     const [sortField, sortOrder] = params.sort.split(',');

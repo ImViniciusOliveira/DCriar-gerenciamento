@@ -1,19 +1,9 @@
 <h2 mat-dialog-title>{{ data.title }}</h2>
 
-<!--
-  Lógica de Exibição:
-  Alterna entre o formulário de edição/criação e a visualização de detalhes (somente leitura)
-  baseado no signal isEditMode.
--->
 @if (isEditMode() || data.isCreationMode) {
-  <!--
-    (keydown.enter)="$event.preventDefault()":
-    Previne o envio acidental do formulário ao pressionar Enter em campos de texto.
-    O envio deve ser feito explicitamente pelo botão de salvar.
-  -->
   <form [formGroup]="productForm" (ngSubmit)="onSubmit()" (keydown.enter)="$event.preventDefault()">
     <mat-dialog-content>
-      <div class="form-row">
+      <div class="form-grid two-columns">
         @if (data.isCreationMode) {
           <mat-form-field class="full-width">
             <mat-label>Tipo de Produto</mat-label>
@@ -27,42 +17,35 @@
           <mat-label>Nome</mat-label>
           <input matInput formControlName="nome" required>
         </mat-form-field>
-      </div>
-      <div class="form-row">
+
         <mat-form-field>
           <mat-label>SKU</mat-label>
           <input matInput formControlName="sku" required>
         </mat-form-field>
 
-        <!-- Exibe o campo Cor apenas se estiver habilitado (lógica controlada pelo TS baseada no tipo) -->
         @if (productForm.get('cor')?.enabled) {
           <mat-form-field>
             <mat-label>Cor</mat-label>
             <input matInput formControlName="cor">
           </mat-form-field>
         }
-      </div>
-      <mat-form-field class="full-width">
-        <mat-label>Descrição</mat-label>
-        <textarea matInput formControlName="descricao"></textarea>
-      </mat-form-field>
-      <div class="form-row">
+
+        <mat-form-field class="full-width">
+          <mat-label>Descrição</mat-label>
+          <textarea matInput formControlName="descricao"></textarea>
+        </mat-form-field>
+
         <mat-form-field>
           <mat-label>Unidades por Produto</mat-label>
           <input matInput type="number" formControlName="unidadesPorProduto" required>
         </mat-form-field>
       </div>
 
-      <!-- Seção de Upload de Imagem -->
       @if (isEditMode() || data.isCreationMode) {
         <div class="image-upload-section">
           <label class="mat-body-2" for="fotoPrincipal">Foto Principal</label>
           <div class="image-preview-container image-container">
             @if (safeImageSrc(); as src) {
-              <!--
-                Nota: Usamos [src] padrão em vez de NgOptimizedImage [ngSrc] aqui
-                porque URLs de blob (preview local) não são suportadas pelo otimizador.
-              -->
               <img [src]="src" alt="Pré-visualização da foto" width="200" height="200">
             } @else {
               <div class="no-image">
@@ -86,17 +69,15 @@
 
       <mat-checkbox formControlName="ativo" class="form-checkbox">Ativo</mat-checkbox>
 
-      <!-- Componente genérico para busca de matéria-prima. -->
       <app-material-type-search
         [control]="materialTypeControl"
         [isEditMode]="isEditMode()"
         (selectionChange)="onMaterialTypeChange($event)">
       </app-material-type-search>
 
-      <!-- Campos Específicos: Dimensões (Apenas para CORTE) -->
       @if (productForm.get('dimensoes')?.enabled) {
         <h3 class="dimensions-title mat-subheading-2">Dimensões Unitárias</h3>
-        <div class="dimensions-group" formGroupName="dimensoes">
+        <div class="form-grid two-columns" formGroupName="dimensoes">
           <mat-form-field>
             <mat-label>Largura (cm)</mat-label>
             <input matInput type="number" formControlName="larguraCm" required>
@@ -108,19 +89,17 @@
         </div>
       }
 
-      <!-- Campos Específicos: Especificações (Apenas para CONSUMO_DIRETO) -->
       @if (productForm.get('especificacoes')?.enabled) {
         <h3 class="dimensions-title mat-subheading-2">Detalhes de Consumo</h3>
-        <div class="form-row">
-          <mat-form-field>
+        <div class="form-grid two-columns">
+          <mat-form-field class="full-width">
             <mat-label>Código do Fabricante</mat-label>
             <input matInput formControlName="codigoFabricante">
           </mat-form-field>
         </div>
         <div formArrayName="especificacoes">
-          <!-- track $index é usado para controles dinâmicos sem ID persistente -->
           @for (specGroup of specificationsControls; track $index) {
-            <div class="form-row spec-row" [formGroup]="specGroup">
+            <div class="form-grid two-columns spec-row" [formGroup]="specGroup">
               <mat-form-field>
                 <mat-label>Característica</mat-label>
                 <input matInput formControlName="chave">
@@ -173,7 +152,6 @@
           @if (product().tipoProduto === 'CONSUMO_DIRETO') {
             <p><strong>Cód. Fabricante:</strong> {{ product().codigoFabricante || 'N/A' }}</p>
             @if (product().especificacoes) {
-              <!-- Itera sobre o mapa de especificações (chave: valor) -->
               @for (spec of product().especificacoes | keyvalue; track spec.key) {
                 <p><strong>{{ spec.key | titlecase }}:</strong> {{ spec.value }}</p>
               }

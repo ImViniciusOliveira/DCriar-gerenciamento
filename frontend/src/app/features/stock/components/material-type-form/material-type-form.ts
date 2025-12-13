@@ -26,8 +26,7 @@ export interface UnitOption {
 }
 
 /**
- * Validador customizado para garantir que o valor do autocomplete
- * corresponde a uma das opções da lista.
+ * Validador customizado para garantir que o valor do autocomplete corresponde a uma das opções da lista.
  */
 export function requireMatch(options: UnitOption[]): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -75,6 +74,7 @@ export class MaterialTypeForm implements OnInit {
   allUnits = signal<UnitOption[]>([]);
   filterValue = signal<string>('');
 
+  /** Signal computado que filtra as unidades com base no valor digitado. */
   filteredUnits = computed(() => {
     const filter = this.filterValue().toLowerCase();
     const units = this.allUnits();
@@ -96,6 +96,7 @@ export class MaterialTypeForm implements OnInit {
     const valueChanges$ = this.form.get('unidadeDeConsumo')!.valueChanges.pipe(startWith(''));
     const valueSignal = toSignal(valueChanges$, { initialValue: '' });
 
+    // Sincroniza o valor do input com o signal de filtro para o autocomplete.
     effect(() => {
       const value = valueSignal();
       const stringValue = typeof value === 'string' ? value : '';
@@ -107,6 +108,9 @@ export class MaterialTypeForm implements OnInit {
     this.loadMeasurementUnits();
   }
 
+  /**
+   * Carrega as unidades de medida a partir do link HATEOAS para popular o autocomplete.
+   */
   loadMeasurementUnits(): void {
     const url = this.data.template?._links?.['unidades-de-medida']?.href || this.apiRoot.endpoints()?._links?.['unidades-de-medida']?.href;
 
@@ -138,6 +142,9 @@ export class MaterialTypeForm implements OnInit {
     });
   }
 
+  /**
+   * Define como o valor do autocomplete será exibido no campo de input.
+   */
   displayUnit(unit: UnitOption): string {
     return unit?.descricao || '';
   }
@@ -149,6 +156,9 @@ export class MaterialTypeForm implements OnInit {
     }
   }
 
+  /**
+   * Envia os dados do formulário para criação ou atualização do Tipo de Matéria-Prima.
+   */
   onSave(): void {
     if (this.form.invalid) {
       return;

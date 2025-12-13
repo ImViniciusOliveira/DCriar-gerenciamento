@@ -1,17 +1,7 @@
-// Layout em grid para os campos principais do formulário.
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr; // Duas colunas de tamanho igual
-  gap: 16px;
-}
-
-// Classe para fazer um campo ocupar a largura total do grid.
-.full-width {
-  grid-column: span 2;
-}
+@use '../../../../shared/styles/form-layout';
 
 // Estilização para a seção de atributos dinâmicos.
-.dynamic-attributes {
+.dynamic-attributes, .specific-attributes {
   margin-top: 20px;
   padding: 15px;
   border: 1px solid var(--mat-sys-outline-variant);
@@ -25,11 +15,4 @@
   gap: 10px;
   align-items: center;
   margin-bottom: 10px;
-}
-
-// Centraliza o spinner na opção de "carregando mais" do mat-select.
-.spinner-option {
-  display: flex !important;
-  justify-content: center;
-  align-items: center;
 }

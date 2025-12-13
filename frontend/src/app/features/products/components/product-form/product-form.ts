@@ -19,13 +19,9 @@ import { MaterialTypeSearch } from '../../../../shared/components/material-type-
 import { MaterialType } from '../../../stock/models/material-type.model';
 
 /**
- * Componente de formulário para criação e edição de produtos.
- *
- * Gerencia a lógica complexa de dois tipos de produtos:
- * - **CORTE**: Requer dimensões (largura/comprimento) e cor.
- * - **CONSUMO_DIRETO**: Requer especificações técnicas dinâmicas e código de fabricante.
- *
- * Utiliza Signals para gerenciamento de estado e ChangeDetection.OnPush para performance.
+ * Formulário para criação e edição de Produtos.
+ * Gerencia a lógica complexa para os tipos 'CORTE' e 'CONSUMO_DIRETO',
+ * incluindo campos condicionais, upload de imagem e especificações dinâmicas.
  */
 @Component({
   selector: 'app-product-form',
@@ -37,7 +33,6 @@ import { MaterialType } from '../../../stock/models/material-type.model';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ProductFormComponent implements OnInit {
-  // --- Injeções de Dependência ---
   private readonly productService = inject(ProductService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
@@ -45,36 +40,29 @@ export class ProductFormComponent implements OnInit {
   public readonly dialogRef = inject(MatDialogRef<ProductFormComponent>);
   public readonly data: ProductFormData = inject(MAT_DIALOG_DATA);
 
-  // --- Estado Reativo (Signals) ---
   readonly product = signal<Product>(this.data.product);
   readonly isEditMode = signal<boolean>(this.data.isEditMode);
 
-  /**
-   * URL segura para exibição da imagem.
-   * Computada automaticamente: prioriza o preview local (upload pendente),
-   * senão usa a URL da foto existente no produto.
-   */
+  /** URL segura para exibição da imagem, priorizando o preview local. */
   readonly safeImageSrc: Signal<string | null>;
 
   selectedFile = signal<File | null>(null);
   previewUrl = signal<string | null>(null);
   isUploading = signal(false);
 
-  // --- Formulário ---
   productForm: FormGroup;
 
-  /**
-   * Armazena as especificações originais para comparação durante a edição.
-   * Usado para determinar quais especificações foram removidas ou alteradas.
-   */
+  /** Armazena as especificações originais para comparação e envio de `null` em campos removidos. */
   private initialSpecifications = signal<{ [key: string]: string }>({});
 
-  // --- Constantes de Texto ---
   private static readonly Texts = {
     CONFIRM_CHANGE_TITLE: 'Confirmar Alteração',
     CONFIRM_CHANGE_MESSAGE: (original: string, novo: string) => `Deseja realmente alterar a matéria-prima de "${original}" para "${novo}"?`,
     CONFIRM_DELETE_SPEC_TITLE: 'Confirmar Remoção',
-    CONFIRM_DELETE_SPEC_MESSAGE: (key: string) => `Deseja realmente remover a característica "${key}"?`
+    CONFIRM_DELETE_SPEC_MESSAGE: (key: string) => `Deseja realmente remover a característica "${key}"?`,
+    LOAD_ERROR: 'Falha ao buscar detalhes completos do produto:',
+    SUBMIT_ERROR: 'Falha no envio do formulário:',
+    UPDATE_ERROR: 'ID do produto não encontrado, não é possível atualizar.'
   };
 
   constructor() {
@@ -82,7 +70,6 @@ export class ProductFormComponent implements OnInit {
 
     const currentProduct = this.product();
 
-    // Inicialização do formulário com validadores padrão
     this.productForm = this.fb.group({
       tipoProduto: [currentProduct.tipoProduto || 'CORTE', Validators.required],
       nome: [currentProduct.nome, Validators.required],
@@ -100,10 +87,9 @@ export class ProductFormComponent implements OnInit {
       especificacoes: this.fb.array([])
     });
 
-    // Configura o estado inicial dos campos baseados no tipo
     this.setupFormControlsBasedOnProductType(currentProduct.tipoProduto || 'CORTE', false);
 
-    // Reage dinamicamente à mudança do tipo de produto
+    // Reage dinamicamente à mudança do tipo de produto para ajustar a UI.
     this.productForm.get('tipoProduto')?.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(type => {
@@ -115,41 +101,43 @@ export class ProductFormComponent implements OnInit {
     if (this.data.isCreationMode) {
       return;
     }
-
-    // Em modo de edição, buscamos os detalhes completos (incluindo especificações e links)
-    const selfUrl = this.product()?._links?.['self']?.href;
-    if (selfUrl) {
-      lastValueFrom(this.productService.getProductByUrl(selfUrl))
-        .then(fullProduct => {
-          if (fullProduct) {
-            this.product.set(fullProduct);
-
-            if (fullProduct.materiaPrima) {
-              this.productForm.get('materiaPrima')?.patchValue(fullProduct.materiaPrima);
-            }
-
-            // Popula o FormArray de especificações dinâmicas
-            this.specifications.clear();
-            const specs = fullProduct.especificacoes;
-            if (specs) {
-              this.initialSpecifications.set({ ...specs });
-              Object.entries(specs).forEach(([chave, valor]) => {
-                this.specifications.push(this.fb.group({
-                  chave: [chave, Validators.required],
-                  valor: [valor, Validators.required],
-                  isNew: [false] // Marca como existente para controle de remoção
-                }));
-              });
-            }
-            // Força verificação de mudanças pois a atualização é assíncrona
-            this.cdr.markForCheck();
-          }
-        })
-        .catch(err => console.error("Falha ao buscar detalhes completos do produto:", err));
-    }
+    this.initializeForm();
   }
 
-  // --- Getters Auxiliares ---
+  /**
+   * Carrega os dados detalhados do produto para o formulário no modo de edição.
+   * Isso é necessário para popular campos complexos como o FormArray de especificações.
+   */
+  initializeForm(): void {
+    const selfUrl = this.product()?._links?.['self']?.href;
+    if (!selfUrl) return;
+
+    lastValueFrom(this.productService.getProductByUrl(selfUrl))
+      .then(fullProduct => {
+        if (fullProduct) {
+          this.product.set(fullProduct);
+
+          if (fullProduct.materiaPrima) {
+            this.productForm.get('materiaPrima')?.patchValue(fullProduct.materiaPrima);
+          }
+
+          this.specifications.clear();
+          const specs = fullProduct.especificacoes;
+          if (specs) {
+            this.initialSpecifications.set({ ...specs });
+            Object.entries(specs).forEach(([chave, valor]) => {
+              this.specifications.push(this.fb.group({
+                chave: [chave, Validators.required],
+                valor: [valor, Validators.required],
+                isNew: [false] // Flag para controle de remoção
+              }));
+            });
+          }
+          this.cdr.markForCheck();
+        }
+      })
+      .catch(err => console.error(ProductFormComponent.Texts.LOAD_ERROR, err));
+  }
 
   get specifications(): FormArray {
     return this.productForm.get('especificacoes') as FormArray;
@@ -163,11 +151,8 @@ export class ProductFormComponent implements OnInit {
     return this.productForm.get('materiaPrima') as FormControl;
   }
 
-  // --- Manipulação do Formulário ---
-
   /**
    * Adiciona uma nova linha de especificação técnica ao formulário.
-   * Faz o scroll automático para o final da lista para melhor UX.
    */
   addSpecification(): void {
     this.specifications.push(this.fb.group({
@@ -176,6 +161,7 @@ export class ProductFormComponent implements OnInit {
       isNew: [true]
     }));
 
+    // Scroll automático para o novo item, melhorando a experiência do usuário.
     setTimeout(() => {
       const dialogContent = (this.dialogRef as any)._containerInstance._elementRef.nativeElement.querySelector('mat-dialog-content');
       if (dialogContent) {
@@ -185,23 +171,20 @@ export class ProductFormComponent implements OnInit {
   }
 
   /**
-   * Remove uma especificação da lista.
-   *
-   * - Se for um item novo (ainda não salvo), remove imediatamente.
-   * - Se for um item existente, solicita confirmação do usuário para evitar perda acidental de dados.
-   *
-   * @param index Índice do item no FormArray
+   * Remove uma especificação da lista, com confirmação para itens existentes.
    */
   async removeSpecification(index: number): Promise<void> {
     const specGroup = this.specifications.at(index);
     const isNew = specGroup.get('isNew')?.value;
 
+    // Se for um item novo, remove sem confirmação.
     if (isNew) {
       this.specifications.removeAt(index);
       this.productForm.get('especificacoes')?.markAsDirty();
       return;
     }
 
+    // Se for um item existente, pede confirmação.
     const key = specGroup.get('chave')?.value;
     const dialogData: ConfirmDialogData = {
       title: ProductFormComponent.Texts.CONFIRM_DELETE_SPEC_TITLE,
@@ -219,14 +202,8 @@ export class ProductFormComponent implements OnInit {
   }
 
   /**
-   * Ajusta a validação e o estado (habilitado/desabilitado) dos campos
-   * com base no tipo de produto selecionado.
-   *
-   * - **CORTE**: Habilita 'cor' e 'dimensoes'. Desabilita 'codigoFabricante' e 'especificacoes'.
-   * - **CONSUMO_DIRETO**: Inverso do acima.
-   *
-   * @param type Tipo do produto selecionado
-   * @param resetOppositeControls Se true, limpa os valores dos campos desabilitados (útil na criação)
+   * Habilita/desabilita campos do formulário com base no tipo de produto,
+   * garantindo que apenas os campos relevantes sejam validados e preenchidos.
    */
   private setupFormControlsBasedOnProductType(type: 'CORTE' | 'CONSUMO_DIRETO', resetOppositeControls: boolean): void {
     const corteControls = ['cor', 'dimensoes'];
@@ -270,14 +247,14 @@ export class ProductFormComponent implements OnInit {
         }
       });
     }
-    // Atualiza a validação para refletir as mudanças
     corControl?.updateValueAndValidity();
     this.productForm.get('dimensoes.larguraCm')?.updateValueAndValidity();
     this.productForm.get('dimensoes.comprimentoCm')?.updateValueAndValidity();
   }
 
-  // --- Submissão ---
-
+  /**
+   * Ponto de entrada para a submissão do formulário.
+   */
   async onSubmit(): Promise<void> {
     if (this.productForm.invalid) {
       return;
@@ -291,7 +268,7 @@ export class ProductFormComponent implements OnInit {
         await this.handleCreateSubmit();
       }
     } catch (error) {
-      console.error('Falha no envio do formulário:', error);
+      console.error(ProductFormComponent.Texts.SUBMIT_ERROR, error);
       this.dialogRef.close(false);
     } finally {
       this.isUploading.set(false);
@@ -299,11 +276,12 @@ export class ProductFormComponent implements OnInit {
   }
 
   /**
-   * Prepara o objeto de valores do formulário, convertendo o array de especificações
-   * de volta para um mapa (objeto) chave-valor esperado pelo backend.
+   * Prepara o payload final para a API, formatando especificações e removendo campos irrelevantes.
    */
   private getProcessedFormValue(): any {
+    // Usa getRawValue() para incluir campos desabilitados, que serão limpos a seguir.
     const formValue = this.productForm.getRawValue();
+
     const especificacoesMap: { [key: string]: string } = {};
     (formValue.especificacoes || []).forEach((spec: { chave: string; valor: string }) => {
       if (spec.chave) {
@@ -311,13 +289,21 @@ export class ProductFormComponent implements OnInit {
       }
     });
     formValue.especificacoes = especificacoesMap;
+
+    // Limpa o payload para enviar apenas os dados pertinentes ao tipo do produto.
+    if (formValue.tipoProduto === 'CORTE') {
+      delete formValue.codigoFabricante;
+      delete formValue.especificacoes;
+    } else if (formValue.tipoProduto === 'CONSUMO_DIRETO') {
+      delete formValue.cor;
+      delete formValue.dimensoes;
+    }
+
     return formValue;
   }
 
   /**
-   * Lógica de atualização (PATCH).
-   * Envia apenas os campos que foram alterados (dirty) para economizar banda e evitar conflitos.
-   * Trata especificamente o mapa de especificações para enviar null nas chaves removidas.
+   * Lida com a submissão de edição (PATCH), enviando apenas os campos alterados.
    */
   private async handleEditSubmit(): Promise<void> {
     const hasImageChanged = !!this.selectedFile();
@@ -325,11 +311,11 @@ export class ProductFormComponent implements OnInit {
     const hasFormChanged = Object.keys(dirtyValues).length > 0;
 
     if (!hasImageChanged && !hasFormChanged) {
-      this.dialogRef.close(false); // Nenhuma mudança, fecha sem atualizar
+      this.dialogRef.close(false); // Nenhuma mudança, fecha sem atualizar.
       return;
     }
 
-    // Se houver imagem e formulário, o upload pula o refresh, que será feito pelo patch.
+    // Se a imagem mudou, faz o upload primeiro.
     if (hasImageChanged) {
       const updated = await this.uploadImage(this.product(), hasFormChanged);
       if (updated) {
@@ -337,21 +323,21 @@ export class ProductFormComponent implements OnInit {
       }
     }
 
+    // Se o formulário mudou, envia o PATCH.
     if (hasFormChanged) {
       if (!this.product()?.id) {
-        console.error('ID do produto não encontrado, não é possível atualizar.', this.product());
+        console.error(ProductFormComponent.Texts.UPDATE_ERROR, this.product());
         return;
       }
-      // O patch sempre faz o refresh final.
       await lastValueFrom(this.productService.patchProduct(this.product().id, dirtyValues));
     }
 
-    this.dialogRef.close(true); // Indica que houve mudança
+    this.dialogRef.close(true);
   }
 
   /**
    * Extrai apenas os campos "sujos" (dirty) do formulário para o payload do PATCH.
-   * Inclui a lógica especial para o mapa de especificações.
+   * Lida com a complexidade do FormArray de especificações.
    */
   private getDirtyValues(): { [key: string]: any } {
     const dirtyValues: { [key: string]: any } = {};
@@ -368,6 +354,8 @@ export class ProductFormComponent implements OnInit {
       }
     });
 
+    // Lógica especial para especificações: compara o estado atual com o inicial
+    // para enviar `null` para as chaves que foram removidas.
     if (especificacoesIsDirty) {
       const currentSpecs: { [key: string]: string } = {};
       (this.productForm.get('especificacoes')?.value || []).forEach((spec: { chave: string; valor: string }) => {
@@ -379,7 +367,7 @@ export class ProductFormComponent implements OnInit {
       const specsPayload: { [key: string]: string | null } = { ...currentSpecs };
       Object.keys(this.initialSpecifications()).forEach(initialKey => {
         if (!currentSpecs.hasOwnProperty(initialKey)) {
-          specsPayload[initialKey] = null;
+          specsPayload[initialKey] = null; // Marca para remoção no backend.
         }
       });
       dirtyValues['especificacoes'] = specsPayload;
@@ -387,15 +375,15 @@ export class ProductFormComponent implements OnInit {
     return dirtyValues;
   }
 
-
+  /**
+   * Lida com a submissão de criação (POST).
+   */
   private async handleCreateSubmit(): Promise<void> {
     const formValue = this.getProcessedFormValue();
-    // Na criação, o primeiro post pula o refresh, pois o upload (se houver) o fará.
     const hasImageToUpload = !!this.selectedFile();
     const newProduct = await lastValueFrom(this.productService.createProduct(formValue as Partial<Product>, hasImageToUpload));
 
     if (hasImageToUpload && newProduct) {
-      // O upload é a última operação, então ele dispara o refresh.
       await this.uploadImage(newProduct, false);
     }
 
@@ -437,8 +425,7 @@ export class ProductFormComponent implements OnInit {
   }
 
   /**
-   * Verifica se o usuário realmente deseja trocar a matéria-prima,
-   * pois isso pode impactar custos e estoque.
+   * Confirma a intenção do usuário ao alterar a matéria-prima de um produto existente.
    */
   async onMaterialTypeChange(event: MatSelectChange): Promise<void> {
     const newSelection = event.value as MaterialType;

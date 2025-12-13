@@ -21,7 +21,7 @@ export interface TableColumn<T> {
 /**
  * Um componente de tabela genérico e reutilizável, construído sobre o Angular Material.
  * É projetado para funcionar com paginação e ordenação no servidor (server-side),
- * recebendo seus dados e estado de paginação via inputs.
+ * recebendo seus dados e estado de paginação via inputs e emitindo eventos de mudança.
  */
 @Component({
   selector: 'app-base-table',
@@ -60,20 +60,22 @@ export class BaseTable<T> {
   constructor() {
     this.dataSource = new MatTableDataSource<T>([]);
 
-    // Reage a mudanças nos dados de entrada e atualiza a tabela.
+    // Reage a mudanças nos dados de entrada e atualiza a fonte de dados da tabela.
     effect(() => {
       this.dataSource.data = this.items();
     });
 
-    // Reage a mudanças nos inputs de paginação e atualiza o MatPaginator.
+    // Sincroniza o estado do paginador e do sort com os inputs do componente.
+    // Esta abordagem desacoplada é crucial para a paginação/ordenação no servidor.
     effect(() => {
       const currentPaginator = this.paginator();
       const currentSort = this.sort();
 
       if (currentPaginator) {
-        // IMPORTANTE: Não conectamos o paginador ao dataSource (this.dataSource.paginator = currentPaginator)
-        // porque estamos usando paginação no servidor. Se conectássemos, o MatTableDataSource
-        // assumiria o controle e basearia o 'length' apenas nos dados da página atual, quebrando a navegação.
+        // IMPORTANTE: Não conectamos o paginador diretamente ao dataSource (ex: this.dataSource.paginator = currentPaginator).
+        // Se fizéssemos isso, o MatTableDataSource assumiria o controle da paginação,
+        // baseando o 'length' apenas nos dados da página atual, o que quebraria a navegação
+        // e a contagem total de elementos vinda do servidor.
         currentPaginator.pageIndex = this.pageIndex();
         currentPaginator.pageSize = this.pageSize();
         currentPaginator.length = this.totalElements();

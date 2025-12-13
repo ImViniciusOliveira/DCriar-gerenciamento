@@ -20,10 +20,10 @@ export interface ConfirmDialogData {
  */
 @Component({
   selector: 'app-confirm-dialog',
-  imports: [MatDialogModule, MatButtonModule],
   templateUrl: './confirm-dialog.html',
-  styleUrl: './confirm-dialog.scss',
+  styleUrl: './confirm-dialog.scss', // `styleUrl` (singular) é usado para um único arquivo de estilo.
   standalone: true,
+  imports: [MatDialogModule, MatButtonModule],
 })
 export class ConfirmDialog {
   // Injeção de dependência moderna usando a função inject(), em vez do construtor.

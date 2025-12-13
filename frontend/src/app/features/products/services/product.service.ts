@@ -10,9 +10,8 @@ import { Channel } from '../../stock/models/channel-stock.model';
 
 /**
  * Serviço responsável pelo gerenciamento de Produtos.
- *
- * Diferente de outros serviços, este realiza a paginação e ordenação no **lado do cliente** (client-side),
- * pois a API retorna todos os produtos de uma vez para permitir o cálculo consolidado de estoque.
+ * Implementa uma arquitetura reativa e lida com a lógica de enriquecimento de dados de estoque,
+ * além de ordenação e paginação no lado do cliente.
  */
 @Injectable({
   providedIn: 'root',
@@ -21,16 +20,8 @@ export class ProductService {
   private readonly http = inject(HttpClient);
   private readonly apiRoot = inject(ApiRoot);
 
-  /**
-   * Signal para forçar a atualização da lista.
-   * Configurado com `equal: () => false` para disparar sempre que setado, mesmo com o mesmo valor.
-   */
   private readonly refreshTrigger = signal<void>(undefined, { equal: () => false });
 
-  /**
-   * Signal que armazena os parâmetros atuais de paginação e ordenação.
-   * Possui uma função de igualdade personalizada para evitar disparos se os valores forem idênticos.
-   */
   private readonly productSearchParams = signal<{ page: number; size: number; sort: string }>({
     page: 0,
     size: 10,
@@ -43,8 +34,9 @@ export class ProductService {
   private readonly productSearchParams$ = toObservable(this.productSearchParams);
 
   /**
-   * Observable reativo que emite a lista de produtos combinada com o estoque.
-   * Atualiza automaticamente quando os parâmetros de busca mudam ou o refresh é acionado.
+   * Observable reativo que emite a lista de Produtos.
+   * É acionado sempre que os parâmetros de busca mudam ou um refresh manual é solicitado,
+   * mantendo os componentes atualizados automaticamente.
    */
   readonly products$: Observable<ApiResponseProducts>;
 
@@ -66,13 +58,12 @@ export class ProductService {
             }
 
             const baseUrl = productsRootUrl.split('{')[0];
-            // Nota: A API de produtos aceita parâmetros de paginação, mas para o cálculo de estoque
-            // consolidado, pode ser necessário buscar tudo. Aqui seguimos o padrão da API.
             const finalUrl = `${baseUrl}?page=${params.page}&size=${params.size}&sort=${params.sort}`;
 
             return this.http.get<any>(finalUrl).pipe(
+              // Passo 1: Enriquecer os produtos com dados de estoque.
               switchMap(productsApiResponse => this.enrichProductsWithStock(productsApiResponse)),
-              // Aplica ordenação e paginação no cliente após enriquecer com dados de estoque
+              // Passo 2: Ordenar e paginar os dados combinados no lado do cliente.
               map(responseWithMergedStocks => this.sortAndPaginateClientSide(responseWithMergedStocks, params)),
               catchError(err => {
                 console.error(`Falha ao buscar produtos na página ${params.page}, tamanho ${params.size}`, err);
@@ -90,18 +81,30 @@ export class ProductService {
     shareReplay(1)
   );
 
+  /**
+   * Retorna o fluxo observável principal de Produtos.
+   */
   getProducts(): Observable<ApiResponseProducts> {
     return this.products$;
   }
 
+  /**
+   * Atualiza os parâmetros de busca, o que dispara uma nova emissão no `products$`.
+   */
   updateSearchParams(page: number, size: number, sort: string): void {
     this.productSearchParams.set({ page, size, sort });
   }
 
+  /**
+   * Busca um Produto específico pela sua URL completa.
+   */
   getProductByUrl(url: string): Observable<Product> {
     return this.http.get<Product>(url);
   }
 
+  /**
+   * Retorna um template HATEOAS para a criação de um novo Produto.
+   */
   getNewProductTemplate(): Observable<Product> {
     return this.endpoints$.pipe(
       filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
@@ -111,12 +114,20 @@ export class ProductService {
     );
   }
 
+  /**
+   * Remove um Produto pela sua URL.
+   */
   deleteProduct(url: string): Observable<void> {
     return this.http.delete<void>(url).pipe(
       tap(() => this.refreshTrigger.set(undefined))
     );
   }
 
+  /**
+   * Cria um novo Produto na API.
+   * @param product O payload parcial para a criação.
+   * @param skipRefresh Se true, não dispara a atualização da lista.
+   */
   createProduct(product: Partial<Product>, skipRefresh = false): Observable<Product> {
     const payload = this.mapToPayload(product);
     return this.endpoints$.pipe(
@@ -128,6 +139,12 @@ export class ProductService {
     );
   }
 
+  /**
+   * Atualiza parcialmente um Produto existente na API.
+   * @param productId O ID do produto a ser atualizado.
+   * @param product O payload com as alterações.
+   * @param skipRefresh Se true, não dispara a atualização da lista.
+   */
   patchProduct(productId: number, product: Partial<Product>, skipRefresh = false): Observable<Product> {
     delete product.id;
     const payload = this.mapToPayload(product);
@@ -141,6 +158,12 @@ export class ProductService {
     );
   }
 
+  /**
+   * Realiza o upload da foto de um produto.
+   * @param uploadUrl A URL específica para o upload da foto.
+   * @param file O arquivo de imagem.
+   * @param skipRefresh Se true, não dispara a atualização da lista.
+   */
   uploadProductPhoto(uploadUrl: string, file: File, skipRefresh = false): Observable<Product> {
     const formData = new FormData();
     formData.append('file', file);
@@ -149,6 +172,9 @@ export class ProductService {
       .pipe(tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); }));
   }
 
+  /**
+   * Busca os estoques para uma lista de IDs de produtos em um endpoint otimizado.
+   */
   getStocksForProducts(productIds: number[], stockUrl: string): Observable<{ [productId: string]: { [channelKey: string]: number } }> {
     if (productIds.length === 0) {
       return of({});
@@ -170,6 +196,9 @@ export class ProductService {
     );
   }
 
+  /**
+   * Combina a resposta da API de produtos com os dados de estoque de canais.
+   */
   private enrichProductsWithStock(productsApiResponse: any): Observable<ApiResponseProducts> {
     const productsFromApi = [
       ...(productsApiResponse?._embedded?.produtoDeCorteModelList || []),
@@ -208,7 +237,8 @@ export class ProductService {
 
   /**
    * Realiza a ordenação e paginação dos produtos no lado do cliente.
-   * Importante: Preserva o `totalElements` original da API para que o paginador funcione corretamente.
+   * Nota: A paginação é feita no cliente para este serviço específico devido à necessidade
+   * de consolidar o estoque antes de exibir os dados.
    */
   private sortAndPaginateClientSide(response: ApiResponseProducts, params: { size: number, sort: string }): ApiResponseProducts {
     const products = response._embedded.produtos;
@@ -227,8 +257,7 @@ export class ProductService {
       return 0;
     });
 
-    // Usa o totalElements da API se disponível, caso contrário usa o tamanho da lista atual.
-    // Isso é crucial para que o MatPaginator saiba que existem mais páginas.
+    // Preserva o `totalElements` original da API para que o paginador funcione corretamente.
     const totalElementsFromApi = response.page?.totalElements ?? products.length;
 
     return {
@@ -245,6 +274,7 @@ export class ProductService {
 
   private mapToPayload(product: Partial<Product>): any {
     const payload: any = { ...product };
+    // Mapeia o objeto de matéria-prima para o ID esperado pelo backend.
     if (payload.materiaPrima) {
       payload.tipoMateriaPrimaId = payload.materiaPrima.id;
       delete payload.materiaPrima;
@@ -257,7 +287,7 @@ export class ProductService {
   }
 
   private getProductBaseUrl(endpoints: Hateoas): string {
-    const url = endpoints?._links?.['produtos']?.href;
+    const url = endpoints._links?.['produtos']?.href;
     if (!url) {
       throw new Error('URL de produtos não encontrada na resposta da API');
     }

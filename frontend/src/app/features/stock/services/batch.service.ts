@@ -7,10 +7,9 @@ import { ApiRoot } from '../../../core/services/api-root';
 import { ApiResponseBatches, Batch, BatchRequest } from '../models/batch.model';
 
 /**
- * Serviço para gerenciamento de Lotes de Matéria-Prima.
- *
- * Implementa uma arquitetura reativa com Signals para gerenciar o estado da busca
- * (filtros, paginação) e atualiza a lista de lotes automaticamente.
+ * Serviço responsável pelo gerenciamento de Lotes de Matéria-Prima.
+ * Implementa uma arquitetura reativa para lidar com paginação, filtros e atualizações de dados,
+ * centralizando a lógica de comunicação com a API para esta entidade.
  */
 @Injectable({ providedIn: 'root' })
 export class BatchService {
@@ -28,7 +27,6 @@ export class BatchService {
     size: 10,
     sort: 'id,asc'
   }, {
-    // Evita disparar nova busca se os parâmetros forem idênticos
     equal: (a, b) => a.page === b.page && a.size === b.size && a.sort === b.sort
   });
 
@@ -41,8 +39,9 @@ export class BatchService {
   );
 
   /**
-   * Observable reativo que emite a lista de lotes.
-   * Atualiza automaticamente quando os parâmetros de busca mudam ou um refresh é acionado.
+   * Observable reativo que emite a lista de Lotes de Matéria-Prima.
+   * É acionado sempre que os parâmetros de busca mudam ou um refresh manual é solicitado,
+   * mantendo os componentes atualizados automaticamente.
    */
   readonly batches$: Observable<ApiResponseBatches>;
 
@@ -77,26 +76,33 @@ export class BatchService {
       shareReplay(1)
     );
   }
+
   /**
-   * Atualiza os parâmetros de busca, disparando uma nova requisição.
+   * Atualiza os parâmetros de busca, o que dispara uma nova emissão no `batches$`.
    */
   updateSearchParams(params: Partial<{ page: number; size: number; sort: string; }>): void {
     this.searchParams.update(current => ({ ...current, ...params }));
   }
 
+  /**
+   * Retorna um template HATEOAS para a criação de um novo Lote de Matéria-Prima.
+   */
   getNewTemplate(): Observable<Batch> {
     return this.getBaseUrl().pipe(
       switchMap(baseUrl => this.http.get<Batch>(`${baseUrl}/new`))
     );
   }
 
+  /**
+   * Busca um Lote de Matéria-Prima específico pela sua URL completa.
+   */
   findByUrl(url: string): Observable<Batch> {
     return this.http.get<Batch>(url);
   }
 
   /**
-   * Cria um novo lote.
-   * @param request
+   * Cria um novo Lote de Matéria-Prima na API.
+   * @param request O payload para a criação.
    * @param skipRefresh Se true, não dispara a atualização da lista.
    */
   create(request: BatchRequest, skipRefresh = false): Observable<Batch> {
@@ -107,9 +113,9 @@ export class BatchService {
   }
 
   /**
-   * Atualiza um lote existente.
-   * @param url
-   * @param request
+   * Atualiza um Lote de Matéria-Prima existente na API.
+   * @param url A URL do recurso a ser atualizado.
+   * @param request O payload com as alterações.
    * @param skipRefresh Se true, não dispara a atualização da lista.
    */
   update(url: string, request: BatchRequest, skipRefresh = false): Observable<Batch> {
@@ -119,7 +125,7 @@ export class BatchService {
   }
 
   /**
-   * Remove um lote.
+   * Remove um Lote de Matéria-Prima pela sua URL.
    */
   delete(url: string): Observable<void> {
     return this.http.delete<void>(url).pipe(

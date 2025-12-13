@@ -27,9 +27,8 @@ export interface BatchFormData {
 }
 
 /**
- * Formulário inteligente para Lotes de Matéria-Prima.
- * Adapta-se dinamicamente para garantir a conformidade com as regras de negócio do backend,
- * como a exigência de largura para materiais em rolo e a compatibilidade entre unidades.
+ * Formulário para criação e edição de Lotes de Matéria-Prima.
+ * Contém lógicas complexas para validação condicional e atributos dinâmicos.
  */
 @Component({
   selector: 'app-batch-form',
@@ -58,11 +57,11 @@ export class BatchForm implements OnInit {
   requiresWidth: Signal<boolean>;
 
   private readonly allMeasurementUnits: Signal<EnumOption[]>;
-  /** Opções de 'Unidade de Estoque' filtradas com base na matéria-prima selecionada para evitar combinações inválidas. */
+  /** Opções de 'Unidade de Estoque' filtradas com base na matéria-prima selecionada. */
   stockUnitOptions: Signal<EnumOption[]>;
 
   private readonly unitsUrl = signal<string | null>(null);
-  /** Signal que armazena a matéria-prima atualmente selecionada para alimentar a lógica reativa. */
+  /** Signal que armazena a matéria-prima selecionada para alimentar a lógica reativa. */
   private materialTypeSignal = signal<MaterialType | null>(null);
 
   private static readonly Texts = {
@@ -88,39 +87,41 @@ export class BatchForm implements OnInit {
       atributos: this.fb.array([])
     });
 
+    // Lógica Reativa 1: Determina se o campo 'largura' é obrigatório.
     const unidadeEstoque$ = this.form.get('unidadeDeEstoque')!.valueChanges;
     this.requiresWidth = toSignal(unidadeEstoque$.pipe(map(unidade => unidade === 'METRO_LINEAR')), { initialValue: false });
 
+    // Lógica Reativa 2: Carrega todas as unidades de medida da API.
     const unitsUrl$ = toObservable(this.unitsUrl).pipe(filter((url): url is string => !!url));
     this.allMeasurementUnits = toSignal(
       unitsUrl$.pipe(switchMap(url => this.enumService.getEnumOptions(url, 'unidadesDeMedida'))),
       { initialValue: [] }
     );
 
-    // Filtra as opções de unidade de estoque para prevenir erros de negócio no backend.
+    // Lógica Reativa 3: Filtra as unidades de estoque permitidas.
     this.stockUnitOptions = computed(() => {
       const materialType = this.materialTypeSignal();
       const allUnits = this.allMeasurementUnits();
 
-      // REGRA: A unidade de estoque METRO_LINEAR só é permitida se a unidade de consumo da matéria-prima for CENTIMETRO_QUADRADO.
+      // REGRA DE NEGÓCIO: 'METRO_LINEAR' só é permitido se a unidade de consumo for 'CENTIMETRO_QUADRADO'.
       if (materialType && materialType.unidadeDeConsumo !== 'CENTIMETRO_QUADRADO') {
         return allUnits.filter(u => u.value !== 'METRO_LINEAR');
       }
-
       return allUnits;
     });
 
-    // Garante que, se as opções de unidade mudarem e o valor selecionado se tornar inválido, o campo seja limpo.
+    // Lógica Reativa 4: Limpa o campo se a opção selecionada se tornar inválida.
     effect(() => {
       const options = this.stockUnitOptions();
       const control = this.form.get('unidadeDeEstoque');
       const currentValue = control?.value;
 
       if (currentValue && options.length > 0 && !options.some(opt => opt.value === currentValue)) {
-        control.setValue(null, { emitEvent: false });
+        control.setValue(null, { emitEvent: false }); // 'emitEvent: false' previne loop infinito.
       }
     });
 
+    // Lógica Reativa 5: Atualiza a validação da largura.
     unidadeEstoque$.pipe(takeUntilDestroyed()).subscribe(unidade => {
       this.updateWidthValidation(unidade);
     });
@@ -133,14 +134,16 @@ export class BatchForm implements OnInit {
     } else {
       console.error(BatchForm.Texts.UNITS_URL_ERROR);
     }
-
-    // Inicia o carregamento dos dados do formulário sem bloquear a inicialização do componente.
     this.initializeForm().catch(err => console.error('Erro na inicialização do formulário:', err));
   }
 
+  /**
+   * Carrega os dados iniciais do lote para o formulário no modo de edição.
+   */
   async initializeForm(): Promise<void> {
     if (this.isEditMode() && this.data.template.tipoMateriaPrimaId) {
       try {
+        // Busca os detalhes completos da matéria-prima para preencher o formulário.
         const materialType = await lastValueFrom(this.materialTypeService.findById(this.data.template.tipoMateriaPrimaId));
         this.materialTypeSignal.set(materialType);
         this.form.patchValue({
@@ -158,9 +161,11 @@ export class BatchForm implements OnInit {
       }
     }
 
+    // Popula o FormArray com os atributos existentes.
     if (this.isEditMode() && this.data.template.atributos) {
       this.attributes.clear();
       Object.entries(this.data.template.atributos).forEach(([key, value]) => {
+        // 'larguraMm' é um campo especial e não um atributo dinâmico na UI.
         if (key === 'larguraMm') {
           this.form.get('larguraMm')?.setValue(value);
         } else {
@@ -186,12 +191,16 @@ export class BatchForm implements OnInit {
   onMaterialTypeChange(event: MatSelectChange): void {
     const materialType = event.value as MaterialType;
     this.materialTypeSignal.set(materialType);
+    // Define a unidade de estoque padrão como a unidade de consumo da matéria-prima.
     this.form.patchValue({
       materiaPrima: materialType,
       unidadeDeEstoque: materialType.unidadeDeConsumo
     });
   }
 
+  /**
+   * Aplica ou remove a validação do campo 'larguraMm' com base na unidade de estoque selecionada.
+   */
   private updateWidthValidation(unidade: string | null): void {
     const widthControl = this.form.get('larguraMm');
     if (unidade === 'METRO_LINEAR') {
@@ -203,6 +212,9 @@ export class BatchForm implements OnInit {
     widthControl?.updateValueAndValidity();
   }
 
+  /**
+   * Adiciona um novo campo de atributo dinâmico ao formulário.
+   */
   addAttribute(key: string = '', value: string = '', isNew: boolean = true): void {
     this.attributes.push(this.fb.group({
       chave: [key, Validators.required],
@@ -210,6 +222,7 @@ export class BatchForm implements OnInit {
       isNew: [isNew]
     }));
 
+    // Scroll automático para o novo item.
     if (isNew) {
       setTimeout(() => {
         const dialogContent = (this.dialogRef as any)._containerInstance._elementRef.nativeElement.querySelector('mat-dialog-content');
@@ -220,10 +233,14 @@ export class BatchForm implements OnInit {
     }
   }
 
+  /**
+   * Remove um atributo dinâmico do formulário, com confirmação para itens existentes.
+   */
   async removeAttribute(index: number): Promise<void> {
     const attrGroup = this.attributes.at(index);
     const isNew = attrGroup.get('isNew')?.value;
 
+    // Se for um item novo, remove sem confirmação.
     if (isNew) {
       this.attributes.removeAt(index);
       this.form.get('atributos')?.markAsDirty();
@@ -246,6 +263,9 @@ export class BatchForm implements OnInit {
     }
   }
 
+  /**
+   * Envia os dados do formulário para criação ou atualização do Lote.
+   */
   onSave(): void {
     if (this.form.invalid) {
       return;
@@ -254,6 +274,7 @@ export class BatchForm implements OnInit {
     const formValue = this.form.getRawValue();
     const materialType: MaterialType = formValue.materiaPrima;
 
+    // Converte o array de atributos para um mapa chave-valor.
     const attributesMap: { [key: string]: any } = {};
     (formValue.atributos || []).forEach((attr: { chave: string; valor: string }) => {
       if (attr.chave) {
@@ -261,6 +282,7 @@ export class BatchForm implements OnInit {
       }
     });
 
+    // Adiciona a largura ao mapa de atributos se for obrigatória.
     if (this.requiresWidth()) {
       attributesMap['larguraMm'] = formValue.larguraMm;
     }

@@ -16,8 +16,8 @@ import { InfiniteScrollDirective } from '../../../features/stock/services/infini
 import { MaterialTypeService } from '../../../features/stock/services/material-type.service';
 
 /**
- * Componente genérico e reutilizável para buscar e selecionar um Tipo de Matéria-Prima.
- * Utiliza Angular Signals para um gerenciamento de estado moderno e reativo.
+ * Componente genérico para busca e seleção de um Tipo de Matéria-Prima.
+ * Inclui filtros, scroll infinito e lida com o estado de carregamento e seleção.
  */
 @Component({
   selector: 'app-material-type-search',
@@ -37,15 +37,12 @@ import { MaterialTypeService } from '../../../features/stock/services/material-t
   styleUrls: ['./material-type-search.scss'],
 })
 export class MaterialTypeSearch implements OnInit {
-  // --- Entradas e Saídas Modernas com Signals ---
-  /**
-   * O FormControl que será vinculado ao mat-select interno.
-   * Renomeado de 'formControl' para 'control' para evitar conflito com a diretiva [formControl] do Angular.
-   */
+  // --- Entradas e Saídas ---
+  /** O FormControl do formulário pai que este componente irá controlar. */
   control = input.required<FormControl>();
-  /** Flag para indicar se o componente está em modo de edição, mostrando a matéria-prima original. */
+  /** Flag para indicar se o componente está em modo de edição, para lidar com o valor inicial. */
   isEditMode = input(false);
-  /** Emite o evento de seleção do mat-select para o componente pai. */
+  /** Emite o evento de seleção do `mat-select` para o componente pai. */
   selectionChange = output<MatSelectChange>();
 
   // --- Injeção de Dependências ---
@@ -55,12 +52,12 @@ export class MaterialTypeSearch implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
-  // --- Estado Interno do Componente com Signals ---
+  // --- Estado Interno ---
   searchForm: FormGroup;
   materialTypes: WritableSignal<MaterialType[]> = signal([]);
   isSearching = signal(false);
   totalElements = signal(0);
-  /** Armazena a matéria-prima original para exibição no modo de edição. */
+  /** Armazena a matéria-prima original para garantir que ela sempre apareça na lista em modo de edição. */
   originalMateriaPrima = signal<MaterialType | undefined>(undefined);
 
   // --- Paginação ---
@@ -73,7 +70,6 @@ export class MaterialTypeSearch implements OnInit {
   private readonly consumptionUnitsMap: Signal<Map<string, string | undefined>>;
 
   constructor() {
-    // Determina a URL para buscar os tipos de matéria-prima a partir da raiz da API.
     const getUrl = (link: string) =>
       this.apiRoot.endpoints()?._links?.[link]?.href?.split('{')[0];
     const materialTypesSearchUrl = getUrl('tipos-materia-prima') ?? null;
@@ -82,12 +78,12 @@ export class MaterialTypeSearch implements OnInit {
       console.error('URL para busca de matéria-prima não pôde ser determinada.');
     }
 
-    // Desabilita o controle se a URL não for encontrada.
+    // Desabilita o controle se a URL da API não for encontrada, prevenindo erros.
     effect(() => {
        if (!materialTypesSearchUrl) this.control().disable();
     });
 
-    // Busca as unidades de consumo de forma reativa quando a URL de unidades for descoberta.
+    // Busca as unidades de consumo de forma reativa assim que a URL de enums for descoberta.
     const consumptionUnits$ = toObservable(this.unitsUrl).pipe(
       filter((url): url is string => !!url),
       switchMap(url => this.enumService.getConsumptionUnitsMap(url)),
@@ -101,17 +97,17 @@ export class MaterialTypeSearch implements OnInit {
       searchUnit: [''],
     });
 
-    // Reage à resposta do serviço de busca de matéria-prima.
     const materialTypesResponse = toSignal(
       this.materialTypeService.getMaterialTypes().pipe(catchError(() => of(undefined)))
     );
 
+    // Reage à resposta do serviço, atualizando a lista de itens e o estado de carregamento.
     effect(() => {
       this.isSearching.set(false);
       const response: ApiResponseMaterialTypes | undefined = materialTypesResponse();
       if (response) {
         const newItems = response._embedded?.['tipos-materia-prima'] ?? [];
-        // Se for a primeira página, substitui a lista; senão, concatena.
+        // Lógica de paginação: substitui na primeira página, concatena nas seguintes.
         if (response.page.number === 0) {
           this.materialTypes.set(newItems);
         } else {
@@ -120,6 +116,7 @@ export class MaterialTypeSearch implements OnInit {
         this.totalElements.set(response.page.totalElements);
 
         // Descobre a URL das unidades de medida a partir da primeira resposta da API.
+        // Isso evita a necessidade de buscar a raiz da API novamente.
         const firstMaterial = newItems[0];
         const newUnitsUrl = firstMaterial?._links?.['unidades-de-medida']?.href;
         if (newUnitsUrl && this.unitsUrl() !== newUnitsUrl) {
@@ -132,18 +129,18 @@ export class MaterialTypeSearch implements OnInit {
   ngOnInit(): void {
     const ctrl = this.control();
 
-    // Lida com o valor inicial do FormControl, seja ele síncrono ou assíncrono.
+    // Lida com o valor inicial do FormControl, que pode ser síncrono ou assíncrono.
     if (ctrl.value) {
-      // Caso 1: O valor já existe na inicialização (carregamento síncrono).
+      // Caso 1: O valor já existe na inicialização (ex: formulário de criação com template).
       this.originalMateriaPrima.set(ctrl.value);
       this.materialTypes.set([ctrl.value]);
     } else if (this.isEditMode()) {
       // Caso 2: Modo de edição, mas o valor virá depois (carregamento assíncrono).
       // Escuta a primeira emissão de valor válido para defini-lo como o original.
       ctrl.valueChanges.pipe(
-        filter(value => !!value), // Ignora valores nulos.
-        take(1), // Pega apenas o primeiro valor e encerra.
-        takeUntilDestroyed(this.destroyRef) // Garante a limpeza da subscrição.
+        filter(value => !!value), // Ignora valores nulos ou vazios.
+        take(1), // Pega apenas o primeiro valor e encerra a subscrição.
+        takeUntilDestroyed(this.destroyRef)
       ).subscribe((initialValue: MaterialType) => {
         if (!this.originalMateriaPrima()) {
           this.originalMateriaPrima.set(initialValue);
@@ -156,7 +153,7 @@ export class MaterialTypeSearch implements OnInit {
       });
     }
 
-    // Conecta o formulário de busca de filtros ao serviço.
+    // Conecta o formulário de filtros ao serviço de busca com debounce para performance.
     this.searchForm.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
@@ -165,11 +162,11 @@ export class MaterialTypeSearch implements OnInit {
       this.performSearch(values.searchName, values.searchUnit);
     });
 
-    // Realiza a busca inicial ao carregar.
+    // Realiza a busca inicial ao carregar o componente.
     this.performSearch();
   }
 
-  /** Dispara uma nova busca, resetando a paginação. */
+  /** Dispara uma nova busca, resetando a paginação e aplicando os filtros. */
   performSearch(nome?: string, unidadeDeConsumo?: string): void {
     this.isSearching.set(true);
     this.currentPage = 0;
@@ -182,7 +179,7 @@ export class MaterialTypeSearch implements OnInit {
     });
   }
 
-  /** Carrega a próxima página de resultados. */
+  /** Carrega a próxima página de resultados para o scroll infinito. */
   loadMore(): void {
     if (this.isSearching() || this.materialTypes().length >= this.totalElements()) {
       return;
@@ -192,7 +189,7 @@ export class MaterialTypeSearch implements OnInit {
     this.materialTypeService.updateSearchParams({ page: this.currentPage });
   }
 
-  /** Retorna o nome de exibição de uma unidade de consumo. */
+  /** Retorna o nome de exibição de uma unidade de consumo a partir do seu valor. */
   getConsumptionUnitViewValue(value: string): string {
     return this.consumptionUnitsMap().get(value) ?? value;
   }

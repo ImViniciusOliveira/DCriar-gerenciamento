@@ -1,4 +1,4 @@
-import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, effect } from '@angular/core';
+import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, effect, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +16,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 
+/**
+ * Componente de listagem para Produtos.
+ * Gerencia a exibição de dados em tabela, paginação e ações de CRUD (criar, editar, deletar).
+ */
 @Component({
   selector: 'app-product-list',
   standalone: true,
@@ -31,8 +35,7 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
   ],
   templateUrl: './product-list.html',
   styleUrls: ['./product-list.scss'],
-  // Fornece uma instância local do PaginationHandler para esta lista.
-  // Isso isola o estado da paginação (tamanho da página, etc.) de outras listas na aplicação.
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PaginationHandler]
 })
 export class ProductList extends BaseList<Product> implements AfterViewInit {
@@ -61,7 +64,6 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
 
   constructor() {
     super();
-    // Converte o Observable de produtos do serviço em um signal para consumo reativo.
     const productsResponse = toSignal(
       this.productService.getProducts().pipe(
         catchError((error) => {
@@ -72,7 +74,6 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
       )
     );
 
-    // Reage a novas emissões do serviço e atualiza o estado da lista.
     effect(() => {
       const response = productsResponse();
       if (response) {
@@ -97,8 +98,8 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
   }
 
   /**
-   * Notifica o serviço sobre mudanças na paginação ou ordenação.
-   * A atualização da lista ocorre reativamente através do `effect` no construtor.
+   * Notifica o serviço sobre mudanças de paginação ou ordenação.
+   * A UI é atualizada reativamente pelo `effect` no construtor.
    */
   override loadItems(): void {
     this.productService.updateSearchParams(
@@ -108,6 +109,9 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
     );
   }
 
+  /**
+   * Solicita confirmação e remove o produto selecionado.
+   */
   onDelete(product: Product): void {
     this.entityDialog.openConfirmDeleteDialog(product.nome, ProductList.Texts.deleteConfirmTitle)
       .subscribe((confirmed: boolean) => {
@@ -125,16 +129,25 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
       });
   }
 
+  /**
+   * Abre o formulário em modo de visualização para o produto selecionado.
+   */
   onView(product: Product): void {
     const dialogData: ProductFormData = { product, isEditMode: false, title: 'Detalhes do Produto' };
     this.openProductDialog(dialogData);
   }
 
+  /**
+   * Abre o formulário de edição para o produto selecionado.
+   */
   onEdit(product: Product): void {
     const productCopy = structuredClone(product);
     this.openProductDialog({ product: productCopy, isEditMode: true, title: 'Editar Produto' }, ProductList.Texts.saveSuccess);
   }
 
+  /**
+   * Abre o formulário para a criação de um novo Produto.
+   */
   async onCreate(): Promise<void> {
     try {
       const newProductTemplate = await lastValueFrom(this.productService.getNewProductTemplate());
@@ -164,6 +177,9 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
     });
   }
 
+  /**
+   * Formata os detalhes específicos do produto para exibição no popover.
+   */
   getProductDetails(product: Product): { key: string, value: string }[] {
     const details: { key: string, value: string }[] = [];
     if (product.tipoProduto === 'CORTE') {
