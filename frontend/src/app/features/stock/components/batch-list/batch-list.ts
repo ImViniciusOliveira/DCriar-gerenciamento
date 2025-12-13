@@ -42,32 +42,43 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
   private readonly batchService = inject(BatchService);
   private readonly dialog = inject(MatDialog);
 
+  private static readonly Texts = {
+    deleteConfirmTitle: 'Confirmar Exclusão',
+    deleteSuccess: 'Lote excluído com sucesso!',
+    saveSuccess: 'Lote atualizado com sucesso!',
+    createSuccess: 'Lote registrado com sucesso!',
+    deleteError: 'Falha ao excluir o lote.',
+    loadError: 'Falha ao carregar a lista de lotes.',
+    createError: 'Não foi possível iniciar o registro do lote.',
+    resourceError: 'Não foi possível encontrar o recurso.',
+    createTitle: 'Registrar Entrada de Lote',
+    editTitle: 'Editar Lote'
+  };
+
   tableColumns: TableColumn<Batch>[] = [];
 
   // Referências aos templates de célula definidos no HTML
-  @ViewChild('tipoTemplate') tipoTemplate!: TemplateRef<any>;
-  @ViewChild('saldoTemplate') saldoTemplate!: TemplateRef<any>;
-  @ViewChild('unidadeTemplate') unidadeTemplate!: TemplateRef<any>;
-  @ViewChild('atributosTemplate') atributosTemplate!: TemplateRef<any>;
-  @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
+  @ViewChild('typeTemplate') typeTemplate!: TemplateRef<any>;
+  @ViewChild('balanceTemplate') balanceTemplate!: TemplateRef<any>;
+  @ViewChild('unitTemplate') unitTemplate!: TemplateRef<any>;
+  @ViewChild('attributesTemplate') attributesTemplate!: TemplateRef<any>;
+  @ViewChild('actionsTemplate') actionsTemplate!: TemplateRef<any>;
 
   constructor() {
     super();
 
     // Converte o Observable de lotes do serviço em um signal para consumo reativo.
-    // O tratamento de erro é feito aqui para garantir que o signal sempre tenha um valor válido.
     const lotesResponse = toSignal(
       this.batchService.batches$.pipe(
         catchError((error) => {
           console.error('Erro ao carregar lotes:', error);
-          this.entityDialog.showErrorSnackbar('Falha ao carregar a lista de lotes.');
+          this.entityDialog.showErrorSnackbar(BatchList.Texts.loadError);
           return of(undefined);
         })
       )
     );
 
     // Reage a novas emissões do serviço e atualiza o estado da lista.
-    // Sincroniza os dados recebidos com o estado interno da BaseList e do PaginationHandler.
     effect(() => {
       const response = lotesResponse();
       if (response) {
@@ -79,23 +90,16 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    // Configura as colunas da tabela.
-    // Necessário fazer no AfterViewInit pois depende dos @ViewChild templates.
     this.tableColumns = [
-      { key: 'nomeTipoMateriaPrima', header: 'Matéria-Prima', sortable: true, cellTemplate: this.tipoTemplate },
-      { key: 'saldoEstoque', header: 'Saldo', sortable: true, cellTemplate: this.saldoTemplate },
-      { key: 'unidadeDeEstoque', header: 'Unidade', sortable: true, cellTemplate: this.unidadeTemplate },
-      { key: 'atributos', header: 'Atributos', sortable: false, cellTemplate: this.atributosTemplate },
-      { key: 'acoes', header: 'Ações', cellTemplate: this.acoesTemplate }
+      { key: 'nomeTipoMateriaPrima', header: 'Matéria-Prima', sortable: true, cellTemplate: this.typeTemplate },
+      { key: 'saldoEstoque', header: 'Saldo', sortable: true, cellTemplate: this.balanceTemplate },
+      { key: 'unidadeDeEstoque', header: 'Unidade', sortable: true, cellTemplate: this.unitTemplate },
+      { key: 'atributos', header: 'Atributos', sortable: false, cellTemplate: this.attributesTemplate },
+      { key: 'acoes', header: 'Ações', cellTemplate: this.actionsTemplate }
     ];
-    // Marca para verificação pois alteramos dados que afetam a view após a inicialização
     this.cdr.detectChanges();
   }
 
-  /**
-   * Notifica o serviço sobre mudanças na paginação ou ordenação.
-   * A atualização da lista ocorre reativamente através do `effect` no construtor.
-   */
   override loadItems(): void {
     this.batchService.updateSearchParams({
       page: this.pagination.pageIndex(),
@@ -104,9 +108,6 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
     });
   }
 
-  /**
-   * Abre o diálogo para gerenciamento de Tipos de Matéria-Prima.
-   */
   openMaterialTypeDialog(): void {
     this.dialog.open(MaterialTypeList, {
       width: '80vw',
@@ -117,56 +118,43 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
 
   async onCreate(): Promise<void> {
     try {
-      // Busca o template HATEOAS para criação
       const template = await lastValueFrom(this.batchService.getNewTemplate());
       this.openFormDialog({
         template,
-        title: 'Registrar Entrada de Lote'
-      }, 'Lote registrado com sucesso!');
+        title: BatchList.Texts.createTitle
+      }, BatchList.Texts.createSuccess);
     } catch (error) {
       console.error('Erro ao buscar template para novo lote:', error);
-      this.entityDialog.showErrorSnackbar('Não foi possível iniciar o registro do lote.');
+      this.entityDialog.showErrorSnackbar(BatchList.Texts.createError);
     }
   }
 
-  async editLote(lote: Batch): Promise<void> {
-    const selfUrl = lote._links?.['self']?.href;
-    if (!selfUrl) {
-      this.entityDialog.showErrorSnackbar('Não foi possível encontrar o recurso.');
-      return;
-    }
-
-    try {
-      const itemToEdit = await lastValueFrom(this.batchService.findByUrl(selfUrl));
-      this.openFormDialog({
-        template: itemToEdit,
-        title: 'Editar Lote'
-      }, 'Lote atualizado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao buscar dados para edição:', error);
-      this.entityDialog.showErrorSnackbar('Falha ao carregar dados para edição.');
-    }
+  onEdit(lote: Batch): void {
+    const loteCopy = structuredClone(lote);
+    this.openFormDialog({
+      template: loteCopy,
+      title: BatchList.Texts.editTitle
+    }, BatchList.Texts.saveSuccess);
   }
 
-  deleteLote(lote: Batch): void {
+  onDelete(lote: Batch): void {
     const deleteUrl = lote._links?.['delete']?.href;
     if (!deleteUrl) {
-      this.entityDialog.showErrorSnackbar('Não foi possível encontrar a ação de exclusão.');
+      this.entityDialog.showErrorSnackbar(BatchList.Texts.resourceError);
       return;
     }
 
     this.entityDialog.openConfirmDeleteDialog(
       `Lote '${lote.id}'`,
-      'Confirmar Exclusão'
+      BatchList.Texts.deleteConfirmTitle
     ).subscribe(confirmed => {
       if (confirmed) {
-        // O serviço cuidará de atualizar a lista automaticamente após o delete bem-sucedido
         this.batchService.delete(deleteUrl).subscribe({
           next: () => {
-            this.entityDialog.showSuccessSnackbar('Lote excluído com sucesso!');
+            this.entityDialog.showSuccessSnackbar(BatchList.Texts.deleteSuccess);
           },
           error: () => {
-            this.entityDialog.showErrorSnackbar('Falha ao excluir o lote.');
+            this.entityDialog.showErrorSnackbar(BatchList.Texts.deleteError);
           }
         });
       }
@@ -186,11 +174,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
     });
   }
 
-  /**
-   * Converte o objeto de atributos em um array para exibição na tabela.
-   * Necessário porque o template itera sobre uma lista, mas os atributos vêm como um mapa.
-   */
-  getAtributosAsArray(atributos: { [key: string]: any }): { key: string, value: any }[] {
+  getAttributesAsArray(atributos: { [key: string]: any }): { key: string, value: any }[] {
     if (!atributos) {
       return [];
     }

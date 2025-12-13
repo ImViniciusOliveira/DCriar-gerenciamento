@@ -23,11 +23,11 @@
                [matAutocomplete]="auto"
                (focus)="onFocus()"
                required>
-        <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayUnidade">
-          <!-- Itera sobre o signal 'filteredUnidades' que é recalculado automaticamente -->
-          @for (unidade of filteredUnidades(); track unidade.name) {
-            <mat-option [value]="unidade">
-              {{ unidade.descricao }}
+        <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayUnit">
+          <!-- Itera sobre o signal 'filteredUnits' que é recalculado automaticamente -->
+          @for (unit of filteredUnits(); track unit.name) {
+            <mat-option [value]="unit">
+              {{ unit.descricao }}
             </mat-option>
           }
         </mat-autocomplete>

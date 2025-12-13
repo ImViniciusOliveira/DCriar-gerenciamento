@@ -108,7 +108,7 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
     }
   }
 
-  async editItem(item: MaterialType): Promise<void> {
+  async onEdit(item: MaterialType): Promise<void> {
     const selfUrl = item._links?.['self']?.href;
     if (!selfUrl) {
       this.entityDialog.showErrorSnackbar('Não foi possível encontrar o recurso.');
@@ -127,7 +127,7 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
     }
   }
 
-  deleteItem(item: MaterialType): void {
+  onDelete(item: MaterialType): void {
     const deleteUrl = item._links?.['delete']?.href;
     if (!deleteUrl) {
       this.entityDialog.showErrorSnackbar('Não foi possível encontrar a ação de exclusão.');

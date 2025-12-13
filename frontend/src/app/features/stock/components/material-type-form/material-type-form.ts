@@ -20,7 +20,7 @@ export interface MaterialTypeFormData {
   title: string;
 }
 
-export interface UnidadeOption {
+export interface UnitOption {
   name: string;
   descricao: string;
 }
@@ -29,7 +29,7 @@ export interface UnidadeOption {
  * Validador customizado para garantir que o valor do autocomplete
  * corresponde a uma das opções da lista.
  */
-export function requireMatch(options: UnidadeOption[]): ValidatorFn {
+export function requireMatch(options: UnitOption[]): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const value = control.value;
     if (!value) { return null; }
@@ -64,23 +64,22 @@ export class MaterialTypeForm implements OnInit {
   private readonly apiRoot = inject(ApiRoot);
   public readonly data: MaterialTypeFormData = inject(MAT_DIALOG_DATA);
 
+  private static readonly Texts = {
+    saveError: 'Falha ao salvar. Verifique os dados.',
+    loadUnitsError: 'Erro ao carregar unidades.',
+    unitsUrlError: 'URL de unidades-de-medida não encontrada.'
+  };
+
   form: FormGroup;
 
-  // Signal que armazena a lista completa de unidades carregada da API.
-  allUnidades = signal<UnidadeOption[]>([]);
-
-  // Signal que armazena o valor digitado pelo usuário no campo de autocomplete.
+  allUnits = signal<UnitOption[]>([]);
   filterValue = signal<string>('');
 
-  // Signal computado que filtra as unidades com base no valor digitado.
-  // É recalculado automaticamente sempre que `filterValue` ou `allUnidades` mudam.
-  filteredUnidades = computed(() => {
+  filteredUnits = computed(() => {
     const filter = this.filterValue().toLowerCase();
-    const unidades = this.allUnidades();
-    // Se o filtro for vazio ou igual ao valor selecionado (objeto), mostra tudo.
-    // Isso permite que ao clicar, se já houver um valor válido, a lista completa apareça.
-    return unidades.filter(unidade =>
-      unidade.descricao.toLowerCase().includes(filter)
+    const units = this.allUnits();
+    return units.filter(unit =>
+      unit.descricao.toLowerCase().includes(filter)
     );
   });
 
@@ -94,34 +93,25 @@ export class MaterialTypeForm implements OnInit {
       unidadeDeConsumo: ['', [Validators.required]]
     });
 
-    // Converte o Observable de `valueChanges` do campo em um signal.
     const valueChanges$ = this.form.get('unidadeDeConsumo')!.valueChanges.pipe(startWith(''));
     const valueSignal = toSignal(valueChanges$, { initialValue: '' });
 
-    // Efeito que sincroniza o valor do input com o signal de filtro.
     effect(() => {
       const value = valueSignal();
-      // Se o valor for um objeto (item selecionado), não filtramos (string vazia)
-      // para que a lista completa esteja disponível se o usuário abrir o dropdown novamente.
-      // Se for string (usuário digitando), usamos ela para filtrar.
       const stringValue = typeof value === 'string' ? value : '';
       this.filterValue.set(stringValue);
     });
   }
 
   ngOnInit(): void {
-    this.loadUnidadesDeMedida();
+    this.loadMeasurementUnits();
   }
 
-  /**
-   * Carrega as unidades de medida a partir do link HATEOAS.
-   * Usa o link do template (edição) ou do ApiRoot (criação).
-   */
-  loadUnidadesDeMedida(): void {
+  loadMeasurementUnits(): void {
     const url = this.data.template?._links?.['unidades-de-medida']?.href || this.apiRoot.endpoints()?._links?.['unidades-de-medida']?.href;
 
     if (!url) {
-      console.error('URL de unidades-de-medida não encontrada.');
+      console.error(MaterialTypeForm.Texts.unitsUrlError);
       return;
     }
 
@@ -129,41 +119,30 @@ export class MaterialTypeForm implements OnInit {
       next: (response) => {
         const embedded = response._embedded;
         if (embedded && embedded.unidadesDeMedida) {
-          const unidades: UnidadeOption[] = embedded.unidadesDeMedida.map((item: any) => ({ name: item.name, descricao: item.descricao }));
+          const units: UnitOption[] = embedded.unidadesDeMedida.map((item: any) => ({ name: item.name, descricao: item.descricao }));
 
-          this.allUnidades.set(unidades);
+          this.allUnits.set(units);
 
-          this.form.get('unidadeDeConsumo')?.setValidators([Validators.required, requireMatch(unidades)]);
+          this.form.get('unidadeDeConsumo')?.setValidators([Validators.required, requireMatch(units)]);
 
           if (this.data.template?.unidadeDeConsumo) {
-            const unidadeInicial = unidades.find(u => u.name === this.data.template.unidadeDeConsumo);
-            this.form.get('unidadeDeConsumo')?.setValue(unidadeInicial);
+            const initialUnit = units.find(u => u.name === this.data.template.unidadeDeConsumo);
+            this.form.get('unidadeDeConsumo')?.setValue(initialUnit);
           }
 
           this.form.get('unidadeDeConsumo')?.updateValueAndValidity();
-
-          // Notifica o Angular para verificar o componente, pois a chamada HTTP é assíncrona.
           this.cdr.markForCheck();
         }
       },
-      error: (err) => console.error('Erro ao carregar unidades:', err)
+      error: (err) => console.error(MaterialTypeForm.Texts.loadUnitsError, err)
     });
   }
 
-  /**
-   * Função para o `[displayWith]` do autocomplete, garantindo que o campo
-   * mostre a descrição da unidade em vez do objeto.
-   */
-  displayUnidade(unidade: UnidadeOption): string {
-    return unidade?.descricao || '';
+  displayUnit(unit: UnitOption): string {
+    return unit?.descricao || '';
   }
 
-  /**
-   * Método chamado ao focar no input.
-   * Limpa o filtro para mostrar todas as opções, melhorando a UX.
-   */
   onFocus(): void {
-    // Se o valor atual for um objeto (já selecionado), reseta o filtro para mostrar tudo.
     const currentValue = this.form.get('unidadeDeConsumo')?.value;
     if (typeof currentValue !== 'string') {
         this.filterValue.set('');
@@ -185,7 +164,7 @@ export class MaterialTypeForm implements OnInit {
 
     operation.subscribe({
       next: () => this.dialogRef.close(true),
-      error: () => this.entityDialog.showErrorSnackbar('Falha ao salvar. Verifique os dados.')
+      error: () => this.entityDialog.showErrorSnackbar(MaterialTypeForm.Texts.saveError)
     });
   }
 

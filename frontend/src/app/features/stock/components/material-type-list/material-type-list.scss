@@ -1,3 +1,5 @@
+@use '../../../../shared/styles/page-layout';
+
 // Força o componente a se comportar como um contêiner flex que preenche
 // o espaço do diálogo, evitando que ele próprio crie um scroll.
 :host {
@@ -16,40 +18,18 @@
   padding: 0 24px;
 }
 
-// Cabeçalho da página, que não deve encolher.
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 24px;
-  margin-bottom: 1.5rem;
-  flex-shrink: 0;
-}
-
-// Contêiner da tabela. Ele não rola, apenas delimita o espaço.
-.table-container {
+// Contêiner do conteúdo. Ele não rola, apenas delimita o espaço.
+.content-container {
   flex: 1;
   min-height: 0;
   overflow: hidden; // Garante que este contêiner não crie um scroll.
   padding-bottom: 24px;
   display: flex;
   flex-direction: column;
-}
 
-// A base-table dentro do contêiner é quem deve ocupar o espaço e rolar.
-app-base-table {
-  flex: 1;
-  min-height: 0;
-}
-
-// Estilos de texto padrão.
-.header-title h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.header-title p {
-  margin: 0;
-  color: var(--mat-sys-on-surface-variant);
+  // A base-table dentro do contêiner é quem deve ocupar o espaço e rolar.
+  app-base-table {
+    flex: 1;
+    min-height: 0;
+  }
 }

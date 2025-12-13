@@ -1,0 +1,67 @@
+// Estilos compartilhados para layouts de página/diálogo com cabeçalho e conteúdo.
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-shrink: 0; // Garante que o cabeçalho não encolha.
+}
+
+.header-title {
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+// --- Estrutura para Diálogos com Scroll ---
+
+// Força o componente host a preencher o espaço do diálogo.
+:host.dialog-component {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// Contêiner principal que organiza o layout.
+.dialog-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; // Necessário para o overflow funcionar em um filho flex.
+  padding: 0 24px;
+
+  .page-header {
+    padding-top: 24px;
+    margin-bottom: 1.5rem;
+  }
+}
+
+// Contêiner do conteúdo principal (ex: tabela).
+.content-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden; // Garante que este contêiner não crie um scroll.
+  padding-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+
+  // O filho direto (ex: app-base-table) deve ocupar o espaço e rolar.
+  > :first-child {
+    flex: 1;
+    min-height: 0;
+  }
+}

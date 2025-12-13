@@ -12,8 +12,8 @@
     </button>
   </div>
 
-  <!-- Contêiner da tabela, que é a única área com scroll. -->
-  <div class="table-container">
+  <!-- Contêiner do conteúdo, que é a única área com scroll. -->
+  <div class="content-container">
     <app-base-table
       [items]="items()"
       [columns]="tableColumns"
@@ -30,10 +30,10 @@
 <ng-template #nameTemplate let-item>{{ item.nome }}</ng-template>
 <ng-template #unitTemplate let-item>{{ item.unidadeDeConsumo }}</ng-template>
 <ng-template #actionsTemplate let-item>
-  <button mat-icon-button color="primary" (click)="editItem(item)">
+  <button mat-icon-button color="primary" (click)="onEdit(item)">
     <mat-icon>edit</mat-icon>
   </button>
-  <button mat-icon-button color="warn" (click)="deleteItem(item)">
+  <button mat-icon-button color="warn" (click)="onDelete(item)">
     <mat-icon>delete</mat-icon>
   </button>
 </ng-template>

@@ -1,25 +1,4 @@
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.header-title h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.header-title p {
-  margin: 0;
-  color: var(--mat-sys-on-surface-variant);
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
+@use '../../../../shared/styles/page-layout';
 
 // Define uma largura maior para a coluna de atributos
 .mat-column-atributos {

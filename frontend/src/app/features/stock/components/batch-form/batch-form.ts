@@ -55,19 +55,24 @@ export class BatchForm implements OnInit {
 
   form: FormGroup;
   isEditMode = signal(false);
-  requiresLargura: Signal<boolean>;
+  requiresWidth: Signal<boolean>;
 
-  private readonly todasUnidadesDeMedida: Signal<EnumOption[]>;
+  private readonly allMeasurementUnits: Signal<EnumOption[]>;
   /** Opções de 'Unidade de Estoque' filtradas com base na matéria-prima selecionada para evitar combinações inválidas. */
-  opcoesUnidadeEstoque: Signal<EnumOption[]>;
+  stockUnitOptions: Signal<EnumOption[]>;
 
   private readonly unitsUrl = signal<string | null>(null);
   /** Signal que armazena a matéria-prima atualmente selecionada para alimentar a lógica reativa. */
-  private materiaPrimaSignal = signal<MaterialType | null>(null);
+  private materialTypeSignal = signal<MaterialType | null>(null);
 
   private static readonly Texts = {
     CONFIRM_DELETE_ATTR_TITLE: 'Confirmar Remoção',
-    CONFIRM_DELETE_ATTR_MESSAGE: (key: string) => `Deseja realmente remover o atributo "${key}"?`
+    CONFIRM_DELETE_ATTR_MESSAGE: (key: string) => `Deseja realmente remover o atributo "${key}"?`,
+    SAVE_SUCCESS_CREATE: 'Lote cadastrado com sucesso!',
+    SAVE_SUCCESS_UPDATE: 'Lote atualizado com sucesso!',
+    SAVE_ERROR: 'Falha ao salvar. Verifique os dados e tente novamente.',
+    LOAD_ERROR: 'Não foi possível carregar os dados do lote.',
+    UNITS_URL_ERROR: "URL para 'unidades-de-medida' não encontrada no template do lote."
   };
 
   constructor() {
@@ -84,40 +89,40 @@ export class BatchForm implements OnInit {
     });
 
     const unidadeEstoque$ = this.form.get('unidadeDeEstoque')!.valueChanges;
-    this.requiresLargura = toSignal(unidadeEstoque$.pipe(map(unidade => unidade === 'METRO_LINEAR')), { initialValue: false });
+    this.requiresWidth = toSignal(unidadeEstoque$.pipe(map(unidade => unidade === 'METRO_LINEAR')), { initialValue: false });
 
     const unitsUrl$ = toObservable(this.unitsUrl).pipe(filter((url): url is string => !!url));
-    this.todasUnidadesDeMedida = toSignal(
+    this.allMeasurementUnits = toSignal(
       unitsUrl$.pipe(switchMap(url => this.enumService.getEnumOptions(url, 'unidadesDeMedida'))),
       { initialValue: [] }
     );
 
     // Filtra as opções de unidade de estoque para prevenir erros de negócio no backend.
-    this.opcoesUnidadeEstoque = computed(() => {
-      const materiaPrima = this.materiaPrimaSignal();
-      const todasUnidades = this.todasUnidadesDeMedida();
+    this.stockUnitOptions = computed(() => {
+      const materialType = this.materialTypeSignal();
+      const allUnits = this.allMeasurementUnits();
 
       // REGRA: A unidade de estoque METRO_LINEAR só é permitida se a unidade de consumo da matéria-prima for CENTIMETRO_QUADRADO.
-      if (materiaPrima && materiaPrima.unidadeDeConsumo !== 'CENTIMETRO_QUADRADO') {
-        return todasUnidades.filter(u => u.value !== 'METRO_LINEAR');
+      if (materialType && materialType.unidadeDeConsumo !== 'CENTIMETRO_QUADRADO') {
+        return allUnits.filter(u => u.value !== 'METRO_LINEAR');
       }
 
-      return todasUnidades;
+      return allUnits;
     });
 
     // Garante que, se as opções de unidade mudarem e o valor selecionado se tornar inválido, o campo seja limpo.
     effect(() => {
-      const opcoes = this.opcoesUnidadeEstoque();
+      const options = this.stockUnitOptions();
       const control = this.form.get('unidadeDeEstoque');
-      const valorAtual = control?.value;
+      const currentValue = control?.value;
 
-      if (valorAtual && opcoes.length > 0 && !opcoes.some(opt => opt.value === valorAtual)) {
+      if (currentValue && options.length > 0 && !options.some(opt => opt.value === currentValue)) {
         control.setValue(null, { emitEvent: false });
       }
     });
 
     unidadeEstoque$.pipe(takeUntilDestroyed()).subscribe(unidade => {
-      this.updateLarguraValidation(unidade);
+      this.updateWidthValidation(unidade);
     });
   }
 
@@ -126,7 +131,7 @@ export class BatchForm implements OnInit {
     if (url) {
       this.unitsUrl.set(url);
     } else {
-      console.error("URL para 'unidades-de-medida' não encontrada no template do lote.");
+      console.error(BatchForm.Texts.UNITS_URL_ERROR);
     }
 
     // Inicia o carregamento dos dados do formulário sem bloquear a inicialização do componente.
@@ -136,72 +141,72 @@ export class BatchForm implements OnInit {
   async initializeForm(): Promise<void> {
     if (this.isEditMode() && this.data.template.tipoMateriaPrimaId) {
       try {
-        const tipoMateriaPrima = await lastValueFrom(this.materialTypeService.findById(this.data.template.tipoMateriaPrimaId));
-        this.materiaPrimaSignal.set(tipoMateriaPrima);
+        const materialType = await lastValueFrom(this.materialTypeService.findById(this.data.template.tipoMateriaPrimaId));
+        this.materialTypeSignal.set(materialType);
         this.form.patchValue({
-          materiaPrima: tipoMateriaPrima,
+          materiaPrima: materialType,
           unidadeDeEstoque: this.data.template.unidadeDeEstoque
         });
 
         if (this.data.template.unidadeDeEstoque) {
-          this.updateLarguraValidation(this.data.template.unidadeDeEstoque);
+          this.updateWidthValidation(this.data.template.unidadeDeEstoque);
         }
 
       } catch (error) {
         console.error("Falha ao carregar dados iniciais", error);
-        this.entityDialog.showErrorSnackbar("Não foi possível carregar os dados do lote.");
+        this.entityDialog.showErrorSnackbar(BatchForm.Texts.LOAD_ERROR);
       }
     }
 
     if (this.isEditMode() && this.data.template.atributos) {
-      this.atributos.clear();
+      this.attributes.clear();
       Object.entries(this.data.template.atributos).forEach(([key, value]) => {
         if (key === 'larguraMm') {
           this.form.get('larguraMm')?.setValue(value);
         } else {
-          this.addAtributo(key, value as string, false);
+          this.addAttribute(key, value as string, false);
         }
       });
     }
     this.cdr.markForCheck();
   }
 
-  get atributos(): FormArray {
+  get attributes(): FormArray {
     return this.form.get('atributos') as FormArray;
   }
 
-  get atributosControls(): FormGroup[] {
+  get attributesControls(): FormGroup[] {
     return (this.form.get('atributos') as FormArray).controls as FormGroup[];
   }
 
-  get materiaPrimaControl(): FormControl {
+  get materialTypeControl(): FormControl {
     return this.form.get('materiaPrima') as FormControl;
   }
 
   onMaterialTypeChange(event: MatSelectChange): void {
     const materialType = event.value as MaterialType;
-    this.materiaPrimaSignal.set(materialType);
+    this.materialTypeSignal.set(materialType);
     this.form.patchValue({
       materiaPrima: materialType,
       unidadeDeEstoque: materialType.unidadeDeConsumo
     });
   }
 
-  private updateLarguraValidation(unidade: string | null): void {
-    const larguraControl = this.form.get('larguraMm');
+  private updateWidthValidation(unidade: string | null): void {
+    const widthControl = this.form.get('larguraMm');
     if (unidade === 'METRO_LINEAR') {
-      larguraControl?.setValidators([Validators.required, Validators.min(1)]);
+      widthControl?.setValidators([Validators.required, Validators.min(1)]);
     } else {
-      larguraControl?.clearValidators();
-      larguraControl?.reset();
+      widthControl?.clearValidators();
+      widthControl?.reset();
     }
-    larguraControl?.updateValueAndValidity();
+    widthControl?.updateValueAndValidity();
   }
 
-  addAtributo(chave: string = '', valor: string = '', isNew: boolean = true): void {
-    this.atributos.push(this.fb.group({
-      chave: [chave, Validators.required],
-      valor: [valor, Validators.required],
+  addAttribute(key: string = '', value: string = '', isNew: boolean = true): void {
+    this.attributes.push(this.fb.group({
+      chave: [key, Validators.required],
+      valor: [value, Validators.required],
       isNew: [isNew]
     }));
 
@@ -215,12 +220,12 @@ export class BatchForm implements OnInit {
     }
   }
 
-  async removeAtributo(index: number): Promise<void> {
-    const attrGroup = this.atributos.at(index);
+  async removeAttribute(index: number): Promise<void> {
+    const attrGroup = this.attributes.at(index);
     const isNew = attrGroup.get('isNew')?.value;
 
     if (isNew) {
-      this.atributos.removeAt(index);
+      this.attributes.removeAt(index);
       this.form.get('atributos')?.markAsDirty();
       return;
     }
@@ -235,7 +240,7 @@ export class BatchForm implements OnInit {
     const confirmed = await lastValueFrom(dialogRef.afterClosed());
 
     if (confirmed) {
-      this.atributos.removeAt(index);
+      this.attributes.removeAt(index);
       this.form.get('atributos')?.markAsDirty();
       this.cdr.markForCheck();
     }
@@ -247,26 +252,26 @@ export class BatchForm implements OnInit {
     }
 
     const formValue = this.form.getRawValue();
-    const materiaPrima: MaterialType = formValue.materiaPrima;
+    const materialType: MaterialType = formValue.materiaPrima;
 
-    const atributosMap: { [key: string]: any } = {};
+    const attributesMap: { [key: string]: any } = {};
     (formValue.atributos || []).forEach((attr: { chave: string; valor: string }) => {
       if (attr.chave) {
-        atributosMap[attr.chave] = attr.valor;
+        attributesMap[attr.chave] = attr.valor;
       }
     });
 
-    if (this.requiresLargura()) {
-      atributosMap['larguraMm'] = formValue.larguraMm;
+    if (this.requiresWidth()) {
+      attributesMap['larguraMm'] = formValue.larguraMm;
     }
 
     const request: BatchRequest = {
-      tipoMateriaPrimaId: materiaPrima.id,
+      tipoMateriaPrimaId: materialType.id,
       unidadeDeEstoque: formValue.unidadeDeEstoque,
       quantidadeInicial: formValue.quantidadeInicial,
       custoTotalLote: formValue.custoTotalLote,
       motivo: formValue.motivo,
-      atributos: atributosMap
+      atributos: attributesMap
     };
 
     const operation = this.isEditMode()
@@ -275,12 +280,12 @@ export class BatchForm implements OnInit {
 
     operation.subscribe({
       next: () => {
-        this.entityDialog.showSuccessSnackbar(this.isEditMode() ? 'Lote atualizado com sucesso!' : 'Lote cadastrado com sucesso!');
+        this.entityDialog.showSuccessSnackbar(this.isEditMode() ? BatchForm.Texts.SAVE_SUCCESS_UPDATE : BatchForm.Texts.SAVE_SUCCESS_CREATE);
         this.dialogRef.close(true);
       },
       error: (err) => {
         console.error('Falha ao salvar lote:', err);
-        this.entityDialog.showErrorSnackbar('Falha ao salvar. Verifique os dados e tente novamente.');
+        this.entityDialog.showErrorSnackbar(BatchForm.Texts.SAVE_ERROR);
       }
     });
   }
