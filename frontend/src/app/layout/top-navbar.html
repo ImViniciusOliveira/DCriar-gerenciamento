@@ -10,7 +10,11 @@
     Isso garante que a navegação seja atualizada reativamente quando os endpoints da API mudarem.
   -->
   @for (link of availableNavLinks(); track link.path) {
-    <a mat-button [routerLink]="link.path" class="nav-link">
+    <a mat-button
+       [routerLink]="link.path"
+       routerLinkActive="active-link"
+       [routerLinkActiveOptions]="{exact: false}"
+       class="nav-link">
       @if(link.icon) {
         <mat-icon>{{ link.icon }}</mat-icon>
       }

@@ -1,20 +1,20 @@
 // Estilos aplicados à barra de ferramentas do Material Design dentro do componente.
 :host mat-toolbar {
-  background-color: var(--mat-sys-surface-container-highest);
-  color: var(--mat-sys-on-surface);
+  background-color: var(--header-bg-color); // Fundo branco, vindo do styles.scss
+  color: var(--text-color); // Cor de texto principal
+  border-bottom: 1px solid var(--border-color);
 }
 
 // Estilos para o link principal (logo/nome da aplicação) na barra de navegação.
 .home-link {
-  font-size: 20px;
-  font-weight: 500;
-  text-decoration: none; // Remove o sublinhado padrão dos links.
-  color: inherit; // Herda a cor do texto do elemento pai (mat-toolbar).
-  transition: opacity 0.2s ease-in-out; // Adiciona uma transição suave ao passar o mouse.
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--primary-color); // Cor primária azul
+  transition: opacity 0.2s ease-in-out;
 
-  // Efeito de hover para o link principal.
   &:hover {
-    opacity: 0.8; // Diminui a opacidade para indicar interatividade.
+    opacity: 0.8;
   }
 }
 
@@ -25,8 +25,39 @@
 
 // Estilos para os links de navegação individuais.
 .nav-link {
+  position: relative; // Necessário para posicionar o pseudo-elemento ::after
+  color: var(--text-muted-color); // Cor cinza para links inativos
+  font-weight: 500;
+  border-radius: 6px; // Arredondamento completo
+  padding: 8px 16px;
+  margin: 0 4px;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+
   // Adiciona uma margem à esquerda do texto quando ele está ao lado de um ícone.
   mat-icon + span {
     margin-left: 8px;
+  }
+
+  // Estilo para o link ativo, aplicado pela diretiva `routerLinkActive`.
+  &.active-link {
+    color: var(--primary-color); // Cor azul para o texto do link ativo
+    background-color: rgba(var(--mat-sys-primary-rgb), 0.1); // Fundo azul bem claro
+
+    // O sublinhado agora é um pseudo-elemento para não interferir no border-radius.
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0; // Posição na base do botão
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: var(--primary-color);
+      border-radius: 0 0 6px 6px; // Arredonda os cantos inferiores da linha para casar com o botão
+    }
+  }
+
+  // Efeito de hover para links não ativos
+  &:hover:not(.active-link) {
+    background-color: rgba(var(--mat-sys-on-surface-rgb), 0.05);
   }
 }

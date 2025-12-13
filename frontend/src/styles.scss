@@ -1,130 +1,139 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
+// Importa as paletas de cores geradas via CLI (M3 Theme Generation)
+@use './theme-colors' as dcriar-colors;
 
+// 1. Inicialização do Núcleo do Angular Material
 @include mat.core();
-$color-background: #1a1a1a;
-$color-surface: #333333;
-$color-text-primary: #ffffff;
-$color-text-secondary: #cccccc;
 
-$color-accent-magenta: #e6007e;
-$color-accent-orange: #f16528;
-$color-accent-yellow: #ffc700;
-$color-accent-green: #8bc53f;
-$color-accent-blue: #00aeef;
-$color-accent-purple: #662d91;
+// 2. Definição das Variáveis de Design System (Tokenização Manual)
+// Baseado no protótipo visual aprovado (Estilo Bootstrap/Tailwind)
+$color-primary: #3B82F6;
+$color-primary-hover: #2563EB;
+$color-secondary: #6c757d;
+$color-background: #F8F9FA;
+$color-surface: #FFFFFF;
+$color-danger: #DC3545;
+$color-text: #212529;
+$color-text-muted: #6C757D;
+$color-border: #DEE2E6;
 
-$color-primary-action: $color-accent-blue;
-$color-success: $color-accent-green;
-$color-warning: $color-accent-yellow;
-$color-error: $color-accent-magenta;
-
+// 3. Exposição de Variáveis CSS (:root)
+// Permite o uso dos tokens de cor em componentes não-Material e HTML puro
 :root {
-  --color-background: #{$color-background};
-  --color-surface: #{$color-surface};
-  --color-text-primary: #{$color-text-primary};
-  --color-text-secondary: #{$color-text-secondary};
-  --color-accent-magenta: #{$color-accent-magenta};
-  --color-accent-orange: #{$color-accent-orange};
-  --color-accent-yellow: #{$color-accent-yellow};
-  --color-accent-green: #{$color-accent-green};
-  --color-accent-blue: #{$color-accent-blue};
-  --color-accent-purple: #{$color-accent-purple};
-
-  --color-primary-action: var(--color-accent-blue);
-  --color-success: var(--color-accent-green);
-  --color-warning: var(--color-accent-yellow);
-  --color-error: var(--color-accent-magenta);
+  --primary-color: #{$color-primary};
+  --primary-hover-color: #{$color-primary-hover};
+  --secondary-color: #{$color-secondary};
+  --background-color: #{$color-background};
+  --header-bg-color: #{$color-surface};
+  --text-color: #{$color-text};
+  --text-muted-color: #{$color-text-muted};
+  --border-color: #{$color-border};
+  --danger-color: #{$color-danger};
 }
 
-$dcriar-primary-palette: map.deep-merge(mat.$blue-palette, (500: $color-primary-action));
+// 4. Configuração do Tema Material 3
+// Integra a paleta gerada matematicamente com as configurações de tipografia e densidade
+$dcriar-theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: dcriar-colors.$primary-palette,
+    tertiary: dcriar-colors.$tertiary-palette,
+    use-system-variables: true // Habilita o uso de variáveis CSS nativas do Material
+  ),
+  typography: (
+    plain-family: 'Inter, sans-serif',
+    brand-family: 'Inter, sans-serif',
+  ),
+  density: (
+    scale: 0 // Densidade padrão (ajustar para -1 ou -2 para interfaces de dados intensivos)
+  )
+));
 
+// 5. Aplicação do Tema Global
 html {
-  color-scheme: light;
-  @include mat.theme((
-    color: (
-      primary: $dcriar-primary-palette,
-      tertiary: mat.$violet-palette,
-    ),
-    typography: mat.define-typography(
-      (
-        plain-family: 'Inter, sans-serif'
-      )
-    ),
-    density: 0
-  ));
+  // Injeção dos estilos de componente baseados no tema definido
+  @include mat.all-component-themes($dcriar-theme);
+
+  // Sobrescrita de Tokens de Sistema para garantir fidelidade à marca
+  --mat-sys-primary: #{$color-primary};
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-background: #{$color-background};
+  --mat-sys-surface: #{$color-surface};
+  --mat-sys-outline-variant: #{$color-border}; // Força a cor da borda padrão do Material
 }
 
 html, body {
   height: 100%;
-  margin: 0; // Adicionado para zerar margens padrão do navegador
-  padding: 0; // Adicionado para zerar paddings padrão do navegador
 }
 
 body {
   background-color: var(--mat-sys-background);
-  color: var(--mat-sys-on-background);
+  color: var(--text-color);
   font-family: 'Inter', sans-serif;
-  // margin: 0; // Removido, pois já está em html, body
-  // padding: 0; // Removido, pois já está em html, body
+  margin: 0;
+  padding: 0;
 }
 
-$accent-colors: (
-  "magenta": var(--color-accent-magenta),
-  "orange": var(--color-accent-orange),
-  "yellow": var(--color-accent-yellow),
-  "green": var(--color-accent-green),
-  "blue": var(--color-accent-blue),
-  "purple": var(--color-accent-purple)
-);
+// -----------------------------------------------------------------------
+// 6. Estilização Global de Componentes e Utilitários
+// -----------------------------------------------------------------------
 
-@each $name, $color in $accent-colors {
-  .text-#{$name} {
-    color: $color;
-  }
-  .bg-#{$name} {
-    background-color: $color;
-  }
-}
-
-.mdc-button:hover,
-a[mat-button]:hover,
-a[mat-flat-button]:hover,
-a[mat-raised-button]:hover {
-  filter: brightness(1.15);
-}
-
-.mdc-button {
-  border-radius: 6px !important;
-  padding: 0.6rem 1.2rem !important;
-  font-size: 0.9rem !important;
-  font-weight: 600 !important;
-  height: auto !important;
-  line-height: normal !important;
-}
-
+// Padronização dos Botões Material
 .mat-mdc-raised-button.mat-primary,
 .mat-mdc-flat-button.mat-primary {
-  color: var(--mat-sys-on-primary) !important;
-  background-color: var(--color-primary-action) !important;
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
 }
 
-.mat-mdc-button .mat-icon,
-.mat-mdc-raised-button .mat-icon,
-.mat-mdc-flat-button .mat-icon {
-  margin-right: 0.5rem;
+// Classe utilitária para botões de ação destrutiva
+.btn-danger-custom {
+  background-color: var(--danger-color) !important;
+  color: white !important;
 }
 
-.mat-mdc-dialog-surface {
-  border-radius: 8px !important;
+// Padronização de Títulos (H1)
+h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 1rem;
+
+  span {
+    font-size: 1rem;
+    color: var(--text-muted-color);
+    font-weight: 400;
+  }
 }
 
-.mat-mdc-dialog-container {
-  border: none !important;
+// -----------------------------------------------------------------------
+// 7. Customizações de Componentes Material
+// -----------------------------------------------------------------------
+
+// Força o visual de "card" com bordas na tabela base.
+app-base-table .mat-mdc-table {
+  background-color: var(--header-bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.mat-mdc-dialog-content {
-  border-radius: 8px !important;
-  overflow-y: auto !important;
-  max-height: calc(100vh - 200px) !important;
+// Adiciona a linha divisória entre as linhas da tabela.
+.mat-mdc-row, .mat-mdc-header-row {
+  border-bottom: 1px solid var(--border-color);
+}
+
+// Garante que a última linha não tenha borda.
+.mat-mdc-table .mat-mdc-row:last-child {
+  border-bottom: none;
+}
+
+// Deixa a borda dos inputs (com appearance="outline") mais visível.
+.mat-mdc-form-field-type-mat-input .mdc-notched-outline > .mdc-notched-outline__leading,
+.mat-mdc-form-field-type-mat-input .mdc-notched-outline > .mdc-notched-outline__notch,
+.mat-mdc-form-field-type-mat-input .mdc-notched-outline > .mdc-notched-outline__trailing {
+  border-color: var(--border-color) !important;
 }
