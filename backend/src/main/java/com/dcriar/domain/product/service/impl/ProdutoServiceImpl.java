@@ -143,7 +143,17 @@ public class ProdutoServiceImpl implements ProdutoService {
                 case "sku" -> produto.setSku((String) value);
                 case "descricao" -> produto.setDescricao((String) value);
                 case "ativo" -> produto.setAtivo((Boolean) value);
-                case "fotoPrincipalUrl" -> produto.setFotoPrincipalUrl((String) value);
+                case "fotoPrincipalUrl" -> {
+                    // Lógica para exclusão segura da foto
+                    String oldFoto = produto.getFotoPrincipalUrl();
+                    String newFoto = (String) value;
+
+                    // Se o novo valor for nulo e existia uma foto antiga, exclui o arquivo físico
+                    if (newFoto == null && oldFoto != null && !oldFoto.isBlank()) {
+                        fileStorageService.deleteFile(oldFoto);
+                    }
+                    produto.setFotoPrincipalUrl(newFoto);
+                }
                 case "unidadesPorProduto" -> {
                     if (value instanceof Number) {
                         produto.setUnidadesPorProduto(((Number) value).intValue());
