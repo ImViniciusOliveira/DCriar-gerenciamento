@@ -50,6 +50,9 @@ export class ProductFormComponent implements OnInit {
   previewUrl = signal<string | null>(null);
   isUploading = signal(false);
 
+  // Sinal para controlar se a foto foi marcada para remoção
+  isPhotoRemoved = signal(false);
+
   productForm: FormGroup;
 
   /** Armazena as especificações originais para comparação e envio de `null` em campos removidos. */
@@ -66,7 +69,10 @@ export class ProductFormComponent implements OnInit {
   };
 
   constructor() {
-    this.safeImageSrc = computed(() => this.previewUrl() ?? this.product()?.fotoPrincipalUrl ?? null);
+    this.safeImageSrc = computed(() => {
+      if (this.isPhotoRemoved()) return null;
+      return this.previewUrl() ?? this.product()?.fotoPrincipalUrl ?? null;
+    });
 
     const currentProduct = this.product();
 
@@ -310,7 +316,12 @@ export class ProductFormComponent implements OnInit {
     const dirtyValues = this.getDirtyValues();
     const hasFormChanged = Object.keys(dirtyValues).length > 0;
 
-    if (!hasImageChanged && !hasFormChanged) {
+    // Se a foto foi removida, adiciona null ao payload
+    if (this.isPhotoRemoved()) {
+        dirtyValues['fotoPrincipalUrl'] = null;
+    }
+
+    if (!hasImageChanged && !hasFormChanged && !this.isPhotoRemoved()) {
       this.dialogRef.close(false); // Nenhuma mudança, fecha sem atualizar.
       return;
     }
@@ -323,8 +334,8 @@ export class ProductFormComponent implements OnInit {
       }
     }
 
-    // Se o formulário mudou, envia o PATCH.
-    if (hasFormChanged) {
+    // Se o formulário mudou ou a foto foi removida, envia o PATCH.
+    if (hasFormChanged || this.isPhotoRemoved()) {
       if (!this.product()?.id) {
         console.error(ProductFormComponent.Texts.UPDATE_ERROR, this.product());
         return;
@@ -396,7 +407,14 @@ export class ProductFormComponent implements OnInit {
     if (file) {
       this.selectedFile.set(file);
       this.previewUrl.set(URL.createObjectURL(file));
+      this.isPhotoRemoved.set(false); // Se selecionou nova foto, cancela a remoção
     }
+  }
+
+  removePhoto(): void {
+    this.selectedFile.set(null);
+    this.previewUrl.set(null);
+    this.isPhotoRemoved.set(true);
   }
 
   private async uploadImage(product: Product, skipRefresh: boolean): Promise<Product | null> {

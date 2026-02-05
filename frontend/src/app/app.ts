@@ -17,7 +17,4 @@ import { Footer } from './layout/footer';
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App {
-  // Este componente não possui lógica de negócio, sua única responsabilidade
-  // é fornecer a estrutura de layout para a aplicação.
-}
+export class App { }

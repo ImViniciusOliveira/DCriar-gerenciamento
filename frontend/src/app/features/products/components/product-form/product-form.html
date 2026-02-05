@@ -47,6 +47,9 @@
           <div class="image-preview-container image-container">
             @if (safeImageSrc(); as src) {
               <img [src]="src" alt="Pré-visualização da foto" width="200" height="200">
+              <button type="button" class="delete-photo-btn" (click)="removePhoto()" mat-icon-button color="warn" title="Remover foto">
+                <mat-icon>delete</mat-icon>
+              </button>
             } @else {
               <div class="no-image">
                 <mat-icon>image_not_supported</mat-icon>
