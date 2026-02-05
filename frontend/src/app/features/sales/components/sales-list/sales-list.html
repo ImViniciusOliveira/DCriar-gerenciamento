@@ -1,1 +1,57 @@
-<p>sales-list works!</p>
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-title">
+      <h2>Vendas</h2>
+      <p>Gerenciamento de vendas realizadas</p>
+    </div>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="onCreate()">
+        <mat-icon>add</mat-icon>
+        Nova Venda
+      </button>
+    </div>
+  </div>
+
+  <app-base-table
+    [items]="items()"
+    [columns]="tableColumns"
+    [totalElements]="pagination.totalElements()"
+    [pageSize]="pagination.pageSize()"
+    [pageIndex]="pagination.pageIndex()"
+    (pageChange)="onPageChange($event)"
+    (sortChange)="onSortChange($event)">
+  </app-base-table>
+
+  <!-- Templates de Coluna -->
+
+  <ng-template #idTemplate let-sale>
+    #{{ sale.id }}
+  </ng-template>
+
+  <ng-template #dataTemplate let-sale>
+    {{ sale.dataCriacao | date:'dd/MM/yyyy HH:mm' }}
+  </ng-template>
+
+  <ng-template #canalTemplate let-sale>
+    {{ sale.nomeCanalVenda }}
+  </ng-template>
+
+  <ng-template #valorTemplate let-sale>
+    <strong>{{ sale.valorTotal | currency:'BRL' }}</strong>
+  </ng-template>
+
+  <ng-template #itensTemplate let-sale>
+    <app-details-popover
+      [items]="getSaleItemsDetails(sale)"
+      icon="shopping_cart"
+      triggerText="Ver Itens">
+    </app-details-popover>
+  </ng-template>
+
+  <ng-template #acoesTemplate let-sale>
+    <!-- Por enquanto sem ações de edição/exclusão, apenas visualização -->
+    <button mat-icon-button disabled matTooltip="Edição não permitida">
+      <mat-icon>edit_off</mat-icon>
+    </button>
+  </ng-template>
+</div>

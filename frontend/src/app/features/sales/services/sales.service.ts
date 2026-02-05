@@ -144,7 +144,7 @@ export class SalesService {
 
   private createEmptyResponse(): ApiResponseSales {
     return {
-      _embedded: { vendaModelList: [] },
+      _embedded: { vendas: [] },
       _links: {},
       page: { size: 0, totalElements: 0, totalPages: 0, number: 0 }
     };

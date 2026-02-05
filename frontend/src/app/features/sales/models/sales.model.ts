@@ -1,28 +1,28 @@
 import { Hateoas, PageInfo } from "../../../core/models/hateoas.model";
-import { Product } from '../../products/models/product.model';
 
 /**
- * Representa um Item de Venda.
+ * Representa um Item de Venda conforme retornado pela API.
+ * Os dados do produto vêm "achatados" no DTO, não como um objeto aninhado.
  */
 export interface SaleItem {
-  produto: Product;
+  id: number;
+  produtoId: number;
+  produtoSku: string;
+  nomeProduto: string;
   quantidade: number;
   precoUnitario: number;
   precoTotal: number;
 }
 
 /**
- * Representa uma Venda.
- * Contém informações sobre a transação, itens vendidos e canal de venda.
+ * Representa uma Venda conforme retornado pela API.
  */
 export interface Sale {
   id: number;
-  dataVenda: string; // ISO Date string
+  dataCriacao: string; // ISO Date string
+  dataAtualizacao: string; // ISO Date string
   valorTotal: number;
-  canalVenda: {
-    id: number;
-    nome: string;
-  };
+  nomeCanalVenda: string; // O backend retorna apenas o nome, não o objeto completo
   itens: SaleItem[];
   _links?: Hateoas['_links'];
 }
@@ -43,7 +43,7 @@ export interface SaleRequest {
  */
 export interface ApiResponseSales extends Hateoas {
   _embedded: {
-    vendaModelList: Sale[];
+    vendas: Sale[]; // Corrigido para corresponder ao @Relation(collectionRelation = "vendas") do backend
   };
   page: PageInfo;
 }
