@@ -1,0 +1,25 @@
+<mat-form-field appearance="outline" class="full-width">
+  <mat-label>Buscar Produto</mat-label>
+  <input type="text"
+         matInput
+         [formControl]="searchControl()"
+         [matAutocomplete]="auto"
+         placeholder="Digite nome ou SKU">
+
+  @if (isLoading()) {
+    <mat-spinner matSuffix diameter="20"></mat-spinner>
+  } @else {
+    <mat-icon matSuffix>search</mat-icon>
+  }
+
+  <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="onOptionSelected($event)">
+    @for (product of filteredProducts(); track product.id) {
+      <mat-option [value]="product">
+        <div class="product-option">
+          <span class="product-name">{{ product.nome }}</span>
+          <small class="product-sku">SKU: {{ product.sku }}</small>
+        </div>
+      </mat-option>
+    }
+  </mat-autocomplete>
+</mat-form-field>

@@ -13,6 +13,7 @@ import { Sale } from '../../models/sales.model';
 import { SalesService } from '../../services/sales.service';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover';
+import { SalesForm, SalesFormData } from '../sales-form/sales-form';
 
 /**
  * Componente de listagem para Vendas.
@@ -70,9 +71,9 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
     effect(() => {
       const response = salesResponse();
       if (response) {
-        const sales = response._embedded?.vendas ?? [];
+        const items = response._embedded?.vendas ?? [];
         this.pagination.updateTotalElements(response.page?.totalElements ?? 0);
-        this.items.set(sales);
+        this.items.set(items);
       }
     });
   }
@@ -101,8 +102,39 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
    * Abre o formulário para registrar uma nova venda.
    */
   async onCreate(): Promise<void> {
-    // TODO: Implementar abertura do SalesFormComponent quando ele estiver pronto
-    console.log('Abrir formulário de nova venda');
+    try {
+      // Busca o template HATEOAS para nova venda (opcional, mas boa prática se o backend fornecer defaults)
+      const template = await lastValueFrom(this.salesService.getNewTemplate());
+
+      this.openSalesDialog({
+        template,
+        title: 'Nova Venda'
+      }, SalesList.Texts.createSuccess);
+
+    } catch (error) {
+      console.error('Erro ao buscar template para nova venda:', error);
+      // Mesmo com erro no template, tentamos abrir o formulário vazio
+      this.openSalesDialog({
+        title: 'Nova Venda'
+      }, SalesList.Texts.createSuccess);
+    }
+  }
+
+  private openSalesDialog(dialogData: SalesFormData, successMessage: string): void {
+    this.entityDialog.openFormDialog({
+      component: SalesForm,
+      formData: dialogData,
+      title: dialogData.title,
+      width: '90vw',
+      maxWidth: '1000px' // Formulário de venda precisa de espaço
+    }).subscribe(saved => {
+      if (saved) {
+        this.entityDialog.showSuccessSnackbar(successMessage);
+        // O BaseList já cuida de recarregar a lista via effect quando o signal muda,
+        // mas aqui garantimos o refresh manual se necessário.
+        this.salesService.updateSearchParams({});
+      }
+    });
   }
 
   /**

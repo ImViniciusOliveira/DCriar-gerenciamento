@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, filter, map, switchMap, tap, shareReplay, take, catchError, of, combineLatest } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
@@ -93,6 +93,61 @@ export class ProductService {
    */
   updateSearchParams(page: number, size: number, sort: string): void {
     this.productSearchParams.set({ page, size, sort });
+  }
+
+  /**
+   * Busca produtos por nome ou SKU para uso em autocompletes.
+   * Esta busca é stateless (não afeta a lista principal) e retorna uma lista simples de produtos.
+   *
+   * @param term Termo de busca (nome ou SKU)
+   */
+  searchProducts(term: string): Observable<Product[]> {
+    return this.endpoints$.pipe(
+      take(1),
+      switchMap(endpoints => {
+        const url = endpoints?._links?.['produtos']?.href;
+        if (!url) return of([]);
+
+        const baseUrl = url.split('{')[0];
+        const params = new HttpParams()
+          .set('page', '0')
+          .set('size', '10')
+          .set('nome', term);
+
+        return this.http.get<any>(baseUrl, { params }).pipe(
+          // Passo 1: Combinar as listas de diferentes tipos de produtos
+          map(response => {
+            const corte = response._embedded?.produtoDeCorteModelList || [];
+            const consumo = response._embedded?.produtoDeConsumoDiretoModelList || [];
+            return [...corte, ...consumo];
+          }),
+          // Passo 2: Enriquecer com dados de estoque (opcional, mas recomendado para UX)
+          switchMap(products => {
+             if (products.length === 0) return of([]);
+
+             // Reutiliza a lógica de enriquecimento, mas adaptada para array simples
+             const productIds = products.map((p: Product) => p.id);
+             const stockUrl = endpoints._links?.['estoques-por-produtos']?.href;
+
+             if (!stockUrl) return of(products);
+
+             return this.getStocksForProducts(productIds, stockUrl).pipe(
+               map(allStocks => {
+                 return products.map((product: Product) => ({
+                   ...product,
+                   estoquePorCanal: allStocks[product.id] || {},
+                 }));
+               }),
+               catchError(() => of(products)) // Se falhar o estoque, retorna produtos sem estoque
+             );
+          }),
+          catchError(err => {
+            console.error('Erro na busca de produtos:', err);
+            return of([]);
+          })
+        );
+      })
+    );
   }
 
   /**

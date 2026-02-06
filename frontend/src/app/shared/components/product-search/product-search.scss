@@ -1,0 +1,19 @@
+.full-width {
+  width: 100%;
+}
+
+.product-option {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  padding: 4px 0;
+
+  .product-name {
+    font-weight: 500;
+  }
+
+  .product-sku {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 12px;
+  }
+}
