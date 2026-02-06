@@ -48,12 +48,12 @@
 
         @if (itemsControls.length === 0) {
           <div class="empty-state">
-            <p>Nenhum item adicionado.</p>
+            <p>Selecione um canal de venda e adicione produtos.</p>
           </div>
         }
       </div>
 
-      <button mat-stroked-button type="button" (click)="addItem()">
+      <button mat-stroked-button type="button" (click)="addItem()" [disabled]="!form.get('canalVendaId')?.value">
         <mat-icon>add_shopping_cart</mat-icon>
         Adicionar Produto
       </button>

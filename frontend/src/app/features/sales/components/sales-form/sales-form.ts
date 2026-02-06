@@ -9,7 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { Sale, SaleRequest } from '../../models/sales.model';
 import { SalesService } from '../../services/sales.service';
@@ -69,11 +69,22 @@ export class SalesForm implements OnInit {
       canalVendaId: [null, Validators.required],
       itens: this.fb.array([])
     });
+
+    // Escuta mudanças no canal de venda para limpar os itens
+    this.form.get('canalVendaId')?.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.items.clear();
+        // Adiciona um item vazio se o canal for válido, para facilitar
+        if (this.form.get('canalVendaId')?.valid) {
+          this.addItem();
+        }
+      });
   }
 
   ngOnInit(): void {
-    // Adiciona um item inicial para facilitar
-    this.addItem();
+    // Não adicionamos item inicial aqui mais, pois a subscrição do canal cuidará disso
+    // quando o usuário selecionar um canal (ou se vier preenchido).
   }
 
   get items(): FormArray {

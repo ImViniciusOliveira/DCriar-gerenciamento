@@ -48,7 +48,6 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
 
   tableColumns: TableColumn<Sale>[] = [];
 
-  @ViewChild('idTemplate') idTemplate!: TemplateRef<any>;
   @ViewChild('dataTemplate') dataTemplate!: TemplateRef<any>;
   @ViewChild('canalTemplate') canalTemplate!: TemplateRef<any>;
   @ViewChild('valorTemplate') valorTemplate!: TemplateRef<any>;
@@ -57,6 +56,11 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
 
   constructor() {
     super('sales'); // Chave única para persistência de paginação
+
+    // Define a ordenação padrão por data decrescente se estiver no padrão inicial (id, asc)
+    if (this.pagination.sortActive() === 'id' && this.pagination.sortDirection() === 'asc') {
+      this.pagination.handleSortChange({ active: 'dataCriacao', direction: 'desc' });
+    }
 
     const salesResponse = toSignal(
       this.salesService.sales$.pipe(
@@ -80,10 +84,9 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'id', header: 'ID', sortable: true, cellTemplate: this.idTemplate },
       { key: 'dataCriacao', header: 'Data', sortable: true, cellTemplate: this.dataTemplate },
-      { key: 'nomeCanalVenda', header: 'Canal', sortable: false, cellTemplate: this.canalTemplate },
       { key: 'valorTotal', header: 'Total', sortable: true, cellTemplate: this.valorTemplate },
+      { key: 'nomeCanalVenda', header: 'Canal', sortable: false, cellTemplate: this.canalTemplate },
       { key: 'itens', header: 'Itens', sortable: false, cellTemplate: this.itensTemplate },
       { key: 'acoes', header: 'Ações', sortable: false, cellTemplate: this.acoesTemplate },
     ];
