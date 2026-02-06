@@ -9,7 +9,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { provideNgxMask, NgxMaskDirective } from 'ngx-mask';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { Sale, SaleRequest } from '../../models/sales.model';
@@ -38,10 +37,8 @@ export interface SalesFormData {
     MatSelectModule,
     MatAutocompleteModule,
     MatProgressSpinnerModule,
-    NgxMaskDirective,
     ProductSearch
   ],
-  providers: [provideNgxMask()],
   templateUrl: './sales-form.html',
   styleUrls: ['./sales-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -94,9 +91,7 @@ export class SalesForm implements OnInit {
     const itemGroup = this.fb.group({
       produtoId: [null, Validators.required],
       produtoNome: ['', Validators.required], // Usado pelo ProductSearch
-      quantidade: [1, [Validators.required, Validators.min(1)]],
-      precoUnitario: [{ value: 0, disabled: true }], // Apenas visual por enquanto
-      precoTotal: [{ value: 0, disabled: true }] // Calculado
+      quantidade: [1, [Validators.required, Validators.min(1)]]
     });
 
     this.items.push(itemGroup);
@@ -118,9 +113,7 @@ export class SalesForm implements OnInit {
     if (itemGroup) {
       itemGroup.patchValue({
         produtoId: product.id,
-        produtoNome: product, // CORREÇÃO: Passa o objeto completo para o displayFn funcionar
-        // TODO: Se o produto tiver preço sugerido, podemos preencher aqui
-        // precoUnitario: product.precoVenda
+        produtoNome: product
       });
     }
   }
@@ -157,7 +150,9 @@ export class SalesForm implements OnInit {
       },
       error: (err) => {
         console.error('Erro ao salvar venda:', err);
-        this.entityDialog.showErrorSnackbar(SalesForm.Texts.SAVE_ERROR);
+        // Tenta extrair mensagem de erro do backend se disponível
+        const errorMsg = err.error?.detail || SalesForm.Texts.SAVE_ERROR;
+        this.entityDialog.showErrorSnackbar(errorMsg);
         this.isSaving.set(false);
       }
     });

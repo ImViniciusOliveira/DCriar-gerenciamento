@@ -28,6 +28,7 @@
             <div class="product-field">
               <app-product-search
                 [searchControl]="getProductControl($index)"
+                [channelId]="form.get('canalVendaId')?.value"
                 (productSelected)="onProductSelected($event, $index)">
               </app-product-search>
             </div>

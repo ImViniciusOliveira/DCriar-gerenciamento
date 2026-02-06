@@ -100,11 +100,61 @@ export class ProductService {
    * Esta busca é stateless (não afeta a lista principal) e retorna uma lista simples de produtos.
    *
    * @param term Termo de busca (nome ou SKU)
+   * @param channelId ID do canal de venda para filtrar estoque (opcional)
    */
-  searchProducts(term: string): Observable<Product[]> {
+  searchProducts(term: string, channelId?: number): Observable<Partial<Product>[]> {
     return this.endpoints$.pipe(
       take(1),
       switchMap(endpoints => {
+        // Se tiver channelId, navega pela estrutura de links de estoque
+        if (channelId) {
+          const stocksRootUrl = endpoints._links?.['estoques']?.href;
+
+          if (!stocksRootUrl) {
+            console.error('[ProductService] Link "estoques" não encontrado na raiz da API.');
+            return of([]);
+          }
+
+          // 1. Busca o recurso raiz de estoques para descobrir o link de resumo
+          return this.http.get<Hateoas>(stocksRootUrl).pipe(
+            switchMap(stocksRoot => {
+              const resumoUrl = stocksRoot._links?.['resumo']?.href;
+              if (!resumoUrl) {
+                console.error('[ProductService] Link "resumo" não encontrado no recurso de estoques.');
+                return of([]);
+              }
+
+              // Limpeza agressiva da URL para remover templates e query params existentes
+              const url = resumoUrl.split('?')[0].split('{')[0];
+
+              const params = new HttpParams()
+                .set('canalId', channelId.toString())
+                .set('nomeProduto', term)
+                .set('apenasComSaldo', 'true')
+                .set('page', '0')
+                .set('size', '10');
+
+              // 2. Faz a busca no endpoint descoberto
+              return this.http.get<any>(url, { params }).pipe(
+                map(response => {
+                  return (response._embedded?.estoqueProdutoResumoDTOList || []).map((dto: any) => ({
+                    id: dto.produtoId,
+                    nome: dto.nomeProduto,
+                    sku: dto.skuProduto,
+                    estoquePorCanal: { [channelId]: dto.quantidadeNoCanal },
+                    _tempPrice: dto.precoVenda
+                  } as Partial<Product>));
+                })
+              );
+            }),
+            catchError(err => {
+              console.error('[ProductService] Erro na navegação/busca de estoque:', err);
+              return of([]);
+            })
+          );
+        }
+
+        // Fallback para a busca antiga se não tiver channelId
         const url = endpoints?._links?.['produtos']?.href;
         if (!url) return of([]);
 
@@ -115,20 +165,15 @@ export class ProductService {
           .set('nome', term);
 
         return this.http.get<any>(baseUrl, { params }).pipe(
-          // Passo 1: Combinar as listas de diferentes tipos de produtos
           map(response => {
             const corte = response._embedded?.produtoDeCorteModelList || [];
             const consumo = response._embedded?.produtoDeConsumoDiretoModelList || [];
             return [...corte, ...consumo];
           }),
-          // Passo 2: Enriquecer com dados de estoque (opcional, mas recomendado para UX)
           switchMap(products => {
              if (products.length === 0) return of([]);
-
-             // Reutiliza a lógica de enriquecimento, mas adaptada para array simples
              const productIds = products.map((p: Product) => p.id);
              const stockUrl = endpoints._links?.['estoques-por-produtos']?.href;
-
              if (!stockUrl) return of(products);
 
              return this.getStocksForProducts(productIds, stockUrl).pipe(
@@ -138,7 +183,7 @@ export class ProductService {
                    estoquePorCanal: allStocks[product.id] || {},
                  }));
                }),
-               catchError(() => of(products)) // Se falhar o estoque, retorna produtos sem estoque
+               catchError(() => of(products))
              );
           }),
           catchError(err => {

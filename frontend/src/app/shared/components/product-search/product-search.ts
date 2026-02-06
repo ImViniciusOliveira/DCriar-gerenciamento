@@ -1,4 +1,4 @@
-import { Component, inject, input, output, OnInit, signal, DestroyRef } from '@angular/core';
+import { Component, inject, input, output, OnInit, signal, DestroyRef, effect } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatInputModule } from '@angular/material/input';
@@ -16,6 +16,7 @@ import { Product } from '../../../features/products/models/product.model';
 /**
  * Componente de busca de produtos com Autocomplete.
  * Permite buscar produtos por nome ou SKU e selecionar um item da lista.
+ * Suporta filtragem por canal de venda para exibir estoque disponível.
  */
 @Component({
   selector: 'app-product-search',
@@ -37,6 +38,9 @@ export class ProductSearch implements OnInit {
   /** FormControl para o texto de busca (exibição). */
   searchControl = input.required<FormControl>();
 
+  /** ID do canal de venda para filtrar estoque (opcional). */
+  channelId = input<number>();
+
   /** Evento emitido quando um produto é selecionado. */
   productSelected = output<Product>();
 
@@ -45,12 +49,17 @@ export class ProductSearch implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   // --- Estado ---
-  filteredProducts = signal<Product[]>([]);
+  // Aceita Partial<Product> pois a busca pode retornar DTOs de resumo
+  filteredProducts = signal<Partial<Product>[]>([]);
   isLoading = signal(false);
 
   constructor() {
-    // Configura a lógica de busca reativa
-    // Nota: A subscrição é feita no ngOnInit para garantir que o input searchControl esteja disponível
+    // Reage a mudanças no channelId para limpar a busca se o canal mudar
+    effect(() => {
+      const id = this.channelId();
+      // Se o canal mudar, poderíamos limpar o input ou refazer a busca.
+      // Por enquanto, vamos manter simples: a próxima digitação usará o novo ID.
+    });
   }
 
   ngOnInit(): void {
@@ -60,27 +69,46 @@ export class ProductSearch implements OnInit {
       filter(value => typeof value === 'string'), // Ignora se o valor for um objeto (após seleção)
       tap(() => this.isLoading.set(true)),
       switchMap(value => {
-        if (!value || value.length < 2) {
-          return of([]); // Retorna array vazio se texto curto
+        // Permite busca vazia se tiver canal selecionado (para listar tudo do canal)
+        // Se não tiver canal, exige pelo menos 2 caracteres
+        const currentChannelId = this.channelId();
+        const minLength = currentChannelId ? 0 : 2;
+
+        if (value === null || (typeof value === 'string' && value.length < minLength)) {
+          return of([]);
         }
 
-        return this.productService.searchProducts(value).pipe(
+        // Passa o channelId para o serviço
+        return this.productService.searchProducts(value || '', currentChannelId).pipe(
           catchError(() => of([]))
         );
       }),
-      takeUntilDestroyed(this.destroyRef) // Passando o DestroyRef explicitamente
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe(products => {
       this.filteredProducts.set(products);
       this.isLoading.set(false);
     });
   }
 
-  displayFn(product: Product): string {
+  displayFn(product: Partial<Product>): string {
     return product && product.nome ? product.nome : '';
   }
 
   onOptionSelected(event: MatAutocompleteSelectedEvent): void {
-    const product: Product = event.option.value;
+    // Fazemos o cast para Product porque sabemos que o ID e Nome (essenciais) estão lá.
+    // O consumidor (SalesForm) deve lidar com o fato de que alguns campos podem faltar.
+    const product = event.option.value as Product;
     this.productSelected.emit(product);
+  }
+
+  /**
+   * Retorna a quantidade de estoque para o canal atual.
+   */
+  getStockForChannel(product: Partial<Product>): number | undefined {
+    const currentChannelId = this.channelId();
+    if (currentChannelId && product.estoquePorCanal) {
+      return product.estoquePorCanal[currentChannelId];
+    }
+    return undefined;
   }
 }

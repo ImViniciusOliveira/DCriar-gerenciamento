@@ -4,7 +4,9 @@
          matInput
          [formControl]="searchControl()"
          [matAutocomplete]="auto"
-         placeholder="Digite nome ou SKU">
+         placeholder="Digite nome ou SKU"
+         (focus)="searchControl().updateValueAndValidity({ onlySelf: true, emitEvent: true })">
+         <!-- O focus dispara a busca vazia se permitido -->
 
   @if (isLoading()) {
     <mat-spinner matSuffix diameter="20"></mat-spinner>
@@ -17,7 +19,17 @@
       <mat-option [value]="product">
         <div class="product-option">
           <span class="product-name">{{ product.nome }}</span>
-          <small class="product-sku">SKU: {{ product.sku }}</small>
+          <div class="product-details">
+            <small class="product-sku">SKU: {{ product.sku }}</small>
+
+            @if (channelId(); as cid) {
+              @if (getStockForChannel(product); as qtd) {
+                <span class="stock-badge" [class.low-stock]="qtd < 10">
+                  Estoque: {{ qtd }}
+                </span>
+              }
+            }
+          </div>
         </div>
       </mat-option>
     }

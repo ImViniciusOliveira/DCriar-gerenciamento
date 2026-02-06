@@ -12,8 +12,29 @@
     font-weight: 500;
   }
 
+  .product-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2px;
+  }
+
   .product-sku {
     color: var(--mat-sys-on-surface-variant);
     font-size: 12px;
+  }
+
+  .stock-badge {
+    font-size: 11px;
+    background-color: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+
+    &.low-stock {
+      background-color: var(--mat-sys-error-container);
+      color: var(--mat-sys-on-error-container);
+    }
   }
 }
