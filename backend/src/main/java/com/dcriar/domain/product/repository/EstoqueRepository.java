@@ -1,10 +1,15 @@
 package com.dcriar.domain.product.repository;
 
+import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.entity.Produto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -44,4 +49,28 @@ public interface EstoqueRepository extends JpaRepository<Estoque, Long> {
      */
     @EntityGraph(attributePaths = {"produto", "canalVenda"})
     List<Estoque> findByProdutoIdIn(List<Long> produtoIds);
+
+    /**
+     * Busca resumida de estoque filtrada por canal e nome do produto.
+     * Retorna um DTO projetado para autocompletes de venda.
+     *
+     * @param canalId ID do canal de venda.
+     * @param nomeProduto Parte do nome ou SKU do produto (opcional).
+     * @param apenasComSaldo Se true, retorna apenas registros com quantidade > 0.
+     * @param pageable Paginação.
+     * @return Página de DTOs de resumo.
+     */
+    @Query("SELECT new com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO(" +
+           "p.id, p.nome, p.sku, e.quantidade, pr.valor) " +
+           "FROM Estoque e " +
+           "JOIN e.produto p " +
+           "LEFT JOIN Preco pr ON pr.produto = p AND pr.tipoPreco = 'VAREJO' " +
+           "WHERE e.canalVenda.id = :canalId " +
+           "AND (:nomeProduto IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :nomeProduto, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :nomeProduto, '%'))) " +
+           "AND (:apenasComSaldo = false OR e.quantidade > 0)")
+    Page<EstoqueProdutoResumoDTO> buscarEstoqueResumido(
+            @Param("canalId") Long canalId,
+            @Param("nomeProduto") String nomeProduto,
+            @Param("apenasComSaldo") boolean apenasComSaldo,
+            Pageable pageable);
 }

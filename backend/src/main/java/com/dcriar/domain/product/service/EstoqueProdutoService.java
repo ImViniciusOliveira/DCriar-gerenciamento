@@ -2,9 +2,12 @@ package com.dcriar.domain.product.service;
 
 import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
+import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -39,6 +42,17 @@ public interface EstoqueProdutoService {
      * @return O DTO com as informações do estoque para o produto e canal especificados.
      */
     EstoqueResponseDTO consultarEstoque(Long produtoId, Long canalVendaId);
+
+    /**
+     * Busca resumida de estoque filtrada por canal e nome do produto.
+     *
+     * @param canalId ID do canal de venda.
+     * @param nomeProduto Parte do nome ou SKU do produto (opcional).
+     * @param apenasComSaldo Se true, retorna apenas registros com quantidade > 0.
+     * @param pageable Paginação.
+     * @return Página de DTOs de resumo.
+     */
+    Page<EstoqueProdutoResumoDTO> buscarEstoqueResumido(Long canalId, String nomeProduto, boolean apenasComSaldo, Pageable pageable);
 
     /**
      * Lista todo o histórico de movimentações (o "Livro-Razão") do Estoque Físico Total de um produto.

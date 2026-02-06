@@ -4,6 +4,7 @@ import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.request.product.EstoqueRequestDTO;
 import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
+import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
@@ -22,6 +23,8 @@ import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -125,6 +128,16 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         return estoqueRepository.findByProdutoAndCanalVenda(produto, canalVenda)
                 .map(estoqueMapper::toResponseDTO)
                 .orElseThrow(() -> new EstoqueNaoEncontradoException(produtoId, canalVendaId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<EstoqueProdutoResumoDTO> buscarEstoqueResumido(Long canalId, String nomeProduto, boolean apenasComSaldo, Pageable pageable) {
+        // Valida se o canal existe antes de buscar
+        if (!canalVendaRepository.existsById(canalId)) {
+            throw new CanalVendaNaoEncontradoException(canalId);
+        }
+        return estoqueRepository.buscarEstoqueResumido(canalId, nomeProduto, apenasComSaldo, pageable);
     }
 
     @Override

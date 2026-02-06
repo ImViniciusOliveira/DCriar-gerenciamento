@@ -1,6 +1,7 @@
 package com.dcriar.api.controller;
 
 import com.dcriar.api.controller.product.CanalVendaController;
+import com.dcriar.api.controller.product.EstoqueProdutoController;
 import com.dcriar.api.controller.product.ProdutoController;
 import com.dcriar.api.controller.production.OrdemDeProducaoController;
 import com.dcriar.api.controller.sales.VendaController;
@@ -40,6 +41,9 @@ public class ApiRootController {
         rootModel.add(linkTo(VendaController.class).withRel("vendas"));
         rootModel.add(linkTo(methodOn(OrdemDeProducaoController.class).listarTodas()).withRel("ordens-de-producao"));
         rootModel.add(linkTo(CanalVendaController.class).withRel("canais-venda"));
+        
+        // Adiciona o link para o recurso raiz de estoques (sub-menu)
+        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class).getRoot()).withRel("estoques"));
 
         return rootModel;
     }

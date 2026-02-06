@@ -2,6 +2,7 @@ package com.dcriar.api.controller.product;
 
 import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
+import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
@@ -11,13 +12,24 @@ import com.dcriar.api.hateoas.product.model.EstoqueProdutoModel;
 import com.dcriar.api.hateoas.product.model.MovimentacaoProdutoModel;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,6 +52,31 @@ public class EstoqueProdutoController {
     private final EstoqueProdutoModelAssembler estoqueProdutoModelAssembler;
     private final MovimentacaoProdutoModelAssembler movimentacaoProdutoModelAssembler;
 
+    @GetMapping
+    @Operation(summary = "Ponto de entrada para recursos de Estoque", description = "Retorna links para as operações disponíveis de estoque.")
+    public ResponseEntity<RepresentationModel<?>> getRoot() {
+        RepresentationModel<?> rootModel = new RepresentationModel<>();
+        
+        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class).getRoot()).withSelfRel());
+        
+        // Link para busca resumida (usado em autocompletes)
+        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .buscarEstoqueResumido(null, null, true, null, null))
+                .withRel("resumo"));
+                
+        // Link para listagem por lista de produtos
+        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarEstoquesPorListaDeProdutos(null))
+                .withRel("por-lista-produtos"));
+                
+        // Link para listagem completa agrupada por canais
+        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarEstoqueDeTodosOsProdutosPorCanal())
+                .withRel("todos-por-canais"));
+
+        return ResponseEntity.ok(rootModel);
+    }
+
     @PostMapping("/ajustar-canal")
     @Operation(summary = "Ajustar o estoque de um produto em um canal de venda (distribuição)")
     public ResponseEntity<EstoqueProdutoModel> ajustarEstoqueCanal(@RequestBody @Valid AjusteEstoqueRequestDTO requestDTO) {
@@ -59,13 +96,33 @@ public class EstoqueProdutoController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping
+    @GetMapping("/consulta") // Alterado de @GetMapping raiz para evitar conflito com getRoot
     @Operation(summary = "Consultar o estoque de um produto em um canal específico")
     public ResponseEntity<EstoqueProdutoModel> consultarEstoque(
             @RequestParam Long produtoId,
             @RequestParam Long canalVendaId) {
         EstoqueResponseDTO estoqueDTO = estoqueProdutoService.consultarEstoque(produtoId, canalVendaId);
         return estoqueProdutoModelAssembler.toOkResponseEntity(estoqueDTO);
+    }
+
+    @GetMapping("/resumo")
+    @Operation(summary = "Buscar resumo de estoque filtrado por canal e produto")
+    @Parameters({
+            @Parameter(name = "sort", description = "Critério de ordenação.", example = "produto.nome,asc")
+    })
+    public ResponseEntity<PagedModel<EntityModel<EstoqueProdutoResumoDTO>>> buscarEstoqueResumido(
+            @RequestParam Long canalId,
+            @RequestParam(required = false) String nomeProduto,
+            @RequestParam(defaultValue = "true") boolean apenasComSaldo,
+            @ParameterObject @PageableDefault(sort = "produto.nome", direction = Sort.Direction.ASC) Pageable pageable,
+            PagedResourcesAssembler<EstoqueProdutoResumoDTO> pagedResourcesAssembler) {
+
+        Page<EstoqueProdutoResumoDTO> page = estoqueProdutoService.buscarEstoqueResumido(canalId, nomeProduto, apenasComSaldo, pageable);
+        
+        // O PagedResourcesAssembler padrão converte Page<T> em PagedModel<EntityModel<T>>
+        PagedModel<EntityModel<EstoqueProdutoResumoDTO>> pagedModel = pagedResourcesAssembler.toModel(page);
+        
+        return ResponseEntity.ok(pagedModel);
     }
 
     @GetMapping("/por-produto-canais")
