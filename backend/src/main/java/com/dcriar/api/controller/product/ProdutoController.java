@@ -7,6 +7,7 @@ import com.dcriar.api.hateoas.product.assembler.ProdutoModelAssembler;
 import com.dcriar.api.hateoas.product.model.ProdutoModel;
 import com.dcriar.domain.product.service.ProdutoService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -47,10 +48,12 @@ public class ProdutoController {
     @Operation(summary = "Listar todos os produtos de forma paginada")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
     public ResponseEntity<PagedModel<ProdutoModel>> findAll(
+            @Parameter(description = "Filtrar por nome ou SKU (case-insensitive)")
+            @RequestParam(required = false) String nome,
             @ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
             PagedResourcesAssembler<ProdutoResponseDTO> pagedResourcesAssembler
     ) {
-        Page<ProdutoResponseDTO> produtosPage = produtoService.findAll(pageable);
+        Page<ProdutoResponseDTO> produtosPage = produtoService.findAll(nome, pageable);
         PagedModel<ProdutoModel> pagedModel = pagedResourcesAssembler.toModel(produtosPage, produtoModelAssembler);
 
         // Adiciona o link de descoberta para o endpoint otimizado de busca de estoques.

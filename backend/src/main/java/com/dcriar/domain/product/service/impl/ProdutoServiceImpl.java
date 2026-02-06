@@ -44,8 +44,13 @@ public class ProdutoServiceImpl implements ProdutoService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ProdutoResponseDTO> findAll(Pageable pageable) {
-        Page<Produto> produtoPage = produtoRepository.findAll(pageable);
+    public Page<ProdutoResponseDTO> findAll(String nome, Pageable pageable) {
+        Page<Produto> produtoPage;
+        if (nome != null && !nome.isBlank()) {
+            produtoPage = produtoRepository.findByNomeOrSkuContainingIgnoreCase(nome, pageable);
+        } else {
+            produtoPage = produtoRepository.findAll(pageable);
+        }
         return produtoPage.map(this::mapAndEnrichProduto);
     }
 

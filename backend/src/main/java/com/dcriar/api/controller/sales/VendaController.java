@@ -80,6 +80,19 @@ public class VendaController {
     }
 
     /**
+     * Retorna um modelo de venda "em branco" com os links HATEOAS necessários para a criação.
+     * Este endpoint serve como um "template" para o frontend poder descobrir as URLs de ações relacionadas.
+     *
+     * @return Um modelo HATEOAS de uma venda com valores padrão e links para ações.
+     */
+    @GetMapping("/new")
+    @Operation(summary = "Obter um modelo de venda para criação")
+    @ApiResponse(responseCode = "200", description = "Modelo de venda retornado com sucesso")
+    public ResponseEntity<VendaModel> getNewTemplate() {
+        return vendaModelAssembler.toOkResponseEntity(new VendaResponseDTO());
+    }
+
+    /**
      * Busca os detalhes de uma venda específica pelo seu ID.
      * <p>
      * Exemplo de uso: GET /api/v1/vendas/{id}

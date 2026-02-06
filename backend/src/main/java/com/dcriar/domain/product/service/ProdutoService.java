@@ -16,12 +16,13 @@ import java.util.Map;
 public interface ProdutoService {
 
     /**
-     * Busca todos os produtos cadastrados de forma paginada.
+     * Busca todos os produtos cadastrados de forma paginada, com opção de filtro por nome/SKU.
      *
+     * @param nome Termo de busca para filtrar por nome ou SKU (opcional).
      * @param pageable Objeto com as informações de paginação (página, tamanho, ordenação).
      * @return Uma página de DTOs de resposta de produtos.
      */
-    Page<ProdutoResponseDTO> findAll(Pageable pageable);
+    Page<ProdutoResponseDTO> findAll(String nome, Pageable pageable);
 
     /**
      * Busca um produto específico pelo seu ID.

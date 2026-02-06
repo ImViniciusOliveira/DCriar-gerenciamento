@@ -70,7 +70,13 @@ public class VendaModelAssembler extends RepresentationModelAssemblerSupport<Ven
             model.setItens(Collections.emptyList());
         }
 
-        model.add(linkTo(methodOn(VendaController.class).findById(dto.getId())).withSelfRel());
+        // Adiciona link self apenas se o ID existir (evita link quebrado para templates vazios)
+        if (dto.getId() != null) {
+            model.add(linkTo(methodOn(VendaController.class).findById(dto.getId())).withSelfRel());
+        }
+        
+        // Adiciona link para a coleção de vendas (útil para o frontend saber onde postar)
+        model.add(linkTo(methodOn(VendaController.class).findAll(null, null)).withRel("vendas"));
 
         return model;
     }
@@ -84,5 +90,16 @@ public class VendaModelAssembler extends RepresentationModelAssemblerSupport<Ven
                 .toUri();
 
         return ResponseEntity.created(location).body(model);
+    }
+
+    /**
+     * Envolve o modelo HATEOAS em um ResponseEntity com status 200 OK.
+     * Útil para retornos de métodos GET (detalhes, templates).
+     *
+     * @param dto O DTO a ser convertido.
+     * @return ResponseEntity contendo o modelo.
+     */
+    public ResponseEntity<VendaModel> toOkResponseEntity(@NonNull VendaResponseDTO dto) {
+        return ResponseEntity.ok(toModel(dto));
     }
 }

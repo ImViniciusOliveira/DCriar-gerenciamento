@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
@@ -36,6 +37,23 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
                    "LEFT JOIN FETCH p.tipoMateriaPrima",
            countQuery = "SELECT count(p) FROM Produto p")
     Page<Produto> findAll(@NonNull Pageable pageable);
+
+    /**
+     * Busca produtos filtrando por nome ou SKU (case-insensitive).
+     * Carrega a associação com TipoMateriaPrima de forma otimizada.
+     *
+     * @param nome Parte do nome ou SKU para busca.
+     * @param pageable Informações de paginação.
+     * @return Página de produtos encontrados.
+     */
+    @Query(value = "SELECT p FROM Produto p " +
+                   "LEFT JOIN FETCH p.tipoMateriaPrima " +
+                   "WHERE LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')) " +
+                   "OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :nome, '%'))",
+           countQuery = "SELECT count(p) FROM Produto p " +
+                        "WHERE LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')) " +
+                        "OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :nome, '%'))")
+    Page<Produto> findByNomeOrSkuContainingIgnoreCase(@Param("nome") String nome, Pageable pageable);
 
     /**
      * Busca um produto pelo seu ID, garantindo que a associação com {@link com.dcriar.domain.stock.entity.TipoMateriaPrima}
