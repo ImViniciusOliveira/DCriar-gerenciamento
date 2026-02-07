@@ -50,7 +50,7 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
   @ViewChild('actionsTemplate') actionsTemplate!: TemplateRef<any>;
 
   constructor() {
-    super('material-types'); // Passa a chave única para a classe base.
+    super('material-types');
 
     const materialTypesResponse = toSignal(
       this.materialTypeService.getMaterialTypes().pipe(

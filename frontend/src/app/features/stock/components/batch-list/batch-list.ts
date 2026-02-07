@@ -63,7 +63,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
   @ViewChild('actionsTemplate') actionsTemplate!: TemplateRef<any>;
 
   constructor() {
-    super('batches'); // Passa a chave única para a classe base.
+    super('batches');
 
     const lotesResponse = toSignal(
       this.batchService.batches$.pipe(
@@ -87,9 +87,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      // Corrigido: Ordenação por tipoMateriaPrima.nome (caminho do relacionamento)
       { key: 'tipoMateriaPrima.nome', header: 'Matéria-Prima', sortable: true, cellTemplate: this.typeTemplate },
-      // Corrigido: Renomeado para Quantidade e desabilitada ordenação (campo transient)
       { key: 'saldoEstoque', header: 'Quantidade', sortable: false, cellTemplate: this.balanceTemplate },
       { key: 'atributos', header: 'Atributos', sortable: false, cellTemplate: this.attributesTemplate },
       { key: 'acoes', header: 'Ações', cellTemplate: this.actionsTemplate }

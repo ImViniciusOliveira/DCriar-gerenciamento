@@ -47,6 +47,18 @@ export interface Product {
    * Não vem diretamente do endpoint principal de produtos.
    */
   estoquePorCanal?: Record<string, number>;
+
+  /**
+   * Estoque disponível específico para um contexto (ex: canal selecionado).
+   * Preenchido quando o produto vem de endpoints de resumo de estoque.
+   */
+  estoqueDisponivel?: number;
+
+  /**
+   * Preço temporário vindo do DTO de resumo de estoque.
+   * Usado para passar o preço de venda para o formulário.
+   */
+  _tempPrice?: number;
 }
 
 /**

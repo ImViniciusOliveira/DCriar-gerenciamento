@@ -1,6 +1,6 @@
-import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators, ValidationErrors, AbstractControl } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -17,10 +17,64 @@ import { ChannelService } from '../../../stock/services/channel.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { ProductSearch } from '../../../../shared/components/product-search/product-search';
 import { Product } from '../../../products/models/product.model';
+import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 
 export interface SalesFormData {
   template?: Sale;
   title: string;
+}
+
+/**
+ * Validador global para verificar se a soma das quantidades de um mesmo produto excede o estoque disponível.
+ */
+function stockAvailabilityValidator(formArray: AbstractControl): ValidationErrors | null {
+  if (!(formArray instanceof FormArray)) return null;
+
+  const productQuantities = new Map<number, number>();
+  const productStocks = new Map<number, number>();
+  let hasError = false;
+
+  // Passo 1: Calcular totais por produto
+  formArray.controls.forEach((control) => {
+    const group = control as FormGroup;
+    const productId = group.get('produtoId')?.value;
+    const quantity = group.get('quantidade')?.value || 0;
+    const stock = group.get('estoqueDisponivel')?.value;
+
+    if (productId) {
+      const currentTotal = (productQuantities.get(productId) || 0) + quantity;
+      productQuantities.set(productId, currentTotal);
+
+      if (stock !== undefined && stock !== null) {
+        productStocks.set(productId, stock);
+      }
+    }
+  });
+
+  // Passo 2: Validar e marcar erros nos controles individuais
+  formArray.controls.forEach((control) => {
+    const group = control as FormGroup;
+    const productId = group.get('produtoId')?.value;
+    const qtdControl = group.get('quantidade');
+
+    if (productId && qtdControl) {
+      const total = productQuantities.get(productId) || 0;
+      const stock = productStocks.get(productId);
+
+      if (stock !== undefined && total > stock) {
+        const currentErrors = qtdControl.errors || {};
+        qtdControl.setErrors({ ...currentErrors, stockExceeded: { total, stock } });
+        hasError = true;
+      } else {
+        if (qtdControl.hasError('stockExceeded')) {
+           const { stockExceeded, ...otherErrors } = qtdControl.errors || {};
+           qtdControl.setErrors(Object.keys(otherErrors).length ? otherErrors : null);
+        }
+      }
+    }
+  });
+
+  return hasError ? { stockExceeded: true } : null;
 }
 
 @Component({
@@ -49,11 +103,11 @@ export class SalesForm implements OnInit {
   private readonly salesService = inject(SalesService);
   private readonly channelService = inject(ChannelService);
   private readonly entityDialog = inject(EntityDialogService);
-  private readonly cdr = inject(ChangeDetectorRef);
   public readonly data: SalesFormData = inject(MAT_DIALOG_DATA);
 
   form: FormGroup;
   isSaving = signal(false);
+  matcher = new InstantErrorStateMatcher();
 
   // Carrega os canais reais da API usando o novo serviço
   channels = toSignal(this.channelService.getAllChannels(), { initialValue: [] });
@@ -67,7 +121,7 @@ export class SalesForm implements OnInit {
   constructor() {
     this.form = this.fb.group({
       canalVendaId: [null, Validators.required],
-      itens: this.fb.array([])
+      itens: this.fb.array([], stockAvailabilityValidator)
     });
 
     // Escuta mudanças no canal de venda para limpar os itens
@@ -75,7 +129,6 @@ export class SalesForm implements OnInit {
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
         this.items.clear();
-        // Adiciona um item vazio se o canal for válido, para facilitar
         if (this.form.get('canalVendaId')?.valid) {
           this.addItem();
         }
@@ -83,8 +136,6 @@ export class SalesForm implements OnInit {
   }
 
   ngOnInit(): void {
-    // Não adicionamos item inicial aqui mais, pois a subscrição do canal cuidará disso
-    // quando o usuário selecionar um canal (ou se vier preenchido).
   }
 
   get items(): FormArray {
@@ -101,7 +152,8 @@ export class SalesForm implements OnInit {
   addItem(): void {
     const itemGroup = this.fb.group({
       produtoId: [null, Validators.required],
-      produtoNome: ['', Validators.required], // Usado pelo ProductSearch
+      produtoNome: ['', Validators.required],
+      estoqueDisponivel: [null],
       quantidade: [1, [Validators.required, Validators.min(1)]]
     });
 
@@ -124,8 +176,11 @@ export class SalesForm implements OnInit {
     if (itemGroup) {
       itemGroup.patchValue({
         produtoId: product.id,
-        produtoNome: product
+        produtoNome: product,
+        estoqueDisponivel: product.estoqueDisponivel
       });
+      // Dispara validação do FormArray após selecionar produto
+      this.items.updateValueAndValidity();
     }
   }
 
@@ -161,7 +216,6 @@ export class SalesForm implements OnInit {
       },
       error: (err) => {
         console.error('Erro ao salvar venda:', err);
-        // Tenta extrair mensagem de erro do backend se disponível
         const errorMsg = err.error?.detail || SalesForm.Texts.SAVE_ERROR;
         this.entityDialog.showErrorSnackbar(errorMsg);
         this.isSaving.set(false);

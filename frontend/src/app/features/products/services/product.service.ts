@@ -142,7 +142,8 @@ export class ProductService {
                     nome: dto.nomeProduto,
                     sku: dto.skuProduto,
                     estoquePorCanal: { [channelId]: dto.quantidadeNoCanal },
-                    _tempPrice: dto.precoVenda
+                    _tempPrice: dto.precoVenda,
+                    estoqueDisponivel: dto.quantidadeNoCanal
                   } as Partial<Product>));
                 })
               );
