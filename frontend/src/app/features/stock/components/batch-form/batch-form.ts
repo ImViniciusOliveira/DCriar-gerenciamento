@@ -80,7 +80,7 @@ export class BatchForm implements OnInit {
     this.form = this.fb.group({
       materiaPrima: [null, Validators.required],
       unidadeDeEstoque: [null, Validators.required],
-      quantidadeInicial: [this.data.template?.saldoEstoque || '', [Validators.required, Validators.min(0.01)]],
+      quantidadeInicial: [{ value: this.data.template?.saldoEstoque || '', disabled: this.isEditMode() }, [Validators.required, Validators.min(0.01)]],
       custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01)]],
       motivo: [this.data.template?.motivo || '', Validators.required],
       larguraMm: [null],

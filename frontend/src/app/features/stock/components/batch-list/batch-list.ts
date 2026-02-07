@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { lastValueFrom, catchError, of } from 'rxjs';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
@@ -27,6 +28,7 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
     MatButtonModule,
     MatIconModule,
     MatDialogModule,
+    MatTooltipModule,
     BaseTable,
     DetailsPopover
   ],
@@ -57,7 +59,6 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
 
   @ViewChild('typeTemplate') typeTemplate!: TemplateRef<any>;
   @ViewChild('balanceTemplate') balanceTemplate!: TemplateRef<any>;
-  @ViewChild('unitTemplate') unitTemplate!: TemplateRef<any>;
   @ViewChild('attributesTemplate') attributesTemplate!: TemplateRef<any>;
   @ViewChild('actionsTemplate') actionsTemplate!: TemplateRef<any>;
 
@@ -86,9 +87,10 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'nomeTipoMateriaPrima', header: 'Matéria-Prima', sortable: true, cellTemplate: this.typeTemplate },
-      { key: 'saldoEstoque', header: 'Saldo', sortable: true, cellTemplate: this.balanceTemplate },
-      { key: 'unidadeDeEstoque', header: 'Unidade', sortable: true, cellTemplate: this.unitTemplate },
+      // Corrigido: Ordenação por tipoMateriaPrima.nome (caminho do relacionamento)
+      { key: 'tipoMateriaPrima.nome', header: 'Matéria-Prima', sortable: true, cellTemplate: this.typeTemplate },
+      // Corrigido: Renomeado para Quantidade e desabilitada ordenação (campo transient)
+      { key: 'saldoEstoque', header: 'Quantidade', sortable: false, cellTemplate: this.balanceTemplate },
       { key: 'atributos', header: 'Atributos', sortable: false, cellTemplate: this.attributesTemplate },
       { key: 'acoes', header: 'Ações', cellTemplate: this.actionsTemplate }
     ];
