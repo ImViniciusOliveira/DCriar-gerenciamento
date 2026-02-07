@@ -39,5 +39,6 @@ public interface TipoMateriaPrimaMapper {
      * @param tipoMateriaPrima A entidade de domínio a ser convertida.
      * @return O DTO de resposta correspondente.
      */
+    @Mapping(source = "unidadeDeConsumo.descricao", target = "unidadeDescricao")
     TipoMateriaPrimaResponseDTO toResponseDTO(TipoMateriaPrima tipoMateriaPrima);
 }

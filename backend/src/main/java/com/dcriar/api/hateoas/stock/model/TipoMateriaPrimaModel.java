@@ -30,4 +30,7 @@ public class TipoMateriaPrimaModel extends RepresentationModel<TipoMateriaPrimaM
 
     @Schema(description = "Unidade de medida padrão para consumo em produção.", example = "CENTIMETRO_QUADRADO")
     private UnidadeDeMedida unidadeDeConsumo;
+
+    @Schema(description = "Descrição amigável da unidade de medida.", example = "Metro Quadrado")
+    private String unidadeDescricao;
 }

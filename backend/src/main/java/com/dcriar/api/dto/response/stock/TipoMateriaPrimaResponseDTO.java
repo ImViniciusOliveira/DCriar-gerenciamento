@@ -34,4 +34,10 @@ public class TipoMateriaPrimaResponseDTO {
      */
     @Schema(description = "Unidade em que o material é consumido.", example = "CENTIMETRO_QUADRADO")
     private UnidadeDeMedida unidadeDeConsumo;
+
+    /**
+     * Descrição amigável da unidade de medida (ex: "Metro Quadrado", "Unidade").
+     */
+    @Schema(description = "Descrição da unidade de medida.", example = "Metro Quadrado")
+    private String unidadeDescricao;
 }
