@@ -57,9 +57,11 @@ public class LoteMateriaPrimaModelAssembler extends RepresentationModelAssembler
         } else {
             // Links para o esqueleto de criação
             model.add(linkTo(LoteMateriaPrimaController.class).withRel("create"));
-            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("tipos-materia-prima"));            // Adiciona o link correto para buscar as opções de unidades de medida.
-            model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida()).withRel("unidades-de-medida"));
+            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("tipos-materia-prima"));
         }
+        
+        // Link para unidades de medida (necessário tanto para criação quanto para edição)
+        model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida()).withRel("unidades-de-medida"));
 
         return model;
     }

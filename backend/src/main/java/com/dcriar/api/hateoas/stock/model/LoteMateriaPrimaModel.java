@@ -37,6 +37,9 @@ public class LoteMateriaPrimaModel extends RepresentationModel<LoteMateriaPrimaM
     @Schema(description = "Unidade de medida em que o estoque deste lote é controlado.", example = "METRO_LINEAR")
     private UnidadeDeMedida unidadeDeEstoque;
 
+    @Schema(description = "Símbolo da unidade de medida (ex: m, un, kg).", example = "m")
+    private String unidadeSimbolo;
+
     @Schema(description = "Saldo atual de material disponível neste lote.", example = "45.5000")
     private BigDecimal saldoEstoque;
 

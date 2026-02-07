@@ -29,6 +29,7 @@ public interface LoteMateriaPrimaMapper {
     @Mapping(source = "tipoMateriaPrima.id", target = "tipoMateriaPrimaId")
     @Mapping(source = "tipoMateriaPrima.nome", target = "nomeTipoMateriaPrima")
     @Mapping(source = "loteDeOrigem.id", target = "loteDeOrigemId")
+    @Mapping(source = "unidadeDeEstoque.simbolo", target = "unidadeSimbolo")
     @Mapping(target = "saldoEstoque", ignore = true)
     LoteMateriaPrimaResponseDTO toResponseDTO(LoteMateriaPrima lote);
 
