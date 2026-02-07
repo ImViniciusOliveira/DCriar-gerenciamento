@@ -40,10 +40,13 @@ export class PaginationHandler {
 
   /**
    * Inicializa o handler com uma chave única e restaura o estado salvo, se existir.
+   * Caso contrário, aplica a ordenação padrão fornecida.
    * Este método deve ser chamado no construtor do componente de lista.
+   *
    * @param key A chave única que identifica a lista (ex: 'products', 'batches').
+   * @param defaultSort Ordenação padrão opcional a ser usada se não houver estado salvo.
    */
-  initialize(key: string): void {
+  initialize(key: string, defaultSort?: Sort): void {
     this.listId = key;
     const savedState = this.stateService.getState(key);
 
@@ -53,6 +56,10 @@ export class PaginationHandler {
       this.pageIndex.set(savedState.pageIndex);
       this.sortActive.set(savedState.sort.active);
       this.sortDirection.set(savedState.sort.direction);
+    } else if (defaultSort) {
+      // Aplica o padrão específico da lista se não houver estado salvo.
+      this.sortActive.set(defaultSort.active);
+      this.sortDirection.set(defaultSort.direction);
     }
   }
 

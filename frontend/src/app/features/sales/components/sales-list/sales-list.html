@@ -39,15 +39,16 @@
   <ng-template #itensTemplate let-sale>
     <app-details-popover
       [items]="getSaleItemsDetails(sale)"
-      icon="shopping_cart"
       triggerText="Ver Itens">
     </app-details-popover>
   </ng-template>
 
   <ng-template #acoesTemplate let-sale>
-    <!-- Por enquanto sem ações de edição/exclusão, apenas visualização -->
-    <button mat-icon-button disabled matTooltip="Edição não permitida">
-      <mat-icon>edit_off</mat-icon>
+    <button mat-icon-button color="primary" (click)="onEdit(sale)" title="Editar">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <button mat-icon-button color="warn" (click)="onDelete(sale)" title="Excluir">
+      <mat-icon>delete</mat-icon>
     </button>
   </ng-template>
 </div>

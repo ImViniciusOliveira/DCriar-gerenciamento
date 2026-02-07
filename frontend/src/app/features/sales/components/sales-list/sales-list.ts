@@ -41,9 +41,16 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
   private readonly cdr = inject(ChangeDetectorRef);
 
   private static readonly Texts = {
+    deleteConfirmTitle: 'Confirmar Exclusão',
+    deleteSuccess: 'Venda excluída com sucesso!',
+    saveSuccess: 'Venda atualizada com sucesso!',
+    createSuccess: 'Venda registrada com sucesso!',
+    deleteError: 'Falha ao excluir a venda.',
     loadError: 'Falha ao carregar a lista de vendas.',
     createError: 'Não foi possível iniciar o registro de uma nova venda.',
-    createSuccess: 'Venda registrada com sucesso!'
+    resourceError: 'Não foi possível encontrar o recurso.',
+    createTitle: 'Nova Venda',
+    editTitle: 'Editar Venda'
   };
 
   tableColumns: TableColumn<Sale>[] = [];
@@ -55,12 +62,8 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
 
   constructor() {
-    super('sales'); // Chave única para persistência de paginação
-
-    // Define a ordenação padrão por data decrescente se estiver no padrão inicial (id, asc)
-    if (this.pagination.sortActive() === 'id' && this.pagination.sortDirection() === 'asc') {
-      this.pagination.handleSortChange({ active: 'dataCriacao', direction: 'desc' });
-    }
+    // Passa a ordenação padrão correta para o BaseList
+    super('sales', { active: 'dataCriacao', direction: 'desc' });
 
     const salesResponse = toSignal(
       this.salesService.sales$.pipe(
@@ -106,21 +109,57 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
    */
   async onCreate(): Promise<void> {
     try {
-      // Busca o template HATEOAS para nova venda (opcional, mas boa prática se o backend fornecer defaults)
       const template = await lastValueFrom(this.salesService.getNewTemplate());
 
       this.openSalesDialog({
         template,
-        title: 'Nova Venda'
+        title: SalesList.Texts.createTitle
       }, SalesList.Texts.createSuccess);
 
     } catch (error) {
       console.error('Erro ao buscar template para nova venda:', error);
-      // Mesmo com erro no template, tentamos abrir o formulário vazio
       this.openSalesDialog({
-        title: 'Nova Venda'
+        title: SalesList.Texts.createTitle
       }, SalesList.Texts.createSuccess);
     }
+  }
+
+  /**
+   * Abre o formulário de edição para a venda selecionada.
+   */
+  onEdit(sale: Sale): void {
+    const saleCopy = structuredClone(sale);
+    this.openSalesDialog({
+      template: saleCopy,
+      title: SalesList.Texts.editTitle
+    }, SalesList.Texts.saveSuccess);
+  }
+
+  /**
+   * Solicita confirmação e remove a venda selecionada.
+   */
+  onDelete(sale: Sale): void {
+    const deleteUrl = sale._links?.['delete']?.href;
+    if (!deleteUrl) {
+      this.entityDialog.showErrorSnackbar(SalesList.Texts.resourceError);
+      return;
+    }
+
+    this.entityDialog.openConfirmDeleteDialog(
+      `Venda #${sale.id}`,
+      SalesList.Texts.deleteConfirmTitle
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.salesService.delete(deleteUrl).subscribe({
+          next: () => {
+            this.entityDialog.showSuccessSnackbar(SalesList.Texts.deleteSuccess);
+          },
+          error: () => {
+            this.entityDialog.showErrorSnackbar(SalesList.Texts.deleteError);
+          }
+        });
+      }
+    });
   }
 
   private openSalesDialog(dialogData: SalesFormData, successMessage: string): void {
@@ -129,12 +168,10 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
       formData: dialogData,
       title: dialogData.title,
       width: '90vw',
-      maxWidth: '1000px' // Formulário de venda precisa de espaço
+      maxWidth: '1000px'
     }).subscribe(saved => {
       if (saved) {
         this.entityDialog.showSuccessSnackbar(successMessage);
-        // O BaseList já cuida de recarregar a lista via effect quando o signal muda,
-        // mas aqui garantimos o refresh manual se necessário.
         this.salesService.updateSearchParams({});
       }
     });

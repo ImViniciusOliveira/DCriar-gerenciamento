@@ -28,7 +28,7 @@ export class SalesService {
   }>({
     page: 0,
     size: 10,
-    sort: 'id,asc'
+    sort: 'dataCriacao,desc'
   }, {
     equal: (a, b) => a.page === b.page && a.size === b.size && a.sort === b.sort
   });

@@ -10,6 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { lastValueFrom } from 'rxjs';
 
 import { Sale, SaleRequest } from '../../models/sales.model';
 import { SalesService } from '../../services/sales.service';
@@ -18,6 +19,7 @@ import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { ProductSearch } from '../../../../shared/components/product-search/product-search';
 import { Product } from '../../../products/models/product.model';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
+import { ProductService } from '../../../products/services/product.service';
 
 export interface SalesFormData {
   template?: Sale;
@@ -102,11 +104,13 @@ export class SalesForm implements OnInit {
   private readonly dialogRef = inject(MatDialogRef<SalesForm>);
   private readonly salesService = inject(SalesService);
   private readonly channelService = inject(ChannelService);
+  private readonly productService = inject(ProductService);
   private readonly entityDialog = inject(EntityDialogService);
   public readonly data: SalesFormData = inject(MAT_DIALOG_DATA);
 
   form: FormGroup;
   isSaving = signal(false);
+  isEditMode = signal(false);
   matcher = new InstantErrorStateMatcher();
 
   // Carrega os canais reais da API usando o novo serviço
@@ -114,11 +118,14 @@ export class SalesForm implements OnInit {
 
   private static readonly Texts = {
     SAVE_SUCCESS: 'Venda registrada com sucesso!',
+    UPDATE_SUCCESS: 'Venda atualizada com sucesso!',
     SAVE_ERROR: 'Falha ao registrar a venda. Verifique os dados e tente novamente.',
     LOAD_ERROR: 'Não foi possível carregar os dados iniciais.'
   };
 
   constructor() {
+    this.isEditMode.set(!!this.data.template?.id);
+
     this.form = this.fb.group({
       canalVendaId: [null, Validators.required],
       itens: this.fb.array([], stockAvailabilityValidator)
@@ -128,14 +135,64 @@ export class SalesForm implements OnInit {
     this.form.get('canalVendaId')?.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
-        this.items.clear();
-        if (this.form.get('canalVendaId')?.valid) {
-          this.addItem();
+        // Só limpa se o formulário estiver marcado como dirty (interação do usuário)
+        // Isso evita limpar ao carregar dados iniciais
+        if (this.form.get('canalVendaId')?.dirty) {
+           this.items.clear();
+           if (this.form.get('canalVendaId')?.valid) {
+             this.addItem();
+           }
+        } else if (!this.isEditMode() && this.items.length === 0 && this.form.get('canalVendaId')?.value) {
+             // Adiciona item inicial na criação se não houver itens
+             this.addItem();
         }
       });
   }
 
   ngOnInit(): void {
+    if (this.isEditMode() && this.data.template) {
+      this.initializeForm(this.data.template);
+    }
+  }
+
+  private async initializeForm(sale: Sale): Promise<void> {
+    // Define o valor sem emitir evento para não disparar o valueChanges
+    // Mas como usamos 'dirty' check no valueChanges, o patchValue normal não marcaria como dirty.
+    // O problema é que patchValue emite evento por padrão.
+    // Vamos usar emitEvent: false para garantir.
+    this.form.patchValue({
+      canalVendaId: sale.canalVendaId
+    }, { emitEvent: false });
+
+    // Preenche os itens
+    if (sale.itens && sale.itens.length > 0) {
+      for (const item of sale.itens) {
+        const itemGroup = this.createItemControl();
+
+        itemGroup.patchValue({
+          produtoId: item.produtoId,
+          produtoNome: { id: item.produtoId, nome: item.nomeProduto, sku: item.produtoSku } as any,
+          quantidade: item.quantidade
+        });
+
+        this.items.push(itemGroup);
+
+        this.loadStockForItem(item.produtoId, sale.canalVendaId, itemGroup);
+      }
+    }
+  }
+
+  private loadStockForItem(productId: number, channelId: number, group: FormGroup): void {
+     const sku = group.get('produtoNome')?.value?.sku;
+     if (sku) {
+        this.productService.searchProducts(sku, channelId).subscribe(products => {
+           const match = products.find(p => p.id === productId);
+           if (match && match.estoqueDisponivel !== undefined) {
+              group.patchValue({ estoqueDisponivel: match.estoqueDisponivel });
+              this.items.updateValueAndValidity();
+           }
+        });
+     }
   }
 
   get items(): FormArray {
@@ -147,17 +204,22 @@ export class SalesForm implements OnInit {
   }
 
   /**
-   * Adiciona uma nova linha de item ao formulário.
+   * Cria o FormGroup de um item.
    */
-  addItem(): void {
-    const itemGroup = this.fb.group({
+  private createItemControl(): FormGroup {
+    return this.fb.group({
       produtoId: [null, Validators.required],
       produtoNome: ['', Validators.required],
       estoqueDisponivel: [null],
       quantidade: [1, [Validators.required, Validators.min(1)]]
     });
+  }
 
-    this.items.push(itemGroup);
+  /**
+   * Adiciona uma nova linha de item ao formulário.
+   */
+  addItem(): void {
+    this.items.push(this.createItemControl());
   }
 
   /**
@@ -209,9 +271,15 @@ export class SalesForm implements OnInit {
       }))
     };
 
-    this.salesService.create(request).subscribe({
+    const operation = this.isEditMode() && this.data.template?._links?.['update']
+      ? this.salesService.update(this.data.template._links['update'].href, request)
+      : this.salesService.create(request);
+
+    operation.subscribe({
       next: () => {
-        this.entityDialog.showSuccessSnackbar(SalesForm.Texts.SAVE_SUCCESS);
+        this.entityDialog.showSuccessSnackbar(
+          this.isEditMode() ? SalesForm.Texts.UPDATE_SUCCESS : SalesForm.Texts.SAVE_SUCCESS
+        );
         this.dialogRef.close(true);
       },
       error: (err) => {

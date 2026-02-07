@@ -27,11 +27,12 @@ export abstract class BaseList<T> {
 
   /**
    * @param listId Identificador único para a lista (ex: 'products'), usado para persistir o estado.
+   * @param defaultSort Ordenação padrão opcional (ex: { active: 'data', direction: 'desc' }).
    */
-  protected constructor(protected readonly listId: string) {
-    // Inicializa o handler de paginação com a chave única da lista.
-    // Isso restaura o estado salvo (se houver) para esta lista específica.
-    this.pagination.initialize(this.listId);
+  protected constructor(protected readonly listId: string, defaultSort?: Sort) {
+    // Inicializa o handler de paginação com a chave única da lista e o padrão opcional.
+    // Isso restaura o estado salvo (se houver) ou aplica o padrão.
+    this.pagination.initialize(this.listId, defaultSort);
 
     // Este `effect` reage a mudanças nos sinais de paginação/ordenação.
     effect(() => {

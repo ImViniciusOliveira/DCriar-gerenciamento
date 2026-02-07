@@ -22,7 +22,8 @@ export interface Sale {
   dataCriacao: string; // ISO Date string
   dataAtualizacao: string; // ISO Date string
   valorTotal: number;
-  nomeCanalVenda: string; // O backend retorna apenas o nome, não o objeto completo
+  canalVendaId: number;
+  nomeCanalVenda: string;
   itens: SaleItem[];
   _links?: Hateoas['_links'];
 }
