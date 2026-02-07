@@ -27,6 +27,12 @@ public class VendaResponseDTO {
     private Long id;
 
     /**
+     * O ID do canal de venda. Necessário para operações de edição.
+     */
+    @Schema(description = "O ID do canal de venda.", example = "1")
+    private Long canalVendaId;
+
+    /**
      * O nome do canal de venda onde a transação ocorreu.
      */
     @Schema(description = "O nome do canal de venda onde a transação ocorreu.", example = "SHOPEE")

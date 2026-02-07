@@ -16,6 +16,24 @@ public interface VendaService {
     VendaResponseDTO registrarVenda(VendaRequestDTO requestDTO);
 
     /**
+     * Atualiza uma venda existente.
+     * A estratégia adotada é o estorno total da venda anterior e o registro da nova,
+     * garantindo a consistência do estoque.
+     *
+     * @param id O ID da venda a ser atualizada.
+     * @param requestDTO Os novos dados da venda.
+     * @return O DTO de resposta da venda atualizada.
+     */
+    VendaResponseDTO atualizarVenda(Long id, VendaRequestDTO requestDTO);
+
+    /**
+     * Remove uma venda do sistema e estorna o estoque dos itens.
+     *
+     * @param id O ID da venda a ser removida.
+     */
+    void deletarVenda(Long id);
+
+    /**
      * Lista todas as vendas registadas no sistema de forma paginada.
      *
      * @param pageable Objeto com as informações de paginação.

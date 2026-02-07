@@ -59,6 +59,45 @@ public class VendaController {
     }
 
     /**
+     * Atualiza uma venda existente.
+     * <p>
+     * Exemplo de uso: PUT /api/v1/vendas/{id}
+     *
+     * @param id ID da venda
+     * @param requestDTO Novos dados da venda
+     * @return Venda atualizada
+     */
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualizar uma venda existente")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Venda atualizada com sucesso."),
+            @ApiResponse(responseCode = "404", description = "Venda não encontrada.", content = @Content)
+    })
+    public ResponseEntity<VendaModel> atualizarVenda(@PathVariable Long id, @RequestBody @Valid VendaRequestDTO requestDTO) {
+        VendaResponseDTO vendaAtualizada = vendaService.atualizarVenda(id, requestDTO);
+        return ResponseEntity.ok(vendaModelAssembler.toModel(vendaAtualizada));
+    }
+
+    /**
+     * Remove uma venda do sistema.
+     * <p>
+     * Exemplo de uso: DELETE /api/v1/vendas/{id}
+     *
+     * @param id ID da venda
+     * @return No Content
+     */
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Remover uma venda")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Venda removida com sucesso."),
+            @ApiResponse(responseCode = "404", description = "Venda não encontrada.", content = @Content)
+    })
+    public ResponseEntity<Void> deletarVenda(@PathVariable Long id) {
+        vendaService.deletarVenda(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Lista todas as vendas registradas no sistema de forma paginada.
      * <p>
      * Exemplo de uso: GET /api/v1/vendas?page=0&size=10&sort=id,asc

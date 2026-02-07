@@ -51,69 +51,45 @@ public class VendaServiceImpl implements VendaService {
     @Override
     @Transactional
     public VendaResponseDTO registrarVenda(VendaRequestDTO requestDTO) {
-        // 1. Valida Canal (1 Query)
-        CanalVenda canalVenda = canalVendaRepository.findById(requestDTO.getCanalVendaId())
-                .orElseThrow(() -> new CanalVendaNaoEncontradoException(requestDTO.getCanalVendaId()));
-
-        // --- OTIMIZAÇÃO BATCH (Alta Performance) ---
-        
-        // A. Coleta IDs
-        Set<Long> produtoIds = requestDTO.getItens().stream()
-                .map(ItemVendaRequestDTO::getProdutoId)
-                .collect(Collectors.toSet());
-
-        // B. Busca Produtos em Lote (1 Query IN)
-        Map<Long, Produto> produtosMap = produtoRepository.findAllById(produtoIds).stream()
-                .collect(Collectors.toMap(Produto::getId, Function.identity()));
-
-        if (produtosMap.size() != produtoIds.size()) {
-             produtoIds.removeAll(produtosMap.keySet());
-             throw new ProdutoNaoEncontradoException(produtoIds.iterator().next());
-        }
-
-        // C. Busca Preços em Lote (1 Query IN)
-        List<Preco> precosList = precoRepository.findByProdutoInAndTipoPreco(produtosMap.values(), TipoPreco.VAREJO);
-        Map<Long, Preco> precosMap = precosList.stream()
-                .collect(Collectors.toMap(p -> p.getProduto().getId(), Function.identity()));
-
-        // -------------------------------------------
-
-        List<ItemVenda> itemVendas = new ArrayList<>();
-
-        // Loop em Memória (Zero queries de leitura aqui dentro)
-        for (ItemVendaRequestDTO itemDTO : requestDTO.getItens()) {
-            Produto produto = produtosMap.get(itemDTO.getProdutoId());
-            Preco preco = precosMap.get(itemDTO.getProdutoId());
-
-            if (preco == null) {
-                throw new PrecoVarejoNaoDefinidoException(produto.getId());
-            }
-
-            BigDecimal unitPrice = preco.isPromocaoAtiva() && preco.getValorPromocional() != null
-                    ? preco.getValorPromocional()
-                    : preco.getValor();
-
-            BigDecimal itemTotalPrice = unitPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantidade()));
-
-            // A baixa de estoque gera escrita (necessário)
-            performStockReduction(produto, canalVenda, itemDTO.getQuantidade());
-
-            itemVendas.add(ItemVenda.builder()
-                    .produto(produto)
-                    .quantidade(itemDTO.getQuantidade())
-                    .precoUnitario(unitPrice)
-                    .precoTotal(itemTotalPrice)
-                    .build());
-        }
+        CanalVenda canalVenda = buscarCanalVenda(requestDTO.getCanalVendaId());
+        List<ItemVenda> itemVendas = processarItensVenda(requestDTO.getItens(), canalVenda);
 
         Venda newVenda = Venda.from(canalVenda, itemVendas);
-        BigDecimal totalAmount = itemVendas.stream()
-                .map(ItemVenda::getPrecoTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        newVenda.setValorTotal(totalAmount);
+        newVenda.setValorTotal(calcularValorTotal(itemVendas));
         
         Venda savedVenda = vendaRepository.save(newVenda);
         return vendaMapper.toResponseDTO(savedVenda);
+    }
+
+    @Override
+    @Transactional
+    public VendaResponseDTO atualizarVenda(Long id, VendaRequestDTO requestDTO) {
+        Venda vendaExistente = vendaRepository.findById(id)
+                .orElseThrow(() -> new VendaNaoEncontradaException(id));
+
+        // 1. Estorna o estoque da venda antiga
+        performStockReversal(vendaExistente);
+
+        // 2. Prepara os novos dados
+        CanalVenda novoCanal = buscarCanalVenda(requestDTO.getCanalVendaId());
+        List<ItemVenda> novosItens = processarItensVenda(requestDTO.getItens(), novoCanal);
+
+        // 3. Atualiza a entidade existente (mantendo o ID)
+        vendaExistente.updateFrom(novoCanal, novosItens);
+        vendaExistente.setValorTotal(calcularValorTotal(novosItens));
+
+        Venda savedVenda = vendaRepository.save(vendaExistente);
+        return vendaMapper.toResponseDTO(savedVenda);
+    }
+
+    @Override
+    @Transactional
+    public void deletarVenda(Long id) {
+        Venda venda = vendaRepository.findById(id)
+                .orElseThrow(() -> new VendaNaoEncontradaException(id));
+
+        performStockReversal(venda);
+        vendaRepository.delete(venda);
     }
 
     @Override
@@ -127,6 +103,72 @@ public class VendaServiceImpl implements VendaService {
     @Transactional(readOnly = true)
     public VendaResponseDTO findById(Long id) {
         return vendaRepository.findById(id).map(vendaMapper::toResponseDTO).orElseThrow(() -> new VendaNaoEncontradaException(id));
+    }
+
+    private CanalVenda buscarCanalVenda(Long id) {
+        return canalVendaRepository.findById(id)
+                .orElseThrow(() -> new CanalVendaNaoEncontradoException(id));
+    }
+
+    private BigDecimal calcularValorTotal(List<ItemVenda> itens) {
+        return itens.stream()
+                .map(ItemVenda::getPrecoTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * Processa a lista de itens da requisição de venda.
+     * Realiza a busca em lote de produtos e preços para performance, valida a existência e preços,
+     * calcula os valores unitários e totais, e executa a baixa de estoque.
+     *
+     * @param itensDTO Lista de DTOs dos itens da venda.
+     * @param canalVenda Canal de venda para contexto de estoque.
+     * @return Lista de entidades ItemVenda prontas para persistência.
+     */
+    private List<ItemVenda> processarItensVenda(List<ItemVendaRequestDTO> itensDTO, CanalVenda canalVenda) {
+        Set<Long> produtoIds = itensDTO.stream()
+                .map(ItemVendaRequestDTO::getProdutoId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Produto> produtosMap = produtoRepository.findAllById(produtoIds).stream()
+                .collect(Collectors.toMap(Produto::getId, Function.identity()));
+
+        if (produtosMap.size() != produtoIds.size()) {
+             produtoIds.removeAll(produtosMap.keySet());
+             throw new ProdutoNaoEncontradoException(produtoIds.iterator().next());
+        }
+
+        List<Preco> precosList = precoRepository.findByProdutoInAndTipoPreco(produtosMap.values(), TipoPreco.VAREJO);
+        Map<Long, Preco> precosMap = precosList.stream()
+                .collect(Collectors.toMap(p -> p.getProduto().getId(), Function.identity()));
+
+        List<ItemVenda> itemVendas = new ArrayList<>();
+
+        for (ItemVendaRequestDTO itemDTO : itensDTO) {
+            Produto produto = produtosMap.get(itemDTO.getProdutoId());
+            Preco preco = precosMap.get(itemDTO.getProdutoId());
+
+            if (preco == null) {
+                throw new PrecoVarejoNaoDefinidoException(produto.getId());
+            }
+
+            BigDecimal unitPrice = preco.isPromocaoAtiva() && preco.getValorPromocional() != null
+                    ? preco.getValorPromocional()
+                    : preco.getValor();
+
+            BigDecimal itemTotalPrice = unitPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantidade()));
+
+            // Realiza a baixa efetiva no estoque e registra a movimentação de saída.
+            performStockReduction(produto, canalVenda, itemDTO.getQuantidade());
+
+            itemVendas.add(ItemVenda.builder()
+                    .produto(produto)
+                    .quantidade(itemDTO.getQuantidade())
+                    .precoUnitario(unitPrice)
+                    .precoTotal(itemTotalPrice)
+                    .build());
+        }
+        return itemVendas;
     }
 
     private void performStockReduction(Produto produto, CanalVenda canalVenda, int quantity) {
@@ -145,5 +187,33 @@ public class VendaServiceImpl implements VendaService {
                 .build();
         MovimentacaoEstoqueProduto movimentacaoVenda = MovimentacaoEstoqueProduto.from(movimentacaoDTO, produto);
         movimentacaoEstoqueProdutoRepository.save(movimentacaoVenda);
+    }
+
+    /**
+     * Realiza o estorno do estoque para uma venda cancelada ou em edição.
+     * Adiciona a quantidade dos itens de volta ao estoque e registra a movimentação de entrada.
+     */
+    private void performStockReversal(Venda venda) {
+        for (ItemVenda item : venda.getItens()) {
+            // 1. Registra movimentação de estorno para auditoria (AUMENTA O ESTOQUE FÍSICO)
+            // IMPORTANTE: Deve ser feito ANTES de ajustar o canal para garantir que o teto físico suba primeiro.
+            MovimentacaoEstoqueProdutoRequestDTO movimentacaoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
+                    .produtoId(item.getProduto().getId())
+                    .tipo(TipoMovimentacaoProduto.ENTRADA_ESTORNO.name())
+                    .quantidade(item.getQuantidade())
+                    .motivo(String.format("Estorno de venda #%d", venda.getId()))
+                    .build();
+            
+            MovimentacaoEstoqueProduto movimentacaoEstorno = MovimentacaoEstoqueProduto.from(movimentacaoDTO, item.getProduto());
+            movimentacaoEstoqueProdutoRepository.save(movimentacaoEstorno);
+
+            // 2. Estorna o estoque do canal (adiciona de volta, quantidade positiva)
+            AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
+                    .produtoId(item.getProduto().getId())
+                    .canalVendaId(venda.getCanalVenda().getId())
+                    .quantidade(item.getQuantidade())
+                    .build();
+            estoqueProdutoService.ajustarEstoque(ajusteDTO);
+        }
     }
 }

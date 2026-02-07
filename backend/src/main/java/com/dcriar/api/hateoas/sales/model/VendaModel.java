@@ -28,6 +28,9 @@ public class VendaModel extends RepresentationModel<VendaModel> {
     @Schema(description = "ID único da venda.", example = "1")
     private Long id;
 
+    @Schema(description = "ID do canal de venda.", example = "1")
+    private Long canalVendaId;
+
     @Schema(description = "Nome do canal onde a venda ocorreu.", example = "LOJA_FISICA")
     private String nomeCanalVenda;
 

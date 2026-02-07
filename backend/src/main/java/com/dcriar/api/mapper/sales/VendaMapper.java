@@ -26,6 +26,7 @@ public interface VendaMapper {
      * @return O DTO de resposta da venda, incluindo a lista de itens convertida.
      */
     @Mapping(source = "canalVenda.nome", target = "nomeCanalVenda")
+    @Mapping(source = "canalVenda.id", target = "canalVendaId")
     VendaResponseDTO toResponseDTO(Venda venda);
 
     /**

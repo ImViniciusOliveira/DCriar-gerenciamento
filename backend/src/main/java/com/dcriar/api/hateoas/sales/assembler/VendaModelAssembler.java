@@ -1,6 +1,7 @@
 package com.dcriar.api.hateoas.sales.assembler;
 
 import com.dcriar.api.controller.sales.VendaController;
+import com.dcriar.api.dto.request.sales.VendaRequestDTO;
 import com.dcriar.api.dto.response.sales.VendaResponseDTO;
 import com.dcriar.api.hateoas.sales.model.ItemVendaModel;
 import com.dcriar.api.hateoas.sales.model.VendaModel;
@@ -46,6 +47,9 @@ public class VendaModelAssembler extends RepresentationModelAssemblerSupport<Ven
      * Links adicionados:
      * <ul>
      *   <li>Auto (self)</li>
+     *   <li>Atualizar (update)</li>
+     *   <li>Deletar (delete)</li>
+     *   <li>Coleção (vendas)</li>
      * </ul>
      * @param dto DTO de resposta da venda
      * @return Modelo HATEOAS enriquecido
@@ -60,6 +64,7 @@ public class VendaModelAssembler extends RepresentationModelAssemblerSupport<Ven
         model.setDataAtualizacao(dto.getDataAtualizacao());
         model.setNomeCanalVenda(dto.getNomeCanalVenda());
         model.setValorTotal(dto.getValorTotal());
+        model.setCanalVendaId(dto.getCanalVendaId());
 
         if (dto.getItens() != null) {
             List<ItemVendaModel> itemModels = dto.getItens().stream()
@@ -70,12 +75,14 @@ public class VendaModelAssembler extends RepresentationModelAssemblerSupport<Ven
             model.setItens(Collections.emptyList());
         }
 
-        // Adiciona link self apenas se o ID existir (evita link quebrado para templates vazios)
+        // Adiciona links de ação apenas se o ID existir
         if (dto.getId() != null) {
             model.add(linkTo(methodOn(VendaController.class).findById(dto.getId())).withSelfRel());
+            model.add(linkTo(methodOn(VendaController.class).atualizarVenda(dto.getId(), new VendaRequestDTO())).withRel("update"));
+            model.add(linkTo(methodOn(VendaController.class).deletarVenda(dto.getId())).withRel("delete"));
         }
         
-        // Adiciona link para a coleção de vendas (útil para o frontend saber onde postar)
+        // Adiciona link para a coleção de vendas
         model.add(linkTo(methodOn(VendaController.class).findAll(null, null)).withRel("vendas"));
 
         return model;
