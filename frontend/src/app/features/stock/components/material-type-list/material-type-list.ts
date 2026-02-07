@@ -24,7 +24,7 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
   templateUrl: './material-type-list.html',
   styleUrls: ['./material-type-list.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [PaginationHandler, MaterialTypeService]
+  providers: [PaginationHandler]
 })
 export class MaterialTypeList extends BaseList<MaterialType> implements AfterViewInit {
   private readonly materialTypeService = inject(MaterialTypeService);
@@ -75,7 +75,7 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
   ngAfterViewInit(): void {
     this.tableColumns = [
       { key: 'nome', header: 'Nome', sortable: true, cellTemplate: this.nameTemplate },
-      { key: 'unidadeDeConsumo', header: 'Unidade', sortable: false, cellTemplate: this.unitTemplate },
+      { key: 'unidadeDescricao', header: 'Unidade', sortable: false, cellTemplate: this.unitTemplate },
       { key: 'actions', header: 'Ações', cellTemplate: this.actionsTemplate }
     ];
     this.cdr.detectChanges();

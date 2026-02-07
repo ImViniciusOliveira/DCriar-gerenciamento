@@ -8,6 +8,7 @@ export interface MaterialType {
   id: number;
   nome: string;
   unidadeDeConsumo: string;
+  unidadeDescricao?: string;
   _links?: Hateoas['_links'];
 }
 
