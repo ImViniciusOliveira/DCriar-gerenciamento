@@ -26,11 +26,13 @@
       <div formArrayName="itens">
         @for (itemGroup of itemsControls; track $index) {
           <div class="item-row" [formGroup]="itemGroup">
-            <!-- Componente de Busca de Produto -->
-            <div class="product-field">
+            <!-- Coluna do Produto -->
+            <div class="product-column">
               <app-product-search
                 [searchControl]="getProductControl($index)"
                 [channelId]="form.get('canalVendaId')?.value"
+                [customHint]="itemGroup.get('estoqueDisponivel')?.value !== null ? 'Estoque: ' + itemGroup.get('estoqueDisponivel')?.value : null"
+                [customError]="itemGroup.get('quantidade')?.hasError('stockExceeded') ? 'Estoque insuficiente' : null"
                 (productSelected)="onProductSelected($event, $index)">
               </app-product-search>
             </div>
@@ -39,17 +41,12 @@
             <mat-form-field appearance="outline" class="qty-field">
               <mat-label>Qtd</mat-label>
               <input matInput type="number" formControlName="quantidade" min="1" [errorStateMatcher]="matcher">
-              <!-- Mensagens de Erro -->
+              <!-- Mensagens de Erro (Apenas validações básicas) -->
               @if (itemGroup.get('quantidade')?.hasError('required')) {
                 <mat-error>Obrigatório</mat-error>
               }
               @if (itemGroup.get('quantidade')?.hasError('min')) {
                 <mat-error>Mínimo 1</mat-error>
-              }
-              @if (itemGroup.get('quantidade')?.hasError('stockExceeded')) {
-                <mat-error>
-                  Estoque insuficiente (Total: {{ itemGroup.get('quantidade')?.getError('stockExceeded').total }} / Disp: {{ itemGroup.get('quantidade')?.getError('stockExceeded').stock }})
-                </mat-error>
               }
             </mat-form-field>
 
@@ -67,7 +64,7 @@
         }
       </div>
 
-      <button mat-stroked-button type="button" (click)="addItem()" [disabled]="!form.get('canalVendaId')?.value">
+      <button mat-stroked-button type="button" class="add-button" (click)="addItem()" [disabled]="!form.get('canalVendaId')?.value">
         <mat-icon>add_shopping_cart</mat-icon>
         Adicionar Produto
       </button>

@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, filter, switchMap, shareReplay, take, map, combineLatest, of, catchError, tap } from 'rxjs';
+import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import { Observable, filter, switchMap, shareReplay, take, map, combineLatest, of, catchError, tap, throwError } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
@@ -28,7 +28,7 @@ export class SalesService {
   }>({
     page: 0,
     size: 10,
-    sort: 'dataCriacao,desc'
+    sort: 'dataCriacao,desc' // Ordenação padrão por data decrescente
   }, {
     equal: (a, b) => a.page === b.page && a.size === b.size && a.sort === b.sort
   });
@@ -122,9 +122,17 @@ export class SalesService {
 
   /**
    * Remove uma venda.
+   * Trata o erro 404 (Not Found) como sucesso, pois o objetivo é que o recurso não exista.
    */
   delete(url: string): Observable<void> {
     return this.http.delete<void>(url).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          // Se já não existe, consideramos sucesso.
+          return of(undefined);
+        }
+        return throwError(() => error);
+      }),
       tap(() => this.refreshTrigger.set(undefined))
     );
   }

@@ -41,6 +41,12 @@ export class ProductSearch implements OnInit {
   /** ID do canal de venda para filtrar estoque (opcional). */
   channelId = input<number>();
 
+  /** Mensagem de erro customizada para exibir no campo (ex: "Estoque insuficiente"). */
+  customError = input<string | null>(null);
+
+  /** Mensagem de dica customizada para exibir no campo (ex: "Estoque: 10"). */
+  customHint = input<string | null>(null);
+
   /** Evento emitido quando um produto é selecionado. */
   productSelected = output<Product>();
 

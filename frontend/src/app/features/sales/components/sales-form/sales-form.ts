@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators, ValidationErrors, AbstractControl } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -106,12 +106,16 @@ export class SalesForm implements OnInit {
   private readonly channelService = inject(ChannelService);
   private readonly productService = inject(ProductService);
   private readonly entityDialog = inject(EntityDialogService);
+  private readonly cdr = inject(ChangeDetectorRef);
   public readonly data: SalesFormData = inject(MAT_DIALOG_DATA);
 
   form: FormGroup;
   isSaving = signal(false);
   isEditMode = signal(false);
   matcher = new InstantErrorStateMatcher();
+
+  // Mapa para armazenar as quantidades originais de cada produto na venda (para edição)
+  private originalQuantities = new Map<number, number>();
 
   // Carrega os canais reais da API usando o novo serviço
   channels = toSignal(this.channelService.getAllChannels(), { initialValue: [] });
@@ -156,17 +160,17 @@ export class SalesForm implements OnInit {
   }
 
   private async initializeForm(sale: Sale): Promise<void> {
-    // Define o valor sem emitir evento para não disparar o valueChanges
-    // Mas como usamos 'dirty' check no valueChanges, o patchValue normal não marcaria como dirty.
-    // O problema é que patchValue emite evento por padrão.
-    // Vamos usar emitEvent: false para garantir.
     this.form.patchValue({
       canalVendaId: sale.canalVendaId
     }, { emitEvent: false });
 
-    // Preenche os itens
+    // Preenche os itens e popula o mapa de quantidades originais
     if (sale.itens && sale.itens.length > 0) {
       for (const item of sale.itens) {
+        // Armazena a quantidade original deste produto
+        const currentOriginal = this.originalQuantities.get(item.produtoId) || 0;
+        this.originalQuantities.set(item.produtoId, currentOriginal + item.quantidade);
+
         const itemGroup = this.createItemControl();
 
         itemGroup.patchValue({
@@ -185,11 +189,17 @@ export class SalesForm implements OnInit {
   private loadStockForItem(productId: number, channelId: number, group: FormGroup): void {
      const sku = group.get('produtoNome')?.value?.sku;
      if (sku) {
-        this.productService.searchProducts(sku, channelId).subscribe(products => {
+        // Passa includeZeroStock = true para garantir que produtos esgotados sejam encontrados
+        this.productService.searchProducts(sku, channelId, true).subscribe(products => {
            const match = products.find(p => p.id === productId);
            if (match && match.estoqueDisponivel !== undefined) {
-              group.patchValue({ estoqueDisponivel: match.estoqueDisponivel });
+              // Soma a quantidade original ao estoque disponível vindo do backend
+              const originalQty = this.originalQuantities.get(productId) || 0;
+              const adjustedStock = match.estoqueDisponivel + originalQty;
+
+              group.patchValue({ estoqueDisponivel: adjustedStock });
               this.items.updateValueAndValidity();
+              this.cdr.markForCheck();
            }
         });
      }
@@ -236,10 +246,14 @@ export class SalesForm implements OnInit {
   onProductSelected(product: Product, index: number): void {
     const itemGroup = this.items.at(index);
     if (itemGroup) {
+      // Soma a quantidade original ao estoque disponível vindo do backend
+      const originalQty = this.originalQuantities.get(product.id) || 0;
+      const adjustedStock = (product.estoqueDisponivel || 0) + originalQty;
+
       itemGroup.patchValue({
         produtoId: product.id,
         produtoNome: product,
-        estoqueDisponivel: product.estoqueDisponivel
+        estoqueDisponivel: adjustedStock
       });
       // Dispara validação do FormArray após selecionar produto
       this.items.updateValueAndValidity();

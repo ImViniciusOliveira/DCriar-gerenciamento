@@ -38,3 +38,15 @@
     }
   }
 }
+
+// Estilo para o texto de erro dentro do mat-hint
+.error-text {
+  color: var(--mat-sys-error);
+  font-weight: 500;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

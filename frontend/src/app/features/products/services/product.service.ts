@@ -101,8 +101,9 @@ export class ProductService {
    *
    * @param term Termo de busca (nome ou SKU)
    * @param channelId ID do canal de venda para filtrar estoque (opcional)
+   * @param includeZeroStock Se true, inclui produtos com saldo zero na busca (padrão: true)
    */
-  searchProducts(term: string, channelId?: number): Observable<Partial<Product>[]> {
+  searchProducts(term: string, channelId?: number, includeZeroStock = true): Observable<Partial<Product>[]> {
     return this.endpoints$.pipe(
       take(1),
       switchMap(endpoints => {
@@ -130,7 +131,7 @@ export class ProductService {
               const params = new HttpParams()
                 .set('canalId', channelId.toString())
                 .set('nomeProduto', term)
-                .set('apenasComSaldo', 'true')
+                .set('apenasComSaldo', (!includeZeroStock).toString()) // Inverte a lógica: se incluir zero, apenasComSaldo = false
                 .set('page', '0')
                 .set('size', '10');
 

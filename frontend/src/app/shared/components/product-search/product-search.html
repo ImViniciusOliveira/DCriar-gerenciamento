@@ -14,6 +14,16 @@
     <mat-icon matSuffix>search</mat-icon>
   }
 
+  <!-- Exibe o hint com estoque e, se houver, o erro ao lado -->
+  @if (customHint()) {
+    <mat-hint>
+      <span>{{ customHint() }}</span>
+      @if (customError()) {
+        <span class="error-text"> - {{ customError() }}</span>
+      }
+    </mat-hint>
+  }
+
   <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="onOptionSelected($event)">
     @for (product of filteredProducts(); track product.id) {
       <mat-option [value]="product">
