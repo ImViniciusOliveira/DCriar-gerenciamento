@@ -24,16 +24,18 @@
       <legend>Itens da Venda</legend>
 
       <div formArrayName="itens">
-        @for (itemGroup of itemsControls; track $index) {
+        <!-- Usamos track itemGroup para garantir que o Angular não reutilize componentes incorretamente ao remover itens -->
+        @for (itemGroup of itemsControls; track itemGroup; let i = $index) {
           <div class="item-row" [formGroup]="itemGroup">
             <!-- Coluna do Produto -->
             <div class="product-column">
               <app-product-search
-                [searchControl]="getProductControl($index)"
+                [searchControl]="getProductControl(i)"
                 [channelId]="form.get('canalVendaId')?.value"
+                [stockAdjustments]="originalQuantities"
                 [customHint]="itemGroup.get('estoqueDisponivel')?.value !== null ? 'Estoque: ' + itemGroup.get('estoqueDisponivel')?.value : null"
                 [customError]="itemGroup.get('quantidade')?.hasError('stockExceeded') ? 'Estoque insuficiente' : null"
-                (productSelected)="onProductSelected($event, $index)">
+                (productSelected)="onProductSelected($event, i)">
               </app-product-search>
             </div>
 
@@ -51,7 +53,7 @@
             </mat-form-field>
 
             <!-- Botão Remover -->
-            <button mat-icon-button color="warn" type="button" (click)="removeItem($index)" title="Remover item">
+            <button mat-icon-button color="warn" type="button" (click)="removeItem(i)" title="Remover item">
               <mat-icon>delete</mat-icon>
             </button>
           </div>

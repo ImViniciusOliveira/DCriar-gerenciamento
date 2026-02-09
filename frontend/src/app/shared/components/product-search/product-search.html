@@ -33,9 +33,10 @@
             <small class="product-sku">SKU: {{ product.sku }}</small>
 
             @if (channelId(); as cid) {
-              @if (getStockForChannel(product); as qtd) {
-                <span class="stock-badge" [class.low-stock]="qtd < 10">
-                  Estoque: {{ qtd }}
+              <!-- Verifica explicitamente se não é undefined para exibir estoque 0 -->
+              @if (getStockForChannel(product) !== undefined) {
+                <span class="stock-badge" [class.low-stock]="(getStockForChannel(product) || 0) < 10">
+                  Estoque: {{ getStockForChannel(product) }}
                 </span>
               }
             }

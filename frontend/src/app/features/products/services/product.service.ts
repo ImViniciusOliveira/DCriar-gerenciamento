@@ -101,9 +101,9 @@ export class ProductService {
    *
    * @param term Termo de busca (nome ou SKU)
    * @param channelId ID do canal de venda para filtrar estoque (opcional)
-   * @param includeZeroStock Se true, inclui produtos com saldo zero na busca (padrão: true)
+   * @param includeZeroStock Se true, inclui produtos com saldo zero na busca (padrão: false)
    */
-  searchProducts(term: string, channelId?: number, includeZeroStock = true): Observable<Partial<Product>[]> {
+  searchProducts(term: string, channelId?: number, includeZeroStock = false): Observable<Partial<Product>[]> {
     return this.endpoints$.pipe(
       take(1),
       switchMap(endpoints => {

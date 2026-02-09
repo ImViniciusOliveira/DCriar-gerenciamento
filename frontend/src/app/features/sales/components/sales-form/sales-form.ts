@@ -114,8 +114,8 @@ export class SalesForm implements OnInit {
   isEditMode = signal(false);
   matcher = new InstantErrorStateMatcher();
 
-  // Mapa para armazenar as quantidades originais de cada produto na venda (para edição)
-  private originalQuantities = new Map<number, number>();
+  // Mapa público para ser acessado pelo template
+  public originalQuantities = new Map<number, number>();
 
   // Carrega os canais reais da API usando o novo serviço
   channels = toSignal(this.channelService.getAllChannels(), { initialValue: [] });
@@ -139,15 +139,12 @@ export class SalesForm implements OnInit {
     this.form.get('canalVendaId')?.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
-        // Só limpa se o formulário estiver marcado como dirty (interação do usuário)
-        // Isso evita limpar ao carregar dados iniciais
         if (this.form.get('canalVendaId')?.dirty) {
            this.items.clear();
            if (this.form.get('canalVendaId')?.valid) {
              this.addItem();
            }
         } else if (!this.isEditMode() && this.items.length === 0 && this.form.get('canalVendaId')?.value) {
-             // Adiciona item inicial na criação se não houver itens
              this.addItem();
         }
       });
@@ -179,6 +176,9 @@ export class SalesForm implements OnInit {
           quantidade: item.quantidade
         });
 
+        // Desabilita a troca de produto para itens existentes
+        itemGroup.get('produtoNome')?.disable();
+
         this.items.push(itemGroup);
 
         this.loadStockForItem(item.produtoId, sale.canalVendaId, itemGroup);
@@ -189,11 +189,11 @@ export class SalesForm implements OnInit {
   private loadStockForItem(productId: number, channelId: number, group: FormGroup): void {
      const sku = group.get('produtoNome')?.value?.sku;
      if (sku) {
-        // Passa includeZeroStock = true para garantir que produtos esgotados sejam encontrados
+        // Busca com includeZeroStock=true para garantir que encontre o produto
         this.productService.searchProducts(sku, channelId, true).subscribe(products => {
            const match = products.find(p => p.id === productId);
            if (match && match.estoqueDisponivel !== undefined) {
-              // Soma a quantidade original ao estoque disponível vindo do backend
+              // Aqui somamos manualmente porque estamos pegando o dado cru do serviço
               const originalQty = this.originalQuantities.get(productId) || 0;
               const adjustedStock = match.estoqueDisponivel + originalQty;
 
@@ -246,16 +246,14 @@ export class SalesForm implements OnInit {
   onProductSelected(product: Product, index: number): void {
     const itemGroup = this.items.at(index);
     if (itemGroup) {
-      // Soma a quantidade original ao estoque disponível vindo do backend
-      const originalQty = this.originalQuantities.get(product.id) || 0;
-      const adjustedStock = (product.estoqueDisponivel || 0) + originalQty;
-
+      // O produto vindo do ProductSearch já tem o estoque ajustado (Físico + Original)
+      // graças à lógica de 'stockAdjustments' no componente filho.
+      // Portanto, usamos o valor diretamente.
       itemGroup.patchValue({
         produtoId: product.id,
         produtoNome: product,
-        estoqueDisponivel: adjustedStock
+        estoqueDisponivel: product.estoqueDisponivel
       });
-      // Dispara validação do FormArray após selecionar produto
       this.items.updateValueAndValidity();
     }
   }
