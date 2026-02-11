@@ -1,0 +1,65 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="onSave()">
+  <mat-dialog-content>
+    <div class="form-grid">
+      <!-- Produto -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Produto</mat-label>
+        <input matInput formControlName="produtoNome">
+      </mat-form-field>
+
+      <!-- Quantidade -->
+      <mat-form-field appearance="outline">
+        <mat-label>Quantidade Produzida</mat-label>
+        <input matInput formControlName="quantidadeProduzida">
+      </mat-form-field>
+
+      <!-- Modo -->
+      <mat-form-field appearance="outline">
+        <mat-label>Modo de Cálculo</mat-label>
+        <input matInput formControlName="modoCalculo">
+      </mat-form-field>
+
+      <!-- Dimensões (Apenas se houver valor) -->
+      @if (form.get('larguraFinalCm')?.value) {
+        <mat-form-field appearance="outline">
+          <mat-label>Largura (cm)</mat-label>
+          <input matInput formControlName="larguraFinalCm">
+        </mat-form-field>
+      }
+
+      @if (form.get('comprimentoFinalCm')?.value) {
+        <mat-form-field appearance="outline">
+          <mat-label>Comprimento (cm)</mat-label>
+          <input matInput formControlName="comprimentoFinalCm">
+        </mat-form-field>
+      }
+
+      <!-- Data -->
+      <mat-form-field appearance="outline">
+        <mat-label>Data de Criação</mat-label>
+        <input matInput formControlName="dataCriacao">
+      </mat-form-field>
+
+      <!-- Motivo -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Motivo</mat-label>
+        <textarea matInput formControlName="motivo" rows="2" class="no-resize"></textarea>
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="onCancel()">Fechar</button>
+    @if (!isViewMode()) {
+      <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isSaving()">
+        @if (isSaving()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          Salvar
+        }
+      </button>
+    }
+  </mat-dialog-actions>
+</form>

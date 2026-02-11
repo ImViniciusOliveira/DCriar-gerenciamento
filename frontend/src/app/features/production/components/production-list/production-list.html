@@ -1,0 +1,53 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-title">
+      <h2>Ordens de Produção</h2>
+      <p>Gerencie a fabricação de produtos</p>
+    </div>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="onCreate()">
+        <mat-icon>add</mat-icon>
+        Nova Produção
+      </button>
+    </div>
+  </div>
+
+  <app-base-table
+    [items]="items()"
+    [columns]="tableColumns"
+    [totalElements]="pagination.totalElements()"
+    [pageSize]="pagination.pageSize()"
+    [pageIndex]="pagination.pageIndex()"
+    (pageChange)="onPageChange($event)"
+    (sortChange)="onSortChange($event)">
+  </app-base-table>
+</div>
+
+<!-- Templates de Células -->
+
+<ng-template #produtoTemplate let-order>
+  <div class="product-cell">
+    <span class="product-name">{{ order.nomeProduto }}</span>
+    @if (order.motivo) {
+      <small class="order-reason">{{ order.motivo }}</small>
+    }
+  </div>
+</ng-template>
+
+<ng-template #quantidadeTemplate let-order>
+  <span class="quantity-badge">{{ order.quantidadeProduzida }} un</span>
+</ng-template>
+
+<ng-template #dataTemplate let-order>
+  {{ order.dataCriacao | date:'dd/MM/yyyy HH:mm' }}
+</ng-template>
+
+<ng-template #acoesTemplate let-order>
+  <button mat-icon-button color="primary" (click)="onView(order)" title="Ver Detalhes">
+    <mat-icon>visibility</mat-icon>
+  </button>
+
+  <button mat-icon-button color="warn" (click)="onDelete(order)" title="Excluir">
+    <mat-icon>delete</mat-icon>
+  </button>
+</ng-template>

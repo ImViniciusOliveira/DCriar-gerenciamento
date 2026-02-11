@@ -35,8 +35,8 @@ export const routes: Routes = [
     title: 'D-Criar | Ordens de Produção',
     loadComponent: () =>
       import(
-        './features/production/components/production-order-form/production-order-form'
-      ).then((m) => m.ProductionOrderForm),
+        './features/production/components/production-list/production-list'
+      ).then((m) => m.ProductionList),
   },
   {
     path: 'lotes-materia-prima',

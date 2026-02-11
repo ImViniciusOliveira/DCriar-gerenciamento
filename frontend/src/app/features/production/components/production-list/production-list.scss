@@ -1,0 +1,59 @@
+@use '../../../../shared/styles/page-layout';
+
+// Estilos específicos para a lista de produção
+
+.product-cell {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+
+  .product-name {
+    font-weight: 500;
+    color: var(--text-color);
+  }
+
+  .order-reason {
+    font-size: 0.85rem;
+    color: var(--text-muted-color);
+  }
+}
+
+.quantity-badge {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  &.auto {
+    background-color: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  }
+
+  &.manual {
+    background-color: var(--mat-sys-tertiary-container);
+    color: var(--mat-sys-on-tertiary-container);
+  }
+
+  &.direct {
+    background-color: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+  }
+}
+
+.delete-item {
+  mat-icon {
+    color: var(--danger-color);
+  }
+  span {
+    color: var(--danger-color);
+  }
+}
