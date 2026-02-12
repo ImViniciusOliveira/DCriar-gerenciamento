@@ -96,8 +96,7 @@
       </app-material-type-search>
 
       @if (productForm.get('dimensoes')?.enabled) {
-        <h3 class="dimensions-title mat-subheading-2">Dimensões Unitárias</h3>
-        <div class="form-grid two-columns" formGroupName="dimensoes">
+        <div class="form-grid two-columns dimensions-grid" formGroupName="dimensoes">
           <mat-form-field appearance="outline">
             <mat-label>Largura (cm)</mat-label>
             <input matInput type="number" formControlName="larguraCm" required>
@@ -110,8 +109,7 @@
       }
 
       @if (productForm.get('especificacoes')?.enabled) {
-        <h3 class="dimensions-title mat-subheading-2">Detalhes de Consumo</h3>
-        <div class="form-grid two-columns">
+        <div class="row-group">
           <mat-form-field class="full-width" appearance="outline">
             <mat-label>Código do Fabricante</mat-label>
             <input matInput formControlName="codigoFabricante">
@@ -119,7 +117,7 @@
         </div>
         <div formArrayName="especificacoes">
           @for (specGroup of specificationsControls; track $index) {
-            <div class="form-grid two-columns spec-row" [formGroup]="specGroup">
+            <div class="spec-row" [formGroup]="specGroup">
               <mat-form-field appearance="outline">
                 <mat-label>Característica</mat-label>
                 <input matInput formControlName="chave">

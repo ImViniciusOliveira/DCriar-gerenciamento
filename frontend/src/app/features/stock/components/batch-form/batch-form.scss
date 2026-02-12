@@ -1,19 +1,61 @@
 @use '../../../../shared/styles/form-layout' as fl;
 
-.dynamic-attributes, .specific-attributes {
-  @include fl.fieldset-full-height;
-  margin-top: 20px;
+// Remove a margem interna do componente de busca que estava causando o espaçamento extra.
+:host ::ng-deep app-material-type-search .filters-container {
+  margin-bottom: 0;
+}
 
-  .add-button {
-    margin-top: 16px;
-    width: 100%;
+// Layout principal em Flexbox (coluna)
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; // Espaçamento vertical consistente entre todos os blocos
+}
+
+// Linha com múltiplos campos
+.form-row {
+  display: flex;
+  gap: 16px; // Espaçamento horizontal entre os campos
+
+  // Faz com que os campos na linha dividam o espaço igualmente
+  mat-form-field {
+    flex: 1;
   }
 }
 
+// Garante que os campos de linha inteira ocupem todo o espaço
+.full-width {
+  width: 100%;
+}
+
+.dynamic-attributes {
+  @include fl.fieldset-full-height;
+  display: flex;
+  flex-direction: column;
+  // Gap removido para controle manual
+}
+
 .attribute-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 10px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start; // Alinha os itens pelo topo
+  margin-bottom: 16px;
+
+  mat-form-field {
+    flex: 1;
+  }
+
+  button {
+    flex: 0 0 auto;
+    margin-top: 8px; // Adiciona margem para alinhar o botão visualmente com o centro dos inputs
+  }
+}
+
+// Estilo para o botão "Adicionar Atributo"
+.dynamic-attributes .action-button {
+  width: 100%;
+  border-style: dashed;
+  color: var(--mat-sys-on-surface-variant);
+  margin-top: 0; // Removido para evitar espaço duplo no topo quando a lista está vazia
+  margin-bottom: 0;
 }

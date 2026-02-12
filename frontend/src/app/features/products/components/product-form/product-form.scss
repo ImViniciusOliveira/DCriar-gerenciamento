@@ -10,9 +10,45 @@
   @include fl.image-container;
 }
 
-.delete-photo-btn {
-  @include fl.delete-photo-btn;
+// Estilo específico e limpo para o botão de deletar
+.image-preview-container .delete-photo-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  left: auto;
+
+  // Força o tamanho quadrado e remove estilos padrão
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  min-width: 0;
+
+  // Esconde o indicador de foco que causa o problema de tamanho
+  .mat-focus-indicator {
+    display: none;
+  }
+
+  // Centraliza o ícone
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  // Estilos visuais
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+
+  mat-icon {
+    color: white;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
 }
+
 
 .image-upload-section {
   @include fl.image-upload-section;
@@ -53,12 +89,34 @@
   }
 
   .description-field {
-    flex: 1;
     min-width: 300px;
+  }
+
+  // Garante que o campo ocupe 100% da largura da linha
+  .full-width {
+    flex-basis: 100%;
+  }
+}
+
+// Regra para layout da linha de descrição e foto
+.description-photo-row {
+  align-items: flex-start; // Alinha os itens pelo topo
+
+  .image-upload-section {
+    order: 1; // Foto à esquerda
+    flex: 0 0 auto;
+    margin: 0; // Remove a margem que causava o recuo ("para dentro")
+  }
+
+  .description-field {
+    order: 2; // Descrição à direita
+    flex: 1;
 
     textarea {
-      height: 270px !important;
-      min-height: 270px !important;
+      // Altura fixa para igualar a altura da seção da foto de forma estável.
+      // A altura da foto é ~280px. O textarea precisa de ~248px para compensar o padding do mat-form-field.
+      height: 248px !important;
+      resize: none;
     }
   }
 }
@@ -67,10 +125,14 @@ fieldset.photo-fieldset {
   @include fl.fieldset-full-height;
 }
 
-.dimensions-title {
-    margin-top: 16px;
-    margin-bottom: 8px;
-    color: var(--mat-sys-on-surface-variant);
+.dimensions-grid {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+
+  mat-form-field {
+    flex: 1;
+  }
 }
 
 .mat-mdc-dialog-actions {
@@ -82,8 +144,18 @@ fieldset.photo-fieldset {
 }
 
 .spec-row {
-  grid-template-columns: 1fr 1fr auto;
+  display: flex; // Usa flexbox para alinhar os campos
+  gap: 16px; // Espaçamento entre os campos
   align-items: center;
+  margin-bottom: 16px; // Espaço abaixo de cada linha de especificação
+
+  mat-form-field {
+    flex: 1; // Faz com que os campos de Característica e Descrição cresçam igualmente
+  }
+
+  button {
+    flex: 0 0 auto; // Botão de remover não cresce
+  }
 }
 
 // --- Layout de Detalhes ---
