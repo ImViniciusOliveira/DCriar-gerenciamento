@@ -4,20 +4,20 @@ import com.dcriar.api.controller.enums.StockEnumController;
 import com.dcriar.api.controller.product.EstoqueProdutoController;
 import com.dcriar.api.controller.product.ProdutoController;
 import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
+import com.dcriar.api.dto.response.product.ProdutoDeConsumoDiretoResponseDTO;
+import com.dcriar.api.dto.response.product.ProdutoDeCorteResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
+import com.dcriar.api.hateoas.product.model.ProdutoDeConsumoDiretoModel;
+import com.dcriar.api.hateoas.product.model.ProdutoDeCorteModel;
 import com.dcriar.api.hateoas.product.model.ProdutoModel;
 import com.dcriar.api.mapper.product.ProdutoMapper;
-import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.Link;
+import org.springframework.hateoas.*;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.web.util.UriComponentsBuilder;
-
-import java.net.URI;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -39,12 +39,15 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
     @Override
     @NonNull
     public ProdutoModel toModel(@NonNull ProdutoResponseDTO dto) {
-        // O mapper agora lida com o polimorfismo, convertendo para a subclasse de Model correta.
-        ProdutoModel model = mapper.toModel(dto);
+        // Instancia o tipo de Model correto baseado no tipo do DTO
+        ProdutoModel model = instantiateCorrectModel(dto);
+
+        // Delega a população dos campos para o Mapper usando o padrão de atualização
+        mapper.updateModelFromDto(dto, model);
 
         // Links de descoberta para recursos relacionados, necessários para preencher formulários no frontend.
         model.add(linkTo(ProdutoController.class).withRel("produtos"));
-        model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll(null, null, null, null)).withRel("buscar-tipos-materia-prima"));
+        model.add(linkTo(TipoMateriaPrimaController.class).withRel("buscar-tipos-materia-prima"));
         model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida()).withRel("unidades-de-medida"));
 
         // Adiciona links específicos do recurso apenas se o produto já existir (tiver um ID)
@@ -71,19 +74,25 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
         return model;
     }
 
+    private ProdutoModel instantiateCorrectModel(ProdutoResponseDTO dto) {
+        if (dto instanceof ProdutoDeCorteResponseDTO) {
+            return new ProdutoDeCorteModel();
+        } else if (dto instanceof ProdutoDeConsumoDiretoResponseDTO) {
+            return new ProdutoDeConsumoDiretoModel();
+        }
+        throw new IllegalArgumentException("Tipo de DTO de produto não suportado pelo Assembler: " + dto.getClass().getName());
+    }
+
     @Override
     @NonNull
     public CollectionModel<ProdutoModel> toCollectionModel(@NonNull Iterable<? extends ProdutoResponseDTO> dtos) {
         CollectionModel<ProdutoModel> collectionModel = super.toCollectionModel(dtos);
         collectionModel.add(linkTo(methodOn(ProdutoController.class).getNewProductTemplate()).withRel("novo-produto"));
 
-        URI uri = UriComponentsBuilder.fromUri(linkTo(methodOn(EstoqueProdutoController.class).listarEstoquesPorListaDeProdutos(null)).toUri())
-                .replaceQuery(null)
-                .queryParam("produtoIds", "{ids}")
-                .build(true)
-                .toUri();
-
-        collectionModel.add(Link.of(uri.toString(), "estoques-por-produtos"));
+        // Padrão ideal para links com template
+        Link baseLink = linkTo(EstoqueProdutoController.class).withSelfRel();
+        UriTemplate template = UriTemplate.of(baseLink.getHref()).with("produtoIds", TemplateVariable.VariableType.REQUEST_PARAM);
+        collectionModel.add(Link.of(template, "estoques-por-produtos"));
 
         return collectionModel;
     }

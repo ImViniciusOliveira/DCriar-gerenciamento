@@ -12,6 +12,7 @@ import com.dcriar.domain.product.entity.ProdutoDeCorte;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
 import org.springframework.beans.BeanUtils;
 
 /**
@@ -54,24 +55,23 @@ public interface ProdutoMapper {
     ProdutoDeConsumoDiretoResponseDTO toConsumoDiretoResponseDTO(ProdutoDeConsumoDireto produto);
 
     /**
-     * Converte um DTO de resposta {@link ProdutoResponseDTO} para o modelo HATEOAS apropriado.
+     * Atualiza um modelo HATEOAS a partir de um DTO de resposta, lidando com polimorfismo.
      * <p>
-     * Devido à incompatibilidade entre o {@code @SuperBuilder} do Lombok e a classe {@link org.springframework.hateoas.RepresentationModel},
-     * a instanciação e o mapeamento são feitos manualmente usando {@link BeanUtils#copyProperties(Object, Object)}.
+     * Usa @MappingTarget para evitar a criação de uma nova instância, quebrando dependências circulares.
+     * A cópia das propriedades é feita via {@link BeanUtils#copyProperties(Object, Object)} para
+     * compatibilizar com a hierarquia de classes dos modelos.
      *
-     * @param dto O DTO de resposta a ser convertido.
-     * @return O modelo HATEOAS correspondente ({@link ProdutoDeCorteModel} ou {@link ProdutoDeConsumoDiretoModel}).
+     * @param dto O DTO de origem.
+     * @param model O Modelo HATEOAS de destino a ser atualizado.
      */
-    default ProdutoModel toModel(ProdutoResponseDTO dto) {
-        if (dto instanceof ProdutoDeCorteResponseDTO corteDto) {
-            ProdutoDeCorteModel model = new ProdutoDeCorteModel();
-            BeanUtils.copyProperties(corteDto, model);
-            return model;
-        } else if (dto instanceof ProdutoDeConsumoDiretoResponseDTO consumoDto) {
-            ProdutoDeConsumoDiretoModel model = new ProdutoDeConsumoDiretoModel();
-            BeanUtils.copyProperties(consumoDto, model);
-            return model;
+    default void updateModelFromDto(ProdutoResponseDTO dto, @MappingTarget ProdutoModel model) {
+        if (dto instanceof ProdutoDeCorteResponseDTO && model instanceof ProdutoDeCorteModel) {
+            BeanUtils.copyProperties(dto, model);
+        } else if (dto instanceof ProdutoDeConsumoDiretoResponseDTO && model instanceof ProdutoDeConsumoDiretoModel) {
+            BeanUtils.copyProperties(dto, model);
+        } else {
+            // Fallback para o caso geral ou se os tipos não corresponderem exatamente
+            BeanUtils.copyProperties(dto, model);
         }
-        throw new IllegalArgumentException("Tipo de DTO de produto desconhecido: " + dto.getClass().getName());
     }
 }

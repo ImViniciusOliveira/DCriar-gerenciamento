@@ -5,7 +5,7 @@ import com.dcriar.api.dto.request.sales.VendaRequestDTO;
 import com.dcriar.api.dto.response.sales.VendaResponseDTO;
 import com.dcriar.api.hateoas.sales.model.ItemVendaModel;
 import com.dcriar.api.hateoas.sales.model.VendaModel;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.dcriar.api.mapper.sales.VendaMapper;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -27,16 +27,18 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @Component
 public class VendaModelAssembler extends RepresentationModelAssemblerSupport<VendaResponseDTO, VendaModel> {
 
+    private final VendaMapper mapper;
     private final ItemVendaModelAssembler itemVendaModelAssembler;
 
     /**
      * Construtor que injeta as dependências necessárias e inicializa a superclasse corretamente.
      *
-     * @param itemVendaModelAssembler O assembler para os itens da venda, injetado pelo Spring.
+     * @param mapper O mapper para converter os dados do DTO para o Model.
+     * @param itemVendaModelAssembler O assembler para os itens da venda.
      */
-    @Autowired
-    public VendaModelAssembler(ItemVendaModelAssembler itemVendaModelAssembler) {
+    public VendaModelAssembler(VendaMapper mapper, ItemVendaModelAssembler itemVendaModelAssembler) {
         super(VendaController.class, VendaModel.class);
+        this.mapper = mapper;
         this.itemVendaModelAssembler = itemVendaModelAssembler;
     }
 
@@ -58,14 +60,11 @@ public class VendaModelAssembler extends RepresentationModelAssemblerSupport<Ven
     @NonNull
     public VendaModel toModel(@NonNull VendaResponseDTO dto) {
         VendaModel model = instantiateModel(dto);
+        
+        // Delega a população dos campos para o Mapper
+        mapper.updateModelFromDto(dto, model);
 
-        model.setId(dto.getId());
-        model.setDataCriacao(dto.getDataCriacao());
-        model.setDataAtualizacao(dto.getDataAtualizacao());
-        model.setNomeCanalVenda(dto.getNomeCanalVenda());
-        model.setValorTotal(dto.getValorTotal());
-        model.setCanalVendaId(dto.getCanalVendaId());
-
+        // A lógica de conversão dos itens aninhados permanece aqui, pois envolve outro assembler
         if (dto.getItens() != null) {
             List<ItemVendaModel> itemModels = dto.getItens().stream()
                     .map(itemVendaModelAssembler::toModel)
@@ -83,7 +82,7 @@ public class VendaModelAssembler extends RepresentationModelAssemblerSupport<Ven
         }
         
         // Adiciona link para a coleção de vendas
-        model.add(linkTo(methodOn(VendaController.class).findAll(null, null)).withRel("vendas"));
+        model.add(linkTo(VendaController.class).withRel("vendas"));
 
         return model;
     }

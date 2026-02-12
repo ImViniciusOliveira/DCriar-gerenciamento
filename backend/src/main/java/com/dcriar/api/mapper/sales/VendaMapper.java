@@ -2,11 +2,13 @@ package com.dcriar.api.mapper.sales;
 
 import com.dcriar.api.dto.response.sales.ItemVendaResponseDTO;
 import com.dcriar.api.dto.response.sales.VendaResponseDTO;
+import com.dcriar.api.hateoas.sales.model.VendaModel;
 import com.dcriar.domain.sales.entity.ItemVenda;
 import com.dcriar.domain.sales.entity.Venda;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
 
 /**
  * Interface MapStruct para mapear as entidades de domínio {@link Venda} e {@link ItemVenda}
@@ -41,4 +43,13 @@ public interface VendaMapper {
     @Mapping(source = "produto.sku", target = "produtoSku")
     @Mapping(source = "produto.nome", target = "nomeProduto")
     ItemVendaResponseDTO toResponseDTO(ItemVenda itemVenda);
+
+    /**
+     * Atualiza um modelo HATEOAS a partir de um DTO de resposta.
+     * Usa @MappingTarget para evitar a criação de uma nova instância.
+     *
+     * @param dto O DTO de origem.
+     * @param model O Modelo HATEOAS de destino a ser atualizado.
+     */
+    void updateModelFromDto(VendaResponseDTO dto, @MappingTarget VendaModel model);
 }
