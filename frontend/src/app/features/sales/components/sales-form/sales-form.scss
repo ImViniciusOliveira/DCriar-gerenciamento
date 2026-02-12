@@ -1,6 +1,7 @@
-@use '../../../../shared/styles/form-layout';
+@use '../../../../shared/styles/form-layout' as fl;
 
 .items-section {
+  @include fl.fieldset-full-height;
   margin-top: 20px;
 
   legend {
@@ -9,36 +10,36 @@
     font-weight: 500;
   }
 
-  // Adiciona espaço entre a lista de itens e o botão de adicionar
   .add-button {
     margin-top: 16px;
+    width: 100%;
   }
 }
 
 .item-row {
   display: flex;
   gap: 12px;
-  align-items: flex-start; // Alinha pelo topo para evitar distorção
+  align-items: flex-start;
   margin-bottom: 12px;
   padding: 16px;
-  background-color: var(--background-color); // Fundo cinza claro
-  border: 1px solid var(--border-color); // Borda sutil
-  border-radius: 8px; // Cantos arredondados
+  background-color: var(--background-color);
+  border: var(--std-border-width) solid var(--std-border-color);
+  border-radius: var(--std-border-radius);
 
   &:last-child {
     margin-bottom: 0;
   }
 
   .product-column {
-    flex: 1; // Ocupa o espaço restante
+    flex: 1;
   }
 
   .qty-field {
-    width: 90px; // Largura fixa para quantidade
+    width: 90px;
   }
 
   button {
-    margin-top: 4px; // Ajuste fino para alinhar o ícone com o topo dos inputs
+    margin-top: 4px;
     color: var(--danger-color);
   }
 }

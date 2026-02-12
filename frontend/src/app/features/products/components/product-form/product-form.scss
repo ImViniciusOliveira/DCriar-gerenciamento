@@ -1,78 +1,71 @@
-@use '../../../../shared/styles/form-layout';
+@use '../../../../shared/styles/form-layout' as fl;
 
 // --- Estilos de Imagem ---
 
 .no-image {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: var(--mat-sys-on-surface-variant);
-
-  mat-icon {
-    font-size: 48px;
-    width: 48px;
-    height: 48px;
-  }
+  @include fl.no-image;
 }
 
 .image-container {
-  width: 200px;
-  height: 200px;
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background-color: var(--mat-sys-surface-container-lowest);
-  position: relative; // Necessário para posicionar o botão de delete
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+  @include fl.image-container;
 }
 
 .delete-photo-btn {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background-color: rgba(255, 255, 255, 0.8);
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 1);
-  }
+  @include fl.delete-photo-btn;
 }
 
 .image-upload-section {
-  margin: 16px 0;
-
-  .image-preview-container {
-    position: relative;
-    margin-top: 8px;
-    margin-bottom: 16px;
-  }
-
-  .upload-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(var(--mat-sys-surface-rgb), 0.8);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-  }
+  @include fl.image-upload-section;
 }
 
 // --- Layout do Formulário ---
+
+.row-group {
+  @include fl.form-row;
+
+  .type-field {
+    flex: 0 0 220px;
+    min-width: 220px;
+  }
+
+  .name-field {
+    flex: 2;
+    min-width: 300px;
+  }
+
+  .sku-field {
+    flex: 1.5;
+    min-width: 180px;
+  }
+
+  .color-field {
+    flex: 1;
+    min-width: 130px;
+  }
+
+  .units-field {
+    flex: 1;
+    min-width: 130px;
+  }
+
+  fieldset.active-fieldset {
+    @include fl.fieldset-compact;
+  }
+
+  .description-field {
+    flex: 1;
+    min-width: 300px;
+
+    textarea {
+      height: 270px !important;
+      min-height: 270px !important;
+    }
+  }
+}
+
+fieldset.photo-fieldset {
+  @include fl.fieldset-full-height;
+}
 
 .dimensions-title {
     margin-top: 16px;
@@ -124,8 +117,4 @@
     border-top: 1px solid var(--mat-sys-outline-variant);
     margin: 16px 0;
   }
-}
-
-textarea[formControlName="descricao"] {
-  min-height: 100px;
 }

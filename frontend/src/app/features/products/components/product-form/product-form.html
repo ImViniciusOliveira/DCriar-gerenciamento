@@ -3,74 +3,91 @@
 @if (isEditMode() || data.isCreationMode) {
   <form [formGroup]="productForm" (ngSubmit)="onSubmit()" (keydown.enter)="$event.preventDefault()">
     <mat-dialog-content>
-      <div class="form-grid two-columns">
-        @if (data.isCreationMode) {
-          <mat-form-field class="full-width" appearance="outline">
-            <mat-label>Tipo de Produto</mat-label>
-            <mat-select formControlName="tipoProduto">
-              <mat-option value="CORTE">Produto de Corte</mat-option>
-              <mat-option value="CONSUMO_DIRETO">Produto de Consumo Direto</mat-option>
-            </mat-select>
+      <div class="form-grid">
+
+        <!-- Linha 1: Nome e Tipo de Produto -->
+        <div class="row-group">
+          <mat-form-field class="name-field" appearance="outline">
+            <mat-label>Nome</mat-label>
+            <input matInput formControlName="nome" required>
           </mat-form-field>
-        }
-        <mat-form-field class="full-width" appearance="outline">
-          <mat-label>Nome</mat-label>
-          <input matInput formControlName="nome" required>
-        </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>SKU</mat-label>
-          <input matInput formControlName="sku" required>
-        </mat-form-field>
-
-        @if (productForm.get('cor')?.enabled) {
-          <mat-form-field appearance="outline">
-            <mat-label>Cor</mat-label>
-            <input matInput formControlName="cor">
-          </mat-form-field>
-        }
-
-        <mat-form-field class="full-width" appearance="outline">
-          <mat-label>Descrição</mat-label>
-          <textarea matInput formControlName="descricao"></textarea>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Unidades por Produto</mat-label>
-          <input matInput type="number" formControlName="unidadesPorProduto" required>
-        </mat-form-field>
-      </div>
-
-      @if (isEditMode() || data.isCreationMode) {
-        <div class="image-upload-section">
-          <label class="mat-body-2" for="fotoPrincipal">Foto Principal</label>
-          <div class="image-preview-container image-container">
-            @if (safeImageSrc(); as src) {
-              <img [src]="src" alt="Pré-visualização da foto" width="200" height="200">
-              <button type="button" class="delete-photo-btn" (click)="removePhoto()" mat-icon-button color="warn" title="Remover foto">
-                <mat-icon>delete</mat-icon>
-              </button>
-            } @else {
-              <div class="no-image">
-                <mat-icon>image_not_supported</mat-icon>
-                <span>Sem imagem</span>
-              </div>
-            }
-            @if (isUploading()) {
-              <div class="upload-overlay">
-                <mat-spinner diameter="40"></mat-spinner>
-              </div>
-            }
-          </div>
-          <input type="file" id="fotoPrincipal" (change)="onFileSelected($event)" accept="image/png, image/jpeg" hidden #fileInput>
-          <button mat-stroked-button type="button" (click)="fileInput.click()">
-            <mat-icon>attach_file</mat-icon>
-            Selecionar Arquivo
-          </button>
+          @if (data.isCreationMode) {
+            <mat-form-field class="type-field" appearance="outline">
+              <mat-label>Tipo de Produto</mat-label>
+              <mat-select formControlName="tipoProduto">
+                <mat-option value="CORTE">Produto de Corte</mat-option>
+                <mat-option value="CONSUMO_DIRETO">Produto de Consumo Direto</mat-option>
+              </mat-select>
+            </mat-form-field>
+          }
         </div>
-      }
 
-      <mat-checkbox formControlName="ativo" class="form-checkbox">Ativo</mat-checkbox>
+        <!-- Linha 2: SKU, Cor, Unidades, Ativo -->
+        <div class="row-group">
+          <mat-form-field class="sku-field" appearance="outline">
+            <mat-label>SKU</mat-label>
+            <input matInput formControlName="sku" required>
+          </mat-form-field>
+
+          @if (productForm.get('cor')?.enabled) {
+            <mat-form-field class="color-field" appearance="outline">
+              <mat-label>Cor</mat-label>
+              <input matInput formControlName="cor">
+            </mat-form-field>
+          }
+
+          <mat-form-field class="units-field" appearance="outline">
+            <mat-label>Unidades</mat-label>
+            <input matInput type="number" formControlName="unidadesPorProduto" required>
+          </mat-form-field>
+
+          <!-- Checkbox Ativo dentro de um Fieldset para ter a borda padrão -->
+          <fieldset class="active-fieldset">
+            <mat-checkbox formControlName="ativo">Ativo</mat-checkbox>
+          </fieldset>
+        </div>
+
+        <!-- Linha 3: Descrição e Foto Principal -->
+        <div class="row-group description-photo-row">
+          <mat-form-field class="description-field" appearance="outline">
+            <mat-label>Descrição</mat-label>
+            <textarea matInput formControlName="descricao"></textarea>
+          </mat-form-field>
+
+          @if (isEditMode() || data.isCreationMode) {
+            <div class="image-upload-section">
+              <!-- Fieldset para a foto -->
+              <fieldset class="photo-fieldset">
+                <div class="image-preview-container image-container">
+                  @if (safeImageSrc(); as src) {
+                    <img [src]="src" alt="Pré-visualização da foto" width="200" height="200">
+                    <button type="button" class="delete-photo-btn" (click)="removePhoto()" mat-icon-button color="warn" title="Remover foto">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  } @else {
+                    <div class="no-image">
+                      <mat-icon>image_not_supported</mat-icon>
+                      <span>Foto ou imagem do produto</span>
+                    </div>
+                  }
+                  @if (isUploading()) {
+                    <div class="upload-overlay">
+                      <mat-spinner diameter="40"></mat-spinner>
+                    </div>
+                  }
+                </div>
+                <input type="file" id="fotoPrincipal" (change)="onFileSelected($event)" accept="image/png, image/jpeg" hidden #fileInput>
+                <button mat-stroked-button type="button" class="action-button" (click)="fileInput.click()">
+                  <mat-icon>attach_file</mat-icon>
+                  Selecionar Arquivo
+                </button>
+              </fieldset>
+            </div>
+          }
+        </div>
+
+      </div>
 
       <app-material-type-search
         [control]="materialTypeControl"
@@ -117,7 +134,7 @@
             </div>
           }
         </div>
-        <button mat-stroked-button type="button" (click)="addSpecification()">
+        <button mat-stroked-button type="button" class="action-button" (click)="addSpecification()">
           <mat-icon>add</mat-icon>
           Adicionar Especificação
         </button>

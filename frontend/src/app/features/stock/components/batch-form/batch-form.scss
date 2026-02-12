@@ -1,11 +1,15 @@
-@use '../../../../shared/styles/form-layout';
+@use '../../../../shared/styles/form-layout' as fl;
 
-// Estilização para a seção de atributos dinâmicos.
 .dynamic-attributes, .specific-attributes {
+  @include fl.fieldset-full-height;
   margin-top: 20px;
+
+  .add-button {
+    margin-top: 16px;
+    width: 100%;
+  }
 }
 
-// Linha de um atributo (campo chave, valor e botão de remover).
 .attribute-row {
   display: grid;
   grid-template-columns: 1fr 1fr auto;

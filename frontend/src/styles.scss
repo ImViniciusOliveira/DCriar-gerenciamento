@@ -1,12 +1,13 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
-// Importa as paletas de cores geradas via CLI (M3 Theme Generation)
 @use './theme-colors' as dcriar-colors;
 
-// 1. Inicialização do Núcleo do Angular Material
 @include mat.core();
 
-// 2. Definição das Variáveis de Design System (Tokenização Manual)
+// =============================================================================
+// VARIÁVEIS GLOBAIS DO SISTEMA
+// =============================================================================
+
 $color-primary: #3B82F6;
 $color-primary-hover: #2563EB;
 $color-secondary: #6c757d;
@@ -17,8 +18,8 @@ $color-text: #212529;
 $color-text-muted: #6C757D;
 $color-border: #DEE2E6;
 
-// 3. Exposição de Variáveis CSS (:root)
 :root {
+  // Cores
   --primary-color: #{$color-primary};
   --primary-hover-color: #{$color-primary-hover};
   --secondary-color: #{$color-secondary};
@@ -29,11 +30,16 @@ $color-border: #DEE2E6;
   --border-color: #{$color-border};
   --danger-color: #{$color-danger};
 
-  // Variável para padronização da cor de borda em elementos de formulário (Inputs e Fieldsets)
-  --input-border-color: #B0B0B0;
+  // --- SISTEMA DE BORDAS UNIFICADO ---
+  --std-border-color: #9E9E9E;       // Cor: Cinza Médio
+  --std-border-radius: 4px;          // Raio: 4px
+  --std-border-width: 1px;           // Espessura: 1px
 }
 
-// 4. Configuração do Tema Material 3
+// =============================================================================
+// TEMA ANGULAR MATERIAL
+// =============================================================================
+
 $dcriar-theme: mat.define-theme((
   color: (
     theme-type: light,
@@ -50,117 +56,47 @@ $dcriar-theme: mat.define-theme((
   )
 ));
 
-// 5. Aplicação do Tema Global
 html {
-  // Aplica o tema globalmente no HTML para garantir herança correta
   @include mat.all-component-themes($dcriar-theme);
 
-  // Sobrescrita de Tokens de Sistema para garantir fidelidade à marca
   --mat-sys-primary: #{$color-primary};
   --mat-sys-on-primary: #ffffff;
   --mat-sys-background: #{$color-background};
   --mat-sys-surface: #{$color-surface};
-  --mat-sys-outline-variant: #{$color-border};
+  --mat-sys-outline-variant: var(--std-border-color);
 
-  // Customização da cor da borda dos inputs (Outline)
-  // Utiliza a variável unificada para garantir consistência visual com outros elementos de formulário.
-  --mdc-outlined-text-field-outline-color: var(--input-border-color);
-  --mdc-outlined-text-field-hover-outline-color: #808080;
+  // Configura variáveis internas do Material para ler nossas variáveis globais
+  --mdc-outlined-text-field-outline-color: var(--std-border-color);
+  --mdc-outlined-text-field-container-shape: var(--std-border-radius);
+  --mdc-outlined-text-field-outline-width: var(--std-border-width);
+  --mdc-outlined-text-field-hover-outline-color: #616161;
+  --mdc-outlined-text-field-focus-outline-color: var(--primary-color);
 }
 
-html, body {
-  height: 100%;
-}
-
+html, body { height: 100%; }
 body {
   background-color: var(--mat-sys-background);
   color: var(--text-color);
   font-family: 'Inter', sans-serif;
-  margin: 0;
-  padding: 0;
+  margin: 0; padding: 0;
 }
 
-// -----------------------------------------------------------------------
-// 6. Estilização Global de Componentes e Utilitários
-// -----------------------------------------------------------------------
-
-// Padronização dos Botões Material
-.mat-mdc-raised-button.mat-primary,
-.mat-mdc-flat-button.mat-primary {
-  background-color: var(--primary-color) !important;
-  color: #ffffff !important;
-  border-radius: 6px !important;
-  font-weight: 600 !important;
+// =============================================================================
+// CLASSE UTILITÁRIA DE BORDA
+// =============================================================================
+.std-border {
+  border: var(--std-border-width) solid var(--std-border-color);
+  border-radius: var(--std-border-radius);
+  box-sizing: border-box;
 }
 
-// Classe utilitária para botões de ação destrutiva
-.btn-danger-custom {
-  background-color: var(--danger-color) !important;
-  color: white !important;
-}
+// =============================================================================
+// PADRONIZAÇÃO DE COMPONENTES
+// =============================================================================
 
-// Padronização de Títulos (H1)
-h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-color);
-  margin-bottom: 1rem;
-
-  span {
-    font-size: 1rem;
-    color: var(--text-muted-color);
-    font-weight: 400;
-  }
-}
-
-// -----------------------------------------------------------------------
-// 7. Customizações de Componentes Material
-// -----------------------------------------------------------------------
-
-// Força o visual de "card" com bordas na tabela base.
-app-base-table .mat-mdc-table {
-  background-color: var(--header-bg-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-// Adiciona a linha divisória entre as linhas da tabela.
-.mat-mdc-row, .mat-mdc-header-row {
-  border-bottom: 1px solid var(--border-color);
-}
-
-// Garante que a última linha não tenha borda.
-.mat-mdc-table .mat-mdc-row:last-child {
-  border-bottom: none;
-}
-
-// Ajusta o arredondamento dos diálogos (modais).
-.mat-mdc-dialog-surface {
-  border-radius: 8px !important;
-}
-
-// --- Ajustes para Botões de Texto (ex: Cancelar) ---
-.mat-mdc-text-button {
-  // Ajusta o arredondamento do efeito de clique (ripple) e do hover.
-  .mat-mdc-button-persistent-ripple,
-  &::before { // O ::before é o overlay do hover
-    border-radius: 6px !important;
-  }
-}
-
-// --- Ajustes Globais de Formulário ---
-
-// Bloqueia o redimensionamento manual de textareas para preservar o layout
-textarea.mat-mdc-input-element {
-  resize: none !important;
-}
-
-// Padronização de Fieldsets (agrupamentos de campos)
+// 1. Fieldsets
 fieldset {
-  border: 1px solid var(--input-border-color); // Usa a MESMA variável dos inputs
-  border-radius: 4px; // Mesmo raio dos inputs (padrão Material)
+  @extend .std-border;
   padding: 16px;
   margin-bottom: 16px;
 
@@ -171,19 +107,128 @@ fieldset {
   }
 }
 
-// =======================================================================
-// ESTILIZAÇÃO DE PAINÉIS FLUTUANTES (OVERLAYS)
-// =======================================================================
-// Garante que componentes que flutuam sobre o conteúdo (Menus, Selects,
-// Autocompletes, Snackbars) tenham fundo sólido e sombra adequada,
-// prevenindo problemas de transparência.
+// 2. Inputs do Angular Material
+.mat-mdc-form-field {
+  .mdc-notched-outline__leading {
+    border-radius: var(--std-border-radius) 0 0 var(--std-border-radius) !important;
+    border-color: var(--std-border-color) !important;
+    border-width: var(--std-border-width) !important;
+    width: var(--std-border-radius) !important;
+    min-width: var(--std-border-radius) !important;
+  }
+  .mdc-notched-outline__trailing {
+    border-radius: 0 var(--std-border-radius) var(--std-border-radius) 0 !important;
+    border-color: var(--std-border-color) !important;
+    border-width: var(--std-border-width) !important;
+  }
+  .mdc-notched-outline__notch {
+    border-color: var(--std-border-color) !important;
+    border-width: var(--std-border-width) !important;
+    border-right: none !important;
+    border-left: none !important;
+  }
+  &.mat-focused {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--primary-color) !important;
+      border-width: 2px !important;
+    }
+  }
+  &.mat-form-field-invalid {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--danger-color) !important;
+    }
+  }
+  .mat-mdc-text-field-wrapper {
+    background-color: transparent !important;
+  }
+}
 
-.mat-mdc-menu-panel,          // Dropdowns de menu
-.mat-mdc-select-panel,        // Dropdowns de seleção
-.mat-mdc-autocomplete-panel,  // Dropdowns de busca
-.mdc-snackbar__surface,       // Mensagens de notificação
-.mat-mdc-dialog-surface,      // Modais
-.mat-datepicker-content {     // Calendários
+// =============================================================================
+// BOTÕES PADRONIZADOS
+// =============================================================================
+
+// 1. Força o Raio em TODOS os botões Material
+.mat-mdc-button-base,
+.mat-mdc-raised-button,
+.mat-mdc-flat-button,
+.mat-mdc-stroked-button,
+.mat-mdc-unelevated-button {
+  border-radius: var(--std-border-radius) !important;
+}
+
+// 2. Botões Primários (Raised e Flat)
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-flat-button.mat-primary {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+// 3. CLASSE GLOBAL PARA BOTÕES DE AÇÃO SECUNDÁRIA (Adicionar, Selecionar, etc)
+// Use class="action-button" no HTML para aplicar este estilo.
+.action-button {
+  // Estado Normal (Habilitado)
+  &:not(:disabled) {
+    background-color: var(--primary-color) !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 600 !important;
+
+    // Ícones dentro do botão
+    .mat-icon {
+      color: #ffffff !important;
+    }
+
+    // Hover
+    &:hover {
+      background-color: var(--primary-hover-color) !important;
+    }
+  }
+
+  // Estado Desabilitado (Mantém o padrão do Material)
+  &:disabled {
+    // O Material já cuida disso, mas podemos forçar se precisar
+  }
+}
+
+// 4. Botões de Perigo
+.btn-danger-custom {
+  background-color: var(--danger-color) !important;
+  color: white !important;
+}
+
+// =============================================================================
+// OUTROS
+// =============================================================================
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 1rem;
+  span { font-size: 1rem; color: var(--text-muted-color); font-weight: 400; }
+}
+
+app-base-table .mat-mdc-table {
+  background-color: var(--header-bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.mat-mdc-row, .mat-mdc-header-row { border-bottom: 1px solid var(--border-color); }
+.mat-mdc-table .mat-mdc-row:last-child { border-bottom: none; }
+.mat-mdc-dialog-surface { border-radius: 8px !important; }
+.mat-mdc-text-button .mat-mdc-button-persistent-ripple, .mat-mdc-text-button::before { border-radius: 6px !important; }
+textarea.mat-mdc-input-element { resize: none !important; }
+
+.mat-mdc-menu-panel, .mat-mdc-select-panel, .mat-mdc-autocomplete-panel,
+.mdc-snackbar__surface, .mat-mdc-dialog-surface, .mat-datepicker-content {
   background-color: var(--mat-sys-surface) !important;
   border-radius: 6px !important;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15) !important;

@@ -1,42 +1,163 @@
 // Estilos compartilhados para layouts de formulários.
 
-// --- Layouts de Grid (para formulários de criação/edição) ---
+// --- Mixins ---
 
-// Layout em grid para os campos principais do formulário.
-// Permite fácil alinhamento em uma ou mais colunas.
-.form-grid {
+@mixin form-grid {
   display: grid;
   gap: 16px;
-
-  // Por padrão, uma coluna.
   grid-template-columns: 1fr;
-}
 
-// Modificador para um grid de duas colunas em telas maiores.
-@media (min-width: 600px) {
-  .form-grid.two-columns {
-    grid-template-columns: 1fr 1fr;
+  @media (min-width: 600px) {
+    &.two-columns {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 }
 
-// Classe para fazer um campo ocupar a largura total do grid.
-.full-width {
+@mixin full-width {
   grid-column: span 2;
 }
 
-// --- Layouts Flex (para filtros e barras de busca) ---
+@mixin form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  align-items: flex-start;
 
-// Padroniza o layout de contêineres de filtros (ex: acima das tabelas)
-.filters-container {
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+// Mixin para borda padrão
+@mixin std-border-mixin {
+  border: var(--std-border-width) solid var(--std-border-color);
+  border-radius: var(--std-border-radius);
+  box-sizing: border-box;
+}
+
+@mixin form-fieldset-base {
+  @include std-border-mixin;
+  margin: 0;
+  padding: 0 12px;
+  display: flex;
+
+  legend {
+    font-size: 0.75em;
+    padding: 0 4px;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+@mixin fieldset-compact {
+  @include form-fieldset-base;
+  height: 56px; // Altura padrão aproximada de um input outline
+  align-items: center;
+  min-width: 100px;
+}
+
+@mixin fieldset-full-height {
+  @include form-fieldset-base;
+  height: 100%;
+  flex-direction: column;
+  padding: 16px;
+}
+
+@mixin filters-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px; // Espaçamento consistente entre os filtros
+  gap: 16px;
   align-items: center;
   margin-bottom: 24px;
 
-  // Garante que os campos de filtro tenham um tamanho base bom, mas sejam flexíveis
   .mat-mdc-form-field {
-    flex: 1 1 200px; // Cresce e encolhe, base de 200px
+    flex: 1 1 200px;
     min-width: 200px;
+  }
+}
+
+@mixin no-image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 8px;
+  }
+
+  span {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+}
+
+@mixin image-container {
+  @include std-border-mixin;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: var(--mat-sys-surface-container-lowest);
+  position: relative;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+@mixin delete-photo-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background-color: rgba(255, 255, 255, 0.8);
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 1);
+  }
+}
+
+@mixin image-upload-section {
+  margin: 0 0 0 16px;
+  flex: 0 0 auto;
+
+  .image-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .image-preview-container {
+    position: relative;
+  }
+
+  button {
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  .upload-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(var(--mat-sys-surface-rgb), 0.8);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
   }
 }

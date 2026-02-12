@@ -1,68 +1,38 @@
-<!--
-  Container principal para o componente de busca.
-  O <fieldset> agrupa visualmente os controles de filtro e o campo de seleção de resultados.
--->
-<fieldset class="material-type-search">
-  <legend>Matéria-Prima</legend>
+<div class="filters-container">
 
-  <!-- Seção dos filtros de busca, controlada por um Reactive Form (`searchForm`). -->
-  <!-- Usando a classe global filters-container para padronizar o layout -->
-  <div class="filters-container" [formGroup]="searchForm">
-    <mat-form-field appearance="outline">
-      <mat-label>Buscar por nome</mat-label>
-      <!-- A busca é acionada tanto pelo botão quanto ao pressionar a tecla Enter. -->
-      <input matInput formControlName="searchName" (keyup.enter)="performSearch()">
-    </mat-form-field>
-
-    <mat-form-field appearance="outline">
-      <mat-label>Filtrar por Unidade</mat-label>
-      <mat-select formControlName="searchUnit">
-        <mat-option value="">Todos</mat-option>
-        <!-- As opções de filtro são populadas dinamicamente a partir do signal `consumptionUnits`. -->
-        @for (unit of consumptionUnits(); track unit.value) {
-          <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-
-    <button mat-icon-button color="primary" type="button" (click)="performSearch()" [disabled]="isSearching()" title="Buscar Matéria-Prima">
-      <mat-icon>search</mat-icon>
-    </button>
-  </div>
-
-  <!-- Bloco condicional: Exibe a matéria-prima original apenas quando o componente está em modo de edição. -->
-  @if (isEditMode() && originalMateriaPrima()) {
-    <p class="original-material-info">
-      Última matéria prima: <strong>{{ originalMateriaPrima()?.nome }}
-      ({{ getConsumptionUnitViewValue(originalMateriaPrima()!.unidadeDeConsumo) }})</strong>
-    </p>
-  }
-
-  <!--
-    Campo de seleção principal.
-    - [formControl] usa o valor do Signal Input: control().
-    - (selectionChange) emite o evento diretamente para o Signal Output.
-  -->
-  <mat-form-field class="full-width" appearance="outline">
+  <mat-form-field appearance="outline" class="flex-grow">
     <mat-label>Tipo de Matéria Prima</mat-label>
-    <mat-select
-      [formControl]="control()"
-      required
-      appInfiniteScroll (infiniteScroll)="loadMore()"
-      [compareWith]="compareMaterialTypes"
-      (selectionChange)="selectionChange.emit($event)">
+    <input type="text"
+           matInput
+           [formControl]="searchControl"
+           [matAutocomplete]="auto"
+           placeholder="Busque por nome...">
 
-      <!-- Renderiza a lista de matérias-primas encontradas, que vem do signal `materialTypes`. -->
+    <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="onOptionSelected($event)">
       @for (materialType of materialTypes(); track materialType.id) {
-        <mat-option [value]="materialType">{{ materialType.nome }}</mat-option>
+        <mat-option [value]="materialType">
+          {{ materialType.nome }}
+        </mat-option>
       }
 
-      <!-- Exibe um spinner no final da lista de opções para indicar que mais itens estão sendo carregados. -->
       @if (isSearching()) {
         <mat-option disabled class="spinner-option">
           <mat-spinner diameter="20"></mat-spinner>
         </mat-option>
       }
+    </mat-autocomplete>
+
+    <mat-icon matSuffix>search</mat-icon>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="unit-filter">
+    <mat-label>Unidade</mat-label>
+    <mat-select [formControl]="unitControl">
+      <mat-option value="">Todas</mat-option>
+      @for (unit of consumptionUnits(); track unit.value) {
+        <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
+      }
     </mat-select>
   </mat-form-field>
-</fieldset>
+
+</div>
