@@ -17,14 +17,9 @@
           </mat-error>
         }
       </mat-form-field>
-    </div>
 
-    <!-- Lista de Itens -->
-    <fieldset class="items-section">
-      <legend>Itens da Venda</legend>
-
-      <div formArrayName="itens">
-        <!-- Usamos track itemGroup para garantir que o Angular não reutilize componentes incorretamente ao remover itens -->
+      <!-- Lista de Itens (agora dentro do grid) -->
+      <div formArrayName="itens" class="items-container">
         @for (itemGroup of itemsControls; track itemGroup; let i = $index) {
           <div class="item-row" [formGroup]="itemGroup">
             <!-- Coluna do Produto -->
@@ -41,8 +36,7 @@
 
             <!-- Quantidade -->
             <mat-form-field appearance="outline" class="qty-field">
-              <mat-label>Qtd</mat-label>
-              <input matInput type="number" formControlName="quantidade" min="1" [errorStateMatcher]="matcher">
+              <input matInput type="number" placeholder="Qtd" formControlName="quantidade" min="1" [errorStateMatcher]="matcher">
               <!-- Mensagens de Erro (Apenas validações básicas) -->
               @if (itemGroup.get('quantidade')?.hasError('required')) {
                 <mat-error>Obrigatório</mat-error>
@@ -58,19 +52,20 @@
             </button>
           </div>
         }
-
-        @if (itemsControls.length === 0) {
-          <div class="empty-state">
-            <p>Selecione um canal de venda e adicione produtos.</p>
-          </div>
-        }
       </div>
 
+      <!-- Botão Adicionar Produto (agora dentro do grid) -->
       <button mat-stroked-button type="button" class="add-button action-button" (click)="addItem()" [disabled]="!form.get('canalVendaId')?.value">
-        <mat-icon>add_shopping_cart</mat-icon>
-        Adicionar Produto
+        <div class="add-button-content">
+          @if (form.get('canalVendaId')?.value) {
+            <mat-icon>add_shopping_cart</mat-icon>
+            <span>Adicionar Produto</span>
+          } @else {
+            <span>Selecione um canal de venda para adicionar produtos</span>
+          }
+        </div>
       </button>
-    </fieldset>
+    </div>
 
   </mat-dialog-content>
 

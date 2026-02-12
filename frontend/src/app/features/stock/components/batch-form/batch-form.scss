@@ -59,3 +59,27 @@
   margin-top: 0; // Removido para evitar espaço duplo no topo quando a lista está vazia
   margin-bottom: 0;
 }
+
+// --- Estilos para a Tela de Detalhes (copiado do product-form) ---
+
+.details-content {
+  .details-info {
+    flex-grow: 1;
+  }
+
+  .details-description {
+    margin-top: 24px;
+    h4 {
+      margin-bottom: 8px;
+    }
+    p {
+      white-space: pre-wrap;
+    }
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--mat-sys-outline-variant);
+    margin: 16px 0;
+  }
+}

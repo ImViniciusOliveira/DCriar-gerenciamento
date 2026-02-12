@@ -158,24 +158,9 @@
         }
       </div>
       <div class="details-info">
+        <p><strong>Produto:</strong> {{ product().nome }}</p>
         <p><strong>SKU:</strong> {{ product().sku }}</p>
         <p><strong>Ativo:</strong> {{ product().ativo ? 'Sim' : 'Não' }}</p>
-
-        <fieldset class="specific-details">
-          <legend>Detalhes Específicos ({{ product().tipoProduto === 'CORTE' ? 'Corte' : 'Consumo Direto' }})</legend>
-          @if (product().tipoProduto === 'CORTE') {
-            <p><strong>Cor:</strong> {{ product().cor || 'N/A' }}</p>
-            <p><strong>Dimensões:</strong> {{ getFormattedDimensions(product().dimensoes) }}</p>
-          }
-          @if (product().tipoProduto === 'CONSUMO_DIRETO') {
-            <p><strong>Cód. Fabricante:</strong> {{ product().codigoFabricante || 'N/A' }}</p>
-            @if (product().especificacoes) {
-              @for (spec of product().especificacoes | keyvalue; track spec.key) {
-                <p><strong>{{ spec.key | titlecase }}:</strong> {{ spec.value }}</p>
-              }
-            }
-          }
-        </fieldset>
 
         <hr>
         <p><strong>Estoque Físico Total:</strong> {{ product().estoqueFisicoTotal }} pacotes</p>
@@ -185,7 +170,21 @@
         <hr>
         @if (product().materiaPrima) {
           <p><strong>Matéria-Prima:</strong> {{ product().materiaPrima.nome }}</p>
-          <p><strong>Unidade de Consumo:</strong> {{ product().materiaPrima.unidadeDeConsumo }}</p>
+          <p><strong>Unidade de Consumo:</strong> {{ product().materiaPrima.unidadeDescricao ?? product().materiaPrima.unidadeDeConsumo }}</p>
+        }
+        <hr>
+        <!-- Detalhes Específicos movidos para o final e sem fieldset -->
+        @if (product().tipoProduto === 'CORTE') {
+          <p><strong>Cor:</strong> {{ product().cor || 'N/A' }}</p>
+          <p><strong>Dimensões:</strong> {{ getFormattedDimensions(product().dimensoes) }}</p>
+        }
+        @if (product().tipoProduto === 'CONSUMO_DIRETO') {
+          <p><strong>Cód. Fabricante:</strong> {{ product().codigoFabricante || 'N/A' }}</p>
+          @if (product().especificacoes) {
+            @for (spec of product().especificacoes | keyvalue; track spec.key) {
+              <p><strong>{{ spec.key | titlecase }}:</strong> {{ spec.value }}</p>
+            }
+          }
         }
       </div>
     </div>

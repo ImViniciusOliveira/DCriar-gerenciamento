@@ -35,6 +35,9 @@
 </ng-template>
 
 <ng-template #actionsTemplate let-lote>
+  <button mat-icon-button (click)="onViewDetails(lote)">
+    <mat-icon>visibility</mat-icon>
+  </button>
   <button mat-icon-button color="primary" (click)="onEdit(lote)">
     <mat-icon>edit</mat-icon>
   </button>

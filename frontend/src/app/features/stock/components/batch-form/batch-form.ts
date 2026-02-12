@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, Signal, effect, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, CurrencyPipe, TitleCasePipe } from '@angular/common';
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -24,6 +24,7 @@ import { EnumOption, EnumService } from '../../../../core/services/enum.service'
 export interface BatchFormData {
   template: Batch;
   title: string;
+  isViewMode?: boolean;
 }
 
 /**
@@ -35,7 +36,8 @@ export interface BatchFormData {
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MaterialTypeSearch, MatSelectModule
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MaterialTypeSearch, MatSelectModule,
+    CurrencyPipe, TitleCasePipe
   ],
   templateUrl: './batch-form.html',
   styleUrls: ['./batch-form.scss'],
@@ -54,15 +56,18 @@ export class BatchForm implements OnInit {
 
   form: FormGroup;
   isEditMode = signal(false);
+  isViewMode = signal(false);
   requiresWidth: Signal<boolean>;
+
+  readonly batch = signal<Batch>(this.data.template);
 
   private readonly allMeasurementUnits: Signal<EnumOption[]>;
   /** Opções de 'Unidade de Estoque' filtradas com base na matéria-prima selecionada. */
   stockUnitOptions: Signal<EnumOption[]>;
 
   private readonly unitsUrl = signal<string | null>(null);
-  /** Signal que armazena a matéria-prima selecionada para alimentar a lógica reativa. */
-  private materialTypeSignal = signal<MaterialType | null>(null);
+  /** Signal que armazena a matéria-prima para alimentar a lógica reativa. */
+  materialType: Signal<MaterialType | null | undefined>;
 
   private static readonly Texts = {
     CONFIRM_DELETE_ATTR_TITLE: 'Confirmar Remoção',
@@ -75,7 +80,8 @@ export class BatchForm implements OnInit {
   };
 
   constructor() {
-    this.isEditMode.set(!!this.data.template.id);
+    this.isEditMode.set(!!this.data.template.id && !this.data.isViewMode);
+    this.isViewMode.set(!!this.data.isViewMode);
 
     this.form = this.fb.group({
       materiaPrima: [null, Validators.required],
@@ -98,30 +104,35 @@ export class BatchForm implements OnInit {
       { initialValue: [] }
     );
 
-    // Lógica Reativa 3: Filtra as unidades de estoque permitidas.
-    this.stockUnitOptions = computed(() => {
-      const materialType = this.materialTypeSignal();
-      const allUnits = this.allMeasurementUnits();
+    // Lógica Reativa 3: Busca os detalhes da matéria-prima quando o lote é carregado.
+    const materialType$ = toObservable(this.batch).pipe(
+      filter(b => !!b.tipoMateriaPrimaId),
+      switchMap(b => this.materialTypeService.findById(b.tipoMateriaPrimaId!))
+    );
+    this.materialType = toSignal(materialType$);
 
+    // Lógica Reativa 4: Filtra as unidades de estoque permitidas.
+    this.stockUnitOptions = computed(() => {
+      const mt = this.materialType();
+      const allUnits = this.allMeasurementUnits();
       // REGRA DE NEGÓCIO: 'METRO_LINEAR' só é permitido se a unidade de consumo for 'CENTIMETRO_QUADRADO'.
-      if (materialType && materialType.unidadeDeConsumo !== 'CENTIMETRO_QUADRADO') {
+      if (mt && mt.unidadeDeConsumo !== 'CENTIMETRO_QUADRADO') {
         return allUnits.filter(u => u.value !== 'METRO_LINEAR');
       }
       return allUnits;
     });
 
-    // Lógica Reativa 4: Limpa o campo se a opção selecionada se tornar inválida.
+    // Lógica Reativa 5: Limpa o campo se a opção selecionada se tornar inválida.
     effect(() => {
       const options = this.stockUnitOptions();
       const control = this.form.get('unidadeDeEstoque');
       const currentValue = control?.value;
-
       if (currentValue && options.length > 0 && !options.some(opt => opt.value === currentValue)) {
         control.setValue(null, { emitEvent: false }); // 'emitEvent: false' previne loop infinito.
       }
     });
 
-    // Lógica Reativa 5: Atualiza a validação da largura.
+    // Lógica Reativa 6: Atualiza a validação da largura.
     unidadeEstoque$.pipe(takeUntilDestroyed()).subscribe(unidade => {
       this.updateWidthValidation(unidade);
     });
@@ -138,42 +149,60 @@ export class BatchForm implements OnInit {
   }
 
   /**
-   * Carrega os dados iniciais do lote para o formulário no modo de edição.
+   * Carrega os dados iniciais do lote para o formulário no modo de edição ou visualização.
    */
   async initializeForm(): Promise<void> {
-    if (this.isEditMode() && this.data.template.tipoMateriaPrimaId) {
+    if ((this.isEditMode() || this.isViewMode()) && this.data.template.id) {
       try {
-        // Busca os detalhes completos da matéria-prima para preencher o formulário.
-        const materialType = await lastValueFrom(this.materialTypeService.findById(this.data.template.tipoMateriaPrimaId));
-        this.materialTypeSignal.set(materialType);
-        this.form.patchValue({
-          materiaPrima: materialType,
-          unidadeDeEstoque: this.data.template.unidadeDeEstoque
-        });
+        const selfLink = this.data.template._links?.['self']?.href;
+        if (!selfLink) {
+          console.error("Link 'self' não encontrado para carregar o lote.");
+          return;
+        }
+        const fullBatch = await lastValueFrom(this.batchService.findByUrl(selfLink));
+        this.batch.set(fullBatch);
 
-        if (this.data.template.unidadeDeEstoque) {
-          this.updateWidthValidation(this.data.template.unidadeDeEstoque);
+        const mt = this.materialType();
+        if (mt) {
+          this.form.patchValue({
+            materiaPrima: mt,
+            unidadeDeEstoque: fullBatch.unidadeDeEstoque,
+            motivo: fullBatch.motivo,
+            custoTotalLote: fullBatch.custoTotalLote
+          });
         }
 
+        if (fullBatch.unidadeDeEstoque) {
+          this.updateWidthValidation(fullBatch.unidadeDeEstoque);
+        }
+
+        if (fullBatch.atributos) {
+          this.attributes.clear();
+          Object.entries(fullBatch.atributos).forEach(([key, value]) => {
+            if (key === 'larguraMm') {
+              this.form.get('larguraMm')?.setValue(value);
+            } else {
+              this.addAttribute(key, value as string, false);
+            }
+          });
+        }
+        this.cdr.markForCheck();
       } catch (error) {
         console.error("Falha ao carregar dados iniciais", error);
         this.entityDialog.showErrorSnackbar(BatchForm.Texts.LOAD_ERROR);
       }
     }
+  }
 
-    // Popula o FormArray com os atributos existentes.
-    if (this.isEditMode() && this.data.template.atributos) {
-      this.attributes.clear();
-      Object.entries(this.data.template.atributos).forEach(([key, value]) => {
-        // 'larguraMm' é um campo especial e não um atributo dinâmico na UI.
-        if (key === 'larguraMm') {
-          this.form.get('larguraMm')?.setValue(value);
-        } else {
-          this.addAttribute(key, value as string, false);
-        }
-      });
-    }
-    this.cdr.markForCheck();
+  /**
+   * Retorna a descrição formatada de uma unidade de medida.
+   * @param value O valor da unidade (ex: 'UNIDADE').
+   * @returns A descrição formatada (ex: 'Unidade') ou o próprio valor se não for encontrada.
+   */
+  getUnitDescription(value: string | undefined): string {
+    if (!value) return 'N/A';
+    const unit = this.allMeasurementUnits().find(u => u.value === value);
+    return unit?.viewValue ?? value;
   }
 
   get attributes(): FormArray {
@@ -190,8 +219,6 @@ export class BatchForm implements OnInit {
 
   onMaterialTypeChange(event: MatSelectChange): void {
     const materialType = event.value as MaterialType;
-    this.materialTypeSignal.set(materialType);
-    // Define a unidade de estoque padrão como a unidade de consumo da matéria-prima.
     this.form.patchValue({
       materiaPrima: materialType,
       unidadeDeEstoque: materialType.unidadeDeConsumo

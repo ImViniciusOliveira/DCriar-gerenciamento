@@ -1,34 +1,39 @@
 @use '../../../../shared/styles/form-layout' as fl;
 
-.items-section {
-  @include fl.fieldset-full-height;
-  margin-top: 20px;
+// Layout principal do formulário
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; // Espaçamento vertical consistente entre todos os blocos
+}
 
-  legend {
+// Estilo para o botão "Adicionar Produto"
+.add-button {
+  width: 100%;
+  border-style: dashed;
+  color: var(--mat-sys-on-surface-variant);
+
+  // Quando desabilitado, o texto é longo, então ajustamos o padding
+  &.mat-mdc-button-disabled {
     padding: 0 8px;
-    color: var(--mat-sys-primary);
-    font-weight: 500;
   }
+}
 
-  .add-button {
-    margin-top: 16px;
-    width: 100%;
-  }
+// Container das linhas de itens
+.items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; // Espaço entre cada linha de item
 }
 
 .item-row {
   display: flex;
   gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 12px;
+  align-items: center; // Centraliza todos os itens verticalmente
   padding: 16px;
   background-color: var(--background-color);
   border: var(--std-border-width) solid var(--std-border-color);
   border-radius: var(--std-border-radius);
-
-  &:last-child {
-    margin-bottom: 0;
-  }
 
   .product-column {
     flex: 1;
@@ -39,16 +44,8 @@
   }
 
   button {
-    margin-top: 4px;
     color: var(--danger-color);
   }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 20px;
-  color: var(--text-muted-color);
-  font-style: italic;
 }
 
 .full-width {

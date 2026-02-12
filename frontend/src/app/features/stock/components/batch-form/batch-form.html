@@ -1,110 +1,137 @@
 <h2 mat-dialog-title>{{ data.title }}</h2>
 
-<form [formGroup]="form" (ngSubmit)="onSave()">
-  <mat-dialog-content>
-    <div class="form-container">
-      <!-- Componente de busca de matéria-prima -->
-      <div class="full-width no-bottom-gap">
-        <app-material-type-search
-          [control]="materialTypeControl"
-          [isEditMode]="isEditMode()"
-          (selectionChange)="onMaterialTypeChange($event)">
-        </app-material-type-search>
-      </div>
-
-      <!-- Linha com 3 colunas -->
-      <div class="form-row">
-        <!-- Unidade de Estoque -->
-        <mat-form-field appearance="outline">
-          <mat-label>Unidade de Estoque</mat-label>
-          <mat-select formControlName="unidadeDeEstoque">
-            @for (unit of stockUnitOptions(); track unit.value) {
-              <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
-            }
-          </mat-select>
-          <mat-hint>Como este lote será medido no estoque.</mat-hint>
-        </mat-form-field>
-
-        <!-- Quantidade Inicial -->
-        <mat-form-field appearance="outline">
-          <mat-label>Quantidade Inicial</mat-label>
-          <input matInput type="number" formControlName="quantidadeInicial" required min="0.01">
-          @if (form.get('quantidadeInicial')?.hasError('required')) {
-            <mat-error>A quantidade inicial é obrigatória.</mat-error>
-          }
-          @if (form.get('quantidadeInicial')?.hasError('min')) {
-            <mat-error>A quantidade deve ser maior que zero.</mat-error>
-          }
-        </mat-form-field>
-
-        <!-- Custo Total do Lote -->
-        <mat-form-field appearance="outline">
-          <mat-label>Custo Total do Lote</mat-label>
-          <input matInput type="number" formControlName="custoTotalLote" required min="0.01">
-          @if (form.get('custoTotalLote')?.hasError('required')) {
-            <mat-error>O custo total é obrigatório.</mat-error>
-          }
-          @if (form.get('custoTotalLote')?.hasError('min')) {
-            <mat-error>O custo deve ser maior que zero.</mat-error>
-          }
-        </mat-form-field>
-      </div>
-
-      <!-- Motivo -->
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Motivo da Entrada</mat-label>
-        <textarea matInput formControlName="motivo" required></textarea>
-        @if (form.get('motivo')?.hasError('required')) {
-          <mat-error>O motivo é obrigatório.</mat-error>
-        }
-      </mat-form-field>
-
-      <!-- Campo de Largura (sem o fieldset) -->
-      @if (requiresWidth()) {
-        <mat-form-field appearance="outline">
-          <mat-label>Largura (mm)</mat-label>
-          <input matInput type="number" formControlName="larguraMm" required min="1">
-          <mat-hint>Obrigatório para lotes em Metro Linear.</mat-hint>
-          @if (form.get('larguraMm')?.hasError('required')) {
-            <mat-error>A largura é obrigatória para este tipo de lote.</mat-error>
-          }
-          @if (form.get('larguraMm')?.hasError('min')) {
-            <mat-error>A largura deve ser maior que zero.</mat-error>
-          }
-        </mat-form-field>
-      }
-
-      <!-- Atributos Adicionais -->
-      <fieldset class="dynamic-attributes">
-        <div formArrayName="atributos">
-          @for (attrGroup of attributesControls; track $index) {
-            <div class="attribute-row" [formGroup]="attrGroup">
-              <mat-form-field appearance="outline">
-                <mat-label>Nome do Atributo</mat-label>
-                <input matInput formControlName="chave" placeholder="Ex: Fornecedor" required>
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>Valor do Atributo</mat-label>
-                <input matInput formControlName="valor" placeholder="Ex: Papelaria X" required>
-              </mat-form-field>
-              <button mat-icon-button type="button" (click)="removeAttribute($index)" title="Remover Atributo">
-                <mat-icon>remove_circle_outline</mat-icon>
-              </button>
-            </div>
-          }
+@if (!isViewMode()) {
+  <form [formGroup]="form" (ngSubmit)="onSave()">
+    <mat-dialog-content>
+      <div class="form-container">
+        <!-- Componente de busca de matéria-prima -->
+        <div class="full-width no-bottom-gap">
+          <app-material-type-search
+            [control]="materialTypeControl"
+            [isEditMode]="isEditMode()"
+            (selectionChange)="onMaterialTypeChange($event)">
+          </app-material-type-search>
         </div>
-        <button mat-stroked-button type="button" class="action-button" (click)="addAttribute()">
-          <mat-icon>add</mat-icon>
-          Adicionar Atributo
-        </button>
-      </fieldset>
-    </div>
-  </mat-dialog-content>
 
+        <!-- Linha com 3 colunas -->
+        <div class="form-row">
+          <!-- Unidade de Estoque -->
+          <mat-form-field appearance="outline">
+            <mat-label>Unidade de Estoque</mat-label>
+            <mat-select formControlName="unidadeDeEstoque">
+              @for (unit of stockUnitOptions(); track unit.value) {
+                <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
+              }
+            </mat-select>
+            <mat-hint>Como este lote será medido no estoque.</mat-hint>
+          </mat-form-field>
+
+          <!-- Quantidade Inicial -->
+          <mat-form-field appearance="outline">
+            <mat-label>Quantidade Inicial</mat-label>
+            <input matInput type="number" formControlName="quantidadeInicial" required min="0.01">
+            @if (form.get('quantidadeInicial')?.hasError('required')) {
+              <mat-error>A quantidade inicial é obrigatória.</mat-error>
+            }
+            @if (form.get('quantidadeInicial')?.hasError('min')) {
+              <mat-error>A quantidade deve ser maior que zero.</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Custo Total do Lote -->
+          <mat-form-field appearance="outline">
+            <mat-label>Custo Total do Lote</mat-label>
+            <input matInput type="number" formControlName="custoTotalLote" required min="0.01">
+            @if (form.get('custoTotalLote')?.hasError('required')) {
+              <mat-error>O custo total é obrigatório.</mat-error>
+            }
+            @if (form.get('custoTotalLote')?.hasError('min')) {
+              <mat-error>O custo deve ser maior que zero.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <!-- Motivo -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Motivo da Entrada</mat-label>
+          <textarea matInput formControlName="motivo" required></textarea>
+          @if (form.get('motivo')?.hasError('required')) {
+            <mat-error>O motivo é obrigatório.</mat-error>
+          }
+        </mat-form-field>
+
+        <!-- Campo de Largura (sem o fieldset) -->
+        @if (requiresWidth()) {
+          <mat-form-field appearance="outline">
+            <mat-label>Largura (mm)</mat-label>
+            <input matInput type="number" formControlName="larguraMm" required min="1">
+            <mat-hint>Obrigatório para lotes em Metro Linear.</mat-hint>
+            @if (form.get('larguraMm')?.hasError('required')) {
+              <mat-error>A largura é obrigatória para este tipo de lote.</mat-error>
+            }
+            @if (form.get('larguraMm')?.hasError('min')) {
+              <mat-error>A largura deve ser maior que zero.</mat-error>
+            }
+          </mat-form-field>
+        }
+
+        <!-- Atributos Adicionais -->
+        <fieldset class="dynamic-attributes">
+          <div formArrayName="atributos">
+            @for (attrGroup of attributesControls; track $index) {
+              <div class="attribute-row" [formGroup]="attrGroup">
+                <mat-form-field appearance="outline">
+                  <mat-label>Nome do Atributo</mat-label>
+                  <input matInput formControlName="chave" placeholder="Ex: Fornecedor" required>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Valor do Atributo</mat-label>
+                  <input matInput formControlName="valor" placeholder="Ex: Papelaria X" required>
+                </mat-form-field>
+                <button mat-icon-button type="button" (click)="removeAttribute($index)" title="Remover Atributo">
+                  <mat-icon>remove_circle_outline</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+          <button mat-stroked-button type="button" class="action-button" (click)="addAttribute()">
+            <mat-icon>add</mat-icon>
+            Adicionar Atributo
+          </button>
+        </fieldset>
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" (click)="onCancel()">Cancelar</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
+        {{ isEditMode() ? 'Salvar Alterações' : 'Registrar Lote' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+} @else {
+  <!-- Modo de Visualização de Detalhes (seguindo o padrão de product-form) -->
+  <mat-dialog-content class="details-content">
+    <div class="details-info">
+      <p><strong>Matéria-Prima:</strong> {{ materialType()?.nome }}</p>
+      <p><strong>Unidade de Estoque:</strong> {{ getUnitDescription(batch().unidadeDeEstoque) }}</p>
+      <p><strong>Saldo em Estoque:</strong> {{ batch().saldoEstoque }}</p>
+      <p><strong>Custo Total do Lote:</strong> {{ batch().custoTotalLote | currency:'BRL' }}</p>
+      <hr>
+      @if (batch().atributos) {
+        @for (attr of batch().atributos | keyvalue; track attr.key) {
+          <p><strong>{{ attr.key | titlecase }}:</strong> {{ attr.value }}</p>
+        }
+      }
+    </div>
+    @if (batch().motivo) {
+      <div class="details-description">
+        <h4>Motivo da Entrada</h4>
+        <p>{{ batch().motivo }}</p>
+      </div>
+    }
+  </mat-dialog-content>
   <mat-dialog-actions align="end">
-    <button mat-button type="button" (click)="onCancel()">Cancelar</button>
-    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
-      {{ isEditMode() ? 'Salvar Alterações' : 'Registrar Lote' }}
-    </button>
+    <button mat-button type="button" (click)="onCancel()">Fechar</button>
   </mat-dialog-actions>
-</form>
+}

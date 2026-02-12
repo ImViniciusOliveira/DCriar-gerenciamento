@@ -52,7 +52,8 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
     createError: 'Não foi possível iniciar o registro do lote.',
     resourceError: 'Não foi possível encontrar o recurso.',
     createTitle: 'Registrar Entrada de Lote',
-    editTitle: 'Editar Lote'
+    editTitle: 'Editar Lote',
+    viewTitle: 'Detalhes do Lote' // Novo título
   };
 
   tableColumns: TableColumn<Batch>[] = [];
@@ -146,6 +147,18 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
   }
 
   /**
+   * Abre a tela de detalhes para o lote selecionado.
+   */
+  onViewDetails(lote: Batch): void {
+    const loteCopy = structuredClone(lote);
+    this.openFormDialog({
+      template: loteCopy,
+      title: BatchList.Texts.viewTitle,
+      isViewMode: true
+    }, ''); // Não mostra mensagem de sucesso no modo de visualização
+  }
+
+  /**
    * Solicita confirmação e remove o lote selecionado.
    */
   onDelete(lote: Batch): void {
@@ -179,7 +192,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
       title: dialogData.title,
       width: '800px'
     }).subscribe(saved => {
-      if (saved) {
+      if (saved && successMessage) { // Só mostra a mensagem se ela for fornecida
         this.entityDialog.showSuccessSnackbar(successMessage);
       }
     });
