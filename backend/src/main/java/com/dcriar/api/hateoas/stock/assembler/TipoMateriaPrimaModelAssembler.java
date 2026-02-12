@@ -3,9 +3,10 @@ package com.dcriar.api.hateoas.stock.assembler;
 import com.dcriar.api.controller.enums.StockEnumController;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
 import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
+import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
 import com.dcriar.api.hateoas.stock.model.TipoMateriaPrimaModel;
-import org.springframework.beans.BeanUtils;
+import com.dcriar.api.mapper.stock.TipoMateriaPrimaMapper;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
@@ -27,15 +28,20 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @Component
 public class TipoMateriaPrimaModelAssembler extends RepresentationModelAssemblerSupport<TipoMateriaPrimaResponseDTO, TipoMateriaPrimaModel> {
 
-    public TipoMateriaPrimaModelAssembler() {
+    private final TipoMateriaPrimaMapper mapper;
+
+    public TipoMateriaPrimaModelAssembler(TipoMateriaPrimaMapper mapper) {
         super(TipoMateriaPrimaController.class, TipoMateriaPrimaModel.class);
+        this.mapper = mapper;
     }
 
     @Override
     @NonNull
     public TipoMateriaPrimaModel toModel(@NonNull TipoMateriaPrimaResponseDTO dto) {
         TipoMateriaPrimaModel model = instantiateModel(dto);
-        BeanUtils.copyProperties(dto, model);
+        
+        // Delega a população dos campos para o Mapper
+        mapper.updateModelFromDto(dto, model);
 
         // Links que são necessários tanto para criação quanto para edição
         model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida()).withRel("unidades-de-medida"));
@@ -44,8 +50,10 @@ public class TipoMateriaPrimaModelAssembler extends RepresentationModelAssembler
         if (dto.getId() != null) {
             // Para uma entidade existente, adiciona os links específicos de uma entidade
             model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findById(dto.getId())).withSelfRel());
-            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel(IanaLinkRelations.COLLECTION));
-            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).Update(dto.getId(), null)).withRel("update"));
+            model.add(linkTo(TipoMateriaPrimaController.class).withRel(IanaLinkRelations.COLLECTION));
+            
+            // Passa um objeto vazio em vez de null para evitar avisos
+            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).Update(dto.getId(), new TipoMateriaPrimaRequestDTO())).withRel("update"));
             model.add(linkTo(methodOn(TipoMateriaPrimaController.class).deleteById(dto.getId())).withRel("delete"));
 
             // Link para o recurso relacionado: listar todos os lotes deste tipo

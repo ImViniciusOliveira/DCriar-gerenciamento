@@ -3,7 +3,7 @@ package com.dcriar.api.hateoas.stock.assembler;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
 import com.dcriar.api.dto.response.stock.MovimentacaoResponseDTO;
 import com.dcriar.api.hateoas.stock.model.MovimentacaoLoteModel;
-import org.springframework.beans.BeanUtils;
+import com.dcriar.api.mapper.stock.MovimentacaoMapper;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.http.ResponseEntity;
@@ -23,14 +23,20 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @Component
 public class MovimentacaoLoteModelAssembler extends RepresentationModelAssemblerSupport<MovimentacaoResponseDTO, MovimentacaoLoteModel> {
 
-    public MovimentacaoLoteModelAssembler() {
+    private final MovimentacaoMapper mapper;
+
+    public MovimentacaoLoteModelAssembler(MovimentacaoMapper mapper) {
         super(LoteMateriaPrimaController.class, MovimentacaoLoteModel.class);
+        this.mapper = mapper;
     }
 
     @NonNull
     public MovimentacaoLoteModel toModel(@NonNull MovimentacaoResponseDTO dto, @NonNull Long loteId) {
         MovimentacaoLoteModel model = instantiateModel(dto);
-        BeanUtils.copyProperties(dto, model);
+        
+        // Delega a população dos campos para o Mapper
+        mapper.updateModelFromDto(dto, model);
+
         model.add(linkTo(methodOn(LoteMateriaPrimaController.class).listarMovimentacoes(loteId)).withRel("movimentacoes-do-lote"));
         return model;
     }

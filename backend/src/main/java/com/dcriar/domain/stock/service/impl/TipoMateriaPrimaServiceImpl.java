@@ -68,7 +68,10 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     @Transactional
     public TipoMateriaPrimaResponseDTO create(TipoMateriaPrimaRequestDTO requestDTO) {
         validateNomeDisponivel(requestDTO.getNome());
-        TipoMateriaPrima tipo = TipoMateriaPrima.from(requestDTO);
+        
+        // Usa o mapper para a conversão, centralizando a lógica de mapeamento
+        TipoMateriaPrima tipo = tipoMateriaPrimaMapper.toEntity(requestDTO);
+        
         TipoMateriaPrima salvo = tipoMateriaPrimaRepository.save(tipo);
         return tipoMateriaPrimaMapper.toResponseDTO(salvo);
     }
@@ -80,7 +83,11 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         if (requestDTO.getNome() != null && !tipo.getNome().equalsIgnoreCase(requestDTO.getNome())) {
             validateNomeDisponivel(requestDTO.getNome());
         }
-        tipo.updateFrom(requestDTO);
+        
+        // A lógica de atualização permanece na entidade por enquanto,
+        // mas a criação agora usa o mapper.
+        tipo.updateFrom(requestDTO); 
+
         TipoMateriaPrima atualizado = tipoMateriaPrimaRepository.save(tipo);
         return tipoMateriaPrimaMapper.toResponseDTO(atualizado);
     }

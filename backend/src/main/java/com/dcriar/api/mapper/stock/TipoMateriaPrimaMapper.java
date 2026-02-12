@@ -2,10 +2,12 @@ package com.dcriar.api.mapper.stock;
 
 import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
+import com.dcriar.api.hateoas.stock.model.TipoMateriaPrimaModel;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
 
 /**
  * Interface MapStruct para mapear entre a entidade {@link TipoMateriaPrima} e seus DTOs.
@@ -41,4 +43,13 @@ public interface TipoMateriaPrimaMapper {
      */
     @Mapping(source = "unidadeDeConsumo.descricao", target = "unidadeDescricao")
     TipoMateriaPrimaResponseDTO toResponseDTO(TipoMateriaPrima tipoMateriaPrima);
+
+    /**
+     * Atualiza um modelo HATEOAS a partir de um DTO de resposta.
+     * Usa @MappingTarget para evitar a criação de uma nova instância.
+     *
+     * @param dto O DTO de origem.
+     * @param model O Modelo HATEOAS de destino a ser atualizado.
+     */
+    void updateModelFromDto(TipoMateriaPrimaResponseDTO dto, @MappingTarget TipoMateriaPrimaModel model);
 }

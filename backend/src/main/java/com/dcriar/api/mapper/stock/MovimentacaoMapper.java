@@ -1,9 +1,11 @@
 package com.dcriar.api.mapper.stock;
 
 import com.dcriar.api.dto.response.stock.MovimentacaoResponseDTO;
+import com.dcriar.api.hateoas.stock.model.MovimentacaoLoteModel;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
 
 /**
  * Interface MapStruct para mapear a entidade {@link MovimentacaoEstoqueLote}
@@ -25,4 +27,13 @@ public interface MovimentacaoMapper {
      * @return O DTO de resposta correspondente.
      */
     MovimentacaoResponseDTO toResponseDTO(MovimentacaoEstoqueLote movimentacao);
+
+    /**
+     * Atualiza um modelo HATEOAS a partir de um DTO de resposta.
+     * Usa @MappingTarget para evitar a criação de uma nova instância.
+     *
+     * @param dto O DTO de origem.
+     * @param model O Modelo HATEOAS de destino a ser atualizado.
+     */
+    void updateModelFromDto(MovimentacaoResponseDTO dto, @MappingTarget MovimentacaoLoteModel model);
 }

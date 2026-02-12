@@ -3,9 +3,11 @@ package com.dcriar.api.hateoas.stock.assembler;
 import com.dcriar.api.controller.enums.StockEnumController;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
 import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
+import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
+import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
 import com.dcriar.api.hateoas.stock.model.LoteMateriaPrimaModel;
-import org.springframework.beans.BeanUtils;
+import com.dcriar.api.mapper.stock.LoteMateriaPrimaMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
@@ -28,25 +30,35 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @Component
 public class LoteMateriaPrimaModelAssembler extends RepresentationModelAssemblerSupport<LoteMateriaPrimaResponseDTO, LoteMateriaPrimaModel> {
 
-    public LoteMateriaPrimaModelAssembler() {
+    private final LoteMateriaPrimaMapper mapper;
+
+    /**
+     * Construtor que injeta as dependências necessárias.
+     * @param mapper O mapper para converter os dados do DTO para o Model.
+     */
+    public LoteMateriaPrimaModelAssembler(LoteMateriaPrimaMapper mapper) {
         super(LoteMateriaPrimaController.class, LoteMateriaPrimaModel.class);
+        this.mapper = mapper;
     }
 
     @Override
     @NonNull
     public LoteMateriaPrimaModel toModel(@NonNull LoteMateriaPrimaResponseDTO dto) {
         LoteMateriaPrimaModel model = instantiateModel(dto);
-        BeanUtils.copyProperties(dto, model);
+        
+        // Delega a população dos campos para o Mapper
+        mapper.updateModelFromDto(dto, model);
 
         // Links padrão para um lote existente
         if (dto.getId() != null) {
             model.add(linkTo(methodOn(LoteMateriaPrimaController.class).findById(dto.getId())).withSelfRel());
-            // Para update e delete, usamos o ID do próprio lote
-            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).update(dto.getId(), null)).withRel("update"));
+            
+            // CORREÇÃO: Passa o DTO de Requisição correto para o método de update
+            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).update(dto.getId(), new LoteMateriaPrimaRequestDTO())).withRel("update"));
             model.add(linkTo(methodOn(LoteMateriaPrimaController.class).delete(dto.getId())).withRel("delete"));
             model.add(linkTo(methodOn(LoteMateriaPrimaController.class).listarMovimentacoes(dto.getId())).withRel("movimentacoes"));
-            // Para registrar movimentação, também precisamos do ID do lote
-            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).registrarMovimentacao(dto.getId(), null)).withRel("registrar-movimentacao"));
+            
+            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).registrarMovimentacao(dto.getId(), new MovimentacaoRequestDTO())).withRel("registrar-movimentacao"));
 
             if (model.getTipoMateriaPrimaId() != null) {
                 model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findById(model.getTipoMateriaPrimaId())).withRel("tipo-materia-prima"));
@@ -57,7 +69,7 @@ public class LoteMateriaPrimaModelAssembler extends RepresentationModelAssembler
         } else {
             // Links para o esqueleto de criação
             model.add(linkTo(LoteMateriaPrimaController.class).withRel("create"));
-            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("tipos-materia-prima"));
+            model.add(linkTo(TipoMateriaPrimaController.class).withRel("tipos-materia-prima"));
         }
         
         // Link para unidades de medida (necessário tanto para criação quanto para edição)
