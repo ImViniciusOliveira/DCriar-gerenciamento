@@ -28,6 +28,9 @@ $color-border: #DEE2E6;
   --text-muted-color: #{$color-text-muted};
   --border-color: #{$color-border};
   --danger-color: #{$color-danger};
+
+  // Variável para padronização da cor de borda em elementos de formulário (Inputs e Fieldsets)
+  --input-border-color: #B0B0B0;
 }
 
 // 4. Configuração do Tema Material 3
@@ -49,6 +52,7 @@ $dcriar-theme: mat.define-theme((
 
 // 5. Aplicação do Tema Global
 html {
+  // Aplica o tema globalmente no HTML para garantir herança correta
   @include mat.all-component-themes($dcriar-theme);
 
   // Sobrescrita de Tokens de Sistema para garantir fidelidade à marca
@@ -57,6 +61,11 @@ html {
   --mat-sys-background: #{$color-background};
   --mat-sys-surface: #{$color-surface};
   --mat-sys-outline-variant: #{$color-border};
+
+  // Customização da cor da borda dos inputs (Outline)
+  // Utiliza a variável unificada para garantir consistência visual com outros elementos de formulário.
+  --mdc-outlined-text-field-outline-color: var(--input-border-color);
+  --mdc-outlined-text-field-hover-outline-color: #808080;
 }
 
 html, body {
@@ -127,13 +136,6 @@ app-base-table .mat-mdc-table {
   border-bottom: none;
 }
 
-// Deixa a borda dos inputs (com appearance="outline") mais visível.
-.mat-mdc-form-field-type-mat-input .mdc-notched-outline > .mdc-notched-outline__leading,
-.mat-mdc-form-field-type-mat-input .mdc-notched-outline > .mdc-notched-outline__notch,
-.mat-mdc-form-field-type-mat-input .mdc-notched-outline > .mdc-notched-outline__trailing {
-  border-color: var(--border-color) !important;
-}
-
 // Ajusta o arredondamento dos diálogos (modais).
 .mat-mdc-dialog-surface {
   border-radius: 8px !important;
@@ -146,4 +148,43 @@ app-base-table .mat-mdc-table {
   &::before { // O ::before é o overlay do hover
     border-radius: 6px !important;
   }
+}
+
+// --- Ajustes Globais de Formulário ---
+
+// Bloqueia o redimensionamento manual de textareas para preservar o layout
+textarea.mat-mdc-input-element {
+  resize: none !important;
+}
+
+// Padronização de Fieldsets (agrupamentos de campos)
+fieldset {
+  border: 1px solid var(--input-border-color); // Usa a MESMA variável dos inputs
+  border-radius: 4px; // Mesmo raio dos inputs (padrão Material)
+  padding: 16px;
+  margin-bottom: 16px;
+
+  legend {
+    padding: 0 8px;
+    color: var(--text-muted-color);
+    font-weight: 500;
+  }
+}
+
+// =======================================================================
+// ESTILIZAÇÃO DE PAINÉIS FLUTUANTES (OVERLAYS)
+// =======================================================================
+// Garante que componentes que flutuam sobre o conteúdo (Menus, Selects,
+// Autocompletes, Snackbars) tenham fundo sólido e sombra adequada,
+// prevenindo problemas de transparência.
+
+.mat-mdc-menu-panel,          // Dropdowns de menu
+.mat-mdc-select-panel,        // Dropdowns de seleção
+.mat-mdc-autocomplete-panel,  // Dropdowns de busca
+.mdc-snackbar__surface,       // Mensagens de notificação
+.mat-mdc-dialog-surface,      // Modais
+.mat-datepicker-content {     // Calendários
+  background-color: var(--mat-sys-surface) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15) !important;
 }

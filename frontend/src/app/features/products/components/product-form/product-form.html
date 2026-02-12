@@ -5,7 +5,7 @@
     <mat-dialog-content>
       <div class="form-grid two-columns">
         @if (data.isCreationMode) {
-          <mat-form-field class="full-width">
+          <mat-form-field class="full-width" appearance="outline">
             <mat-label>Tipo de Produto</mat-label>
             <mat-select formControlName="tipoProduto">
               <mat-option value="CORTE">Produto de Corte</mat-option>
@@ -13,29 +13,29 @@
             </mat-select>
           </mat-form-field>
         }
-        <mat-form-field class="full-width">
+        <mat-form-field class="full-width" appearance="outline">
           <mat-label>Nome</mat-label>
           <input matInput formControlName="nome" required>
         </mat-form-field>
 
-        <mat-form-field>
+        <mat-form-field appearance="outline">
           <mat-label>SKU</mat-label>
           <input matInput formControlName="sku" required>
         </mat-form-field>
 
         @if (productForm.get('cor')?.enabled) {
-          <mat-form-field>
+          <mat-form-field appearance="outline">
             <mat-label>Cor</mat-label>
             <input matInput formControlName="cor">
           </mat-form-field>
         }
 
-        <mat-form-field class="full-width">
+        <mat-form-field class="full-width" appearance="outline">
           <mat-label>Descrição</mat-label>
           <textarea matInput formControlName="descricao"></textarea>
         </mat-form-field>
 
-        <mat-form-field>
+        <mat-form-field appearance="outline">
           <mat-label>Unidades por Produto</mat-label>
           <input matInput type="number" formControlName="unidadesPorProduto" required>
         </mat-form-field>
@@ -81,11 +81,11 @@
       @if (productForm.get('dimensoes')?.enabled) {
         <h3 class="dimensions-title mat-subheading-2">Dimensões Unitárias</h3>
         <div class="form-grid two-columns" formGroupName="dimensoes">
-          <mat-form-field>
+          <mat-form-field appearance="outline">
             <mat-label>Largura (cm)</mat-label>
             <input matInput type="number" formControlName="larguraCm" required>
           </mat-form-field>
-          <mat-form-field>
+          <mat-form-field appearance="outline">
             <mat-label>Comprimento (cm)</mat-label>
             <input matInput type="number" formControlName="comprimentoCm" required>
           </mat-form-field>
@@ -95,7 +95,7 @@
       @if (productForm.get('especificacoes')?.enabled) {
         <h3 class="dimensions-title mat-subheading-2">Detalhes de Consumo</h3>
         <div class="form-grid two-columns">
-          <mat-form-field class="full-width">
+          <mat-form-field class="full-width" appearance="outline">
             <mat-label>Código do Fabricante</mat-label>
             <input matInput formControlName="codigoFabricante">
           </mat-form-field>
@@ -103,11 +103,11 @@
         <div formArrayName="especificacoes">
           @for (specGroup of specificationsControls; track $index) {
             <div class="form-grid two-columns spec-row" [formGroup]="specGroup">
-              <mat-form-field>
+              <mat-form-field appearance="outline">
                 <mat-label>Característica</mat-label>
                 <input matInput formControlName="chave">
               </mat-form-field>
-              <mat-form-field>
+              <mat-form-field appearance="outline">
                 <mat-label>Descrição</mat-label>
                 <input matInput formControlName="valor">
               </mat-form-field>

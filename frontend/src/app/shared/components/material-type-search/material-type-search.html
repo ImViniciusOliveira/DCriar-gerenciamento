@@ -6,14 +6,15 @@
   <legend>Matéria-Prima</legend>
 
   <!-- Seção dos filtros de busca, controlada por um Reactive Form (`searchForm`). -->
-  <div class="search-filters" [formGroup]="searchForm">
-    <mat-form-field>
+  <!-- Usando a classe global filters-container para padronizar o layout -->
+  <div class="filters-container" [formGroup]="searchForm">
+    <mat-form-field appearance="outline">
       <mat-label>Buscar por nome</mat-label>
       <!-- A busca é acionada tanto pelo botão quanto ao pressionar a tecla Enter. -->
       <input matInput formControlName="searchName" (keyup.enter)="performSearch()">
     </mat-form-field>
 
-    <mat-form-field>
+    <mat-form-field appearance="outline">
       <mat-label>Filtrar por Unidade</mat-label>
       <mat-select formControlName="searchUnit">
         <mat-option value="">Todos</mat-option>
@@ -42,7 +43,7 @@
     - [formControl] usa o valor do Signal Input: control().
     - (selectionChange) emite o evento diretamente para o Signal Output.
   -->
-  <mat-form-field class="full-width">
+  <mat-form-field class="full-width" appearance="outline">
     <mat-label>Tipo de Matéria Prima</mat-label>
     <mat-select
       [formControl]="control()"

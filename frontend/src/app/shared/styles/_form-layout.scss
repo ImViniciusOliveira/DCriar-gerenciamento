@@ -1,5 +1,7 @@
 // Estilos compartilhados para layouts de formulários.
 
+// --- Layouts de Grid (para formulários de criação/edição) ---
+
 // Layout em grid para os campos principais do formulário.
 // Permite fácil alinhamento em uma ou mais colunas.
 .form-grid {
@@ -20,4 +22,21 @@
 // Classe para fazer um campo ocupar a largura total do grid.
 .full-width {
   grid-column: span 2;
+}
+
+// --- Layouts Flex (para filtros e barras de busca) ---
+
+// Padroniza o layout de contêineres de filtros (ex: acima das tabelas)
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px; // Espaçamento consistente entre os filtros
+  align-items: center;
+  margin-bottom: 24px;
+
+  // Garante que os campos de filtro tenham um tamanho base bom, mas sejam flexíveis
+  .mat-mdc-form-field {
+    flex: 1 1 200px; // Cresce e encolhe, base de 200px
+    min-width: 200px;
+  }
 }
