@@ -3,6 +3,7 @@ package com.dcriar.api.hateoas.production.assembler;
 import com.dcriar.api.controller.production.OrdemDeProducaoController;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
 import com.dcriar.api.hateoas.production.model.OrdemDeProducaoModel;
+import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -15,22 +16,30 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
- * Assembler para converter {@link OrdemDeProducaoResponseDTO} em {@link OrdemDeProducaoModel}
- * adicionando links HATEOAS.
+ * Assembler principal para o recurso de Ordem de Produção.
+ * Converte {@link OrdemDeProducaoResponseDTO} em {@link OrdemDeProducaoModel} e constrói as respostas HATEOAS.
  */
 @Component
 public class OrdemDeProducaoModelAssembler extends RepresentationModelAssemblerSupport<OrdemDeProducaoResponseDTO, OrdemDeProducaoModel> {
 
+    private final OrdemDeProducaoMapper mapper;
+
     /**
-     * Construtor padrão.
+     * Construtor que injeta as dependências necessárias e inicializa a superclasse corretamente.
+     *
+     * @param mapper O mapper para converter os dados do DTO para o Model, injetado pelo Spring.
      */
-    public OrdemDeProducaoModelAssembler() {
+    public OrdemDeProducaoModelAssembler(OrdemDeProducaoMapper mapper) {
         super(OrdemDeProducaoController.class, OrdemDeProducaoModel.class);
+        this.mapper = mapper;
     }
 
     /**
      * Converte um {@link OrdemDeProducaoResponseDTO} em {@link OrdemDeProducaoModel},
      * adicionando links HATEOAS.
+     * <p>
+     * Este método utiliza o padrão de atualização via {@code @MappingTarget} no mapper
+     * para popular o modelo, evitando dependências circulares de compilação.
      * <p>
      * Links adicionados:
      * <ul>
@@ -38,41 +47,37 @@ public class OrdemDeProducaoModelAssembler extends RepresentationModelAssemblerS
      *   <li>Deletar (deletar-ordem-de-producao)</li>
      *   <li>Coleção (ordens-de-producao)</li>
      * </ul>
+     *
      * @param dto DTO de resposta da ordem de produção
      * @return Modelo HATEOAS enriquecido
      */
     @Override
     @NonNull
     public OrdemDeProducaoModel toModel(@NonNull OrdemDeProducaoResponseDTO dto) {
+        // Cria a instância do modelo HATEOAS
         OrdemDeProducaoModel model = instantiateModel(dto);
+        
+        // Delega a população dos campos para o Mapper, usando o padrão de atualização
+        mapper.updateModelFromDto(dto, model);
 
-        model.setId(dto.getId());
-        model.setProdutoId(dto.getProdutoId());
-        model.setNomeProduto(dto.getNomeProduto());
-        model.setLotesConsumidosIds(dto.getLotesConsumidosIds());
-        model.setQuantidadeProduzida(dto.getQuantidadeProduzida());
-        model.setModoCalculo(dto.getModoCalculo());
-        model.setDataCriacao(dto.getDataCriacao());
-        model.setDataAtualizacao(dto.getDataAtualizacao());
-        model.setMotivo(dto.getMotivo());
-        model.setLarguraFinalCm(dto.getLarguraFinalCm());
-        model.setComprimentoFinalCm(dto.getComprimentoFinalCm());
-        model.setRotacionado(dto.getRotacionado());
-        model.setCortesRealizados(dto.getCortesRealizados());
-        model.setDetalhesCorte(dto.getDetalhesCorte());
-
-        // Adiciona links HATEOAS
+        // Adiciona links de ação apenas se a ordem de produção já existir (tiver um ID)
         if (dto.getId() != null) {
             model.add(linkTo(methodOn(OrdemDeProducaoController.class).buscarPorId(dto.getId())).withSelfRel());
             model.add(linkTo(methodOn(OrdemDeProducaoController.class).excluir(dto.getId())).withRel("deletar-ordem-de-producao"));
         }
+        
+        // Adiciona link para a coleção de ordens de produção
         model.add(linkTo(OrdemDeProducaoController.class).withRel("ordens-de-producao"));
 
         return model;
     }
 
     /**
-     * Cria uma resposta HTTP 201 (Created) com o modelo HATEOAS e header Location apontando para o novo recurso.
+     * Cria uma resposta HTTP 201 (Created) com o modelo HATEOAS e o header 'Location'
+     * apontando para a URL do novo recurso criado.
+     *
+     * @param dto O DTO do recurso que acabou de ser criado.
+     * @return Um ResponseEntity com status 201 e o modelo do recurso no corpo.
      */
     public ResponseEntity<OrdemDeProducaoModel> toCreatedResponseEntity(@NonNull OrdemDeProducaoResponseDTO dto) {
         OrdemDeProducaoModel model = toModel(dto);

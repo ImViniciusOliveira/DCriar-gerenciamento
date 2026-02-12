@@ -4,6 +4,7 @@ import com.dcriar.api.dto.request.production.MargensRequestDTO;
 import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
 import com.dcriar.api.dto.response.production.MargensResponseDTO;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
+import com.dcriar.api.hateoas.production.model.OrdemDeProducaoModel;
 import com.dcriar.domain.production.entity.CorteRealizado;
 import com.dcriar.domain.production.entity.Margens;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
@@ -39,6 +40,15 @@ public interface OrdemDeProducaoMapper {
     @Mapping(source = "dataCriacao", target = "dataCriacao")
     @Mapping(source = "margens", target = "margens")
     OrdemDeProducaoResponseDTO toDto(OrdemDeProducao ordem);
+
+    /**
+     * Atualiza um modelo HATEOAS a partir de um DTO de resposta.
+     * Usa @MappingTarget para evitar a criação de uma nova instância, quebrando dependências circulares.
+     *
+     * @param dto O DTO de origem.
+     * @param model O Modelo HATEOAS de destino a ser atualizado.
+     */
+    void updateModelFromDto(OrdemDeProducaoResponseDTO dto, @MappingTarget OrdemDeProducaoModel model);
 
     /**
      * Converte um DTO de requisição de margens {@link MargensRequestDTO} para a entidade embutível {@link Margens}.
