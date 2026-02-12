@@ -2,15 +2,14 @@ package com.dcriar.api.mapper.production;
 
 import com.dcriar.api.dto.request.production.MargensRequestDTO;
 import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
+import com.dcriar.api.dto.response.production.MargensResponseDTO;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
 import com.dcriar.api.hateoas.production.model.OrdemDeProducaoModel;
 import com.dcriar.domain.production.entity.CorteRealizado;
 import com.dcriar.domain.production.entity.Margens;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingConstants;
-import org.mapstruct.Named;
+import com.dcriar.domain.production.enums.ModoCalculo;
+import org.mapstruct.*;
 
 import java.util.List;
 import java.util.Set;
@@ -39,6 +38,7 @@ public interface OrdemDeProducaoMapper {
     @Mapping(source = "lotesConsumidos", target = "lotesConsumidosIds", qualifiedByName = "lotesToIds")
     @Mapping(source = "cortesRealizados", target = "cortesRealizados")
     @Mapping(source = "dataCriacao", target = "dataCriacao")
+    @Mapping(source = "margens", target = "margens")
     OrdemDeProducaoResponseDTO toDto(OrdemDeProducao ordem);
 
     /**
@@ -63,6 +63,14 @@ public interface OrdemDeProducaoMapper {
     Margens toMargensEntity(MargensRequestDTO dto);
 
     /**
+     * Converte a entidade embutível {@link Margens} para o DTO de resposta {@link MargensResponseDTO}.
+     *
+     * @param margens A entidade de margens a ser convertida.
+     * @return O DTO de resposta correspondente.
+     */
+    MargensResponseDTO toMargensDto(Margens margens);
+
+    /**
      * Converte a entidade {@link CorteRealizado} para seu DTO de resposta.
      * O MapStruct usa este método para mapear a lista de cortes dentro do {@code toDto(OrdemDeProducao)}.
      *
@@ -83,5 +91,19 @@ public interface OrdemDeProducaoMapper {
     static List<Long> lotesToIds(Set<com.dcriar.domain.stock.entity.LoteMateriaPrima> lotes) {
         if (lotes == null) return null;
         return lotes.stream().map(com.dcriar.domain.stock.entity.LoteMateriaPrima::getId).collect(Collectors.toList());
+    }
+
+    /**
+     * Executa uma lógica customizada após o mapeamento da OrdemDeProducao para seu DTO.
+     * Garante que o campo 'margens' só seja populado se o modo de cálculo for AUTOMATICO.
+     *
+     * @param ordem A entidade de origem.
+     * @param dto O DTO de destino que acaba de ser mapeado.
+     */
+    @AfterMapping
+    default void afterMappingToDto(OrdemDeProducao ordem, @MappingTarget OrdemDeProducaoResponseDTO dto) {
+        if (dto.getModoCalculo() != ModoCalculo.AUTOMATICO) {
+            dto.setMargens(null);
+        }
     }
 }

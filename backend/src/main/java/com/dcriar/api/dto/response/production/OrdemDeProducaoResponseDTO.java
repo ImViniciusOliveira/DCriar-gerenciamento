@@ -42,6 +42,9 @@ public class OrdemDeProducaoResponseDTO extends RepresentationModel<OrdemDeProdu
     @Schema(description = "Modo de cálculo utilizado (relevante para ordens de corte).")
     private ModoCalculo modoCalculo;
 
+    @Schema(description = "Margens de segurança aplicadas no corte (relevante para modo automático).", nullable = true)
+    private MargensResponseDTO margens;
+
     @Schema(description = "Data e hora em que a ordem foi criada.")
     private LocalDateTime dataCriacao;
 
