@@ -6,8 +6,6 @@ import com.dcriar.domain.production.enums.ModoCalculo;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.hateoas.RepresentationModel;
@@ -22,8 +20,6 @@ import java.util.List;
  */
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper = false)
-@Builder
 @JsonRootName(value = "ordemDeProducao")
 @Relation(collectionRelation = "ordensDeProducao", itemRelation = "ordemDeProducao")
 @JsonInclude(JsonInclude.Include.NON_NULL)

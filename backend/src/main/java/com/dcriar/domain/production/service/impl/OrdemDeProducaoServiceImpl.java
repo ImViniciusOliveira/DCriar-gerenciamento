@@ -30,10 +30,12 @@ import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.exception.custom.*;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -327,6 +329,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OrdemDeProducaoResponseDTO buscarPorId(Long id) {
         return ordemDeProducaoRepository.findByIdWithDetails(id)
                 .map(ordemDeProducaoMapper::toDto)
@@ -334,10 +337,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     @Override
-    public List<OrdemDeProducaoResponseDTO> listarTodas() {
-        return ordemDeProducaoRepository.findAllWithDetails().stream()
-                .map(ordemDeProducaoMapper::toDto)
-                .collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public Page<OrdemDeProducaoResponseDTO> listarPaginado(Pageable pageable) {
+        Page<OrdemDeProducao> ordensPage = ordemDeProducaoRepository.findAll(pageable);
+        return ordensPage.map(ordemDeProducaoMapper::toDto);
     }
 
     @Override

@@ -4,7 +4,6 @@ import com.dcriar.api.dto.request.production.MargensRequestDTO;
 import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
 import com.dcriar.api.dto.response.production.MargensResponseDTO;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
-import com.dcriar.api.hateoas.production.model.OrdemDeProducaoModel;
 import com.dcriar.domain.production.entity.CorteRealizado;
 import com.dcriar.domain.production.entity.Margens;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
@@ -40,17 +39,6 @@ public interface OrdemDeProducaoMapper {
     @Mapping(source = "dataCriacao", target = "dataCriacao")
     @Mapping(source = "margens", target = "margens")
     OrdemDeProducaoResponseDTO toDto(OrdemDeProducao ordem);
-
-    /**
-     * Converte um DTO de resposta {@link OrdemDeProducaoResponseDTO} para o modelo de representação HATEOAS {@link OrdemDeProducaoModel}.
-     * <p>
-     * Como os nomes dos campos são idênticos, o MapStruct realiza o mapeamento automaticamente.
-     * Este método é utilizado pelo assembler HATEOAS para encapsular o DTO antes de adicionar os links.
-     *
-     * @param dto O DTO de resposta a ser convertido.
-     * @return O Modelo HATEOAS correspondente.
-     */
-    OrdemDeProducaoModel toModel(OrdemDeProducaoResponseDTO dto);
 
     /**
      * Converte um DTO de requisição de margens {@link MargensRequestDTO} para a entidade embutível {@link Margens}.

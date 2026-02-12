@@ -18,11 +18,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.hateoas.CollectionModel;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * Controller responsável por expor os endpoints relacionados a Ordens de Produção.
@@ -73,12 +77,14 @@ public class OrdemDeProducaoController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todas as ordens de produção")
-    @ApiResponse(responseCode = "200", description = "Lista de ordens de produção retornada com sucesso.")
-    public ResponseEntity<CollectionModel<OrdemDeProducaoModel>> listarTodas() {
-        List<OrdemDeProducaoResponseDTO> dtos = ordemDeProducaoService.listarTodas();
-        CollectionModel<OrdemDeProducaoModel> collectionModel = ordemDeProducaoModelAssembler.toCollectionModel(dtos);
-        return ResponseEntity.ok(collectionModel);
+    @Operation(summary = "Listar ordens de produção de forma paginada")
+    @ApiResponse(responseCode = "200", description = "Lista paginada de ordens de produção retornada com sucesso.")
+    public ResponseEntity<PagedModel<OrdemDeProducaoModel>> listar(
+            @ParameterObject @PageableDefault(sort = "dataCriacao", direction = Sort.Direction.DESC) Pageable pageable,
+            PagedResourcesAssembler<OrdemDeProducaoResponseDTO> assembler) {
+        Page<OrdemDeProducaoResponseDTO> page = ordemDeProducaoService.listarPaginado(pageable);
+        PagedModel<OrdemDeProducaoModel> pagedModel = assembler.toModel(page, ordemDeProducaoModelAssembler);
+        return ResponseEntity.ok(pagedModel);
     }
 
     @DeleteMapping("/{id}")

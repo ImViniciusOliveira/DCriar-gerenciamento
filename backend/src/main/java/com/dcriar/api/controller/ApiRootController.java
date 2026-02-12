@@ -39,7 +39,7 @@ public class ApiRootController {
         rootModel.add(linkTo(LoteMateriaPrimaController.class).withRel("lotes-materia-prima"));
         rootModel.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("tipos-materia-prima"));
         rootModel.add(linkTo(VendaController.class).withRel("vendas"));
-        rootModel.add(linkTo(methodOn(OrdemDeProducaoController.class).listarTodas()).withRel("ordens-de-producao"));
+        rootModel.add(linkTo(OrdemDeProducaoController.class).withRel("ordens-de-producao"));
         rootModel.add(linkTo(CanalVendaController.class).withRel("canais-venda"));
         
         // Adiciona o link para o recurso raiz de estoques (sub-menu)

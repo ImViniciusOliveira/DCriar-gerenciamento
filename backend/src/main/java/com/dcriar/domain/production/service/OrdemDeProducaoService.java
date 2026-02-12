@@ -7,8 +7,8 @@ import com.dcriar.api.dto.request.production.SimulacaoCorteRequestDTO;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoConsumoDiretoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Interface que define o contrato para a lógica de negócio de Ordens de Produção.
@@ -50,11 +50,12 @@ public interface OrdemDeProducaoService {
     OrdemDeProducaoResponseDTO buscarPorId(Long id);
 
     /**
-     * Lista todas as ordens de produção registradas no sistema.
+     * Lista as ordens de produção de forma paginada.
      *
-     * @return Uma lista de DTOs de resposta contendo todas as ordens de produção.
+     * @param pageable Objeto com as informações de paginação (página, tamanho, ordenação).
+     * @return Uma página de DTOs de resposta contendo as ordens de produção.
      */
-    List<OrdemDeProducaoResponseDTO> listarTodas();
+    Page<OrdemDeProducaoResponseDTO> listarPaginado(Pageable pageable);
 
     /**
      * Simula uma produção baseada em corte, calculando o tamanho final do material
