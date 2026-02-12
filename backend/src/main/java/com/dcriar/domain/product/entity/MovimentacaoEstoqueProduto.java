@@ -1,6 +1,7 @@
 package com.dcriar.domain.product.entity;
 
 import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
+import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import jakarta.persistence.*;
 import lombok.*;
@@ -41,6 +42,13 @@ public class MovimentacaoEstoqueProduto {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "produto_id", nullable = false)
     private Produto produto;
+
+    /**
+     * A ordem de produção que originou esta movimentação (se aplicável).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordem_producao_id")
+    private OrdemDeProducao ordemDeProducao;
 
     /**
      * A data e hora em que a movimentação foi registrada.

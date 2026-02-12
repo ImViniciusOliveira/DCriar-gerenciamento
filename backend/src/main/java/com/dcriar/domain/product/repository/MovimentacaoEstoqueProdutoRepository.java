@@ -1,5 +1,6 @@
 package com.dcriar.domain.product.repository;
 
+import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -33,4 +34,12 @@ public interface MovimentacaoEstoqueProdutoRepository extends JpaRepository<Movi
      */
     List<MovimentacaoEstoqueProduto> findAllByProduto(Produto produto);
 
+    /**
+     * Busca todas as movimentações de produto associadas a uma ordem de produção específica.
+     * Usado para rastreabilidade e estorno.
+     *
+     * @param ordemDeProducao A ordem de produção.
+     * @return Lista de movimentações.
+     */
+    List<MovimentacaoEstoqueProduto> findByOrdemDeProducao(OrdemDeProducao ordemDeProducao);
 }

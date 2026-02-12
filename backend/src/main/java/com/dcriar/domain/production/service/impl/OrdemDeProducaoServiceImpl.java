@@ -54,6 +54,7 @@ import java.util.stream.Collectors;
  * <li>Orquestrar a entrada no estoque de produtos acabados.</li>
  * <li>Gerar novos lotes de matéria-prima a partir de sobras (retalhos) em ordens de corte.</li>
  * <li>Distribuir opcionalmente o estoque produzido para canais de venda.</li>
+ * <li>Gerenciar o estorno completo em caso de exclusão da ordem.</li>
  * </ul>
  */
 @Service
@@ -97,19 +98,15 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
             consumoTotalMetros = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
 
-            cortesRealizadosDTOs = gerarCortesManuais(requestDTO, produto, lotePrincipal);
+            cortesRealizadosDTOs = gerarCortesManuais(requestDTO, produto);
 
         } else {
-            // LÓGICA DE MARGEM CORRIGIDA
-            // As margens agora definem a área útil de corte desde o início.
             parametros = corteCalculatorService.extrairParametrosCorte(
                     requestDTO.getQuantidadeProduzida(), produto, lotePrincipal, requestDTO.getMargens()
             );
 
-            // Calcula o comprimento base necessário apenas para os produtos.
             long numeroDeLinhas = (long) Math.ceil((double) requestDTO.getQuantidadeProduzida() / parametros.produtosPorLinha());
 
-            // O comprimento final a ser consumido é o dos produtos mais as margens superior/inferior.
             comprimentoFinalCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhas));
             if (requestDTO.getMargens() != null) {
                 comprimentoFinalCm = comprimentoFinalCm
@@ -117,12 +114,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                         .add(Optional.ofNullable(requestDTO.getMargens().getInferior()).orElse(BigDecimal.ZERO));
             }
             consumoTotalMetros = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
-
-            // A largura final reportada é a largura física total do lote, já que as margens estão contidas nela.
             larguraFinalCm = parametros.larguraTotalLoteCm();
-
-            // Gera os cortes e retalhos com base nas dimensões físicas reais e no comprimento total consumido.
-            cortesRealizadosDTOs = gerarCortesRealizadosDinamico(parametros, lotePrincipal, comprimentoFinalCm);
+            cortesRealizadosDTOs = gerarCortesRealizadosDinamico(parametros, comprimentoFinalCm);
         }
 
 
@@ -169,9 +162,16 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordem);
 
         // 5. Orquestra as movimentações de estoque.
-        registrarSaidaLote(lotePrincipal, consumoTotalMetros, "Consumido pela Ordem de Produção #" + savedOrdem.getId());
-        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId());
+        registrarSaidaLote(lotePrincipal, consumoTotalMetros, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
+        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
         distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
+
+        // 6. Criação de Lotes de Retalho
+        for (CorteRealizadoResponseDTO dto : cortesRealizadosDTOs) {
+             if ("RETALHO".equals(dto.getTipo())) {
+                 criarLoteDeRetalho(lotePrincipal, dto.getLarguraCm(), dto.getComprimentoCm().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP), savedOrdem);
+             }
+        }
 
         return ordemDeProducaoMapper.toDto(savedOrdem);
     }
@@ -217,31 +217,113 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordem);
 
         // 4. Orquestra as movimentações de estoque.
-        // Consome dos lotes sequencialmente até atingir o necessário.
         BigDecimal consumoRestante = consumoTotalNecessario;
         for (LoteMateriaPrima lote : lotesConsumidos) {
             if (consumoRestante.compareTo(BigDecimal.ZERO) <= 0) break;
             BigDecimal saldoDoLote = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
             BigDecimal consumoNesteLote = saldoDoLote.min(consumoRestante);
             if (consumoNesteLote.compareTo(BigDecimal.ZERO) > 0) {
-                registrarSaidaLote(lote, consumoNesteLote, "Consumido pela Ordem de Produção #" + savedOrdem.getId());
+                registrarSaidaLote(lote, consumoNesteLote, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
                 consumoRestante = consumoRestante.subtract(consumoNesteLote);
             }
         }
 
-        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId());
+        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
         distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
 
         return ordemDeProducaoMapper.toDto(savedOrdem);
     }
 
+    /**
+     * Exclui uma ordem de produção e estorna todas as movimentações de estoque associadas.
+     * <p>
+     * A exclusão é uma operação crítica que só é permitida se a integridade do estoque
+     * for mantida. O método realiza as seguintes validações antes de prosseguir:
+     * <ol>
+     *     <li>Verifica se a quantidade de produto acabado gerada pela ordem ainda está disponível no estoque. Se parte já foi vendida, a exclusão é bloqueada.</li>
+     *     <li>Verifica se os lotes de retalho gerados pela ordem ainda estão intactos (não foram utilizados em outras produções). Se algum retalho já foi consumido, a exclusão é bloqueada.</li>
+     * </ol>
+     * Se as validações passarem, o método reverte todas as operações:
+     * <ul>
+     *     <li>Cria uma movimentação de saída para o produto acabado (estorno).</li>
+     *     <li>Cria movimentações de entrada para a matéria-prima (devolução aos lotes originais).</li>
+     *     <li>Exclui fisicamente os lotes de retalho gerados.</li>
+     *     <li>Exclui a ordem de produção.</li>
+     * </ul>
+     *
+     * @param id O ID da ordem de produção a ser excluída.
+     * @throws OrdemDeProducaoNaoEncontradaException se a ordem não existir.
+     * @throws ImpossivelExcluirProducaoException se as regras de integridade forem violadas.
+     */
     @Override
     @Transactional
     public void excluir(Long id) {
-        if (!ordemDeProducaoRepository.existsById(id)) {
-            throw new OrdemDeProducaoNaoEncontradaException(id);
+        OrdemDeProducao ordem = ordemDeProducaoRepository.findById(id)
+                .orElseThrow(() -> new OrdemDeProducaoNaoEncontradaException(id));
+
+        // 1. Validação: Produto Acabado
+        Integer saldoAtualProduto = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(ordem.getProduto());
+        if (saldoAtualProduto < ordem.getQuantidadeProduzida()) {
+            throw new ImpossivelExcluirProducaoException(
+                    String.format("Estoque insuficiente para estorno. Produzido: %d, Saldo Atual: %d. Produtos já foram vendidos ou consumidos.",
+                            ordem.getQuantidadeProduzida(), saldoAtualProduto)
+            );
         }
-        ordemDeProducaoRepository.deleteById(id);
+
+        // 2. Validação: Retalhos Gerados
+        List<LoteMateriaPrima> retalhosGerados = loteMateriaPrimaRepository.findByOrdemDeProducaoOrigem(ordem);
+        for (LoteMateriaPrima retalho : retalhosGerados) {
+            boolean temSaida = retalho.getMovimentacoes().stream()
+                    .anyMatch(m -> m.getQuantidade().compareTo(BigDecimal.ZERO) < 0);
+            
+            if (temSaida) {
+                 throw new ImpossivelExcluirProducaoException(
+                    String.format("O retalho gerado (Lote #%d) já foi utilizado em outra produção.", retalho.getId())
+            );
+            }
+        }
+
+        // 3. Estorno: Produto Acabado
+        MovimentacaoEstoqueProdutoRequestDTO estornoProdutoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
+                .produtoId(ordem.getProduto().getId())
+                .tipo(TipoMovimentacaoProduto.ESTORNO_PRODUCAO.name())
+                .quantidade(-ordem.getQuantidadeProduzida())
+                .motivo("Estorno da Ordem de Produção #" + ordem.getId())
+                .build();
+        MovimentacaoEstoqueProduto estornoProduto = MovimentacaoEstoqueProduto.from(estornoProdutoDTO, ordem.getProduto());
+        movimentacaoEstoqueProdutoRepository.save(estornoProduto);
+
+        // 4. Estorno: Matéria-Prima
+        List<MovimentacaoEstoqueLote> baixasMP = movimentacaoEstoqueLoteRepository.findByOrdemDeProducao(ordem);
+        for (MovimentacaoEstoqueLote baixa : baixasMP) {
+            if (baixa.getQuantidade().compareTo(BigDecimal.ZERO) >= 0) continue;
+
+            MovimentacaoRequestDTO estornoMPDTO = MovimentacaoRequestDTO.builder()
+                    .tipo(TipoMovimentacao.ESTORNO_PRODUCAO)
+                    .quantidade(baixa.getQuantidade().abs())
+                    .motivo("Estorno da Ordem de Produção #" + ordem.getId())
+                    .build();
+            MovimentacaoEstoqueLote estornoMP = MovimentacaoEstoqueLote.from(estornoMPDTO, baixa.getLote());
+            movimentacaoEstoqueLoteRepository.save(estornoMP);
+        }
+
+        // 5. Limpeza: Vínculos
+        // Dissocia todas as movimentações da ordem antes de excluí-la para evitar erros de objeto transiente.
+        List<MovimentacaoEstoqueProduto> movimentosProduto = movimentacaoEstoqueProdutoRepository.findByOrdemDeProducao(ordem);
+        movimentosProduto.forEach(mov -> mov.setOrdemDeProducao(null));
+        movimentacaoEstoqueProdutoRepository.saveAll(movimentosProduto);
+
+        baixasMP.forEach(mov -> mov.setOrdemDeProducao(null));
+        movimentacaoEstoqueLoteRepository.saveAll(baixasMP);
+
+        // 6. Limpeza: Retalhos e Relações da Ordem
+        loteMateriaPrimaRepository.deleteAll(retalhosGerados);
+        ordem.getLotesConsumidos().clear();
+        // Não é mais necessário salvar a ordem aqui, pois ela será deletada.
+        // ordemDeProducaoRepository.save(ordem);
+
+        // 7. Exclusão Final: Ordem de Produção
+        ordemDeProducaoRepository.delete(ordem);
     }
 
     @Override
@@ -264,13 +346,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
             throw new TipoProducaoIncompativelException("Este produto não utiliza uma matéria-prima geométrica para simulação de corte.");
         }
-
-        // Busca o primeiro lote compatível com estoque para usar como base para a simulação.
         LoteMateriaPrima loteParaSimulacao = loteMateriaPrimaRepository.findAllByTipoMateriaPrima(produto.getTipoMateriaPrima()).stream()
                 .filter(lote -> movimentacaoEstoqueLoteRepository.findSaldoByLote(lote).compareTo(BigDecimal.ZERO) > 0)
                 .findFirst()
                 .orElseThrow(() -> new NenhumLoteComEstoqueException("Não há lotes de matéria-prima com estoque disponível para este produto."));
-
 
         ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(requestDTO.getQuantidade(), produto, loteParaSimulacao, null);
         long numeroDeLinhas = (long) Math.ceil((double) requestDTO.getQuantidade() / parametros.produtosPorLinha());
@@ -291,7 +370,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumoDireto()) {
             throw new TipoProducaoIncompativelException("Este produto utiliza uma matéria-prima geométrica. Utilize o simulador de corte.");
         }
-
         BigDecimal consumoTotalEstimado = new BigDecimal(produto.getUnidadesPorProduto() * requestDTO.getQuantidade());
         return SimulacaoConsumoDiretoResponseDTO.builder()
                 .consumoTotalEstimado(consumoTotalEstimado)
@@ -299,133 +377,97 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .build();
     }
 
-    private List<CorteRealizadoResponseDTO> gerarCortesManuais(OrdemDeCorteRequestDTO requestDTO, Produto produto, LoteMateriaPrima lotePrincipal) {
+    // --- Métodos Privados de Geração de Cortes ---
+
+    private List<CorteRealizadoResponseDTO> gerarCortesManuais(OrdemDeCorteRequestDTO requestDTO, Produto produto) {
         if (!(produto instanceof ProdutoDeCorte produtoDeCorte)) {
             throw new TipoProducaoIncompativelException("Corte manual só é aplicável a produtos do tipo 'CORTE'.");
         }
-
         BigDecimal larguraFinalCm = requestDTO.getLarguraFinalCm();
         BigDecimal comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
         BigDecimal larguraProduto = produtoDeCorte.getDimensoes().getLarguraCm();
         BigDecimal comprimentoProduto = produtoDeCorte.getDimensoes().getComprimentoCm();
         int quantidadeProduzida = requestDTO.getQuantidadeProduzida();
-
         List<CorteRealizadoResponseDTO> cortes = new ArrayList<>();
-
         int produtosPorLinha = larguraFinalCm.divide(larguraProduto, 0, RoundingMode.DOWN).intValue();
         if (produtosPorLinha == 0) {
             throw new DimensoesManuaisInvalidasException(String.format("A largura final (%.2f cm) é menor que a largura do produto (%.2f cm).", larguraFinalCm, larguraProduto));
         }
-
         int produtosRestantes = quantidadeProduzida;
         BigDecimal comprimentoAcumulado = BigDecimal.ZERO;
-
-        // Objeto para manter o estado da sequência de retalhos laterais
         RetalhoLateralTracker tracker = new RetalhoLateralTracker();
-
-        // Percorre linha por linha, montando cortes de produto e detectando retalhos laterais
         while (produtosRestantes > 0) {
             int produtosNestaLinha = Math.min(produtosPorLinha, produtosRestantes);
-
             if (comprimentoAcumulado.add(comprimentoProduto).compareTo(comprimentoFinalCm) > 0) {
-                throw new DimensoesManuaisInvalidasException(String.format("O comprimento final (%.2f cm) não é suficiente para produzir a quantidade solicitada, que exigiria um comprimento de pelo menos %.2f cm.", comprimentoFinalCm, comprimentoAcumulado.add(comprimentoProduto)));
+                throw new DimensoesManuaisInvalidasException(String.format("O comprimento final (%.2f cm) não é suficiente para produzir a quantidade solicitada.", comprimentoFinalCm));
             }
-
             cortes.add(criarCorteProduto(larguraProduto, comprimentoProduto, produtosNestaLinha));
-
             BigDecimal larguraOcupada = larguraProduto.multiply(new BigDecimal(produtosNestaLinha));
             BigDecimal larguraRetalhoAtual = larguraFinalCm.subtract(larguraOcupada);
-
-            processarRetalhoLateral(tracker, larguraRetalhoAtual, comprimentoProduto, lotePrincipal, cortes);
-
+            processarRetalhoLateral(tracker, larguraRetalhoAtual, comprimentoProduto, cortes);
             comprimentoAcumulado = comprimentoAcumulado.add(comprimentoProduto);
             produtosRestantes -= produtosNestaLinha;
         }
-
-        // Fecha qualquer sequência de retalho lateral pendente
-        fecharSequenciaDeRetalhoLateral(tracker, lotePrincipal, cortes);
-
-
-        // Retalho final (sobra de comprimento)
+        fecharSequenciaDeRetalhoLateral(tracker, cortes);
         BigDecimal comprimentoRetalhoFinal = comprimentoFinalCm.subtract(comprimentoAcumulado);
         if (comprimentoRetalhoFinal.compareTo(BigDecimal.ZERO) > 0) {
             cortes.add(criarCorteRetalho(larguraFinalCm, comprimentoRetalhoFinal, "FINAL"));
-            criarLoteDeRetalho(lotePrincipal, larguraFinalCm, comprimentoRetalhoFinal.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
         }
-
         return cortes;
     }
 
-
-    private List<CorteRealizadoResponseDTO> gerarCortesRealizadosDinamico(ParametrosCorte parametros, LoteMateriaPrima lotePrincipal, BigDecimal ordemComprimentoFinalCm) {
+    private List<CorteRealizadoResponseDTO> gerarCortesRealizadosDinamico(ParametrosCorte parametros, BigDecimal ordemComprimentoFinalCm) {
         List<CorteRealizadoResponseDTO> cortesRealizados = new ArrayList<>();
         int produtosRestantes = parametros.quantidade();
-
         RetalhoLateralTracker tracker = new RetalhoLateralTracker();
-        BigDecimal comprimentoAcumuladoProdutos = BigDecimal.ZERO; // Acompanha o comprimento consumido pelos produtos
-
+        BigDecimal comprimentoAcumuladoProdutos = BigDecimal.ZERO;
         while (produtosRestantes > 0) {
             int produtosNestaLinha = Math.min(parametros.produtosPorLinha(), produtosRestantes);
             if (produtosNestaLinha <= 0) break;
-
             cortesRealizados.add(criarCorteProduto(parametros.larguraProduto(), parametros.comprimentoProduto(), produtosNestaLinha));
-
-            // O retalho lateral é calculado sobre a LARGURA ÚTIL, não a largura total do lote.
             BigDecimal larguraProdutosOcupada = parametros.larguraProduto().multiply(new BigDecimal(produtosNestaLinha));
             BigDecimal larguraRetalhoLinha = parametros.larguraUtilCm().subtract(larguraProdutosOcupada);
             BigDecimal comprimentoLinha = parametros.comprimentoProduto();
-
-            processarRetalhoLateral(tracker, larguraRetalhoLinha, comprimentoLinha, lotePrincipal, cortesRealizados);
-
-            comprimentoAcumuladoProdutos = comprimentoAcumuladoProdutos.add(comprimentoLinha); // Acumula o comprimento do produto
+            processarRetalhoLateral(tracker, larguraRetalhoLinha, comprimentoLinha, cortesRealizados);
+            comprimentoAcumuladoProdutos = comprimentoAcumuladoProdutos.add(comprimentoLinha);
             produtosRestantes -= produtosNestaLinha;
         }
-
-        // Fecha qualquer sequência lateral pendente
-        fecharSequenciaDeRetalhoLateral(tracker, lotePrincipal, cortesRealizados);
-
-        // Retalho final (sobra de comprimento)
+        fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
         BigDecimal comprimentoRetalhoFinal = ordemComprimentoFinalCm.subtract(comprimentoAcumuladoProdutos);
         if (comprimentoRetalhoFinal.compareTo(BigDecimal.ZERO) > 0) {
-            cortesRealizados.add(criarCorteRetalho(parametros.larguraTotalLoteCm(), comprimentoRetalhoFinal, "FINAL")); // Usa a largura total do lote para o retalho final
-            criarLoteDeRetalho(lotePrincipal, parametros.larguraTotalLoteCm(), comprimentoRetalhoFinal.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
+            cortesRealizados.add(criarCorteRetalho(parametros.larguraTotalLoteCm(), comprimentoRetalhoFinal, "FINAL"));
         }
-
         return cortesRealizados;
     }
+
+    // --- Métodos Auxiliares ---
 
     private static class RetalhoLateralTracker {
         BigDecimal larguraSequencia = null;
         BigDecimal comprimentoSequencia = BigDecimal.ZERO;
     }
 
-    private void processarRetalhoLateral(RetalhoLateralTracker tracker, BigDecimal larguraRetalhoLinha, BigDecimal comprimentoLinha, LoteMateriaPrima lotePrincipal, List<CorteRealizadoResponseDTO> cortesRealizados) {
+    private void processarRetalhoLateral(RetalhoLateralTracker tracker, BigDecimal larguraRetalhoLinha, BigDecimal comprimentoLinha, List<CorteRealizadoResponseDTO> cortesRealizados) {
         if (larguraRetalhoLinha.compareTo(BigDecimal.ZERO) > 0) {
-            // Se já existe uma sequência e a largura do retalho atual é a mesma, acumula o comprimento.
             if (tracker.larguraSequencia != null && larguraRetalhoLinha.compareTo(tracker.larguraSequencia) == 0) {
                 tracker.comprimentoSequencia = tracker.comprimentoSequencia.add(comprimentoLinha);
             } else {
-                // Se a largura for diferente, fecha a sequência anterior e inicia uma nova.
-                fecharSequenciaDeRetalhoLateral(tracker, lotePrincipal, cortesRealizados);
+                fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
                 tracker.larguraSequencia = larguraRetalhoLinha;
                 tracker.comprimentoSequencia = comprimentoLinha;
             }
         } else {
-            // Se não há retalho nesta linha, fecha qualquer sequência que estava em andamento.
-            fecharSequenciaDeRetalhoLateral(tracker, lotePrincipal, cortesRealizados);
+            fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
         }
     }
 
-    private void fecharSequenciaDeRetalhoLateral(RetalhoLateralTracker tracker, LoteMateriaPrima lotePrincipal, List<CorteRealizadoResponseDTO> cortesRealizados) {
+    private void fecharSequenciaDeRetalhoLateral(RetalhoLateralTracker tracker, List<CorteRealizadoResponseDTO> cortesRealizados) {
         if (tracker.larguraSequencia != null && tracker.comprimentoSequencia.compareTo(BigDecimal.ZERO) > 0) {
             cortesRealizados.add(criarCorteRetalho(tracker.larguraSequencia, tracker.comprimentoSequencia, "LATERAL"));
-            criarLoteDeRetalho(lotePrincipal, tracker.larguraSequencia, tracker.comprimentoSequencia.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
-            // Reseta o tracker
             tracker.larguraSequencia = null;
             tracker.comprimentoSequencia = BigDecimal.ZERO;
         }
     }
-
 
     private CorteRealizadoResponseDTO criarCorteProduto(BigDecimal larguraProduto, BigDecimal comprimentoProduto, int quantidade) {
         return CorteRealizadoResponseDTO.builder()
@@ -446,7 +488,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .build();
     }
 
-    private void criarLoteDeRetalho(LoteMateriaPrima lotePrincipal, BigDecimal larguraSobraCm, BigDecimal comprimentoMetros) {
+    private void criarLoteDeRetalho(LoteMateriaPrima lotePrincipal, BigDecimal larguraSobraCm, BigDecimal comprimentoMetros, OrdemDeProducao ordemOrigem) {
         if (larguraSobraCm.compareTo(BigDecimal.ZERO) <= 0 || comprimentoMetros.compareTo(BigDecimal.ZERO) <= 0) return;
         Map<String, Object> novosAtributos = Map.of("larguraMm", larguraSobraCm.multiply(new BigDecimal("10")).intValue());
         LoteMateriaPrima loteRetalho = LoteMateriaPrima.builder()
@@ -454,24 +496,30 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .unidadeDeEstoque(lotePrincipal.getUnidadeDeEstoque())
                 .atributos(novosAtributos)
                 .loteDeOrigem(lotePrincipal)
+                .ordemDeProducaoOrigem(ordemOrigem)
                 .build();
+        
+        loteRetalho = loteMateriaPrimaRepository.save(loteRetalho);
+
         MovimentacaoRequestDTO entradaRetalhoDTO = com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO.builder()
                 .tipo(TipoMovimentacao.ENTRADA_SOBRA)
                 .quantidade(comprimentoMetros)
-                .motivo("Retalho gerado pela Ordem de Produção a partir do Lote ID: " + lotePrincipal.getId())
+                .motivo("Retalho gerado pela Ordem de Produção #" + ordemOrigem.getId())
                 .build();
         MovimentacaoEstoqueLote entradaRetalho = MovimentacaoEstoqueLote.from(entradaRetalhoDTO, loteRetalho);
-        loteRetalho.getMovimentacoes().add(entradaRetalho);
-        loteMateriaPrimaRepository.save(loteRetalho);
+        entradaRetalho.setOrdemDeProducao(ordemOrigem);
+        
+        movimentacaoEstoqueLoteRepository.save(entradaRetalho);
     }
 
-    private void registrarSaidaLote(LoteMateriaPrima lote, BigDecimal quantidade, String motivo) {
+    private void registrarSaidaLote(LoteMateriaPrima lote, BigDecimal quantidade, String motivo, OrdemDeProducao ordem) {
         MovimentacaoRequestDTO saidaDTO = com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO.builder()
                 .tipo(com.dcriar.domain.stock.entity.enums.TipoMovimentacao.SAIDA_PRODUCAO)
                 .quantidade(quantidade.negate())
                 .motivo(motivo)
                 .build();
         MovimentacaoEstoqueLote saida = MovimentacaoEstoqueLote.from(saidaDTO, lote);
+        saida.setOrdemDeProducao(ordem);
         movimentacaoEstoqueLoteRepository.save(saida);
     }
 
@@ -486,7 +534,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
     }
 
-    public void registrarEntradaProduto(Produto produto, int quantidade, String motivo) {
+    public void registrarEntradaProduto(Produto produto, int quantidade, String motivo, OrdemDeProducao ordem) {
         MovimentacaoEstoqueProdutoRequestDTO movimentacaoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
                 .produtoId(produto.getId())
                 .tipo(TipoMovimentacaoProduto.ENTRADA_PRODUCAO.name())
@@ -494,6 +542,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .motivo(motivo)
                 .build();
         MovimentacaoEstoqueProduto entrada = MovimentacaoEstoqueProduto.from(movimentacaoDTO, produto);
+        entrada.setOrdemDeProducao(ordem);
         movimentacaoEstoqueProdutoRepository.save(entrada);
     }
 

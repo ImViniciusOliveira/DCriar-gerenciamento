@@ -79,7 +79,7 @@ public class GlobalExceptionHandler {
      * {@link DimensoesManuaisInvalidasException}, {@link MargemInvalidaException},
      * {@link NenhumLoteComEstoqueException}, {@link LotePrincipalNaoEspecificadoException},
      * {@link ProdutoNaoCabeNoLoteException}, {@link QuantidadeUnidadesInvalidaException},
-     * e {@link TipoProducaoIncompativelException}.
+     * {@link TipoProducaoIncompativelException} e {@link ImpossivelExcluirProducaoException}.
      *
      * @param ex A exceção de regra de negócio lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
@@ -88,7 +88,8 @@ public class GlobalExceptionHandler {
             PrecoVarejoNaoDefinidoException.class, LoteInvalidoException.class,
             AtributoLoteInvalidoException.class, CalculoCustoIncompativelException.class, DimensoesManuaisInvalidasException.class,
             MargemInvalidaException.class, NenhumLoteComEstoqueException.class, LotePrincipalNaoEspecificadoException.class,
-            ProdutoNaoCabeNoLoteException.class, QuantidadeUnidadesInvalidaException.class, TipoProducaoIncompativelException.class
+            ProdutoNaoCabeNoLoteException.class, QuantidadeUnidadesInvalidaException.class, TipoProducaoIncompativelException.class,
+            ImpossivelExcluirProducaoException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
         log.warn("Exceção de Regra de Negócio: {}", ex.getMessage());

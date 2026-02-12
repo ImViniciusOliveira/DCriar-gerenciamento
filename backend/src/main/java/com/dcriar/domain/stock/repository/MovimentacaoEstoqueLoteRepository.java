@@ -1,5 +1,6 @@
 package com.dcriar.domain.stock.repository;
 
+import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -42,5 +43,13 @@ public interface MovimentacaoEstoqueLoteRepository extends JpaRepository<Movimen
      * @return Uma lista com todas as movimentações do lote.
      */
     List<MovimentacaoEstoqueLote> findAllByLote(LoteMateriaPrima lote);
-}
 
+    /**
+     * Busca todas as movimentações de lote associadas a uma ordem de produção específica.
+     * Usado para rastreabilidade e estorno.
+     *
+     * @param ordemDeProducao A ordem de produção.
+     * @return Lista de movimentações.
+     */
+    List<MovimentacaoEstoqueLote> findByOrdemDeProducao(OrdemDeProducao ordemDeProducao);
+}

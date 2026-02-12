@@ -36,5 +36,11 @@ public enum TipoMovimentacao {
     /**
      * Regista a entrada de uma sobra (retalho) gerada a partir de um processo de produção. (Quantidade positiva)
      */
-    ENTRADA_SOBRA
+    ENTRADA_SOBRA,
+
+    /**
+     * Representa o estorno de uma saída de produção, devolvendo o material ao estoque.
+     * Utilizado quando uma Ordem de Produção é excluída. (Quantidade positiva)
+     */
+    ESTORNO_PRODUCAO
 }

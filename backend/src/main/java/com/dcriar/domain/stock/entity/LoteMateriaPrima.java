@@ -2,6 +2,7 @@ package com.dcriar.domain.stock.entity;
 
 import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.domain.common.entity.AuditableEntity;
+import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
@@ -91,6 +92,14 @@ public class LoteMateriaPrima extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lote_de_origem_id")
     private LoteMateriaPrima loteDeOrigem;
+
+    /**
+     * A ordem de produção que gerou este lote (se for um retalho).
+     * Permite rastrear quais lotes foram criados por uma ordem específica.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordem_producao_origem_id")
+    private OrdemDeProducao ordemDeProducaoOrigem;
 
     /**
      * Campo transiente para expor o saldo calculado.
