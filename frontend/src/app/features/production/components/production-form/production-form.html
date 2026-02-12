@@ -2,7 +2,7 @@
 
 <form [formGroup]="form" (ngSubmit)="onSave()">
   <mat-dialog-content>
-    <div class="form-grid">
+    <div class="form-grid two-columns">
       <!-- Produto -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Produto</mat-label>
@@ -21,19 +21,42 @@
         <input matInput formControlName="modoCalculo">
       </mat-form-field>
 
-      <!-- Dimensões (Apenas se houver valor) -->
-      @if (form.get('larguraFinalCm')?.value) {
+      <!-- Dimensões (Sempre visível se houver valor) -->
+      @if (form.get('dimensoes')?.value) {
         <mat-form-field appearance="outline">
-          <mat-label>Largura (cm)</mat-label>
-          <input matInput formControlName="larguraFinalCm">
+          <mat-label>Largura x Comprimento (cm)</mat-label>
+          <input matInput formControlName="dimensoes">
         </mat-form-field>
       }
 
-      @if (form.get('comprimentoFinalCm')?.value) {
-        <mat-form-field appearance="outline">
-          <mat-label>Comprimento (cm)</mat-label>
-          <input matInput formControlName="comprimentoFinalCm">
-        </mat-form-field>
+      <!-- Detalhes do Corte Automático -->
+      @if (data.order?.modoCalculo === 'AUTOMATICO') {
+        <div class="details-section full-width">
+          <h3 class="section-title">Detalhes do Corte Automático</h3>
+
+          <mat-checkbox formControlName="rotacionado" class="details-checkbox">
+            Rotação
+          </mat-checkbox>
+
+          <div class="margins-cross-layout">
+            <mat-form-field appearance="outline" class="margin-superior">
+              <mat-label>Superior (cm)</mat-label>
+              <input matInput formControlName="margemSuperior">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="margin-esquerda">
+              <mat-label>Esquerda (cm)</mat-label>
+              <input matInput formControlName="margemEsquerda">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="margin-direita">
+              <mat-label>Direita (cm)</mat-label>
+              <input matInput formControlName="margemDireita">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="margin-inferior">
+              <mat-label>Inferior (cm)</mat-label>
+              <input matInput formControlName="margemInferior">
+            </mat-form-field>
+          </div>
+        </div>
       }
 
       <!-- Data -->

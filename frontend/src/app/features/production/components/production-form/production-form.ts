@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { ProductionOrder } from '../../models/production.model';
 import { ProductionService } from '../../services/production.service';
@@ -31,7 +32,8 @@ export interface ProductionFormData {
     MatButtonModule,
     MatIconModule,
     MatSelectModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatCheckboxModule
   ],
   templateUrl: './production-form.html',
   styleUrls: ['./production-form.scss'],
@@ -55,10 +57,14 @@ export class ProductionForm implements OnInit {
       produtoNome: [{ value: '', disabled: true }],
       quantidadeProduzida: [{ value: '', disabled: true }],
       modoCalculo: [{ value: '', disabled: true }],
-      larguraFinalCm: [{ value: '', disabled: true }],
-      comprimentoFinalCm: [{ value: '', disabled: true }],
+      dimensoes: [{ value: '', disabled: true }],
       motivo: [{ value: '', disabled: true }],
-      dataCriacao: [{ value: '', disabled: true }]
+      dataCriacao: [{ value: '', disabled: true }],
+      rotacionado: [{ value: false, disabled: true }],
+      margemSuperior: [{ value: '', disabled: true }],
+      margemInferior: [{ value: '', disabled: true }],
+      margemEsquerda: [{ value: '', disabled: true }],
+      margemDireita: [{ value: '', disabled: true }]
     });
   }
 
@@ -69,14 +75,23 @@ export class ProductionForm implements OnInit {
   }
 
   private initializeForm(order: ProductionOrder): void {
+    let dimensoesStr = '';
+    if (order.larguraFinalCm && order.comprimentoFinalCm) {
+      dimensoesStr = `${order.larguraFinalCm} x ${order.comprimentoFinalCm}`;
+    }
+
     this.form.patchValue({
       produtoNome: order.nomeProduto,
       quantidadeProduzida: order.quantidadeProduzida,
       modoCalculo: order.modoCalculo,
-      larguraFinalCm: order.larguraFinalCm,
-      comprimentoFinalCm: order.comprimentoFinalCm,
+      dimensoes: dimensoesStr,
       motivo: order.motivo,
-      dataCriacao: new Date(order.dataCriacao).toLocaleString()
+      dataCriacao: new Date(order.dataCriacao).toLocaleString(),
+      rotacionado: order.rotacionado,
+      margemSuperior: order.margens?.superior,
+      margemInferior: order.margens?.inferior,
+      margemEsquerda: order.margens?.esquerda,
+      margemDireita: order.margens?.direita
     });
 
     if (this.isViewMode()) {

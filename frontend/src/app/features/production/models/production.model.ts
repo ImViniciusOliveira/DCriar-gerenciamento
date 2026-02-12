@@ -17,6 +17,16 @@ export interface PerformedCut {
 }
 
 /**
+ * Representa as margens de segurança aplicadas em um corte.
+ */
+export interface Margins {
+  superior: number;
+  inferior: number;
+  esquerda: number;
+  direita: number;
+}
+
+/**
  * Representa uma Ordem de Produção.
  */
 export interface ProductionOrder {
@@ -35,6 +45,7 @@ export interface ProductionOrder {
   comprimentoFinalCm?: number;
   rotacionado?: boolean;
   cortesRealizados?: PerformedCut[];
+  margens?: Margins;
 
   _links?: Hateoas['_links'];
 }
