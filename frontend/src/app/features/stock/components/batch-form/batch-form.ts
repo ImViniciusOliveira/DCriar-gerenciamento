@@ -242,7 +242,8 @@ export class BatchForm implements OnInit {
   private updateWidthValidation(unidade: string | null): void {
     const widthControl = this.form.get('larguraMm');
     if (unidade === 'METRO_LINEAR') {
-      widthControl?.setValidators([Validators.required, Validators.min(1), maxIntegerDigits(15), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
+      // Reduzido maxIntegerDigits para 10 para evitar overflow de Integer no backend
+      widthControl?.setValidators([Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
     } else {
       widthControl?.clearValidators();
       widthControl?.reset();
@@ -309,7 +310,8 @@ export class BatchForm implements OnInit {
     });
 
     if (this.requiresWidth()) {
-      attributesMap['larguraMm'] = formValue.larguraMm;
+      // Converte para número para garantir tipo correto
+      attributesMap['larguraMm'] = formValue.larguraMm ? Number(formValue.larguraMm) : null;
     }
 
     const request: BatchRequest = {

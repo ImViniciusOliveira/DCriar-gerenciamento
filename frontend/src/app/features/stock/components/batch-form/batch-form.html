@@ -23,9 +23,9 @@
                 <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
               }
             </mat-select>
-            <mat-hint>Como este lote será medido no estoque.</mat-hint>
+            <mat-hint>Como este lote será medido.</mat-hint>
             @if (form.get('unidadeDeEstoque')?.hasError('required')) {
-              <mat-error>Unidade de Estoque é obrigatória.</mat-error>
+              <mat-error>O campo é obrigatório.</mat-error>
             }
           </mat-form-field>
 
@@ -34,13 +34,13 @@
             <mat-label>Quantidade Inicial</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="quantidadeInicial" [errorStateMatcher]="matcher" required>
             @if (form.get('quantidadeInicial')?.hasError('required')) {
-              <mat-error>A quantidade inicial é obrigatória.</mat-error>
+              <mat-error>O campo é obrigatório.</mat-error>
             } @else if (form.get('quantidadeInicial')?.hasError('pattern')) {
               <mat-error>Apenas números.</mat-error>
             } @else if (form.get('quantidadeInicial')?.hasError('min')) {
-              <mat-error>A quantidade deve ser maior que zero.</mat-error>
+              <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (form.get('quantidadeInicial')?.hasError('maxIntegerDigits')) {
-              <mat-error>Valor muito grande. Máximo de 15 dígitos inteiros.</mat-error>
+              <mat-error>Máximo de 15 dígitos.</mat-error>
             }
           </mat-form-field>
 
@@ -49,13 +49,13 @@
             <mat-label>Custo Total do Lote</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="custoTotalLote" [errorStateMatcher]="matcher" required>
             @if (form.get('custoTotalLote')?.hasError('required')) {
-              <mat-error>O custo total é obrigatório.</mat-error>
+              <mat-error>O campo é obrigatório.</mat-error>
             } @else if (form.get('custoTotalLote')?.hasError('pattern')) {
               <mat-error>Apenas números.</mat-error>
             } @else if (form.get('custoTotalLote')?.hasError('min')) {
-              <mat-error>O custo deve ser maior que zero.</mat-error>
+              <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (form.get('custoTotalLote')?.hasError('maxIntegerDigits')) {
-              <mat-error>Valor muito grande. Máximo de 15 dígitos inteiros.</mat-error>
+              <mat-error>Máximo de 15 dígitos.</mat-error>
             }
           </mat-form-field>
         </div>
@@ -65,7 +65,7 @@
           <mat-label>Motivo da Entrada</mat-label>
           <textarea matInput formControlName="motivo" [errorStateMatcher]="matcher" required></textarea>
           @if (form.get('motivo')?.hasError('required')) {
-            <mat-error>O motivo é obrigatório.</mat-error>
+            <mat-error>O campo é obrigatório.</mat-error>
           } @else if (form.get('motivo')?.hasError('maxlength')) {
             <mat-error>O motivo não pode exceder 100 caracteres.</mat-error>
           }
@@ -76,15 +76,15 @@
           <mat-form-field appearance="outline">
             <mat-label>Largura (mm)</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="larguraMm" [errorStateMatcher]="matcher" required>
-            <mat-hint>Obrigatório para lotes em Metro Linear.</mat-hint>
+            <mat-hint>Obrigatório para Metro Linear.</mat-hint>
             @if (form.get('larguraMm')?.hasError('required')) {
-              <mat-error>A largura é obrigatória para este tipo de lote.</mat-error>
+              <mat-error>O campo é obrigatório.</mat-error>
             } @else if (form.get('larguraMm')?.hasError('pattern')) {
               <mat-error>Apenas números.</mat-error>
             } @else if (form.get('larguraMm')?.hasError('min')) {
-              <mat-error>A largura deve ser maior que zero.</mat-error>
+              <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (form.get('larguraMm')?.hasError('maxIntegerDigits')) {
-              <mat-error>Valor muito grande. Máximo de 15 dígitos inteiros.</mat-error>
+              <mat-error>Máximo de 10 dígitos.</mat-error>
             }
           </mat-form-field>
         }
@@ -97,7 +97,7 @@
                 <mat-label>Nome do Atributo</mat-label>
                 <input matInput formControlName="chave" [errorStateMatcher]="matcher" placeholder="Ex: Fornecedor" required>
                 @if (attrGroup.get('chave')?.hasError('required')) {
-                  <mat-error>O nome do atributo é obrigatório.</mat-error>
+                  <mat-error>O campo é obrigatório.</mat-error>
                 } @else if (attrGroup.get('chave')?.hasError('maxlength')) {
                   <mat-error>Máximo de 50 caracteres.</mat-error>
                 }
@@ -106,7 +106,7 @@
                 <mat-label>Valor do Atributo</mat-label>
                 <input matInput formControlName="valor" [errorStateMatcher]="matcher" placeholder="Ex: Papelaria X" required>
                  @if (attrGroup.get('valor')?.hasError('required')) {
-                  <mat-error>O valor do atributo é obrigatório.</mat-error>
+                  <mat-error>O campo é obrigatório.</mat-error>
                 } @else if (attrGroup.get('valor')?.hasError('maxlength')) {
                   <mat-error>Máximo de 50 caracteres.</mat-error>
                 }

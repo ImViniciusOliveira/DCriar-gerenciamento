@@ -38,6 +38,7 @@
 
   button {
     flex: 0 0 auto;
+    margin-bottom: 20px; // Adicionado para corrigir o alinhamento com os inputs
   }
 }
 
@@ -60,9 +61,6 @@
 
   .details-description {
     margin-top: 14px;
-    h4 {
-      margin-bottom: 14px;
-    }
     p {
       white-space: pre-wrap;
     }

@@ -1,13 +1,5 @@
 @use '../../../../shared/styles/page-layout';
 
-// Estilo para o botão de ação secundária no cabeçalho.
-.secondary-action-button {
-  background-color: var(--secondary-color) !important;
-  color: #ffffff !important;
-  border-color: var(--secondary-color) !important;
-  border-radius: 6px !important;
-}
-
 // Define uma largura maior para a coluna de atributos
 .mat-column-atributos {
   width: 350px;
@@ -16,4 +8,25 @@
 // Centraliza o conteúdo da coluna de ações, se necessário
 .mat-column-acoes .mat-mdc-cell {
   justify-content: center;
+}
+
+// Botão Adicionar Lote
+.action-button {
+  width: auto;
+  border-style: dashed;
+  padding: 0 24px;
+}
+
+// Botão Exibir Matérias-Primas
+.gray-btn {
+  background-color: #757575 !important; // Cinza
+  color: white !important;
+
+  mat-icon {
+    color: white !important;
+  }
+
+  &:hover {
+    background-color: #494949 !important; // Cinza mais escuro no hover
+  }
 }
