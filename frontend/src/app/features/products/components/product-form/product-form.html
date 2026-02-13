@@ -60,7 +60,7 @@
             } @else if (productForm.get('unidadesPorProduto')?.hasError('min')) {
               <mat-error>O valor deve ser no mínimo 1.</mat-error>
             } @else if (productForm.get('unidadesPorProduto')?.hasError('maxIntegerDigits')) {
-              <mat-error>Valor muito grande. Máximo de 10 dígitos.</mat-error>
+              <mat-error>Máximo de 10 dígitos.</mat-error>
             }
           </mat-form-field>
 
@@ -132,7 +132,7 @@
             } @else if (productForm.get('dimensoes.larguraCm')?.hasError('min')) {
               <mat-error>O valor deve ser maior que 0.1.</mat-error>
             } @else if (productForm.get('dimensoes.larguraCm')?.hasError('maxIntegerDigits')) {
-              <mat-error>Valor muito grande. Máximo de 10 dígitos.</mat-error>
+              <mat-error>Máximo de 10 dígitos.</mat-error>
             }
           </mat-form-field>
           <mat-form-field appearance="outline">
@@ -145,7 +145,7 @@
             } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('min')) {
               <mat-error>O valor deve ser maior que 0.1.</mat-error>
             } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('maxIntegerDigits')) {
-              <mat-error>Valor muito grande. Máximo de 10 dígitos.</mat-error>
+              <mat-error>Máximo de 10 dígitos.</mat-error>
             }
           </mat-form-field>
         </div>
@@ -201,7 +201,7 @@
   </form>
 } @else {
   <!-- Modo Visualização (Detalhes) -->
-  <mat-dialog-content>
+  <mat-dialog-content class="details-content">
     <div class="details-container">
       <div class="details-image image-container">
         @if (safeImageSrc(); as src) {

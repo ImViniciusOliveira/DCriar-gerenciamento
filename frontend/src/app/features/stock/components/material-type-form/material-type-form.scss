@@ -1,12 +1,5 @@
 @use '../../../../shared/styles/form-layout';
 
-// Layout do formulário
-.form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px; // Espaçamento vertical entre os campos
-
-  mat-form-field {
-    width: 100%; // Faz os campos ocuparem a largura total
-  }
+mat-form-field {
+  width: 100%;
 }

@@ -50,7 +50,17 @@
   .sku-field { flex: 1.5; min-width: 180px; }
   .color-field { flex: 1; min-width: 130px; }
   .units-field { flex: 1; min-width: 130px; }
-  fieldset.active-fieldset { @include fl.fieldset-compact; }
+
+  fieldset.active-fieldset {
+    @include fl.fieldset-compact;
+    justify-content: center;
+
+    mat-checkbox {
+      // Compensa o espaço do ripple à esquerda para centralizar visualmente o conjunto
+      margin-left: -16px;
+    }
+  }
+
   .description-field { min-width: 300px; }
   .full-width { flex-basis: 100%; }
 
@@ -61,15 +71,22 @@
 .description-photo-row {
   display: flex;
   gap: 16px;
-  align-items: flex-start; // Alinha pelo topo para permitir alturas diferentes
+  align-items: flex-start; // Alinha pelo topo
 
   .description-field {
     flex: 1;
     order: 2;
-    height: 320px; // Altura fixa para o campo de descrição
+    height: 488.5px; // Altura ajustada com precisão decimal
+    display: flex;
+
+    // Força os wrappers internos do Angular Material a preencherem a altura
+    ::ng-deep .mat-mdc-form-field-flex,
+    ::ng-deep .mat-mdc-form-field-infix {
+      height: 100%;
+    }
 
     textarea {
-      height: 100%;
+      height: 100% !important;
       resize: none;
     }
   }
@@ -77,7 +94,7 @@
   .image-upload-section {
     flex: 1;
     order: 1;
-    height: 300px; // Altura fixa para a seção da foto
+    height: 468.5px; // Altura ajustada com precisão decimal
     display: flex;
   }
 }
@@ -121,11 +138,17 @@ fieldset.photo-fieldset {
   .details-container { display: flex; gap: 24px; }
   .details-image { flex-shrink: 0; }
   .details-info { flex-grow: 1; }
+  .details-description { margin-top: 14px; h4 { margin-bottom: 14px; } p { white-space: pre-wrap; } }
   hr { border: none; border-top: 1px solid var(--mat-sys-outline-variant); margin: 16px 0; }
 }
 
 // --- Correção Visual para Validação Imediata ---
 :host ::ng-deep {
+  // Remove o padding padrão do conteúdo do diálogo para ter controle total
+  .mat-mdc-dialog-content {
+    padding: 0 14px !important; // Mantém apenas um padding lateral, remove o superior
+  }
+
   mat-form-field.ng-invalid.ng-dirty {
     .mdc-notched-outline__leading,
     .mdc-notched-outline__notch,
