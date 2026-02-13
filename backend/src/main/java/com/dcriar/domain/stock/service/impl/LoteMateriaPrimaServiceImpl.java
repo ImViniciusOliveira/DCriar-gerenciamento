@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -154,7 +155,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 BigDecimal larguraVal;
 
                 if (larguraMmObj instanceof Number) {
-                    larguraVal = new BigDecimal(((Number) larguraMmObj).toString());
+                    larguraVal = new BigDecimal(larguraMmObj.toString());
                 } else if (larguraMmObj instanceof String) {
                     try {
                         larguraVal = new BigDecimal((String) larguraMmObj);
@@ -268,10 +269,20 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     @Transactional
     public void delete(Long id) {
         LoteMateriaPrima lote = findLoteById(id);
-        // TODO: Adicionar lógica de validação antes de excluir (ex: verificar se há movimentações)
-        if (!lote.getMovimentacoes().isEmpty()) {
-            throw new LoteEmUsoException(id);
+        
+        // Verifica se houve alguma saída (consumo) deste lote.
+        // Se tiver apenas entradas (criação, sobras, estornos), permite a exclusão.
+        Map<String, Long> movimentacoesSaida = lote.getMovimentacoes().stream()
+                .filter(mov -> mov.getQuantidade().compareTo(BigDecimal.ZERO) < 0)
+                .collect(Collectors.groupingBy(
+                        mov -> mov.getTipo().name(),
+                        Collectors.counting()
+                ));
+
+        if (!movimentacoesSaida.isEmpty()) {
+            throw new ExclusaoLoteBloqueadaException(id, movimentacoesSaida);
         }
+
         loteMateriaPrimaRepository.delete(lote);
     }
 

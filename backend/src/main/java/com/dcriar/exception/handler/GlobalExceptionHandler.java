@@ -110,12 +110,17 @@ public class GlobalExceptionHandler {
     /**
      * Trata exceções de conflito, como criação de recurso duplicado ou recurso em uso (HTTP 409 Conflict).
      * Intercepta {@link TipoMateriaPrimaJaExisteException}, {@link ProdutoEmUsoException},
-     * {@link TipoMateriaPrimaEmUsoException}, {@link ProdutoNomeDuplicadoException} e {@link ProdutoSkuDuplicadoException}.
+     * {@link TipoMateriaPrimaEmUsoException}, {@link ProdutoNomeDuplicadoException},
+     * {@link ProdutoSkuDuplicadoException} e {@link ExclusaoLoteBloqueadaException}.
      *
      * @param ex A exceção de conflito lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 409.
      */
-    @ExceptionHandler({TipoMateriaPrimaJaExisteException.class, ProdutoEmUsoException.class, TipoMateriaPrimaEmUsoException.class, ProdutoNomeDuplicadoException.class, ProdutoSkuDuplicadoException.class})
+    @ExceptionHandler({
+            TipoMateriaPrimaJaExisteException.class, ProdutoEmUsoException.class,
+            TipoMateriaPrimaEmUsoException.class, ProdutoNomeDuplicadoException.class,
+            ProdutoSkuDuplicadoException.class, ExclusaoLoteBloqueadaException.class
+    })
     public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
         if (ex instanceof TipoMateriaPrimaJaExisteException e) { details.put("nome", e.getNome()); }
@@ -123,6 +128,7 @@ public class GlobalExceptionHandler {
         else if (ex instanceof TipoMateriaPrimaEmUsoException e) { details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId())); details.put("lotesEmUso", e.getLoteIds().toString()); }
         else if (ex instanceof ProdutoNomeDuplicadoException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof ProdutoSkuDuplicadoException e) { details.put("sku", e.getSku()); }
+        else if (ex instanceof ExclusaoLoteBloqueadaException e) { details.put("info", e.getMessage()); }
 
         log.warn("Exceção de Conflito: {}. Detalhes: {}", ex.getMessage(), details);
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);
@@ -286,7 +292,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleGenericException(Exception ex) {
         log.error("Erro inesperado: ", ex);
-        String msg = "Ocorreu um erro inesperado. Tente novamente mais tarde.";
+        String msg = "Ocorreu um erro interno inesperado. Tente novamente mais tarde.";
         return buildErrorResponse(msg, HttpStatus.INTERNAL_SERVER_ERROR, Map.of("exception", ex.getClass().getSimpleName()));
     }
 
