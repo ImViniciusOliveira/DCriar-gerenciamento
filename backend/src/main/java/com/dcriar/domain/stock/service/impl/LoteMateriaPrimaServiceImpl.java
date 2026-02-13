@@ -40,6 +40,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
 
+    private static final int MAX_INTEGER_DIGITS_SUPPORTED = 19;
+
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
     private final MovimentacaoEstoqueLoteRepository movimentacaoEstoqueLoteRepository;
@@ -172,7 +174,14 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         }
 
         // Divide o custo total pela quantidade total de unidades de consumo.
-        return dto.getCustoTotalLote().divide(totalUnidadesBase, 8, RoundingMode.HALF_UP);
+        BigDecimal custoPorUnidadeBase = dto.getCustoTotalLote().divide(totalUnidadesBase, 8, RoundingMode.HALF_UP);
+
+        // Validação explícita para evitar overflow no banco de dados
+        if (custoPorUnidadeBase.precision() - custoPorUnidadeBase.scale() > MAX_INTEGER_DIGITS_SUPPORTED) {
+            throw new ValorNumericoExcedeLimiteException("Custo por Unidade Base", custoPorUnidadeBase, MAX_INTEGER_DIGITS_SUPPORTED);
+        }
+
+        return custoPorUnidadeBase;
     }
 
     @Override

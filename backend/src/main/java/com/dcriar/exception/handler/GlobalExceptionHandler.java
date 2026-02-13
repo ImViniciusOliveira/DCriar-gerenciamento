@@ -36,6 +36,17 @@ public class GlobalExceptionHandler {
 
     //region Exceções de Domínio e Negócio
 
+    @ExceptionHandler(ValorNumericoExcedeLimiteException.class)
+    public ResponseEntity<ErrorResponseDTO> handleValorNumericoExcedeLimite(ValorNumericoExcedeLimiteException ex) {
+        Map<String, String> details = new HashMap<>();
+        details.put("campo", ex.getNomeDoCampo());
+        details.put("valorCalculado", ex.getValorEnviado());
+        details.put("limite", ex.getLimiteMaximo());
+
+        log.warn("Exceção de Valor Numérico Excede Limite: {}", ex.getMessage());
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
+    }
+
     /**
      * Trata exceções para entidades ou recursos não encontrados (HTTP 404 Not Found).
      * Intercepta {@link ProdutoNaoEncontradoException}, {@link CanalVendaNaoEncontradoException},

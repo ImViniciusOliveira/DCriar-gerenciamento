@@ -13,11 +13,14 @@ import java.util.Map;
  * Este validador verifica as regras de negócio para a criação de um novo lote de matéria-prima:
  * <ul>
  *     <li>Campos básicos como {@code tipoMateriaPrimaId} e {@code unidadeDeEstoque} são obrigatórios.</li>
- *     <li>Os campos {@code quantidadeInicial} e {@code custoTotalLote} devem ser valores positivos.</li>
+ *     <li>Os campos {@code quantidadeInicial} e {@code custoTotalLote} devem ser valores positivos e dentro dos limites de precisão do banco de dados.</li>
  *     <li>Se a {@code unidadeDeEstoque} for METRO_LINEAR, o mapa de {@code atributos} deve conter a chave 'larguraMm' com um valor numérico positivo.</li>
  * </ul>
  */
 public class LoteMateriaPrimaRequestValidator extends BaseValidator<ValidLoteMateriaPrimaRequest, LoteMateriaPrimaRequestDTO> {
+
+    private static final int MAX_INTEGER_DIGITS = 15;
+    private static final int MAX_FRACTION_DIGITS = 4;
 
     @Override
     protected void validate(LoteMateriaPrimaRequestDTO dto) {
@@ -26,8 +29,8 @@ public class LoteMateriaPrimaRequestValidator extends BaseValidator<ValidLoteMat
         UnidadeDeMedida unidadeDeEstoque = dto.getUnidadeDeEstoque();
         addViolationIf(unidadeDeEstoque == null, "A unidade de estoque é obrigatória.", "unidadeDeEstoque");
 
-        addViolationIf(dto.getQuantidadeInicial() == null || dto.getQuantidadeInicial().compareTo(BigDecimal.ZERO) <= 0, "A quantidade inicial deve ser um valor positivo.", "quantidadeInicial");
-        addViolationIf(dto.getCustoTotalLote() == null || dto.getCustoTotalLote().compareTo(BigDecimal.ZERO) <= 0, "O custo total do lote deve ser um valor positivo.", "custoTotalLote");
+        validateBigDecimal(dto.getQuantidadeInicial(), "quantidadeInicial", "A quantidade inicial");
+        validateBigDecimal(dto.getCustoTotalLote(), "custoTotalLote", "O custo total do lote");
 
         // Validação condicional para METRO_LINEAR
         if (unidadeDeEstoque == UnidadeDeMedida.METRO_LINEAR) {
@@ -44,6 +47,23 @@ public class LoteMateriaPrimaRequestValidator extends BaseValidator<ValidLoteMat
                 }
                 addViolationIf(isInvalidNumber, "O atributo 'larguraMm' deve ser um número positivo.", "atributos");
             }
+        }
+    }
+
+    private void validateBigDecimal(BigDecimal value, String fieldName, String fieldDescription) {
+        if (value == null) {
+            addViolationIf(true, fieldDescription + " é obrigatório.", fieldName);
+            return;
+        }
+
+        addViolationIf(value.compareTo(BigDecimal.ZERO) <= 0, fieldDescription + " deve ser um valor positivo.", fieldName);
+
+        if (value.scale() > MAX_FRACTION_DIGITS) {
+            addViolationIf(true, String.format("%s não pode ter mais de %d casas decimais.", fieldDescription, MAX_FRACTION_DIGITS), fieldName);
+        }
+
+        if (value.precision() - value.scale() > MAX_INTEGER_DIGITS) {
+            addViolationIf(true, String.format("%s excede o número máximo de %d dígitos inteiros permitidos.", fieldDescription, MAX_INTEGER_DIGITS), fieldName);
         }
     }
 }
