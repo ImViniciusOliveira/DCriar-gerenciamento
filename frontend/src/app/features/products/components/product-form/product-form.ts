@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Product } from '../../models/product.model';
-import { FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormGroupDirective, NgForm, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule, MatSelectChange } from '@angular/material/select';
@@ -17,6 +17,28 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { provideNgxMask } from 'ngx-mask';
 import { MaterialTypeSearch } from '../../../../shared/components/material-type-search/material-type-search';
 import { MaterialType } from '../../../stock/models/material-type.model';
+import { ErrorStateMatcher } from '@angular/material/core';
+
+export function maxIntegerDigits(maxDigits: number): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    if (!control.value) {
+      return null;
+    }
+    const value = String(control.value);
+    const integerPart = value.split('.')[0].replace(/^-/, '');
+
+    if (integerPart.length > maxDigits) {
+      return { maxIntegerDigits: { requiredDigits: maxDigits, actualDigits: integerPart.length } };
+    }
+    return null;
+  };
+}
+
+export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
+  isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+    return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+}
 
 /**
  * Formulário para criação e edição de Produtos.
@@ -42,6 +64,7 @@ export class ProductFormComponent implements OnInit {
 
   readonly product = signal<Product>(this.data.product);
   readonly isEditMode = signal<boolean>(this.data.isEditMode);
+  matcher = new ImmediateErrorStateMatcher();
 
   /** URL segura para exibição da imagem, priorizando o preview local. */
   readonly safeImageSrc: Signal<string | null>;
@@ -78,18 +101,18 @@ export class ProductFormComponent implements OnInit {
 
     this.productForm = this.fb.group({
       tipoProduto: [currentProduct.tipoProduto || 'CORTE', Validators.required],
-      nome: [currentProduct.nome, Validators.required],
-      sku: [currentProduct.sku, Validators.required],
-      descricao: [currentProduct.descricao],
-      unidadesPorProduto: [currentProduct.unidadesPorProduto, [Validators.required, Validators.min(1)]],
+      nome: [currentProduct.nome, [Validators.required, Validators.maxLength(100)]],
+      sku: [currentProduct.sku, [Validators.required, Validators.maxLength(50)]],
+      descricao: [currentProduct.descricao, Validators.maxLength(100)],
+      unidadesPorProduto: [currentProduct.unidadesPorProduto, [Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]],
       ativo: [currentProduct.ativo],
       materiaPrima: [currentProduct.materiaPrima, Validators.required],
-      cor: [currentProduct.cor],
+      cor: [currentProduct.cor, Validators.maxLength(50)],
       dimensoes: this.fb.group({
-        larguraCm: [currentProduct.dimensoes?.larguraCm, [Validators.required, Validators.min(0.1)]],
-        comprimentoCm: [currentProduct.dimensoes?.comprimentoCm, [Validators.required, Validators.min(0.1)]]
+        larguraCm: [currentProduct.dimensoes?.larguraCm, [Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]],
+        comprimentoCm: [currentProduct.dimensoes?.comprimentoCm, [Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]]
       }),
-      codigoFabricante: [currentProduct.codigoFabricante],
+      codigoFabricante: [currentProduct.codigoFabricante, Validators.maxLength(50)],
       especificacoes: this.fb.array([])
     });
 
@@ -133,8 +156,8 @@ export class ProductFormComponent implements OnInit {
             this.initialSpecifications.set({ ...specs });
             Object.entries(specs).forEach(([chave, valor]) => {
               this.specifications.push(this.fb.group({
-                chave: [chave, Validators.required],
-                valor: [valor, Validators.required],
+                chave: [chave, [Validators.required, Validators.maxLength(50)]],
+                valor: [valor, [Validators.required, Validators.maxLength(100)]],
                 isNew: [false] // Flag para controle de remoção
               }));
             });
@@ -162,8 +185,8 @@ export class ProductFormComponent implements OnInit {
    */
   addSpecification(): void {
     this.specifications.push(this.fb.group({
-      chave: ['', Validators.required],
-      valor: ['', Validators.required],
+      chave: ['', [Validators.required, Validators.maxLength(50)]],
+      valor: ['', [Validators.required, Validators.maxLength(100)]],
       isNew: [true]
     }));
 
@@ -220,11 +243,11 @@ export class ProductFormComponent implements OnInit {
       corteControls.forEach(name => {
         this.productForm.get(name)?.enable();
         if (name === 'dimensoes') {
-          this.productForm.get('dimensoes.larguraCm')?.setValidators([Validators.required, Validators.min(0.1)]);
-          this.productForm.get('dimensoes.comprimentoCm')?.setValidators([Validators.required, Validators.min(0.1)]);
+          this.productForm.get('dimensoes.larguraCm')?.setValidators([Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
+          this.productForm.get('dimensoes.comprimentoCm')?.setValidators([Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
         }
       });
-      corControl?.setValidators(Validators.required);
+      corControl?.setValidators([Validators.required, Validators.maxLength(50)]);
 
       consumoControls.forEach(name => {
         const control = this.productForm.get(name);

@@ -9,7 +9,12 @@
         <div class="row-group">
           <mat-form-field class="name-field" appearance="outline">
             <mat-label>Nome</mat-label>
-            <input matInput formControlName="nome" required>
+            <input matInput formControlName="nome" [errorStateMatcher]="matcher" required>
+            @if (productForm.get('nome')?.hasError('required')) {
+              <mat-error>O nome é obrigatório.</mat-error>
+            } @else if (productForm.get('nome')?.hasError('maxlength')) {
+              <mat-error>O nome não pode exceder 100 caracteres.</mat-error>
+            }
           </mat-form-field>
 
           @if (data.isCreationMode) {
@@ -27,19 +32,36 @@
         <div class="row-group">
           <mat-form-field class="sku-field" appearance="outline">
             <mat-label>SKU</mat-label>
-            <input matInput formControlName="sku" required>
+            <input matInput formControlName="sku" [errorStateMatcher]="matcher" required>
+            @if (productForm.get('sku')?.hasError('required')) {
+              <mat-error>O SKU é obrigatório.</mat-error>
+            } @else if (productForm.get('sku')?.hasError('maxlength')) {
+              <mat-error>O SKU não pode exceder 50 caracteres.</mat-error>
+            }
           </mat-form-field>
 
           @if (productForm.get('cor')?.enabled) {
             <mat-form-field class="color-field" appearance="outline">
               <mat-label>Cor</mat-label>
-              <input matInput formControlName="cor">
+              <input matInput formControlName="cor" [errorStateMatcher]="matcher">
+               @if (productForm.get('cor')?.hasError('maxlength')) {
+                <mat-error>A cor não pode exceder 50 caracteres.</mat-error>
+              }
             </mat-form-field>
           }
 
           <mat-form-field class="units-field" appearance="outline">
             <mat-label>Unidades</mat-label>
-            <input matInput type="number" formControlName="unidadesPorProduto" required>
+            <input matInput type="text" inputmode="decimal" formControlName="unidadesPorProduto" [errorStateMatcher]="matcher" required>
+            @if (productForm.get('unidadesPorProduto')?.hasError('required')) {
+              <mat-error>O campo é obrigatório.</mat-error>
+            } @else if (productForm.get('unidadesPorProduto')?.hasError('pattern')) {
+              <mat-error>Formato inválido. Apenas números são permitidos.</mat-error>
+            } @else if (productForm.get('unidadesPorProduto')?.hasError('min')) {
+              <mat-error>O valor deve ser no mínimo 1.</mat-error>
+            } @else if (productForm.get('unidadesPorProduto')?.hasError('maxIntegerDigits')) {
+              <mat-error>Valor muito grande. Máximo de 10 dígitos.</mat-error>
+            }
           </mat-form-field>
 
           <!-- Checkbox Ativo dentro de um Fieldset para ter a borda padrão -->
@@ -52,7 +74,10 @@
         <div class="row-group description-photo-row">
           <mat-form-field class="description-field" appearance="outline">
             <mat-label>Descrição</mat-label>
-            <textarea matInput formControlName="descricao"></textarea>
+            <textarea matInput formControlName="descricao" [errorStateMatcher]="matcher"></textarea>
+            @if (productForm.get('descricao')?.hasError('maxlength')) {
+              <mat-error>A descrição não pode exceder 100 caracteres.</mat-error>
+            }
           </mat-form-field>
 
           @if (isEditMode() || data.isCreationMode) {
@@ -99,11 +124,29 @@
         <div class="form-grid two-columns dimensions-grid" formGroupName="dimensoes">
           <mat-form-field appearance="outline">
             <mat-label>Largura (cm)</mat-label>
-            <input matInput type="number" formControlName="larguraCm" required>
+            <input matInput type="text" inputmode="decimal" formControlName="larguraCm" [errorStateMatcher]="matcher" required>
+             @if (productForm.get('dimensoes.larguraCm')?.hasError('required')) {
+              <mat-error>O campo é obrigatório.</mat-error>
+            } @else if (productForm.get('dimensoes.larguraCm')?.hasError('pattern')) {
+              <mat-error>Formato inválido. Apenas números são permitidos.</mat-error>
+            } @else if (productForm.get('dimensoes.larguraCm')?.hasError('min')) {
+              <mat-error>O valor deve ser maior que 0.1.</mat-error>
+            } @else if (productForm.get('dimensoes.larguraCm')?.hasError('maxIntegerDigits')) {
+              <mat-error>Valor muito grande. Máximo de 10 dígitos.</mat-error>
+            }
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Comprimento (cm)</mat-label>
-            <input matInput type="number" formControlName="comprimentoCm" required>
+            <input matInput type="text" inputmode="decimal" formControlName="comprimentoCm" [errorStateMatcher]="matcher" required>
+             @if (productForm.get('dimensoes.comprimentoCm')?.hasError('required')) {
+              <mat-error>O campo é obrigatório.</mat-error>
+            } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('pattern')) {
+              <mat-error>Formato inválido. Apenas números são permitidos.</mat-error>
+            } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('min')) {
+              <mat-error>O valor deve ser maior que 0.1.</mat-error>
+            } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('maxIntegerDigits')) {
+              <mat-error>Valor muito grande. Máximo de 10 dígitos.</mat-error>
+            }
           </mat-form-field>
         </div>
       }
@@ -112,7 +155,10 @@
         <div class="row-group">
           <mat-form-field class="full-width" appearance="outline">
             <mat-label>Código do Fabricante</mat-label>
-            <input matInput formControlName="codigoFabricante">
+            <input matInput formControlName="codigoFabricante" [errorStateMatcher]="matcher">
+             @if (productForm.get('codigoFabricante')?.hasError('maxlength')) {
+              <mat-error>O código não pode exceder 50 caracteres.</mat-error>
+            }
           </mat-form-field>
         </div>
         <div formArrayName="especificacoes">
@@ -120,11 +166,21 @@
             <div class="spec-row" [formGroup]="specGroup">
               <mat-form-field appearance="outline">
                 <mat-label>Característica</mat-label>
-                <input matInput formControlName="chave">
+                <input matInput formControlName="chave" [errorStateMatcher]="matcher">
+                 @if (specGroup.get('chave')?.hasError('required')) {
+                  <mat-error>O campo é obrigatório.</mat-error>
+                } @else if (specGroup.get('chave')?.hasError('maxlength')) {
+                  <mat-error>Máximo de 50 caracteres.</mat-error>
+                }
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>Descrição</mat-label>
-                <input matInput formControlName="valor">
+                <input matInput formControlName="valor" [errorStateMatcher]="matcher">
+                 @if (specGroup.get('valor')?.hasError('required')) {
+                  <mat-error>O campo é obrigatório.</mat-error>
+                } @else if (specGroup.get('valor')?.hasError('maxlength')) {
+                  <mat-error>Máximo de 100 caracteres.</mat-error>
+                }
               </mat-form-field>
               <button mat-icon-button type="button" (click)="removeSpecification($index)" title="Remover Especificação">
                 <mat-icon>remove_circle_outline</mat-icon>
