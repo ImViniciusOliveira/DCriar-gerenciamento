@@ -24,17 +24,19 @@ export class MaterialTypeService {
 
   private readonly refreshTrigger = signal<void>(undefined, { equal: () => false });
 
+  private readonly initialSearchParams = {
+    page: 0,
+    size: 10,
+    sort: 'id,asc'
+  };
+
   private readonly searchParams = signal<{
     page: number;
     size: number;
     sort: string;
     nome?: string;
     unidadeDeConsumo?: string;
-  }>({
-    page: 0,
-    size: 10,
-    sort: 'id,asc'
-  }, {
+  }>(this.initialSearchParams, {
     equal: (a, b) =>
       a.page === b.page &&
       a.size === b.size &&
@@ -120,6 +122,13 @@ export class MaterialTypeService {
   }
 
   /**
+   * Reseta os parâmetros de busca para o estado padrão.
+   */
+  resetSearchParams(): void {
+    this.searchParams.set(this.initialSearchParams);
+  }
+
+  /**
    * Retorna um template HATEOAS para a criação de um novo Tipo de Matéria-Prima.
    */
   getNewTemplate(): Observable<MaterialType> {
@@ -160,14 +169,6 @@ export class MaterialTypeService {
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }
-
-  /**
-   * Busca um Tipo de Matéria-Prima específico pela sua URL completa.
-   */
-  findByUrl(url: string): Observable<MaterialType> {
-    return this.http.get<MaterialType>(url);
-  }
-
   /**
    * Busca um Tipo de Matéria-Prima específico pelo seu ID.
    */
