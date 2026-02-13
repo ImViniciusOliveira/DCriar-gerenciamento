@@ -73,20 +73,22 @@
 
         <!-- Campo de Largura (sem o fieldset) -->
         @if (requiresWidth()) {
-          <mat-form-field appearance="outline">
-            <mat-label>Largura (mm)</mat-label>
-            <input matInput type="text" inputmode="decimal" formControlName="larguraMm" [errorStateMatcher]="matcher" required>
-            <mat-hint>Obrigatório para Metro Linear.</mat-hint>
-            @if (form.get('larguraMm')?.hasError('required')) {
-              <mat-error>O campo é obrigatório.</mat-error>
-            } @else if (form.get('larguraMm')?.hasError('pattern')) {
-              <mat-error>Apenas números.</mat-error>
-            } @else if (form.get('larguraMm')?.hasError('min')) {
-              <mat-error>O valor deve ser maior que zero.</mat-error>
-            } @else if (form.get('larguraMm')?.hasError('maxIntegerDigits')) {
-              <mat-error>Máximo de 10 dígitos.</mat-error>
-            }
-          </mat-form-field>
+          <div class="width-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Largura (mm)</mat-label>
+              <input matInput type="text" inputmode="decimal" formControlName="larguraMm" [errorStateMatcher]="matcher" required>
+              <mat-hint>Obrigatório para Metro Linear.</mat-hint>
+              @if (form.get('larguraMm')?.hasError('required')) {
+                <mat-error>O campo é obrigatório.</mat-error>
+              } @else if (form.get('larguraMm')?.hasError('pattern')) {
+                <mat-error>Apenas números.</mat-error>
+              } @else if (form.get('larguraMm')?.hasError('min')) {
+                <mat-error>O valor deve ser maior que zero.</mat-error>
+              } @else if (form.get('larguraMm')?.hasError('maxIntegerDigits')) {
+                <mat-error>Máximo de 10 dígitos.</mat-error>
+              }
+            </mat-form-field>
+          </div>
         }
 
         <!-- Atributos Adicionais (Sem Fieldset) -->

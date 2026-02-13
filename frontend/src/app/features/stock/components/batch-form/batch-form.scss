@@ -52,6 +52,14 @@
   padding: 0 24px; // Adiciona padding lateral para ficar bonito
 }
 
+// Container para o campo de largura (para evitar quebra de linha na mensagem de erro)
+.width-row {
+  width: 50%;
+  mat-form-field {
+    width: 100%;
+  }
+}
+
 // --- Estilos para a Tela de Detalhes (copiado do product-form) ---
 
 .details-content {
