@@ -127,9 +127,11 @@ fieldset.photo-fieldset {
   display: flex;
   gap: 16px;
   align-items: center;
-  margin-bottom: 16px;
   mat-form-field { flex: 1; }
-  button { flex: 0 0 auto; }
+  button {
+    flex: 0 0 auto;
+    margin-bottom: 20px;
+  }
 }
 
 // --- Layout de Detalhes ---
@@ -138,8 +140,6 @@ fieldset.photo-fieldset {
   .details-container { display: flex; gap: 24px; }
   .details-image { flex-shrink: 0; }
   .details-info { flex-grow: 1; }
-  .details-description { margin-top: 14px; h4 { margin-bottom: 14px; } p { white-space: pre-wrap; } }
-  hr { border: none; border-top: 1px solid var(--mat-sys-outline-variant); margin: 16px 0; }
 }
 
 // --- Correção Visual para Validação Imediata ---
