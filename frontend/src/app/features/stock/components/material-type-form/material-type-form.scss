@@ -1,11 +1,5 @@
 @use '../../../../shared/styles/form-layout';
 
-// Garante que o conteúdo do diálogo tenha um espaçamento superior para
-// não colar no título.
-mat-dialog-content {
-  padding-top: 20px;
-}
-
 // Layout do formulário
 .form-grid {
   display: flex;

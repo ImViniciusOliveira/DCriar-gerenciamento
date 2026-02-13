@@ -45,7 +45,7 @@
               <mat-label>Cor</mat-label>
               <input matInput formControlName="cor" [errorStateMatcher]="matcher">
                @if (productForm.get('cor')?.hasError('maxlength')) {
-                <mat-error>A cor não pode exceder 50 caracteres.</mat-error>
+                <mat-error>Máximo de 50 caracteres.</mat-error>
               }
             </mat-form-field>
           }
@@ -56,7 +56,7 @@
             @if (productForm.get('unidadesPorProduto')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (productForm.get('unidadesPorProduto')?.hasError('pattern')) {
-              <mat-error>Formato inválido. Apenas números são permitidos.</mat-error>
+              <mat-error>Apenas números.</mat-error>
             } @else if (productForm.get('unidadesPorProduto')?.hasError('min')) {
               <mat-error>O valor deve ser no mínimo 1.</mat-error>
             } @else if (productForm.get('unidadesPorProduto')?.hasError('maxIntegerDigits')) {
@@ -128,7 +128,7 @@
              @if (productForm.get('dimensoes.larguraCm')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (productForm.get('dimensoes.larguraCm')?.hasError('pattern')) {
-              <mat-error>Formato inválido. Apenas números são permitidos.</mat-error>
+              <mat-error>Apenas números.</mat-error>
             } @else if (productForm.get('dimensoes.larguraCm')?.hasError('min')) {
               <mat-error>O valor deve ser maior que 0.1.</mat-error>
             } @else if (productForm.get('dimensoes.larguraCm')?.hasError('maxIntegerDigits')) {
@@ -141,7 +141,7 @@
              @if (productForm.get('dimensoes.comprimentoCm')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('pattern')) {
-              <mat-error>Formato inválido. Apenas números são permitidos.</mat-error>
+              <mat-error>Apenas números.</mat-error>
             } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('min')) {
               <mat-error>O valor deve ser maior que 0.1.</mat-error>
             } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('maxIntegerDigits')) {
@@ -201,7 +201,7 @@
   </form>
 } @else {
   <!-- Modo Visualização (Detalhes) -->
-  <mat-dialog-content class="details-content">
+  <mat-dialog-content>
     <div class="details-container">
       <div class="details-image image-container">
         @if (safeImageSrc(); as src) {

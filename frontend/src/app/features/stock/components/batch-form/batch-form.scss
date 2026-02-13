@@ -9,13 +9,11 @@
 .form-container {
   display: flex;
   flex-direction: column;
-  gap: 16px; // Espaçamento vertical consistente entre todos os blocos
 }
 
 // Linha com múltiplos campos
 .form-row {
-  display: flex;
-  gap: 16px; // Espaçamento horizontal entre os campos
+  @include fl.form-row; // Usa o mixin padrão para garantir espaçamento consistente (margin-bottom: 8px)
 
   // Faz com que os campos na linha dividam o espaço igualmente
   mat-form-field {
@@ -28,18 +26,11 @@
   width: 100%;
 }
 
-.dynamic-attributes {
-  @include fl.fieldset-full-height;
-  display: flex;
-  flex-direction: column;
-  // Gap removido para controle manual
-}
-
+// Estilo idêntico ao .spec-row do product-form
 .attribute-row {
   display: flex;
   gap: 16px;
-  align-items: flex-start; // Alinha os itens pelo topo
-  margin-bottom: 16px;
+  align-items: center;
 
   mat-form-field {
     flex: 1;
@@ -47,17 +38,17 @@
 
   button {
     flex: 0 0 auto;
-    margin-top: 8px; // Adiciona margem para alinhar o botão visualmente com o centro dos inputs
   }
 }
 
 // Estilo para o botão "Adicionar Atributo"
-.dynamic-attributes .action-button {
-  width: 100%;
+.action-button {
+  width: auto; // Remove a largura total
+  align-self: flex-start; // Alinha à esquerda
   border-style: dashed;
   color: var(--mat-sys-on-surface-variant);
-  margin-top: 0; // Removido para evitar espaço duplo no topo quando a lista está vazia
-  margin-bottom: 0;
+  margin-top: 8px;
+  padding: 0 24px; // Adiciona padding lateral para ficar bonito
 }
 
 // --- Estilos para a Tela de Detalhes (copiado do product-form) ---
@@ -68,9 +59,9 @@
   }
 
   .details-description {
-    margin-top: 24px;
+    margin-top: 14px;
     h4 {
-      margin-bottom: 8px;
+      margin-bottom: 14px;
     }
     p {
       white-space: pre-wrap;

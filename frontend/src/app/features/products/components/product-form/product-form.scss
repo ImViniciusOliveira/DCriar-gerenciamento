@@ -16,26 +16,17 @@
   top: 4px;
   right: 4px;
   left: auto;
-
-  // Força o tamanho quadrado e remove estilos padrão
   width: 32px;
   height: 32px;
   padding: 0;
   min-width: 0;
-
-  // Esconde o indicador de foco que causa o problema de tamanho
-  .mat-focus-indicator {
-    display: none;
-  }
-
-  // Centraliza o ícone
   display: flex;
   align-items: center;
   justify-content: center;
-
-  // Estilos visuais
   background-color: rgba(0, 0, 0, 0.5);
   border-radius: 4px;
+
+  .mat-focus-indicator { display: none; }
 
   mat-icon {
     color: white;
@@ -49,151 +40,91 @@
   }
 }
 
-
-.image-upload-section {
-  @include fl.image-upload-section;
-}
-
 // --- Layout do Formulário ---
 
 .row-group {
   @include fl.form-row;
 
-  .type-field {
-    flex: 0 0 220px;
-    min-width: 220px;
-  }
+  .type-field { flex: 0 0 220px; min-width: 220px; }
+  .name-field { flex: 2; min-width: 300px; }
+  .sku-field { flex: 1.5; min-width: 180px; }
+  .color-field { flex: 1; min-width: 130px; }
+  .units-field { flex: 1; min-width: 130px; }
+  fieldset.active-fieldset { @include fl.fieldset-compact; }
+  .description-field { min-width: 300px; }
+  .full-width { flex-basis: 100%; }
 
-  .name-field {
-    flex: 2;
-    min-width: 300px;
-  }
-
-  .sku-field {
-    flex: 1.5;
-    min-width: 180px;
-  }
-
-  .color-field {
-    flex: 1;
-    min-width: 130px;
-  }
-
-  .units-field {
-    flex: 1;
-    min-width: 130px;
-  }
-
-  fieldset.active-fieldset {
-    @include fl.fieldset-compact;
-  }
-
-  .description-field {
-    min-width: 300px;
-  }
-
-  // Garante que o campo ocupe 100% da largura da linha
-  .full-width {
-    flex-basis: 100%;
-  }
+  margin: 0
 }
 
 // Regra para layout da linha de descrição e foto
 .description-photo-row {
-  align-items: flex-start; // Alinha os itens pelo topo
-
-  .image-upload-section {
-    order: 1; // Foto à esquerda
-    flex: 0 0 auto;
-    margin: 0; // Remove a margem que causava o recuo ("para dentro")
-  }
+  display: flex;
+  gap: 16px;
+  align-items: flex-start; // Alinha pelo topo para permitir alturas diferentes
 
   .description-field {
-    order: 2; // Descrição à direita
     flex: 1;
+    order: 2;
+    height: 320px; // Altura fixa para o campo de descrição
 
     textarea {
-      // Altura fixa para igualar a altura da seção da foto de forma estável.
-      // A altura da foto é ~280px. O textarea precisa de ~248px para compensar o padding do mat-form-field.
-      height: 248px !important;
+      height: 100%;
       resize: none;
     }
+  }
+
+  .image-upload-section {
+    flex: 1;
+    order: 1;
+    height: 300px; // Altura fixa para a seção da foto
+    display: flex;
   }
 }
 
 fieldset.photo-fieldset {
-  @include fl.fieldset-full-height;
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+
+  .image-preview-container {
+    flex-grow: 1;
+    width: 100%;
+  }
 }
 
 .dimensions-grid {
   display: flex;
   gap: 16px;
   width: 100%;
-
-  mat-form-field {
-    flex: 1;
-  }
+  mat-form-field { flex: 1; }
 }
 
-.mat-mdc-dialog-actions {
-    justify-content: flex-end;
-}
-
-.form-checkbox {
-  margin: 16px 0;
-}
+.mat-mdc-dialog-actions { justify-content: flex-end; }
+.form-checkbox { margin: 16px 0; }
 
 .spec-row {
-  display: flex; // Usa flexbox para alinhar os campos
-  gap: 16px; // Espaçamento entre os campos
+  display: flex;
+  gap: 16px;
   align-items: center;
-  margin-bottom: 16px; // Espaço abaixo de cada linha de especificação
-
-  mat-form-field {
-    flex: 1; // Faz com que os campos de Característica e Descrição cresçam igualmente
-  }
-
-  button {
-    flex: 0 0 auto; // Botão de remover não cresce
-  }
+  margin-bottom: 16px;
+  mat-form-field { flex: 1; }
+  button { flex: 0 0 auto; }
 }
 
 // --- Layout de Detalhes ---
 
 .details-content {
-  .details-container {
-    display: flex;
-    gap: 24px;
-  }
-
-  .details-image {
-    flex-shrink: 0;
-  }
-
-  .details-info {
-    flex-grow: 1;
-  }
-
-  .details-description {
-    margin-top: 24px;
-    h4 {
-      margin-bottom: 8px;
-    }
-    p {
-      white-space: pre-wrap;
-    }
-  }
-
-  hr {
-    border: none;
-    border-top: 1px solid var(--mat-sys-outline-variant);
-    margin: 16px 0;
-  }
+  .details-container { display: flex; gap: 24px; }
+  .details-image { flex-shrink: 0; }
+  .details-info { flex-grow: 1; }
+  hr { border: none; border-top: 1px solid var(--mat-sys-outline-variant); margin: 16px 0; }
 }
 
 // --- Correção Visual para Validação Imediata ---
-// Força a exibição do erro e a cor vermelha assim que o campo é modificado (dirty) e fica inválido,
-// sem esperar que o usuário saia do campo (touched).
 :host ::ng-deep {
   mat-form-field.ng-invalid.ng-dirty {
     .mdc-notched-outline__leading,
@@ -202,15 +133,11 @@ fieldset.photo-fieldset {
       border-color: var(--mat-sys-error) !important;
       border-width: 2px !important;
     }
-
     .mat-mdc-form-field-subscript-wrapper {
-      // Garante que a mensagem de erro seja visível
       display: block !important;
       visibility: visible !important;
       opacity: 1 !important;
     }
-
-    // Garante que o texto da mensagem de erro também use a cor do sistema
     .mat-mdc-form-field-error {
       color: var(--mat-sys-error) !important;
     }

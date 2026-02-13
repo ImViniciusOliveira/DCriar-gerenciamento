@@ -3,7 +3,7 @@
 @if (!isViewMode()) {
   <form [formGroup]="form" (ngSubmit)="onSave()">
     <mat-dialog-content>
-      <div class="form-container">
+      <div>
         <!-- Componente de busca de matéria-prima -->
         <div class="full-width no-bottom-gap">
           <app-material-type-search
@@ -36,7 +36,7 @@
             @if (form.get('quantidadeInicial')?.hasError('required')) {
               <mat-error>A quantidade inicial é obrigatória.</mat-error>
             } @else if (form.get('quantidadeInicial')?.hasError('pattern')) {
-              <mat-error>Formato inválido. Apenas números são permitidos.</mat-error>
+              <mat-error>Apenas números.</mat-error>
             } @else if (form.get('quantidadeInicial')?.hasError('min')) {
               <mat-error>A quantidade deve ser maior que zero.</mat-error>
             } @else if (form.get('quantidadeInicial')?.hasError('maxIntegerDigits')) {
@@ -51,7 +51,7 @@
             @if (form.get('custoTotalLote')?.hasError('required')) {
               <mat-error>O custo total é obrigatório.</mat-error>
             } @else if (form.get('custoTotalLote')?.hasError('pattern')) {
-              <mat-error>Formato inválido. Apenas números são permitidos.</mat-error>
+              <mat-error>Apenas números.</mat-error>
             } @else if (form.get('custoTotalLote')?.hasError('min')) {
               <mat-error>O custo deve ser maior que zero.</mat-error>
             } @else if (form.get('custoTotalLote')?.hasError('maxIntegerDigits')) {
@@ -80,7 +80,7 @@
             @if (form.get('larguraMm')?.hasError('required')) {
               <mat-error>A largura é obrigatória para este tipo de lote.</mat-error>
             } @else if (form.get('larguraMm')?.hasError('pattern')) {
-              <mat-error>Formato inválido. Apenas números são permitidos.</mat-error>
+              <mat-error>Apenas números.</mat-error>
             } @else if (form.get('larguraMm')?.hasError('min')) {
               <mat-error>A largura deve ser maior que zero.</mat-error>
             } @else if (form.get('larguraMm')?.hasError('maxIntegerDigits')) {
@@ -89,40 +89,38 @@
           </mat-form-field>
         }
 
-        <!-- Atributos Adicionais -->
-        <fieldset class="dynamic-attributes">
-          <div formArrayName="atributos">
-            @for (attrGroup of attributesControls; track $index) {
-              <div class="attribute-row" [formGroup]="attrGroup">
-                <mat-form-field appearance="outline">
-                  <mat-label>Nome do Atributo</mat-label>
-                  <input matInput formControlName="chave" [errorStateMatcher]="matcher" placeholder="Ex: Fornecedor" required>
-                  @if (attrGroup.get('chave')?.hasError('required')) {
-                    <mat-error>O nome do atributo é obrigatório.</mat-error>
-                  } @else if (attrGroup.get('chave')?.hasError('maxlength')) {
-                    <mat-error>Máximo de 50 caracteres.</mat-error>
-                  }
-                </mat-form-field>
-                <mat-form-field appearance="outline">
-                  <mat-label>Valor do Atributo</mat-label>
-                  <input matInput formControlName="valor" [errorStateMatcher]="matcher" placeholder="Ex: Papelaria X" required>
-                   @if (attrGroup.get('valor')?.hasError('required')) {
-                    <mat-error>O valor do atributo é obrigatório.</mat-error>
-                  } @else if (attrGroup.get('valor')?.hasError('maxlength')) {
-                    <mat-error>Máximo de 50 caracteres.</mat-error>
-                  }
-                </mat-form-field>
-                <button mat-icon-button type="button" (click)="removeAttribute($index)" title="Remover Atributo">
-                  <mat-icon>remove_circle_outline</mat-icon>
-                </button>
-              </div>
-            }
-          </div>
-          <button mat-stroked-button type="button" class="action-button" (click)="addAttribute()">
-            <mat-icon>add</mat-icon>
-            Adicionar Atributo
-          </button>
-        </fieldset>
+        <!-- Atributos Adicionais (Sem Fieldset) -->
+        <div formArrayName="atributos">
+          @for (attrGroup of attributesControls; track $index) {
+            <div class="attribute-row" [formGroup]="attrGroup">
+              <mat-form-field appearance="outline">
+                <mat-label>Nome do Atributo</mat-label>
+                <input matInput formControlName="chave" [errorStateMatcher]="matcher" placeholder="Ex: Fornecedor" required>
+                @if (attrGroup.get('chave')?.hasError('required')) {
+                  <mat-error>O nome do atributo é obrigatório.</mat-error>
+                } @else if (attrGroup.get('chave')?.hasError('maxlength')) {
+                  <mat-error>Máximo de 50 caracteres.</mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Valor do Atributo</mat-label>
+                <input matInput formControlName="valor" [errorStateMatcher]="matcher" placeholder="Ex: Papelaria X" required>
+                 @if (attrGroup.get('valor')?.hasError('required')) {
+                  <mat-error>O valor do atributo é obrigatório.</mat-error>
+                } @else if (attrGroup.get('valor')?.hasError('maxlength')) {
+                  <mat-error>Máximo de 50 caracteres.</mat-error>
+                }
+              </mat-form-field>
+              <button mat-icon-button type="button" (click)="removeAttribute($index)" title="Remover Atributo">
+                <mat-icon>remove_circle_outline</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+        <button mat-stroked-button type="button" class="action-button" (click)="addAttribute()">
+          <mat-icon>add</mat-icon>
+          Adicionar Atributo
+        </button>
       </div>
     </mat-dialog-content>
 

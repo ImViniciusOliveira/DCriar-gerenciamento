@@ -1,12 +1,5 @@
 @use '../../../../shared/styles/form-layout' as fl;
 
-// Layout principal do formulário
-.form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px; // Espaçamento vertical consistente entre todos os blocos
-}
-
 // Estilo para o botão "Adicionar Produto"
 .add-button {
   width: 100%;
