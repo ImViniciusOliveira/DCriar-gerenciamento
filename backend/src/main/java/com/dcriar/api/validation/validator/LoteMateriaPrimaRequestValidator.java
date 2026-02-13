@@ -40,11 +40,22 @@ public class LoteMateriaPrimaRequestValidator extends BaseValidator<ValidLoteMat
             if (atributos != null && atributos.containsKey("larguraMm") && atributos.get("larguraMm") != null) {
                 Object larguraValue = atributos.get("larguraMm");
                 boolean isInvalidNumber = true;
+                
                 if (larguraValue instanceof Number) {
                     if (((Number) larguraValue).doubleValue() > 0) {
                         isInvalidNumber = false;
                     }
+                } else if (larguraValue instanceof String) {
+                    try {
+                        // Tenta converter String para número para ser robusto
+                        if (Double.parseDouble((String) larguraValue) > 0) {
+                            isInvalidNumber = false;
+                        }
+                    } catch (NumberFormatException e) {
+                        // Não é um número válido
+                    }
                 }
+
                 addViolationIf(isInvalidNumber, "O atributo 'larguraMm' deve ser um número positivo.", "atributos");
             }
         }

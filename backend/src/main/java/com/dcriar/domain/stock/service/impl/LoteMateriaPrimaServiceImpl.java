@@ -151,12 +151,25 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                     throw new CalculoCustoIncompativelException(UnidadeDeMedida.METRO_LINEAR, UnidadeDeMedida.CENTIMETRO_QUADRADO);
                 }
                 Object larguraMmObj = dto.getAtributos().get("larguraMm");
-                if (!(larguraMmObj instanceof Number)) {
+                BigDecimal larguraVal;
+
+                if (larguraMmObj instanceof Number) {
+                    larguraVal = new BigDecimal(((Number) larguraMmObj).toString());
+                } else if (larguraMmObj instanceof String) {
+                    try {
+                        larguraVal = new BigDecimal((String) larguraMmObj);
+                    } catch (NumberFormatException e) {
+                        throw new AtributoLoteInvalidoException(String.format(
+                                "Para lotes em %s, o atributo 'larguraMm' é obrigatório e deve ser um número para o cálculo de custo.",
+                                UnidadeDeMedida.METRO_LINEAR.getDescricao()));
+                    }
+                } else {
                     throw new AtributoLoteInvalidoException(String.format(
                             "Para lotes em %s, o atributo 'larguraMm' é obrigatório e deve ser um número para o cálculo de custo.",
                             UnidadeDeMedida.METRO_LINEAR.getDescricao()));
                 }
-                BigDecimal larguraCm = new BigDecimal(((Number) larguraMmObj).intValue()).divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
+
+                BigDecimal larguraCm = larguraVal.divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
                 BigDecimal comprimentoCm = dto.getQuantidadeInicial().multiply(new BigDecimal("100"));
                 totalUnidadesBase = larguraCm.multiply(comprimentoCm);
             }
