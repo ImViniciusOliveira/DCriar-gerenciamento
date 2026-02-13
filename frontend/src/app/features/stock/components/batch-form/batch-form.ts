@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, Signal, effect, computed } from '@angular/core';
 import { CommonModule, CurrencyPipe, TitleCasePipe } from '@angular/common';
-import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormGroupDirective, NgForm, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { lastValueFrom } from 'rxjs';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, switchMap } from 'rxjs/operators';
+import { ErrorStateMatcher } from '@angular/material/core';
 
 import { Batch, BatchRequest } from '../../models/batch.model';
 import { MaterialType } from '../../models/material-type.model';
@@ -20,6 +21,34 @@ import { MaterialTypeSearch } from '../../../../shared/components/material-type-
 import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
+
+/**
+ * Validador que verifica se a parte inteira de um número excede um máximo de dígitos.
+ */
+export function maxIntegerDigits(maxDigits: number): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    if (!control.value) {
+      return null;
+    }
+    const value = String(control.value);
+    const integerPart = value.split('.')[0].replace(/^-/, '');
+
+    if (integerPart.length > maxDigits) {
+      return { maxIntegerDigits: { requiredDigits: maxDigits, actualDigits: integerPart.length } };
+    }
+    return null;
+  };
+}
+
+/**
+ * Define quando os erros de um campo de formulário devem ser exibidos.
+ * A regra é: mostrar o erro se o campo for inválido E (o usuário já digitou nele OU já saiu dele).
+ */
+export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
+  isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+    return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+}
 
 export interface BatchFormData {
   template: Batch;
@@ -58,6 +87,7 @@ export class BatchForm implements OnInit {
   isEditMode = signal(false);
   isViewMode = signal(false);
   requiresWidth: Signal<boolean>;
+  matcher = new ImmediateErrorStateMatcher();
 
   readonly batch = signal<Batch>(this.data.template);
   private readonly allMeasurementUnits: Signal<EnumOption[]>;
@@ -84,9 +114,9 @@ export class BatchForm implements OnInit {
     this.form = this.fb.group({
       materiaPrima: [null, Validators.required],
       unidadeDeEstoque: [null, Validators.required],
-      quantidadeInicial: [{ value: this.data.template?.saldoEstoque || '', disabled: this.isEditMode() }, [Validators.required, Validators.min(0.01)]],
-      custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01)]],
-      motivo: [this.data.template?.motivo || '', Validators.required],
+      quantidadeInicial: [{ value: this.data.template?.saldoEstoque || '', disabled: this.isEditMode() }, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(/^-?\d*(\.\d+)?$/)]],
+      custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(/^-?\d*(\.\d+)?$/)]],
+      motivo: [this.data.template?.motivo || '', [Validators.required, Validators.maxLength(100)]],
       larguraMm: [null],
       atributos: this.fb.array([])
     });
@@ -151,7 +181,7 @@ export class BatchForm implements OnInit {
 
         if (fullBatch.tipoMateriaPrimaId) {
           const mt = await lastValueFrom(this.materialTypeService.findById(fullBatch.tipoMateriaPrimaId));
-          this.materialType.set(mt); // Atualiza o signal
+          this.materialType.set(mt);
           this.form.patchValue({
             materiaPrima: mt,
             unidadeDeEstoque: fullBatch.unidadeDeEstoque,
@@ -202,7 +232,7 @@ export class BatchForm implements OnInit {
 
   onMaterialTypeChange(event: MatSelectChange): void {
     const materialType = event.value as MaterialType;
-    this.materialType.set(materialType); // Atualiza o signal
+    this.materialType.set(materialType);
     this.form.patchValue({
       materiaPrima: materialType,
       unidadeDeEstoque: materialType.unidadeDeConsumo
@@ -212,7 +242,7 @@ export class BatchForm implements OnInit {
   private updateWidthValidation(unidade: string | null): void {
     const widthControl = this.form.get('larguraMm');
     if (unidade === 'METRO_LINEAR') {
-      widthControl?.setValidators([Validators.required, Validators.min(1)]);
+      widthControl?.setValidators([Validators.required, Validators.min(1), maxIntegerDigits(15), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
     } else {
       widthControl?.clearValidators();
       widthControl?.reset();
@@ -222,8 +252,8 @@ export class BatchForm implements OnInit {
 
   addAttribute(key: string = '', value: string = '', isNew: boolean = true): void {
     this.attributes.push(this.fb.group({
-      chave: [key, Validators.required],
-      valor: [value, Validators.required],
+      chave: [key, [Validators.required, Validators.maxLength(50)]],
+      valor: [value, [Validators.required, Validators.maxLength(50)]],
       isNew: [isNew]
     }));
 

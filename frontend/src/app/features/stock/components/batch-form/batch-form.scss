@@ -83,3 +83,29 @@
     margin: 16px 0;
   }
 }
+
+// --- Correção Visual para Validação Imediata ---
+// Força a exibição do erro e a cor vermelha assim que o campo é modificado (dirty) e fica inválido,
+// sem esperar que o usuário saia do campo (touched).
+:host ::ng-deep {
+  mat-form-field.ng-invalid.ng-dirty {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--mat-sys-error) !important;
+      border-width: 2px !important;
+    }
+
+    .mat-mdc-form-field-subscript-wrapper {
+      // Garante que a mensagem de erro seja visível
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    // Garante que o texto da mensagem de erro também use a cor do sistema
+    .mat-mdc-form-field-error {
+      color: var(--mat-sys-error) !important;
+    }
+  }
+}
