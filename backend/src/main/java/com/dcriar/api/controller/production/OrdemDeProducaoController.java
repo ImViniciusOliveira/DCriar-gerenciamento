@@ -40,6 +40,13 @@ public class OrdemDeProducaoController {
     private final OrdemDeProducaoService ordemDeProducaoService;
     private final OrdemDeProducaoModelAssembler ordemDeProducaoModelAssembler;
 
+    @GetMapping("/new")
+    @Operation(summary = "Obter um modelo 'esqueleto' para criação de uma nova ordem de produção")
+    @ApiResponse(responseCode = "200", description = "Modelo retornado com sucesso")
+    public ResponseEntity<OrdemDeProducaoModel> getNewTemplate() {
+        return ordemDeProducaoModelAssembler.toOkResponseEntity(new OrdemDeProducaoResponseDTO());
+    }
+
     @PostMapping("/corte")
     @Operation(summary = "Criar uma nova ordem de produção do tipo CORTE")
     @ApiResponses(value = {

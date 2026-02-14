@@ -77,6 +77,7 @@ public class OrdemDeProducaoModelAssembler extends RepresentationModelAssemblerS
      * apontando para a URL do novo recurso criado.
      *
      * @param dto O DTO do recurso que acabou de ser criado.
+
      * @return Um ResponseEntity com status 201 e o modelo do recurso no corpo.
      */
     public ResponseEntity<OrdemDeProducaoModel> toCreatedResponseEntity(@NonNull OrdemDeProducaoResponseDTO dto) {
@@ -87,5 +88,16 @@ public class OrdemDeProducaoModelAssembler extends RepresentationModelAssemblerS
                 .toUri();
 
         return ResponseEntity.created(location).body(model);
+    }
+
+    /**
+     * Cria uma resposta HTTP 200 (OK) com o modelo HATEOAS.
+     * Utilizado para endpoints que retornam um recurso existente ou um template vazio.
+     *
+     * @param dto O DTO do recurso.
+     * @return Um ResponseEntity com status 200 e o modelo do recurso no corpo.
+     */
+    public ResponseEntity<OrdemDeProducaoModel> toOkResponseEntity(@NonNull OrdemDeProducaoResponseDTO dto) {
+        return ResponseEntity.ok(toModel(dto));
     }
 }

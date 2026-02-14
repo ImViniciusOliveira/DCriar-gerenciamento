@@ -2,9 +2,10 @@ package com.dcriar.api.dto.response.production;
 
 import com.dcriar.domain.production.enums.ModoCalculo;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.hateoas.RepresentationModel;
 
@@ -20,8 +21,9 @@ import java.util.List;
  */
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper = false)
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrdemDeProducaoResponseDTO extends RepresentationModel<OrdemDeProducaoResponseDTO> {
 
     @Schema(description = "ID único da ordem de produção.")
