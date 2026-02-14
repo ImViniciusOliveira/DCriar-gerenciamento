@@ -79,7 +79,7 @@ INSERT INTO produtos (tipo_produto, nome, sku, descricao, cor, unidades_por_prod
 
 -- ETAPA F: ESTOQUE MESTRE INICIAL (PRODUTOS)
 INSERT INTO movimentacoes_estoque_produto (produto_id, data, tipo, quantidade, motivo) VALUES
-    -- REMOVIDO: (1, NOW() - INTERVAL '5 day', 'ENTRADA_PRODUCAO', 5000, 'Ordem de Produção #P101'),
+    (1, NOW() - INTERVAL '5 day', 'ENTRADA_PRODUCAO', 5000, 'Ordem de Produção #P101'),
     (2, NOW() - INTERVAL '4 day', 'ENTRADA_PRODUCAO', 10, 'Ordem de Produção #P102'),
     (3, NOW() - INTERVAL '3 day', 'ENTRADA_PRODUCAO', 1000, 'Ordem de Produção #P103'),
     (5, NOW() - INTERVAL '2 day', 'ENTRADA_PRODUCAO', 250, 'Ordem de Produção #P104'),
