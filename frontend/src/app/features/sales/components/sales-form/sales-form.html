@@ -1,82 +1,108 @@
 <h2 mat-dialog-title>{{ data.title }}</h2>
 
-<form [formGroup]="form" (ngSubmit)="onSave()">
-  <mat-dialog-content>
-    <div class="form-grid">
-      <!-- Seleção de Canal de Venda -->
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Canal de Venda</mat-label>
-        <mat-select formControlName="canalVendaId">
-          @for (channel of channels(); track channel.id) {
-            <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
+@if (!isViewMode()) {
+  <form [formGroup]="form" (ngSubmit)="onSave()">
+    <mat-dialog-content>
+      <div class="form-grid">
+        <!-- Seleção de Canal de Venda -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Canal de Venda</mat-label>
+          <mat-select formControlName="canalVendaId" [errorStateMatcher]="matcher">
+            @for (channel of channels(); track channel.id) {
+              <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
+            }
+          </mat-select>
+          @if (form.get('canalVendaId')?.hasError('required')) {
+            <mat-error>
+              O campo é obrigatório.
+            </mat-error>
           }
-        </mat-select>
-        @if (form.get('canalVendaId')?.hasError('required')) {
-          <mat-error>
-            Selecione um canal de venda.
-          </mat-error>
-        }
-      </mat-form-field>
+        </mat-form-field>
 
-      <!-- Lista de Itens (agora dentro do grid) -->
-      <div formArrayName="itens" class="items-container">
-        @for (itemGroup of itemsControls; track itemGroup; let i = $index) {
-          <div class="item-row" [formGroup]="itemGroup">
-            <!-- Coluna do Produto -->
-            <div class="product-column">
-              <app-product-search
-                [searchControl]="getProductControl(i)"
-                [channelId]="form.get('canalVendaId')?.value"
-                [stockAdjustments]="originalQuantities"
-                [customHint]="itemGroup.get('estoqueDisponivel')?.value !== null ? 'Estoque: ' + itemGroup.get('estoqueDisponivel')?.value : null"
-                [customError]="itemGroup.get('quantidade')?.hasError('stockExceeded') ? 'Estoque insuficiente' : null"
-                (productSelected)="onProductSelected($event, i)">
-              </app-product-search>
+        <!-- Lista de Itens (agora em layout simples sem retângulo) -->
+        <div formArrayName="itens" class="items-container">
+          @for (itemGroup of itemsControls; track itemGroup; let i = $index) {
+            <div class="item-row" [formGroup]="itemGroup">
+              <!-- Coluna do Produto -->
+              <div class="product-column">
+                <app-product-search
+                  [searchControl]="getProductControl(i)"
+                  [channelId]="form.get('canalVendaId')?.value"
+                  [stockAdjustments]="originalQuantities"
+                  [customHint]="itemGroup.get('estoqueDisponivel')?.value !== null ? 'Estoque: ' + itemGroup.get('estoqueDisponivel')?.value : null"
+                  [customError]="itemGroup.get('quantidade')?.hasError('stockExceeded') ? 'Estoque insuficiente' : null"
+                  (productSelected)="onProductSelected($event, i)">
+                </app-product-search>
+              </div>
+
+              <!-- Quantidade -->
+              <mat-form-field appearance="outline" class="qty-field">
+                <mat-label>Quantidade</mat-label>
+                <input matInput type="text" inputmode="decimal" placeholder="Qtd" formControlName="quantidade" [errorStateMatcher]="matcher">
+                <!-- Mensagens de Erro com Validações em PT-BR -->
+                @if (itemGroup.get('quantidade')?.hasError('required')) {
+                  <mat-error>O campo é obrigatório.</mat-error>
+                } @else if (itemGroup.get('quantidade')?.hasError('pattern')) {
+                  <mat-error>Apenas números.</mat-error>
+                } @else if (itemGroup.get('quantidade')?.hasError('min')) {
+                  <mat-error>O valor deve ser maior que zero.</mat-error>
+                } @else if (itemGroup.get('quantidade')?.hasError('maxIntegerDigits')) {
+                  <mat-error>Máximo de 15 dígitos.</mat-error>
+                } @else if (itemGroup.get('quantidade')?.hasError('stockExceeded')) {
+                  <mat-error>Estoque insuficiente</mat-error>
+                }
+              </mat-form-field>
+
+              <!-- Botão Remover -->
+              <button mat-icon-button type="button" (click)="removeItem(i)" title="Remover item">
+                <mat-icon>remove_circle_outline</mat-icon>
+              </button>
             </div>
+          }
+        </div>
 
-            <!-- Quantidade -->
-            <mat-form-field appearance="outline" class="qty-field">
-              <input matInput type="number" placeholder="Qtd" formControlName="quantidade" min="1" [errorStateMatcher]="matcher">
-              <!-- Mensagens de Erro (Apenas validações básicas) -->
-              @if (itemGroup.get('quantidade')?.hasError('required')) {
-                <mat-error>Obrigatório</mat-error>
-              }
-              @if (itemGroup.get('quantidade')?.hasError('min')) {
-                <mat-error>Mínimo 1</mat-error>
-              }
-            </mat-form-field>
+        <!-- Botão Adicionar Produto -->
+        <button mat-stroked-button type="button" class="action-button" (click)="addItem()" [disabled]="!form.get('canalVendaId')?.value">
+          <mat-icon>add</mat-icon>
+          Adicionar Produto
+        </button>
 
-            <!-- Botão Remover -->
-            <button mat-icon-button color="warn" type="button" (click)="removeItem(i)" title="Remover item">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
+        <!-- Mensagem de Instrução -->
+        @if (itemsControls.length === 0) {
+          <small class="instruction-text">Selecione um canal de venda para adicionar produtos</small>
         }
       </div>
 
-      <!-- Botão Adicionar Produto (agora dentro do grid) -->
-      <button mat-stroked-button type="button" class="add-button action-button" (click)="addItem()" [disabled]="!form.get('canalVendaId')?.value">
-        <div class="add-button-content">
-          @if (form.get('canalVendaId')?.value) {
-            <mat-icon>add_shopping_cart</mat-icon>
-            <span>Adicionar Produto</span>
-          } @else {
-            <span>Selecione um canal de venda para adicionar produtos</span>
-          }
-        </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" (click)="onCancel()">Cancelar</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isSaving() || itemsControls.length === 0">
+        @if (isSaving()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          Finalizar Venda
+        }
       </button>
-    </div>
-
-  </mat-dialog-content>
-
-  <mat-dialog-actions align="end">
-    <button mat-button type="button" (click)="onCancel()">Cancelar</button>
-    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isSaving() || itemsControls.length === 0">
-      @if (isSaving()) {
-        <mat-spinner diameter="20"></mat-spinner>
-      } @else {
-        Finalizar Venda
+    </mat-dialog-actions>
+  </form>
+} @else {
+  <mat-dialog-content class="details-content">
+    <div class="details-info">
+      <p><strong>Canal de Venda:</strong> {{ getChannelName() }}</p>
+      <p><strong>Data:</strong> {{ data.template?.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</p>
+      <p><strong>Valor Total:</strong> {{ data.template?.valorTotal | currency:'BRL' }}</p>
+      <hr>
+      @if (data.template?.itens) {
+        <h4>Itens da Venda</h4>
+        @for (item of data.template!.itens!; track item.produtoId) {
+          <p><strong>{{ item.nomeProduto }}</strong> ({{ item.produtoSku }})</p>
+          <p>Quantidade: {{ item.quantidade }} | Preço Unit: {{ item.precoUnitario | currency:'BRL' }} | Total: {{ item.precoTotal | currency:'BRL' }}</p>
+        }
       }
-    </button>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="onCancel()">Fechar</button>
   </mat-dialog-actions>
-</form>
+}

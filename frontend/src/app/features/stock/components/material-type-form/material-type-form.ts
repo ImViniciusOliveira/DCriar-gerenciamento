@@ -1,11 +1,12 @@
 import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormControl, FormGroup, FormGroupDirective, NgForm, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { ErrorStateMatcher } from '@angular/material/core';
 import { HttpClient } from '@angular/common/http';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { startWith } from 'rxjs/operators';
@@ -23,6 +24,17 @@ export interface MaterialTypeFormData {
 export interface UnitOption {
   name: string;
   descricao: string;
+}
+
+/**
+ * Define quando os erros de um campo de formulário devem ser exibidos.
+ * A regra é: mostrar o erro se o campo for inválido E (o usuário já digitou nele OU já saiu dele).
+ * Permite que a validação apareça imediatamente ao digitar (dirty).
+ */
+export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
+  isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+    return !!(control && control.invalid && (control.dirty || control.touched));
+  }
 }
 
 /**
@@ -70,6 +82,7 @@ export class MaterialTypeForm implements OnInit {
   };
 
   form: FormGroup;
+  matcher = new ImmediateErrorStateMatcher();
 
   allUnits = signal<UnitOption[]>([]);
   filterValue = signal<string>('');
@@ -89,7 +102,7 @@ export class MaterialTypeForm implements OnInit {
     this.isEditMode.set(!!this.data.template.id);
 
     this.form = this.fb.group({
-      nome: [this.data.template?.nome || '', Validators.required],
+      nome: [this.data.template?.nome || '', [Validators.required, Validators.maxLength(150)]],
       unidadeDeConsumo: ['', [Validators.required]]
     });
 

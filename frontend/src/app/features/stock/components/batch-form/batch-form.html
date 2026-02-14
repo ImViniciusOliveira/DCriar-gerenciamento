@@ -13,7 +13,6 @@
           </app-material-type-search>
         </div>
 
-        <!-- Linha com 3 colunas -->
         <div class="form-row">
           <!-- Unidade de Estoque -->
           <mat-form-field appearance="outline">
@@ -71,7 +70,7 @@
           }
         </mat-form-field>
 
-        <!-- Campo de Largura (sem o fieldset) -->
+        <!-- Campo de Largura -->
         @if (requiresWidth()) {
           <div class="width-row">
             <mat-form-field appearance="outline">
@@ -91,7 +90,7 @@
           </div>
         }
 
-        <!-- Atributos Adicionais (Sem Fieldset) -->
+        <!-- Atributos Adicionais -->
         <div formArrayName="atributos">
           @for (attrGroup of attributesControls; track $index) {
             <div class="attribute-row" [formGroup]="attrGroup">
@@ -134,7 +133,6 @@
     </mat-dialog-actions>
   </form>
 } @else {
-  <!-- Modo de Visualização de Detalhes (seguindo o padrão de product-form) -->
   <mat-dialog-content class="details-content">
     <div class="details-info">
       <p><strong>Matéria-Prima:</strong> {{ materialType()?.nome }}</p>

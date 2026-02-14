@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -11,8 +11,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { ProductionOrder } from '../../models/production.model';
-import { ProductionService } from '../../services/production.service';
-import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 
 export interface ProductionFormData {
   order?: ProductionOrder;
@@ -42,8 +40,6 @@ export interface ProductionFormData {
 export class ProductionForm implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<ProductionForm>);
-  private readonly productionService = inject(ProductionService);
-  private readonly entityDialog = inject(EntityDialogService);
   public readonly data: ProductionFormData = inject(MAT_DIALOG_DATA);
 
   form: FormGroup;

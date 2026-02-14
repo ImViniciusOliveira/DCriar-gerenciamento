@@ -58,7 +58,7 @@
             } @else if (productForm.get('unidadesPorProduto')?.hasError('pattern')) {
               <mat-error>Apenas números.</mat-error>
             } @else if (productForm.get('unidadesPorProduto')?.hasError('min')) {
-              <mat-error>O valor deve ser no mínimo 1.</mat-error>
+              <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (productForm.get('unidadesPorProduto')?.hasError('maxIntegerDigits')) {
               <mat-error>Máximo de 10 dígitos.</mat-error>
             }

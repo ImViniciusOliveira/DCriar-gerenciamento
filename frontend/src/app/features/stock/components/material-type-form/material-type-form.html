@@ -6,9 +6,11 @@
       <!-- Campo Nome -->
       <mat-form-field appearance="outline">
         <mat-label>Nome da Matéria-Prima</mat-label>
-        <input matInput formControlName="nome" placeholder="Ex: Papel Couchê 300g" required>
+        <input matInput formControlName="nome" placeholder="Ex: Papel Couchê 300g" [errorStateMatcher]="matcher" required>
         @if (form.get('nome')?.hasError('required')) {
-          <mat-error>O nome é obrigatório.</mat-error>
+          <mat-error>O campo é obrigatório.</mat-error>
+        } @else if (form.get('nome')?.hasError('maxlength')) {
+          <mat-error>Máximo de 150 caracteres.</mat-error>
         }
       </mat-form-field>
 
@@ -21,6 +23,7 @@
                matInput
                formControlName="unidadeDeConsumo"
                [matAutocomplete]="auto"
+               [errorStateMatcher]="matcher"
                (focus)="onFocus()"
                required>
         <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayUnit">
@@ -32,9 +35,8 @@
           }
         </mat-autocomplete>
         @if (form.get('unidadeDeConsumo')?.hasError('required')) {
-          <mat-error>A unidade é obrigatória.</mat-error>
-        }
-        @if (form.get('unidadeDeConsumo')?.hasError('requireMatch')) {
+          <mat-error>O campo é obrigatório.</mat-error>
+        } @else if (form.get('unidadeDeConsumo')?.hasError('requireMatch')) {
           <mat-error>Selecione uma opção válida.</mat-error>
         }
       </mat-form-field>

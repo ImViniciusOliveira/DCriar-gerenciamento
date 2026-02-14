@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators, ValidationErrors, AbstractControl } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, FormGroupDirective, NgForm, ReactiveFormsModule, Validators, ValidationErrors, AbstractControl, ValidatorFn } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,8 +9,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ErrorStateMatcher } from '@angular/material/core';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { lastValueFrom } from 'rxjs';
 
 import { Sale, SaleRequest } from '../../models/sales.model';
 import { SalesService } from '../../services/sales.service';
@@ -18,12 +18,42 @@ import { ChannelService } from '../../../stock/services/channel.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { ProductSearch } from '../../../../shared/components/product-search/product-search';
 import { Product } from '../../../products/models/product.model';
-import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { ProductService } from '../../../products/services/product.service';
+
+/**
+ * Validador que verifica se a parte inteira de um número excede um máximo de dígitos.
+ * Usado para validar campos numéricos como quantidade.
+ */
+export function maxIntegerDigits(maxDigits: number): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    if (!control.value) {
+      return null;
+    }
+    const value = String(control.value);
+    const integerPart = value.split('.')[0].replace(/^-/, '');
+
+    if (integerPart.length > maxDigits) {
+      return { maxIntegerDigits: { requiredDigits: maxDigits, actualDigits: integerPart.length } };
+    }
+    return null;
+  };
+}
+
+/**
+ * Define quando os erros de um campo de formulário devem ser exibidos.
+ * A regra é: mostrar o erro se o campo for inválido E (o usuário já digitou nele OU já saiu dele).
+ * Permite que a validação apareça imediatamente ao digitar (dirty).
+ */
+export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
+  isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+    return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+}
 
 export interface SalesFormData {
   template?: Sale;
   title: string;
+  isViewMode?: boolean;
 }
 
 /**
@@ -112,7 +142,8 @@ export class SalesForm implements OnInit {
   form: FormGroup;
   isSaving = signal(false);
   isEditMode = signal(false);
-  matcher = new InstantErrorStateMatcher();
+  isViewMode = signal(false);
+  matcher = new ImmediateErrorStateMatcher();
 
   // Mapa público para ser acessado pelo template
   public originalQuantities = new Map<number, number>();
@@ -128,7 +159,14 @@ export class SalesForm implements OnInit {
   };
 
   constructor() {
-    this.isEditMode.set(!!this.data.template?.id);
+    this.isEditMode.set(!!this.data.template?.id && !this.data.isViewMode);
+    this.isViewMode.set(!!this.data.isViewMode);
+
+    // Não cria o formulário em modo de visualização
+    if (this.isViewMode()) {
+      this.form = this.fb.group({});
+      return;
+    }
 
     this.form = this.fb.group({
       canalVendaId: [null, Validators.required],
@@ -221,7 +259,12 @@ export class SalesForm implements OnInit {
       produtoId: [null, Validators.required],
       produtoNome: ['', Validators.required],
       estoqueDisponivel: [null],
-      quantidade: [1, [Validators.required, Validators.min(1)]]
+      quantidade: [1, [
+        Validators.required,
+        Validators.min(1),
+        maxIntegerDigits(15),
+        Validators.pattern(/^-?\d*(\.\d+)?$/)
+      ]]
     });
   }
 
@@ -264,6 +307,15 @@ export class SalesForm implements OnInit {
    */
   getProductControl(index: number): FormControl {
     return this.items.at(index).get('produtoNome') as FormControl;
+  }
+
+  /**
+   * Retorna o nome do canal de venda em modo de visualização.
+   */
+  getChannelName(): string {
+    const channelId = this.data.template?.canalVendaId;
+    const channel = this.channels().find(c => c.id === channelId);
+    return channel?.nome || 'N/A';
   }
 
   onSave(): void {

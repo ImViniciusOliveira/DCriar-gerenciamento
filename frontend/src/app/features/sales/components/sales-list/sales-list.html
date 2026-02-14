@@ -44,6 +44,9 @@
   </ng-template>
 
   <ng-template #acoesTemplate let-sale>
+    <button mat-icon-button color="primary" (click)="onViewDetails(sale)" title="Ver Detalhes">
+      <mat-icon>visibility</mat-icon>
+    </button>
     <button mat-icon-button color="primary" (click)="onEdit(sale)" title="Editar">
       <mat-icon>edit</mat-icon>
     </button>

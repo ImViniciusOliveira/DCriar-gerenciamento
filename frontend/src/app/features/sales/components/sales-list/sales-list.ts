@@ -136,6 +136,18 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
   }
 
   /**
+   * Abre a tela de detalhes para a venda selecionada.
+   */
+  onViewDetails(sale: Sale): void {
+    const saleCopy = structuredClone(sale);
+    this.openSalesDialog({
+      template: saleCopy,
+      title: 'Detalhes da Venda',
+      isViewMode: true
+    }, ''); // Não mostra mensagem de sucesso no modo de visualização
+  }
+
+  /**
    * Solicita confirmação e remove a venda selecionada.
    */
   onDelete(sale: Sale): void {

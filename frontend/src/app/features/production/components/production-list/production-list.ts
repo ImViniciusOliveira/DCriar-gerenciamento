@@ -5,14 +5,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { lastValueFrom, catchError, of } from 'rxjs';
+import { catchError, of } from 'rxjs';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { ProductionOrder } from '../../models/production.model';
 import { ProductionService } from '../../services/production.service';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
-import { ProductionForm, ProductionFormData } from '../production-form/production-form';
+import { ProductionOrderForm, ProductionOrderFormData } from '../production-order-form/production-order-form';
 
 /**
  * Componente de listagem para Ordens de Produção.
@@ -103,21 +103,15 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
   }
 
   /**
-   * Abre o formulário em modo de visualização (detalhes).
+   * Abre a tela de detalhes para a ordem selecionada.
    */
   onView(order: ProductionOrder): void {
-    const dialogData: ProductionFormData = {
-      order,
+    const orderCopy = structuredClone(order);
+    this.openFormDialog({
+      template: orderCopy,
       title: ProductionList.Texts.detailsTitle,
       isViewMode: true
-    };
-
-    this.entityDialog.openFormDialog({
-      component: ProductionForm,
-      formData: dialogData,
-      title: dialogData.title,
-      width: '600px'
-    }).subscribe();
+    });
   }
 
   onDelete(order: ProductionOrder): void {
@@ -142,5 +136,14 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
         });
       }
     });
+  }
+
+  private openFormDialog(dialogData: ProductionOrderFormData): void {
+    this.entityDialog.openFormDialog({
+      component: ProductionOrderForm,
+      formData: dialogData,
+      title: dialogData.title,
+      width: '700px'
+    }).subscribe();
   }
 }

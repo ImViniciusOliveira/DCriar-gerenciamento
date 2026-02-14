@@ -1,1 +1,64 @@
-<p>production-order-form works!</p>
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<mat-dialog-content class="details-content">
+  <div class="details-info">
+    <p><strong>Produto:</strong> {{ data.template.nomeProduto }}</p>
+    <p><strong>Quantidade Produzida:</strong> {{ data.template.quantidadeProduzida }}</p>
+    <p><strong>Data de Criação:</strong> {{ data.template.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</p>
+
+    @if (data.template.modoCalculo) {
+      <p><strong>Modo de Cálculo:</strong> {{ getCalculationModeText() }}</p>
+    }
+
+    @if (data.template.larguraFinalCm || data.template.comprimentoFinalCm) {
+      <p><strong>Dimensões Finais:</strong> {{ getFormattedDimensions() }}</p>
+    }
+
+    @if (data.template.rotacionado !== undefined && data.template.rotacionado !== null) {
+      <p><strong>Rotacionado:</strong> {{ data.template.rotacionado ? 'Sim' : 'Não' }}</p>
+    }
+
+    <hr>
+
+    @if (data.template.lotesConsumidosIds && data.template.lotesConsumidosIds.length > 0) {
+      <h4>Lotes Consumidos</h4>
+      <p>IDs: {{ data.template.lotesConsumidosIds.join(', ') }}</p>
+    }
+
+    @if (data.template.cortesRealizados && data.template.cortesRealizados.length > 0) {
+      <h4>Cortes Realizados</h4>
+      @for (corte of data.template.cortesRealizados; track $index) {
+        <p>
+          <strong>{{ corte.tipo === 'PRODUTO' ? 'Produto' : 'Retalho' }}:</strong>
+          {{ corte.larguraCm }} x {{ corte.comprimentoCm }} cm
+          | Quantidade: {{ corte.quantidade }}
+          @if (corte.retalhoCategoria) {
+            | Categoria: {{ corte.retalhoCategoria }}
+          }
+        </p>
+      }
+    }
+
+    @if (data.template.margens) {
+      <hr>
+      <h4>Margens Aplicadas</h4>
+      <p>
+        Superior: {{ data.template.margens.superior }} cm |
+        Inferior: {{ data.template.margens.inferior }} cm |
+        Esquerda: {{ data.template.margens.esquerda }} cm |
+        Direita: {{ data.template.margens.direita }} cm
+      </p>
+    }
+  </div>
+
+  @if (data.template.motivo) {
+    <div class="details-description">
+      <h4>Motivo/Referência</h4>
+      <p>{{ data.template.motivo }}</p>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="onCancel()">Fechar</button>
+</mat-dialog-actions>
