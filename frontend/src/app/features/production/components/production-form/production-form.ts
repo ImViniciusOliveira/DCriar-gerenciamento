@@ -1,19 +1,18 @@
-import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
+import { MatOptionModule } from '@angular/material/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { ProductionOrder } from '../../models/production.model';
 
 export interface ProductionFormData {
-  order?: ProductionOrder;
+  template?: ProductionOrder;
   title: string;
   isViewMode?: boolean;
 }
@@ -28,10 +27,9 @@ export interface ProductionFormData {
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatIconModule,
-    MatSelectModule,
     MatProgressSpinnerModule,
-    MatCheckboxModule
+    MatSelectModule,
+    MatOptionModule
   ],
   templateUrl: './production-form.html',
   styleUrls: ['./production-form.scss'],
@@ -40,68 +38,55 @@ export interface ProductionFormData {
 export class ProductionForm implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<ProductionForm>);
+  private readonly cdr = inject(ChangeDetectorRef);
   public readonly data: ProductionFormData = inject(MAT_DIALOG_DATA);
 
   form: FormGroup;
   isSaving = signal(false);
-  isViewMode = signal(false);
+  filterOperator = signal<'GTE' | 'LTE'>('GTE'); // ≥ ou ≤
 
   constructor() {
-    this.isViewMode.set(!!this.data.isViewMode);
-
     this.form = this.fb.group({
-      produtoNome: [{ value: '', disabled: true }],
-      quantidadeProduzida: [{ value: '', disabled: true }],
-      modoCalculo: [{ value: '', disabled: true }],
-      dimensoes: [{ value: '', disabled: true }],
-      motivo: [{ value: '', disabled: true }],
-      dataCriacao: [{ value: '', disabled: true }],
-      rotacionado: [{ value: false, disabled: true }],
-      margemSuperior: [{ value: '', disabled: true }],
-      margemInferior: [{ value: '', disabled: true }],
-      margemEsquerda: [{ value: '', disabled: true }],
-      margemDireita: [{ value: '', disabled: true }]
+      produtoId: [null],
+      filtroEstoque: [null],
+      quantidade: [null, [Validators.required, Validators.min(1)]]
     });
   }
 
   ngOnInit(): void {
-    if (this.data.order) {
-      this.initializeForm(this.data.order);
-    }
+    this.cdr.markForCheck();
   }
 
-  private initializeForm(order: ProductionOrder): void {
-    let dimensoesStr = '';
-    if (order.larguraFinalCm && order.comprimentoFinalCm) {
-      dimensoesStr = `${order.larguraFinalCm} x ${order.comprimentoFinalCm}`;
-    }
-
-    this.form.patchValue({
-      produtoNome: order.nomeProduto,
-      quantidadeProduzida: order.quantidadeProduzida,
-      modoCalculo: order.modoCalculo,
-      dimensoes: dimensoesStr,
-      motivo: order.motivo,
-      dataCriacao: new Date(order.dataCriacao).toLocaleString(),
-      rotacionado: order.rotacionado,
-      margemSuperior: order.margens?.superior,
-      margemInferior: order.margens?.inferior,
-      margemEsquerda: order.margens?.esquerda,
-      margemDireita: order.margens?.direita
-    });
-
-    if (this.isViewMode()) {
-      this.form.disable();
-    }
+  /**
+   * Toggle entre ≥ (GTE) e ≤ (LTE)
+   */
+  toggleFilterOperator(): void {
+    this.filterOperator.set(
+      this.filterOperator() === 'GTE' ? 'LTE' : 'GTE'
+    );
   }
 
   onSave(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
     this.isSaving.set(true);
-    // Lógica de salvar será implementada na etapa de criação
+    const formValue = this.form.getRawValue();
+    console.log('📋 DEBUG: Salvando ordem de produção', formValue);
+
+    setTimeout(() => {
+      this.isSaving.set(false);
+      this.dialogRef.close(true);
+      this.cdr.markForCheck();
+    }, 500);
   }
 
   onCancel(): void {
     this.dialogRef.close(false);
   }
 }
+
+
+

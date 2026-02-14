@@ -12,6 +12,7 @@ import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { ProductionOrder } from '../../models/production.model';
 import { ProductionService } from '../../services/production.service';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
+import { ProductionForm, ProductionFormData } from '../production-form/production-form';
 import { ProductionOrderForm, ProductionOrderFormData } from '../production-order-form/production-order-form';
 
 /**
@@ -98,8 +99,22 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
   }
 
   onCreate(): void {
-    // Futuro: Abrir ProductionForm em modo de criação
-    console.log('Abrir formulário de nova produção');
+    const dialogData: ProductionFormData = {
+      title: ProductionList.Texts.createTitle,
+      isViewMode: false
+    };
+
+    this.entityDialog.openFormDialog({
+      component: ProductionForm,
+      formData: dialogData,
+      title: dialogData.title,
+      width: '900px'
+    }).subscribe(saved => {
+      if (saved) {
+        this.entityDialog.showSuccessSnackbar('Ordem de produção criada com sucesso!');
+        this.productionService.updateSearchParams({});
+      }
+    });
   }
 
   /**

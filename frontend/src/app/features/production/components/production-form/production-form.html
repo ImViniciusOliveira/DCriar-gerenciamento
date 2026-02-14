@@ -2,87 +2,38 @@
 
 <form [formGroup]="form" (ngSubmit)="onSave()">
   <mat-dialog-content>
-    <div class="form-grid two-columns">
-      <!-- Produto -->
+    <!-- Linha 1: Dropdown Produto -->
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Produto</mat-label>
+      <mat-select formControlName="produtoId">
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Linha 2: Botão Toggle (≥/≤) + Input Filtro -->
+    <div style="display: flex; gap: 10px;">
+      <button mat-stroked-button type="button" (click)="toggleFilterOperator()">
+        {{ filterOperator() === 'GTE' ? '≥' : '≤' }}
+      </button>
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Produto</mat-label>
-        <input matInput formControlName="produtoNome">
-      </mat-form-field>
-
-      <!-- Quantidade -->
-      <mat-form-field appearance="outline">
-        <mat-label>Quantidade Produzida</mat-label>
-        <input matInput formControlName="quantidadeProduzida">
-      </mat-form-field>
-
-      <!-- Modo -->
-      <mat-form-field appearance="outline">
-        <mat-label>Modo de Cálculo</mat-label>
-        <input matInput formControlName="modoCalculo">
-      </mat-form-field>
-
-      <!-- Dimensões (Sempre visível se houver valor) -->
-      @if (form.get('dimensoes')?.value) {
-        <mat-form-field appearance="outline">
-          <mat-label>Largura x Comprimento (cm)</mat-label>
-          <input matInput formControlName="dimensoes">
-        </mat-form-field>
-      }
-
-      <!-- Detalhes do Corte Automático -->
-      @if (data.order?.modoCalculo === 'AUTOMATICO') {
-        <div class="details-section full-width">
-          <h3 class="section-title">Detalhes do Corte Automático</h3>
-
-          <mat-checkbox formControlName="rotacionado" class="details-checkbox">
-            Rotação
-          </mat-checkbox>
-
-          <div class="margins-cross-layout">
-            <mat-form-field appearance="outline" class="margin-superior">
-              <mat-label>Superior (cm)</mat-label>
-              <input matInput formControlName="margemSuperior">
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="margin-esquerda">
-              <mat-label>Esquerda (cm)</mat-label>
-              <input matInput formControlName="margemEsquerda">
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="margin-direita">
-              <mat-label>Direita (cm)</mat-label>
-              <input matInput formControlName="margemDireita">
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="margin-inferior">
-              <mat-label>Inferior (cm)</mat-label>
-              <input matInput formControlName="margemInferior">
-            </mat-form-field>
-          </div>
-        </div>
-      }
-
-      <!-- Data -->
-      <mat-form-field appearance="outline">
-        <mat-label>Data de Criação</mat-label>
-        <input matInput formControlName="dataCriacao">
-      </mat-form-field>
-
-      <!-- Motivo -->
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Motivo</mat-label>
-        <textarea matInput formControlName="motivo" rows="2" class="no-resize"></textarea>
+        <mat-label>Filtro Estoque</mat-label>
+        <input matInput formControlName="filtroEstoque">
       </mat-form-field>
     </div>
+
+    <!-- Linha 3: Input Quantidade -->
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Quantidade</mat-label>
+      <input matInput formControlName="quantidade">
+    </mat-form-field>
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
-    <button mat-button type="button" (click)="onCancel()">Fechar</button>
-    @if (!isViewMode()) {
-      <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isSaving()">
-        @if (isSaving()) {
-          <mat-spinner diameter="20"></mat-spinner>
-        } @else {
-          Salvar
-        }
-      </button>
-    }
+    <button mat-button type="button" (click)="onCancel()">
+      Cancelar
+    </button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isSaving()">
+      @if (isSaving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Salvar }
+    </button>
   </mat-dialog-actions>
 </form>
+
