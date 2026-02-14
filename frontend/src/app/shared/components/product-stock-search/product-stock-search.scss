@@ -1,0 +1,26 @@
+.filters-container {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+
+  .flex-grow {
+    flex: 1;
+  }
+
+  .filter-button {
+    margin-top: 8px;
+    min-width: 48px;
+  }
+
+  .filter-input {
+    min-width: 150px;
+  }
+
+  .spinner-option {
+    display: flex;
+    justify-content: center;
+    padding: 8px;
+  }
+}
+

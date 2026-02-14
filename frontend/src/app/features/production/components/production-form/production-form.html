@@ -2,25 +2,16 @@
 
 <form [formGroup]="form" (ngSubmit)="onSave()">
   <mat-dialog-content>
-    <!-- Linha 1: Dropdown Produto -->
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Produto</mat-label>
-      <mat-select formControlName="produtoId">
-      </mat-select>
-    </mat-form-field>
-
-    <!-- Linha 2: Botão Toggle (≥/≤) + Input Filtro -->
-    <div style="display: flex; gap: 10px;">
-      <button mat-stroked-button type="button" (click)="toggleFilterOperator()">
-        {{ filterOperator() === 'GTE' ? '≥' : '≤' }}
-      </button>
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Filtro Estoque</mat-label>
-        <input matInput formControlName="filtroEstoque">
-      </mat-form-field>
+    <!-- Busca de Produtos com Filtro Nativo -->
+    <div class="full-width no-bottom-gap">
+      <app-product-stock-search
+        [control]="produtoControl"
+        [isEditMode]="false"
+        (selectionChange)="onProdutoChange($event)">
+      </app-product-stock-search>
     </div>
 
-    <!-- Linha 3: Input Quantidade -->
+    <!-- Quantidade -->
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Quantidade</mat-label>
       <input matInput formControlName="quantidade">

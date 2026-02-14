@@ -1,0 +1,40 @@
+<div class="filters-container">
+
+  <mat-form-field appearance="outline" class="flex-grow">
+    <mat-label>Buscar Produto</mat-label>
+    <input type="text"
+           matInput
+           [formControl]="searchControl"
+           [matAutocomplete]="auto"
+           placeholder="Busque por nome...">
+
+    <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="onOptionSelected($event)">
+      @for (product of products(); track product.id) {
+        <mat-option [value]="product">
+          {{ product.nome }} (Estoque: {{ product.estoqueFisicoTotal || 0 }})
+        </mat-option>
+      }
+
+      @if (isSearching()) {
+        <mat-option disabled class="spinner-option">
+          <mat-spinner diameter="20"></mat-spinner>
+        </mat-option>
+      }
+    </mat-autocomplete>
+
+    <mat-icon matSuffix>search</mat-icon>
+  </mat-form-field>
+
+  <!-- Botão Toggle (≥/≤) -->
+  <button mat-stroked-button type="button" (click)="toggleFilterOperator()" class="filter-button">
+    {{ filterOperatorControl.value === 'GTE' ? '≥' : '≤' }}
+  </button>
+
+  <!-- Input de Filtro -->
+  <mat-form-field appearance="outline" class="filter-input">
+    <mat-label>Filtro Estoque</mat-label>
+    <input matInput type="number" [formControl]="filterValueControl">
+  </mat-form-field>
+
+</div>
+

@@ -1,15 +1,16 @@
 import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatOptionModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectChange } from '@angular/material/select';
 
 import { ProductionOrder } from '../../models/production.model';
+import { Product } from '../../../products/models/product.model';
+import { ProductStockSearch } from '../../../../shared/components/product-stock-search/product-stock-search';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -28,8 +29,7 @@ export interface ProductionFormData {
     MatInputModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatSelectModule,
-    MatOptionModule
+    ProductStockSearch
   ],
   templateUrl: './production-form.html',
   styleUrls: ['./production-form.scss'],
@@ -43,12 +43,11 @@ export class ProductionForm implements OnInit {
 
   form: FormGroup;
   isSaving = signal(false);
-  filterOperator = signal<'GTE' | 'LTE'>('GTE'); // ≥ ou ≤
+  produto = signal<Product | null>(null);
 
   constructor() {
     this.form = this.fb.group({
       produtoId: [null],
-      filtroEstoque: [null],
       quantidade: [null, [Validators.required, Validators.min(1)]]
     });
   }
@@ -58,13 +57,23 @@ export class ProductionForm implements OnInit {
   }
 
   /**
-   * Toggle entre ≥ (GTE) e ≤ (LTE)
+   * Getter para o FormControl de produto, seguindo padrão de MaterialTypeSearch
    */
-  toggleFilterOperator(): void {
-    this.filterOperator.set(
-      this.filterOperator() === 'GTE' ? 'LTE' : 'GTE'
-    );
+  get produtoControl(): FormControl {
+    return this.form.get('produtoId') as FormControl;
   }
+
+  /**
+   * Callback quando um produto é selecionado
+   */
+  onProdutoChange(event: MatSelectChange): void {
+    const produto = event.value as Product;
+    this.produto.set(produto);
+    this.form.patchValue({
+      produtoId: produto.id
+    });
+  }
+
 
   onSave(): void {
     if (this.form.invalid) {
@@ -74,7 +83,11 @@ export class ProductionForm implements OnInit {
 
     this.isSaving.set(true);
     const formValue = this.form.getRawValue();
-    console.log('📋 DEBUG: Salvando ordem de produção', formValue);
+    const payload = {
+      produtoId: formValue.produtoId,
+      quantidade: Number(formValue.quantidade)
+    };
+    console.log('📋 DEBUG: Salvando ordem de produção', payload);
 
     setTimeout(() => {
       this.isSaving.set(false);
@@ -87,6 +100,13 @@ export class ProductionForm implements OnInit {
     this.dialogRef.close(false);
   }
 }
+
+
+
+
+
+
+
 
 
 

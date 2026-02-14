@@ -89,6 +89,38 @@ export class ProductService {
   }
 
   /**
+   * Retorna uma lista simples de produtos sem enriquecimento de estoque.
+   * Utilizado por componentes de busca como ProductStockSearch.
+   * Padrão idêntico a MaterialTypeService.getMaterialTypes().
+   */
+  getProductsSimple(): Observable<Partial<Product>[]> {
+    return this.endpoints$.pipe(
+      take(1),
+      switchMap(endpoints => {
+        const productsUrl = endpoints._links?.['produtos']?.href;
+        if (!productsUrl) {
+          return of([]);
+        }
+
+        const baseUrl = productsUrl.split('{')[0];
+        const params = new HttpParams()
+          .set('page', '0')
+          .set('size', '100')
+          .set('sort', 'nome,asc');
+
+        return this.http.get<any>(baseUrl, { params }).pipe(
+          map(response => {
+            const corte = response._embedded?.produtoDeCorteModelList || [];
+            const consumo = response._embedded?.produtoDeConsumoDiretoModelList || [];
+            return [...corte, ...consumo];
+          }),
+          catchError(() => of([]))
+        );
+      })
+    );
+  }
+
+  /**
    * Atualiza os parâmetros de busca, o que dispara uma nova emissão no `products$`.
    */
   updateSearchParams(page: number, size: number, sort: string): void {
