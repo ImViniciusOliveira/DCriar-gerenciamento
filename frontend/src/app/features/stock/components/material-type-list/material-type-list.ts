@@ -1,4 +1,4 @@
-import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, effect, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, effect, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,9 +26,13 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PaginationHandler]
 })
-export class MaterialTypeList extends BaseList<MaterialType> implements AfterViewInit {
+export class MaterialTypeList extends BaseList<MaterialType> implements AfterViewInit, OnInit {
   private readonly materialTypeService = inject(MaterialTypeService);
   private readonly cdr = inject(ChangeDetectorRef);
+
+  ngOnInit(): void {
+    this.materialTypeService.resetSearchParams();
+  }
 
   private static readonly Texts = {
     deleteConfirmTitle: 'Confirmar Exclusão',

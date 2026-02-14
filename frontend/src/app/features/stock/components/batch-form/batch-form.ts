@@ -45,7 +45,7 @@ export function maxIntegerDigits(maxDigits: number): ValidatorFn {
  * A regra é: mostrar o erro se o campo for inválido E (o usuário já digitou nele OU já saiu dele).
  */
 export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
-  isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+  isErrorState(control: FormControl | null, _form: FormGroupDirective | NgForm | null): boolean {
     return !!(control && control.invalid && (control.dirty || control.touched));
   }
 }
@@ -159,6 +159,8 @@ export class BatchForm implements OnInit {
   }
 
   ngOnInit(): void {
+    this.materialTypeService.resetSearchParams();
+
     const url = this.data.template._links?.['unidades-de-medida']?.href;
     if (url) {
       this.unitsUrl.set(url);

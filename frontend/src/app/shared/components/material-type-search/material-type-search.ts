@@ -1,4 +1,4 @@
-import { Component, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal, Signal, WritableSignal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, input, OnInit, output, signal, Signal, WritableSignal } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -36,7 +36,7 @@ import { MaterialTypeService } from '../../../features/stock/services/material-t
   templateUrl: './material-type-search.html',
   styleUrls: ['./material-type-search.scss'],
 })
-export class MaterialTypeSearch implements OnInit, OnDestroy {
+export class MaterialTypeSearch implements OnInit {
   // --- Entradas e Saídas ---
   /** O FormControl do formulário pai que este componente irá controlar. */
   control = input.required<FormControl>();
@@ -160,12 +160,6 @@ export class MaterialTypeSearch implements OnInit, OnDestroy {
       this.performSearch(searchValue, unit || undefined);
     });
 
-    // Busca inicial
-    this.performSearch();
-  }
-
-  ngOnDestroy(): void {
-    this.materialTypeService.resetSearchParams();
   }
 
   performSearch(nome?: string, unidadeDeConsumo?: string): void {

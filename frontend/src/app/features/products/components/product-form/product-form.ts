@@ -17,6 +17,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { provideNgxMask } from 'ngx-mask';
 import { MaterialTypeSearch } from '../../../../shared/components/material-type-search/material-type-search';
 import { MaterialType } from '../../../stock/models/material-type.model';
+import { MaterialTypeService } from '../../../stock/services/material-type.service';
 import { ErrorStateMatcher } from '@angular/material/core';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
@@ -35,7 +36,7 @@ export function maxIntegerDigits(maxDigits: number): ValidatorFn {
 }
 
 export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
-  isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+  isErrorState(control: FormControl | null, _form: FormGroupDirective | NgForm | null): boolean {
     return !!(control && control.invalid && (control.dirty || control.touched));
   }
 }
@@ -56,6 +57,7 @@ export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
 })
 export class ProductFormComponent implements OnInit {
   private readonly productService = inject(ProductService);
+  private readonly materialTypeService = inject(MaterialTypeService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
@@ -127,6 +129,8 @@ export class ProductFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.materialTypeService.resetSearchParams();
+
     if (this.data.isCreationMode) {
       return;
     }
