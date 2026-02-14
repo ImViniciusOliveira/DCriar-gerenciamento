@@ -64,6 +64,12 @@ public class OrdemDeProducaoModelAssembler extends RepresentationModelAssemblerS
         if (dto.getId() != null) {
             model.add(linkTo(methodOn(OrdemDeProducaoController.class).buscarPorId(dto.getId())).withSelfRel());
             model.add(linkTo(methodOn(OrdemDeProducaoController.class).excluir(dto.getId())).withRel("deletar-ordem-de-producao"));
+        } else {
+            // Links para o esqueleto de criação
+            model.add(linkTo(methodOn(OrdemDeProducaoController.class).simularCorte(null)).withRel("simular-corte"));
+            model.add(linkTo(methodOn(OrdemDeProducaoController.class).simularConsumoDireto(null)).withRel("simular-consumo-direto"));
+            model.add(linkTo(methodOn(OrdemDeProducaoController.class).criarOrdemDeCorte(null)).withRel("criar-ordem-corte"));
+            model.add(linkTo(methodOn(OrdemDeProducaoController.class).criarOrdemDeConsumoDireto(null)).withRel("criar-ordem-consumo-direto"));
         }
         
         // Adiciona link para a coleção de ordens de produção
