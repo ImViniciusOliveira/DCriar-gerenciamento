@@ -1,20 +1,44 @@
+// Sobrescreve o offset negativo padrão do Material globalmente neste componente
+:host ::ng-deep .mat-mdc-form-field-has-icon-prefix .mat-mdc-text-field-wrapper {
+  --mat-mdc-form-field-label-offset-x: 8px !important;
+}
+
 .filters-container {
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  margin-bottom: 16px;
 
   .flex-grow {
     flex: 1;
   }
 
-  .filter-button {
-    margin-top: 8px;
-    min-width: 48px;
-  }
-
   .filter-input {
     min-width: 150px;
+
+    // Centraliza e ajusta o espaçamento do prefixo (botão)
+    ::ng-deep .mat-mdc-form-field-icon-prefix {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      margin-right: 8px;
+      margin-left: 8px;
+    }
+
+    button[matPrefix] {
+      margin: 0;
+      border: var(--std-border-width) solid var(--std-border-color);
+      border-radius: var(--std-border-radius);
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      line-height: 1;
+      padding-left: 4px;
+      padding-right: 4px;
+    }
   }
 
   .spinner-option {
@@ -23,4 +47,3 @@
     padding: 8px;
   }
 }
-

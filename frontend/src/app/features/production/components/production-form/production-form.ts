@@ -83,7 +83,6 @@ export class ProductionForm implements OnInit {
     });
   }
 
-
   onSave(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -109,13 +108,3 @@ export class ProductionForm implements OnInit {
     this.dialogRef.close(false);
   }
 }
-
-
-
-
-
-
-
-
-
-

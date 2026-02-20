@@ -25,16 +25,13 @@
     <mat-icon matSuffix>search</mat-icon>
   </mat-form-field>
 
-  <!-- Botão Toggle (≥/≤) -->
-  <button mat-stroked-button type="button" (click)="toggleFilterOperator()" class="filter-button">
-    {{ filterOperatorControl.value === 'GTE' ? '≥' : '≤' }}
-  </button>
-
-  <!-- Input de Filtro -->
-  <mat-form-field appearance="outline" class="filter-input">
-    <mat-label>Filtro Estoque</mat-label>
-    <input matInput type="number" [formControl]="filterValueControl">
+  <!-- Filtro de Estoque com toggle dentro do input (Modernizado) -->
+  <mat-form-field appearance="outline" class="filter-input" subscriptSizing="dynamic">
+    <mat-label>Estoque</mat-label>
+    <button mat-icon-button matPrefix type="button" (click)="toggleFilterOperator()">
+      {{ filterOperatorControl.value === 'GTE' ? '≥' : '≤' }}
+    </button>
+    <input matInput [formControl]="filterValueControl">
   </mat-form-field>
 
 </div>
-

@@ -52,7 +52,9 @@ export class ProductStockSearch implements OnInit, OnDestroy {
 
   // --- Controles de Formulário Internos ---
   searchControl = new FormControl<string | Product | null>('');
-  filterOperatorControl = new FormControl<'GTE' | 'LTE'>('GTE');
+
+  filterOperatorControl = new FormControl<'GTE' | 'LTE'>('LTE');
+
   filterValueControl = new FormControl<number | null>(null);
 
   // --- Estado Interno ---
@@ -161,5 +163,3 @@ export class ProductStockSearch implements OnInit, OnDestroy {
     this.filterOperatorControl.setValue(current === 'GTE' ? 'LTE' : 'GTE');
   }
 }
-
-
