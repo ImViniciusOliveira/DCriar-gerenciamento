@@ -8,7 +8,7 @@
            [matAutocomplete]="auto"
            placeholder="Busque por nome...">
 
-    <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="onOptionSelected($event)">
+    <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="onOptionSelected($event)" (opened)="onAutocompleteOpened()">
       @for (product of products(); track product.id) {
         <mat-option [value]="product">
           {{ product.nome }} (Estoque: {{ product.estoqueFisicoTotal || 0 }})

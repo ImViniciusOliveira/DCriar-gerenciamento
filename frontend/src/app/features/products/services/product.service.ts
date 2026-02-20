@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, filter, map, switchMap, tap, shareReplay, take, catchError, of, combineLatest } from 'rxjs';
+import { Observable, filter, map, switchMap, tap, shareReplay, take, catchError, of, combineLatest, finalize } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
@@ -30,8 +30,38 @@ export class ProductService {
     equal: (a, b) => a.page === b.page && a.size === b.size && a.sort === b.sort
   });
 
+  /**
+   * Signal que armazena os parâmetros para a busca especializada de produtos por estoque.
+   * Esta busca é utilizada em contextos específicos como o formulário de produção.
+   */
+  private readonly productByStockSearchParams = signal<{
+    tipoProduto: string | null;
+    estoqueValor: number;
+    estoqueOperador: 'GTE' | 'LTE';
+    nome?: string;
+  }>({
+    tipoProduto: null,
+    estoqueValor: 1,
+    estoqueOperador: 'GTE',
+    nome: ''
+  }, {
+    // Compara o objeto de parâmetros para evitar emissões desnecessárias se os filtros não mudaram.
+    equal: (a, b) =>
+      a.tipoProduto === b.tipoProduto &&
+      a.estoqueValor === b.estoqueValor &&
+      a.estoqueOperador === b.estoqueOperador &&
+      a.nome === b.nome
+  });
+
+  /**
+   * Sinal público que indica se a busca de produtos por estoque está em andamento.
+   * Os componentes podem usar este sinal para exibir indicadores de carregamento.
+   */
+  readonly isSearchingByStock = signal(false);
+
   private readonly refresh$ = toObservable(this.refreshTrigger);
   private readonly productSearchParams$ = toObservable(this.productSearchParams);
+  private readonly productByStockSearchParams$ = toObservable(this.productByStockSearchParams);
 
   /**
    * Observable reativo que emite a lista de Produtos.
@@ -40,40 +70,102 @@ export class ProductService {
    */
   readonly products$: Observable<ApiResponseProducts>;
 
+  /**
+   * Observable reativo para a busca especializada de produtos por estoque.
+   * Emite uma lista de produtos sempre que os parâmetros em `productByStockSearchParams` são alterados.
+   */
+  readonly productsByStock$: Observable<Partial<Product>[]>;
+
   constructor() {
-    this.products$ = this.endpoints$.pipe(
-      switchMap(endpoints => {
-        if (!endpoints || !endpoints._links?.['produtos']?.href) {
-          return of(this.createEmptyResponse());
+    const endpoints$ = toObservable(this.apiRoot.endpoints).pipe(shareReplay(1));
+
+    this.products$ = endpoints$.pipe(
+      switchMap(endpoints => this.createProductsObservable(endpoints))
+    );
+
+    this.productsByStock$ = endpoints$.pipe(
+      switchMap(endpoints => this.createProductsByStockObservable(endpoints)),
+      shareReplay(1)
+    );
+  }
+
+  private createProductsObservable(endpoints: Hateoas | null): Observable<ApiResponseProducts> {
+    if (!endpoints || !endpoints._links?.['produtos']?.href) {
+      return of(this.createEmptyResponse());
+    }
+
+    return combineLatest([
+      this.productSearchParams$,
+      this.refresh$
+    ]).pipe(
+      switchMap(([params, _]) => {
+        const productsRootUrl = endpoints._links?.['produtos']?.href;
+        if (!productsRootUrl) {
+           return of(this.createEmptyResponse());
         }
 
-        return combineLatest([
-          this.productSearchParams$,
-          this.refresh$
-        ]).pipe(
-          switchMap(([params, _]) => {
-            const productsRootUrl = endpoints._links?.['produtos']?.href;
-            if (!productsRootUrl) {
-               return of(this.createEmptyResponse());
-            }
+        const baseUrl = productsRootUrl.split('{')[0];
+        const finalUrl = `${baseUrl}?page=${params.page}&size=${params.size}&sort=${params.sort}`;
 
-            const baseUrl = productsRootUrl.split('{')[0];
-            const finalUrl = `${baseUrl}?page=${params.page}&size=${params.size}&sort=${params.sort}`;
-
-            return this.http.get<any>(finalUrl).pipe(
-              // Passo 1: Enriquecer os produtos com dados de estoque.
-              switchMap(productsApiResponse => this.enrichProductsWithStock(productsApiResponse)),
-              // Passo 2: Ordenar e paginar os dados combinados no lado do cliente.
-              map(responseWithMergedStocks => this.sortAndPaginateClientSide(responseWithMergedStocks, params)),
-              catchError(err => {
-                console.error(`Falha ao buscar produtos na página ${params.page}, tamanho ${params.size}`, err);
-                return of(this.createEmptyResponse());
-              })
-            );
+        return this.http.get<any>(finalUrl).pipe(
+          // Passo 1: Enriquecer os produtos com dados de estoque.
+          switchMap(productsApiResponse => this.enrichProductsWithStock(productsApiResponse)),
+          // Passo 2: Ordenar e paginar os dados combinados no lado do cliente.
+          map(responseWithMergedStocks => this.sortAndPaginateClientSide(responseWithMergedStocks, params)),
+          catchError(err => {
+            console.error(`Falha ao buscar produtos na página ${params.page}, tamanho ${params.size}`, err);
+            return of(this.createEmptyResponse());
           })
         );
-      }),
-      shareReplay(1)
+      })
+    );
+  }
+
+  /**
+   * Constrói o fluxo de dados para a busca de produtos por estoque.
+   * Este método é privado e chamado apenas no construtor para inicializar o `productsByStock$`.
+   * @param endpoints O objeto de endpoints da API.
+   * @returns Um Observable que emite a lista de produtos encontrados.
+   */
+  private createProductsByStockObservable(endpoints: Hateoas | null): Observable<Partial<Product>[]> {
+    const productsUrl = endpoints?._links?.['produtos']?.href;
+    if (!productsUrl) {
+      console.error('Link "produtos" não encontrado na raiz da API.');
+      return of([]);
+    }
+    const url = `${productsUrl.split('{')[0]}/by-tipo`;
+
+    return this.productByStockSearchParams$.pipe(
+      tap(() => this.isSearchingByStock.set(true)), // Ativa o spinner antes da busca
+      switchMap(params => {
+        let httpParams = new HttpParams()
+          .set('estoqueValor', params.estoqueValor.toString())
+          .set('estoqueOperador', params.estoqueOperador)
+          .set('page', '0')
+          .set('size', '100')
+          .set('sort', 'nome,asc');
+
+        if (params.tipoProduto) {
+          httpParams = httpParams.set('tipoProduto', params.tipoProduto);
+        }
+
+        if (params.nome) {
+          httpParams = httpParams.set('nome', params.nome);
+        }
+
+        return this.http.get<any>(url, { params: httpParams }).pipe(
+          map(response => {
+            const corte = response._embedded?.produtoDeCorteModelList || [];
+            const consumo = response._embedded?.produtoDeConsumoDiretoModelList || [];
+            return [...corte, ...consumo];
+          }),
+          catchError(err => {
+            console.error('Erro ao buscar produtos por estoque:', err);
+            return of([]);
+          }),
+          finalize(() => this.isSearchingByStock.set(false)) // Garante que o spinner seja desativado ao final
+        );
+      })
     );
   }
 
@@ -89,35 +181,26 @@ export class ProductService {
   }
 
   /**
-   * Retorna uma lista simples de produtos sem enriquecimento de estoque.
-   * Utilizado por componentes de busca como ProductStockSearch.
-   * Padrão idêntico a MaterialTypeService.getMaterialTypes().
+   * Retorna o fluxo observável para a busca de produtos por estoque.
+   * Os componentes devem se inscrever neste Observable para receber a lista de produtos.
+   * A busca é acionada pela atualização dos parâmetros via `updateProductByStockSearchParams`.
    */
-  getProductsSimple(): Observable<Partial<Product>[]> {
-    return this.endpoints$.pipe(
-      take(1),
-      switchMap(endpoints => {
-        const productsUrl = endpoints._links?.['produtos']?.href;
-        if (!productsUrl) {
-          return of([]);
-        }
+  getProductsByStock(): Observable<Partial<Product>[]> {
+    return this.productsByStock$;
+  }
 
-        const baseUrl = productsUrl.split('{')[0];
-        const params = new HttpParams()
-          .set('page', '0')
-          .set('size', '100')
-          .set('sort', 'nome,asc');
-
-        return this.http.get<any>(baseUrl, { params }).pipe(
-          map(response => {
-            const corte = response._embedded?.produtoDeCorteModelList || [];
-            const consumo = response._embedded?.produtoDeConsumoDiretoModelList || [];
-            return [...corte, ...consumo];
-          }),
-          catchError(() => of([]))
-        );
-      })
-    );
+  /**
+   * Atualiza os parâmetros para a busca de produtos por estoque.
+   * Chamar este método com novos parâmetros acionará uma nova emissão no `productsByStock$`.
+   * @param params Um objeto parcial com os novos filtros a serem aplicados.
+   */
+  updateProductByStockSearchParams(params: Partial<{
+    tipoProduto: string | null;
+    estoqueValor: number;
+    estoqueOperador: 'GTE' | 'LTE';
+    nome?: string;
+  }>): void {
+    this.productByStockSearchParams.update(current => ({ ...current, ...params }));
   }
 
   /**

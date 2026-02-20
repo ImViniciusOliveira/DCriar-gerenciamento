@@ -1,4 +1,4 @@
-import { Component, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal, WritableSignal } from '@angular/core';
+import { Component, DestroyRef, inject, input, OnDestroy, OnInit, output, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
@@ -9,16 +9,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { of } from 'rxjs';
-import { filter, debounceTime, distinctUntilChanged, catchError, take } from 'rxjs/operators';
-import { ApiRoot } from '../../../core/services/api-root';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Product } from '../../../features/products/models/product.model';
 import { ProductService } from '../../../features/products/services/product.service';
 
 /**
  * Componente genérico para busca e seleção de Produtos com Estoque Disponível.
  * Utiliza Autocomplete para combinar busca e seleção em um único campo, otimizando o espaço.
- * Padrão idêntico a MaterialTypeSearch.
  */
 @Component({
   selector: 'app-product-stock-search',
@@ -40,125 +37,96 @@ import { ProductService } from '../../../features/products/services/product.serv
 })
 export class ProductStockSearch implements OnInit, OnDestroy {
   // --- Entradas e Saídas ---
-  /** O FormControl do formulário pai que este componente irá controlar. */
   control = input.required<FormControl>();
-  /** Flag para indicar se o componente está em modo de edição, para lidar com o valor inicial. */
   isEditMode = input(false);
-  /** Emite o evento de seleção para o componente pai. */
+  productType = input<string | null>(null);
   selectionChange = output<MatSelectChange>();
 
   // --- Injeção de Dependências ---
   private readonly productService = inject(ProductService);
-  private readonly apiRoot = inject(ApiRoot);
   private readonly destroyRef = inject(DestroyRef);
 
   // --- Controles de Formulário Internos ---
   searchControl = new FormControl<string | Product | null>('');
-
-  filterOperatorControl = new FormControl<'GTE' | 'LTE'>('LTE');
-
-  filterValueControl = new FormControl<number | null>(null);
+  filterOperatorControl = new FormControl<'GTE' | 'LTE'>('GTE');
+  filterValueControl = new FormControl<number | null>(1);
 
   // --- Estado Interno ---
-  products: WritableSignal<Partial<Product>[]> = signal([]);
-  isSearching = signal(false);
-  totalElements = signal(0);
-
-  // --- Paginação ---
-  private currentPage = 0;
-  private readonly pageSize = 20;
+  products = toSignal(this.productService.getProductsByStock(), { initialValue: [] });
+  /**
+   * O estado de 'buscando' agora é um Signal de leitura (Signal<boolean>)
+   * que reflete diretamente o estado do serviço, garantindo uma única fonte da verdade.
+   */
+  isSearching: Signal<boolean>;
 
   constructor() {
-    const getUrl = (link: string) =>
-      this.apiRoot.endpoints()?._links?.[link]?.href?.split('{')[0];
-    const productsSearchUrl = getUrl('produtos') ?? null;
+    // Conecta o estado de busca local com o estado do serviço.
+    this.isSearching = this.productService.isSearchingByStock;
 
-    if (!productsSearchUrl) {
-      console.error('URL para busca de produtos não pôde ser determinada.');
-    }
-
-    // Desabilita o controle se a URL da API não for encontrada.
-    effect(() => {
-      if (!productsSearchUrl) {
-        this.control().disable();
-        this.searchControl.disable();
-      }
-    });
-
-    const productsResponse = toSignal(
-      this.productService.getProductsSimple().pipe(catchError(() => of([])))
-    );
-
-    // Reage à resposta do serviço.
-    effect(() => {
-      this.isSearching.set(false);
-      const response = productsResponse();
-      if (response && Array.isArray(response)) {
-        if (this.currentPage === 0) {
-          this.products.set(response);
-        } else {
-          this.products.update(current => [...current, ...response]);
-        }
-      }
-    });
-  }
-
-  ngOnInit(): void {
-    const ctrl = this.control();
-
-    // Sincroniza o valor inicial do pai com o input de busca
-    if (ctrl.value) {
-      this.searchControl.setValue(ctrl.value);
-      this.products.set([ctrl.value]);
-    } else if (this.isEditMode()) {
-      ctrl.valueChanges.pipe(
-        filter(value => !!value),
-        take(1),
-        takeUntilDestroyed(this.destroyRef)
-      ).subscribe((initialValue: Product) => {
-        this.searchControl.setValue(initialValue);
-        this.products.update(currentProducts => {
-          const exists = currentProducts.some(p => p.id === initialValue.id);
-          return exists ? currentProducts : [initialValue, ...currentProducts];
-        });
-      });
-    }
-
-    // Busca ao digitar no input (apenas se for string, ou seja, usuário digitando)
+    // Apenas a digitação no campo de busca principal dispara uma nova busca.
     this.searchControl.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
       takeUntilDestroyed(this.destroyRef)
-    ).subscribe(value => {
-      if (typeof value === 'string') {
-        this.performSearch();
-      }
+    ).subscribe(() => {
+      this.triggerSearchNow();
     });
   }
 
-  ngOnDestroy(): void {
+  ngOnInit(): void {
+    // Preenche o campo se houver valor inicial (modo de edição)
+    const initialValue = this.control().value;
+    if (initialValue) {
+      this.searchControl.setValue(initialValue);
+    }
+
+    // Gatilho 1: Dispara a busca inicial ao carregar o componente.
+    this.triggerSearchNow();
   }
 
-  performSearch(): void {
-    this.isSearching.set(true);
-    this.currentPage = 0;
-    // ProductService usa updateSearchParams(page, size, sort)
-    this.productService.updateSearchParams(this.currentPage, this.pageSize, 'nome,asc');
+  ngOnDestroy(): void {}
+
+  /**
+   * Gatilho 2: Dispara a busca ao abrir o painel do autocomplete.
+   */
+  onAutocompleteOpened(): void {
+    this.triggerSearchNow();
   }
 
+  /**
+   * Centraliza a lógica de busca, lendo os valores atuais dos controles
+   * e enviando-os para o serviço. Este é o único local que chama o serviço.
+   */
+  private triggerSearchNow(): void {
+    const searchTerm = typeof this.searchControl.value === 'string' ? this.searchControl.value : '';
+
+    this.productService.updateProductByStockSearchParams({
+      nome: searchTerm,
+      tipoProduto: this.productType(),
+      estoqueValor: this.filterValueControl.value ?? 1,
+      estoqueOperador: this.filterOperatorControl.value ?? 'GTE',
+    });
+  }
+
+  /**
+   * Formata como o nome do produto é exibido no input após a seleção.
+   */
   displayFn(product: Product): string {
-    return product && product.nome ? `${product.nome} (Estoque: ${product.estoqueFisicoTotal || 0})` : '';
+    return product?.nome ? `${product.nome} (Estoque: ${product.estoqueFisicoTotal || 0})` : '';
   }
 
+  /**
+   * Chamado quando uma opção é selecionada no autocomplete.
+   */
   onOptionSelected(event: MatAutocompleteSelectedEvent): void {
     const selected = event.option.value as Product;
     this.control().setValue(selected);
-    // Emite um evento compatível com MatSelectChange para manter compatibilidade
     this.selectionChange.emit({ source: null as any, value: selected });
   }
 
   /**
-   * Toggle entre ≥ (GTE) e ≤ (LTE)
+   * Alterna o operador de filtro de estoque entre 'GTE' (≥) e 'LTE' (≤).
+   * Importante: Apenas muda o valor do controle, não dispara uma nova busca.
    */
   toggleFilterOperator(): void {
     const current = this.filterOperatorControl.value;
