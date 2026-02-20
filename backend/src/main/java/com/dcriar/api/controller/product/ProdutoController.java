@@ -76,6 +76,49 @@ public class ProdutoController {
         return null;
     }
 
+    @GetMapping("/by-tipo")
+    @Operation(summary = "Listar produtos por tipo e estoque")
+    @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
+    public ResponseEntity<?> findByTipoAndEstoque(
+            @Parameter(description = "Tipo de produto: 'CORTE' ou 'CONSUMO_DIRETO'")
+            @RequestParam String tipoProduto,
+            @Parameter(description = "Valor de estoque para comparação")
+            @RequestParam(defaultValue = "0") Integer estoqueValor,
+            @Parameter(description = "Operador de comparação: 'GTE' (≥) ou 'LTE' (≤)")
+            @RequestParam(defaultValue = "GTE") String estoqueOperador,
+            @Parameter(description = "Filtrar por nome ou SKU (case-insensitive)")
+            @RequestParam(required = false) String nome,
+            @ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
+            PagedResourcesAssembler<ProdutoResponseDTO> pagedResourcesAssembler
+    ) {
+        Page<ProdutoResponseDTO> produtosPage = produtoService.findByTipoAndEstoque(
+                tipoProduto,
+                estoqueValor,
+                estoqueOperador,
+                nome,
+                pageable
+        );
+        PagedModel<ProdutoModel> pagedModel = pagedResourcesAssembler.toModel(produtosPage, produtoModelAssembler);
+
+        // Adiciona link de descoberta
+        pagedModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarEstoquesPorListaDeProdutos(null)).withRel("estoques-por-produtos"));
+
+        return ResponseEntity.ok(pagedModel);
+    }
+
+    /**
+     * Método de sobrecarga para a construção de links HATEOAS do endpoint /by-tipo.
+     * Não é um endpoint real e não deve ser chamado diretamente.
+     * Sua única finalidade é servir como um alvo seguro para o {@code linkTo(methodOn(...))},
+     * evitando a passagem de {@code null} para parâmetros anotados como {@code @NonNull}.
+     * @return null, pois nunca é executado.
+     */
+    @SuppressWarnings("unused") // Usado por reflexão pelo Spring HATEOAS
+    public PagedModel<ProdutoModel> findByTipoAndEstoque() {
+        return null;
+    }
+
     /**
      * Retorna um modelo de produto "em branco" com os links HATEOAS necessários para a criação.
      * Este endpoint serve como um "template" para o frontend poder descobrir as URLs de ações relacionadas,

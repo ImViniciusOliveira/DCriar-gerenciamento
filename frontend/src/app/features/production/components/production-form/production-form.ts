@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectChange } from '@angular/material/select';
+import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 
 import { ProductionOrder } from '../../models/production.model';
 import { Product } from '../../../products/models/product.model';
@@ -26,6 +26,7 @@ export interface ProductionFormData {
     ReactiveFormsModule,
     MatDialogModule,
     MatFormFieldModule,
+    MatSelectModule,
     MatInputModule,
     MatButtonModule,
     MatProgressSpinnerModule,
@@ -47,6 +48,7 @@ export class ProductionForm implements OnInit {
 
   constructor() {
     this.form = this.fb.group({
+      tipoProducao: [null, Validators.required],
       produtoId: [null],
       quantidade: [null, [Validators.required, Validators.min(1)]]
     });
@@ -54,6 +56,13 @@ export class ProductionForm implements OnInit {
 
   ngOnInit(): void {
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Getter para o FormControl de tipo de produção
+   */
+  get tipoProducaoControl(): FormControl {
+    return this.form.get('tipoProducao') as FormControl;
   }
 
   /**

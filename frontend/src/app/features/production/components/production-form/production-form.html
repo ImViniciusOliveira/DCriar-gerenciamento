@@ -2,13 +2,23 @@
 
 <form [formGroup]="form" (ngSubmit)="onSave()">
   <mat-dialog-content>
-    <!-- Busca de Produtos com Filtro Nativo -->
-    <div class="full-width no-bottom-gap">
-      <app-product-stock-search
-        [control]="produtoControl"
-        [isEditMode]="false"
-        (selectionChange)="onProdutoChange($event)">
-      </app-product-stock-search>
+    <!-- Busca de Produtos e Tipo de Produção na mesma linha -->
+    <div style="display: flex; gap: 12px; align-items: start;">
+      <div style="flex: 1;">
+        <app-product-stock-search
+          [control]="produtoControl"
+          [isEditMode]="false"
+          (selectionChange)="onProdutoChange($event)">
+        </app-product-stock-search>
+      </div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Tipo de Produção</mat-label>
+        <mat-select formControlName="tipoProducao">
+          <mat-option value="CORTE">Corte</mat-option>
+          <mat-option value="CONSUMO_DIRETO">Consumo Direto</mat-option>
+        </mat-select>
+      </mat-form-field>
     </div>
 
     <!-- Quantidade -->

@@ -56,6 +56,65 @@ public class ProdutoServiceImpl implements ProdutoService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<ProdutoResponseDTO> findByTipoAndEstoque(
+            String tipoProduto,
+            Integer estoqueValor,
+            String estoqueOperador,
+            String nome,
+            Pageable pageable) {
+
+        // Valida os parâmetros
+        if (tipoProduto == null || tipoProduto.isBlank()) {
+            throw new ParametroObrigatorioAusenteException("tipoProduto");
+        }
+
+        if (!tipoProduto.equalsIgnoreCase("CORTE") && !tipoProduto.equalsIgnoreCase("CONSUMO_DIRETO")) {
+            throw new TipoProdutoInvalidoException(tipoProduto);
+        }
+
+        if (estoqueOperador == null || (!estoqueOperador.equals("GTE") && !estoqueOperador.equals("LTE"))) {
+            throw new OperadorEstoqueInvalidoException(estoqueOperador);
+        }
+
+        // Determina a classe esperada
+        Class<?> tipoClass = tipoProduto.equalsIgnoreCase("CORTE")
+                ? ProdutoDeCorte.class
+                : ProdutoDeConsumoDireto.class;
+
+        // Busca TODOS os produtos (com filtro opcional de nome)
+        Page<Produto> produtoPage;
+        if (nome != null && !nome.isBlank()) {
+            produtoPage = produtoRepository.findByNomeOrSkuContainingIgnoreCase(nome, pageable);
+        } else {
+            produtoPage = produtoRepository.findAll(pageable);
+        }
+
+        // Filtra por tipo E estoque em Java (em memória)
+        List<ProdutoResponseDTO> filtered = produtoPage.stream()
+                .filter(p -> {
+                    // Verifica se o tipo corresponde
+                    boolean tipoCorreto = tipoClass.isInstance(p);
+                    if (!tipoCorreto) return false;
+
+                    // Verifica o estoque com o operador
+                    Integer estoque = p.getEstoqueFisicoTotal();
+                    return estoqueOperador.equals("GTE")
+                            ? estoque >= estoqueValor
+                            : estoque <= estoqueValor;
+                })
+                .map(this::mapAndEnrichProduto)
+                .collect(Collectors.toList());
+
+        // Reconstrói como Page
+        return new org.springframework.data.domain.PageImpl<>(
+                filtered,
+                pageable,
+                produtoPage.getTotalElements()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public ProdutoResponseDTO findById(Long id) {
         Produto produto = findProdutoById(id);
         return mapAndEnrichProduto(produto);

@@ -66,6 +66,25 @@ public interface ProdutoService {
     void deleteById(Long id);
 
     /**
+     * Busca produtos filtrando por tipo e estoque.
+     * Utilizado pelo endpoint /by-tipo para Production.
+     *
+     * @param tipoProduto Tipo do produto ("CORTE" ou "CONSUMO_DIRETO").
+     * @param estoqueValor Valor de estoque para comparação.
+     * @param estoqueOperador "GTE" para ≥ ou "LTE" para ≤.
+     * @param nome Termo de busca para filtrar por nome ou SKU (opcional).
+     * @param pageable Objeto com as informações de paginação.
+     * @return Uma página de DTOs de resposta de produtos.
+     */
+    Page<ProdutoResponseDTO> findByTipoAndEstoque(
+            String tipoProduto,
+            Integer estoqueValor,
+            String estoqueOperador,
+            String nome,
+            Pageable pageable
+    );
+
+    /**
      * Realiza o upload de uma foto para um produto específico, associando-a a ele.
      * Este método orquestra o armazenamento do arquivo e a atualização da entidade Produto.
      *
