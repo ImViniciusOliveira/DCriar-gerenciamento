@@ -91,8 +91,7 @@ public class GlobalExceptionHandler {
      * {@link NenhumLoteComEstoqueException}, {@link LotePrincipalNaoEspecificadoException},
      * {@link ProdutoNaoCabeNoLoteException}, {@link QuantidadeUnidadesInvalidaException},
      * {@link TipoProducaoIncompativelException}, {@link ImpossivelExcluirProducaoException},
-     * {@link TipoProdutoInvalidoException}, {@link OperadorEstoqueInvalidoException} e
-     * {@link ParametroObrigatorioAusenteException}.
+     * {@link TipoProdutoInvalidoException}, {@link OperadorEstoqueInvalidoException}.
      *
      * @param ex A exceção de regra de negócio ou parâmetro inválido lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
@@ -103,7 +102,7 @@ public class GlobalExceptionHandler {
             MargemInvalidaException.class, NenhumLoteComEstoqueException.class, LotePrincipalNaoEspecificadoException.class,
             ProdutoNaoCabeNoLoteException.class, QuantidadeUnidadesInvalidaException.class, TipoProducaoIncompativelException.class,
             ImpossivelExcluirProducaoException.class,
-            TipoProdutoInvalidoException.class, OperadorEstoqueInvalidoException.class, ParametroObrigatorioAusenteException.class
+            TipoProdutoInvalidoException.class, OperadorEstoqueInvalidoException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
@@ -115,9 +114,6 @@ public class GlobalExceptionHandler {
         } else if (ex instanceof OperadorEstoqueInvalidoException e) {
             details.put("operadorFornecido", e.getOperadorFornecido());
             details.put("operadoresValidos", "GTE (≥), LTE (≤)");
-        } else if (ex instanceof ParametroObrigatorioAusenteException e) {
-            details.put("parametro", e.getNomParametro());
-            details.put("dica", "Forneça o parâmetro '" + e.getNomParametro() + "' na requisição");
         } else {
             details.put("info", ex.getMessage());
         }
@@ -246,7 +242,6 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata parâmetros de requisição obrigatórios ausentes do Spring (HTTP 400 Bad Request).
-     * Se for o parâmetro 'tipoProduto', converte em {@link ParametroObrigatorioAusenteException}.
      * Para outros parâmetros, retorna erro genérico.
      *
      * @param ex A exceção do Spring lançada.
@@ -255,13 +250,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorResponseDTO> handleMissingRequestParameter(org.springframework.web.bind.MissingServletRequestParameterException ex) {
         String parameterName = ex.getParameterName();
-
-        // Se for tipoProduto, lança exception personalizada
-        if ("tipoProduto".equals(parameterName)) {
-            ParametroObrigatorioAusenteException customEx = new ParametroObrigatorioAusenteException(parameterName);
-            log.warn("Parâmetro obrigatório ausente: {}", parameterName);
-            return handleBusinessRuleExceptions(customEx);
-        }
 
         // Para outros parâmetros, retorna erro genérico
         Map<String, String> details = new HashMap<>();

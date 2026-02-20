@@ -63,23 +63,25 @@ public class ProdutoServiceImpl implements ProdutoService {
             String nome,
             Pageable pageable) {
 
-        // Valida os parâmetros
-        if (tipoProduto == null || tipoProduto.isBlank()) {
-            throw new ParametroObrigatorioAusenteException("tipoProduto");
-        }
-
-        if (!tipoProduto.equalsIgnoreCase("CORTE") && !tipoProduto.equalsIgnoreCase("CONSUMO_DIRETO")) {
-            throw new TipoProdutoInvalidoException(tipoProduto);
-        }
-
+        // Valida os parâmetros obrigatórios de estoque
         if (estoqueOperador == null || (!estoqueOperador.equals("GTE") && !estoqueOperador.equals("LTE"))) {
             throw new OperadorEstoqueInvalidoException(estoqueOperador);
         }
 
-        // Determina a classe esperada
-        Class<?> tipoClass = tipoProduto.equalsIgnoreCase("CORTE")
-                ? ProdutoDeCorte.class
-                : ProdutoDeConsumoDireto.class;
+        // Se tipoProduto for informado, valida se é um dos tipos permitidos
+        if (tipoProduto != null && !tipoProduto.isBlank()) {
+            if (!tipoProduto.equalsIgnoreCase("CORTE") && !tipoProduto.equalsIgnoreCase("CONSUMO_DIRETO")) {
+                throw new TipoProdutoInvalidoException(tipoProduto);
+            }
+        }
+
+        // Determina a classe esperada se o tipo for informado
+        Class<?> tipoClass = null;
+        if (tipoProduto != null && !tipoProduto.isBlank()) {
+            tipoClass = tipoProduto.equalsIgnoreCase("CORTE")
+                    ? ProdutoDeCorte.class
+                    : ProdutoDeConsumoDireto.class;
+        }
 
         // Busca TODOS os produtos (com filtro opcional de nome)
         Page<Produto> produtoPage;
@@ -89,12 +91,14 @@ public class ProdutoServiceImpl implements ProdutoService {
             produtoPage = produtoRepository.findAll(pageable);
         }
 
-        // Filtra por tipo E estoque em Java (em memória)
+        // Filtra por tipo (se informado) E estoque em Java (em memória)
+        Class<?> finalTipoClass = tipoClass;
         List<ProdutoResponseDTO> filtered = produtoPage.stream()
                 .filter(p -> {
-                    // Verifica se o tipo corresponde
-                    boolean tipoCorreto = tipoClass.isInstance(p);
-                    if (!tipoCorreto) return false;
+                    // Verifica se o tipo corresponde (apenas se tipoClass não for nulo)
+                    if (finalTipoClass != null && !finalTipoClass.isInstance(p)) {
+                        return false;
+                    }
 
                     // Verifica o estoque com o operador
                     Integer estoque = p.getEstoqueFisicoTotal();
