@@ -1,4 +1,4 @@
-// Sobrescreve o offset negativo padrão do Material globalmente neste componente
+// Ajuste global do offset do label para compensar o prefixo customizado
 :host ::ng-deep .mat-mdc-form-field-has-icon-prefix .mat-mdc-text-field-wrapper {
   --mat-mdc-form-field-label-offset-x: 8px !important;
 }
@@ -15,7 +15,7 @@
   .filter-input {
     min-width: 150px;
 
-    // Centraliza e ajusta o espaçamento do prefixo (botão)
+    // Centralização e espaçamento do container do prefixo
     ::ng-deep .mat-mdc-form-field-icon-prefix {
       display: flex;
       align-items: center;
@@ -38,6 +38,31 @@
       line-height: 1;
       padding-left: 4px;
       padding-right: 4px;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    // Botão LTE (Menor ou Igual) - Vermelho Claro
+    .btn-danger-custom {
+      background-color: color-mix(in srgb, var(--danger-color), white 20%) !important;
+      border-color: color-mix(in srgb, var(--danger-color), white 20%) !important;
+      color: white !important;
+
+      &:hover {
+        background-color: var(--danger-color) !important;
+        border-color: var(--danger-color) !important;
+      }
+    }
+
+    // Botão GTE (Maior ou Igual) - Verde Claro
+    .btn-success-custom {
+      background-color: #2ecc71 !important;
+      border-color: #2ecc71 !important;
+      color: white !important;
+
+      &:hover {
+        background-color: #27ae60 !important;
+        border-color: #27ae60 !important;
+      }
     }
   }
 

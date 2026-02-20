@@ -28,7 +28,11 @@
   <!-- Filtro de Estoque com toggle dentro do input (Modernizado) -->
   <mat-form-field appearance="outline" class="filter-input" subscriptSizing="dynamic">
     <mat-label>Estoque</mat-label>
-    <button mat-icon-button matPrefix type="button" (click)="toggleFilterOperator()">
+    <button mat-icon-button matPrefix type="button" (click)="toggleFilterOperator()"
+            [ngClass]="{
+              'btn-danger-custom': filterOperatorControl.value === 'LTE',
+              'btn-success-custom': filterOperatorControl.value === 'GTE'
+            }">
       {{ filterOperatorControl.value === 'GTE' ? '≥' : '≤' }}
     </button>
     <input matInput [formControl]="filterValueControl">

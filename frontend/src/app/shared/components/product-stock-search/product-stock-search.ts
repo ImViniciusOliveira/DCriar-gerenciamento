@@ -1,4 +1,5 @@
 import { Component, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal, WritableSignal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,6 +24,7 @@ import { ProductService } from '../../../features/products/services/product.serv
   selector: 'app-product-stock-search',
   standalone: true,
   imports: [
+    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MatFormFieldModule,
