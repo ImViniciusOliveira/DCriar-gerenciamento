@@ -3,103 +3,40 @@ package com.dcriar.domain.product.repository;
 import com.dcriar.domain.product.entity.Produto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.repository.query.Param;
-import org.springframework.lang.NonNull;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-
 /**
- * Interface de repositório para a entidade {@link Produto}.
- * <p>
- * Provê métodos de acesso a dados (CRUD) para produtos, abstraindo a complexidade
- * da camada de persistência.
+ * Repositório para a entidade Produto.
+ * Estende JpaSpecificationExecutor para permitir a construção de queries dinâmicas
+ * baseadas em critérios (Specifications), úteis para filtros complexos.
  */
 @Repository
-public interface ProdutoRepository extends JpaRepository<Produto, Long> {
+public interface ProdutoRepository extends JpaRepository<Produto, Long>, JpaSpecificationExecutor<Produto> {
 
     /**
-     * Busca todos os produtos de forma paginada.
-     * <p>
-     * Esta consulta customizada com {@code LEFT JOIN FETCH} garante que a associação
-     * com {@code tipoMateriaPrima} seja carregada de forma otimizada (EAGER),
-     * evitando o problema N+1.
-     *
-     * @param pageable Objeto com as informações de paginação (não pode ser nulo).
-     * @return Uma página de produtos (nunca nula).
-     */
-    @Override
-    @NonNull
-    @Query(value = "SELECT p FROM Produto p " +
-                   "LEFT JOIN FETCH p.tipoMateriaPrima",
-           countQuery = "SELECT count(p) FROM Produto p")
-    Page<Produto> findAll(@NonNull Pageable pageable);
-
-    /**
-     * Busca produtos filtrando por nome ou SKU (case-insensitive).
-     * Carrega a associação com TipoMateriaPrima de forma otimizada.
-     *
-     * @param nome Parte do nome ou SKU para busca.
-     * @param pageable Informações de paginação.
-     * @return Página de produtos encontrados.
-     */
-    @Query(value = "SELECT p FROM Produto p " +
-                   "LEFT JOIN FETCH p.tipoMateriaPrima " +
-                   "WHERE LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')) " +
-                   "OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :nome, '%'))",
-           countQuery = "SELECT count(p) FROM Produto p " +
-                        "WHERE LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%')) " +
-                        "OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :nome, '%'))")
-    Page<Produto> findByNomeOrSkuContainingIgnoreCase(@Param("nome") String nome, Pageable pageable);
-
-    /**
-     * Busca um produto pelo seu ID, garantindo que a associação com {@link com.dcriar.domain.stock.entity.TipoMateriaPrima}
-     * seja carregada de forma otimizada (EAGER) nesta consulta específica.
-     *
-     * @param id O ID do produto (não pode ser nulo).
-     * @return Um {@link Optional} contendo o produto, se encontrado (nunca nulo).
-     */
-    @Override
-    @NonNull
-    @EntityGraph(attributePaths = {"tipoMateriaPrima"})
-    Optional<Produto> findById(@NonNull Long id);
-
-    /**
-     * Verifica se já existe um produto com o nome especificado.
-     *
-     * @param nome O nome do produto a ser verificado.
-     * @return {@code true} se um produto com o nome existir, {@code false} caso contrário.
+     * Verifica se já existe um produto com o mesmo nome.
+     * @param nome O nome a ser verificado.
+     * @return true se o nome já existe, false caso contrário.
      */
     boolean existsByNome(String nome);
 
     /**
-     * Verifica se já existe um produto com o SKU (Stock Keeping Unit) especificado.
-     *
-     * @param sku O SKU do produto a ser verificado.
-     * @return {@code true} se um produto com o SKU existir, {@code false} caso contrário.
+     * Verifica se já existe um produto com o mesmo SKU.
+     * @param sku O SKU a ser verificado.
+     * @return true se o SKU já existe, false caso contrário.
      */
     boolean existsBySku(String sku);
 
     /**
-     * Verifica se existe outro produto com o nome especificado, excluindo o produto com o ID fornecido.
-     * Útil para validações de atualização onde o próprio produto pode manter seu nome.
+     * Busca produtos de forma paginada, filtrando por nome ou SKU que contenham o termo de busca.
+     * A busca é case-insensitive.
      *
-     * @param nome O nome do produto a ser verificado.
-     * @param id O ID do produto a ser excluído da verificação.
-     * @return {@code true} se outro produto com o nome existir, {@code false} caso contrário.
+     * @param nome O termo a ser buscado no campo 'nome'.
+     * @param sku O termo a ser buscado no campo 'sku'.
+     * @param pageable Objeto com as informações de paginação.
+     * @return Uma página de produtos que correspondem ao critério.
      */
-    boolean existsByNomeAndIdNot(String nome, Long id);
-
-    /**
-     * Verifica se existe outro produto com o SKU (Stock Keeping Unit) especificado, excluindo o produto com o ID fornecido.
-     * Útil para validações de atualização onde o próprio produto pode manter seu SKU.
-     *
-     * @param sku O SKU do produto a ser verificado.
-     * @param id O ID do produto a ser excluído da verificação.
-     * @return {@code true} se outro produto com o SKU existir, {@code false} caso contrário.
-     */
-    boolean existsBySkuAndIdNot(String sku, Long id);
+    Page<Produto> findByNomeContainingIgnoreCaseOrSkuContainingIgnoreCase(String nome, String sku, Pageable pageable);
 }

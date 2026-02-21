@@ -8,6 +8,7 @@ import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoDeConsumoDiretoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
+import com.dcriar.domain.product.repository.spec.ProdutoSpecifications;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
@@ -18,6 +19,7 @@ import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -47,7 +49,7 @@ public class ProdutoServiceImpl implements ProdutoService {
     public Page<ProdutoResponseDTO> findAll(String nome, Pageable pageable) {
         Page<Produto> produtoPage;
         if (nome != null && !nome.isBlank()) {
-            produtoPage = produtoRepository.findByNomeOrSkuContainingIgnoreCase(nome, pageable);
+            produtoPage = produtoRepository.findByNomeContainingIgnoreCaseOrSkuContainingIgnoreCase(nome, nome, pageable);
         } else {
             produtoPage = produtoRepository.findAll(pageable);
         }
@@ -63,58 +65,21 @@ public class ProdutoServiceImpl implements ProdutoService {
             String nome,
             Pageable pageable) {
 
-        // Valida os parâmetros obrigatórios de estoque
-        if (estoqueOperador == null || (!estoqueOperador.equals("GTE") && !estoqueOperador.equals("LTE"))) {
+        // Valida o operador de estoque para segurança.
+        if (estoqueOperador == null || (!estoqueOperador.equalsIgnoreCase("GTE") && !estoqueOperador.equalsIgnoreCase("LTE"))) {
             throw new OperadorEstoqueInvalidoException(estoqueOperador);
         }
 
-        // Se tipoProduto for informado, valida se é um dos tipos permitidos
-        if (tipoProduto != null && !tipoProduto.isBlank()) {
-            if (!tipoProduto.equalsIgnoreCase("CORTE") && !tipoProduto.equalsIgnoreCase("CONSUMO_DIRETO")) {
-                throw new TipoProdutoInvalidoException(tipoProduto);
-            }
-        }
+        // Constrói a especificação de forma dinâmica.
+        Specification<Produto> spec = Specification.where(ProdutoSpecifications.comNomeLike(nome))
+                .and(ProdutoSpecifications.comTipo(tipoProduto))
+                .and(ProdutoSpecifications.comEstoque(estoqueValor, estoqueOperador));
 
-        // Determina a classe esperada se o tipo for informado
-        Class<?> tipoClass = null;
-        if (tipoProduto != null && !tipoProduto.isBlank()) {
-            tipoClass = tipoProduto.equalsIgnoreCase("CORTE")
-                    ? ProdutoDeCorte.class
-                    : ProdutoDeConsumoDireto.class;
-        }
+        // Executa a busca no banco de dados com os filtros aplicados.
+        Page<Produto> produtoPage = produtoRepository.findAll(spec, pageable);
 
-        // Busca TODOS os produtos (com filtro opcional de nome)
-        Page<Produto> produtoPage;
-        if (nome != null && !nome.isBlank()) {
-            produtoPage = produtoRepository.findByNomeOrSkuContainingIgnoreCase(nome, pageable);
-        } else {
-            produtoPage = produtoRepository.findAll(pageable);
-        }
-
-        // Filtra por tipo (se informado) E estoque em Java (em memória)
-        Class<?> finalTipoClass = tipoClass;
-        List<ProdutoResponseDTO> filtered = produtoPage.stream()
-                .filter(p -> {
-                    // Verifica se o tipo corresponde (apenas se tipoClass não for nulo)
-                    if (finalTipoClass != null && !finalTipoClass.isInstance(p)) {
-                        return false;
-                    }
-
-                    // Verifica o estoque com o operador
-                    Integer estoque = p.getEstoqueFisicoTotal();
-                    return estoqueOperador.equals("GTE")
-                            ? estoque >= estoqueValor
-                            : estoque <= estoqueValor;
-                })
-                .map(this::mapAndEnrichProduto)
-                .collect(Collectors.toList());
-
-        // Reconstrói como Page
-        return new org.springframework.data.domain.PageImpl<>(
-                filtered,
-                pageable,
-                produtoPage.getTotalElements()
-        );
+        // Mapeia e enriquece a página de resultados para o DTO de resposta.
+        return produtoPage.map(this::mapAndEnrichProduto);
     }
 
     @Override
