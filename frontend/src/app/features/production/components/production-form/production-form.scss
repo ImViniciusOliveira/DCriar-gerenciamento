@@ -1,5 +1,20 @@
 @use '../../../../shared/styles/form-layout';
 
+.filter-group-container {
+  border: var(--std-border-width) solid var(--std-border-color);
+  border-radius: var(--std-border-radius);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.quantity-field {
+  max-width: 90px;
+}
+
+.action-button {
+  margin-top: 8px;
+}
+
 // Estilos específicos do formulário de produção
 
 .no-resize {

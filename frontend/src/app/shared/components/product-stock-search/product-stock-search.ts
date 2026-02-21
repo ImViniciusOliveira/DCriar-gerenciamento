@@ -1,6 +1,6 @@
 import { Component, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -77,8 +77,6 @@ export class ProductStockSearch implements OnInit, OnDestroy {
     this.filterValueControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.markFiltersAsDirty());
 
     // Reage a mudanças no `productType` (vindo do pai) para disparar uma nova busca.
-    // Isso acontece tanto na sincronização automática quanto na mudança manual do pai.
-    // Importante: este `effect` NÃO marca os filtros como sujos.
     effect(() => {
       this.productType();
       this.triggerSearchNow();
@@ -93,6 +91,14 @@ export class ProductStockSearch implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {}
+
+  /**
+   * Verifica se o FormControl externo, passado para o componente, é obrigatório.
+   * Isso é usado para exibir o asterisco (*) no mat-form-field interno.
+   */
+  get isRequired(): boolean {
+    return this.control().hasValidator(Validators.required);
+  }
 
   /**
    * Dispara a busca ao abrir o painel do autocomplete e limpa o campo se os filtros mudaram.

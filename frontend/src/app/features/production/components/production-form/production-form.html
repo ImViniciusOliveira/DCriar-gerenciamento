@@ -2,39 +2,48 @@
 
 <form [formGroup]="form" (ngSubmit)="onSave()">
   <mat-dialog-content>
-    <!-- Busca de Produtos e Tipo de Produção na mesma linha -->
-    <div style="display: flex; gap: 12px; align-items: start;">
-      <div style="flex: 1;">
-        <app-product-stock-search
-          [control]="produtoControl"
-          [isEditMode]="false"
-          [productType]="tipoProducaoControl.value || null"
-          (selectionChange)="onProdutoChange($event)">
-        </app-product-stock-search>
+    <!-- Container para o grupo de filtros -->
+    <div class="filter-group-container">
+      <!-- Controles na mesma linha -->
+      <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <div style="flex: 1;">
+          <app-product-stock-search
+            [control]="produtoControl"
+            [isEditMode]="false"
+            [productType]="tipoProducaoControl.value || null"
+            (selectionChange)="onProdutoChange($event)">
+          </app-product-stock-search>
+        </div>
+
+        <mat-form-field appearance="outline" class="quantity-field">
+          <mat-label>Qtd.</mat-label>
+          <input matInput type="text" formControlName="quantidade">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Tipo de Produção</mat-label>
+          <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()">
+            <mat-select-trigger>
+              @switch (tipoProducaoControl.value) {
+                @case ('') { Todos }
+                @case ('CORTE') { Corte }
+                @case ('CONSUMO_DIRETO') { Consumo Direto }
+              }
+            </mat-select-trigger>
+            <mat-option value="">Todos</mat-option>
+            <mat-option value="CORTE">Corte</mat-option>
+            <mat-option value="CONSUMO_DIRETO">Consumo Direto</mat-option>
+          </mat-select>
+        </mat-form-field>
       </div>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Tipo de Produção</mat-label>
-        <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()">
-          <mat-select-trigger>
-            @switch (tipoProducaoControl.value) {
-              @case ('') { Todos }
-              @case ('CORTE') { Corte }
-              @case ('CONSUMO_DIRETO') { Consumo Direto }
-            }
-          </mat-select-trigger>
-          <mat-option value="">Todos</mat-option>
-          <mat-option value="CORTE">Corte</mat-option>
-          <mat-option value="CONSUMO_DIRETO">Consumo Direto</mat-option>
-        </mat-select>
-      </mat-form-field>
+      <!-- Botão de Ação -->
+      <button mat-stroked-button type="button" class="action-button">
+        <mat-icon>model_training</mat-icon>
+        Simular
+      </button>
     </div>
 
-    <!-- Quantidade -->
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Quantidade</mat-label>
-      <input matInput formControlName="quantidade">
-    </mat-form-field>
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">

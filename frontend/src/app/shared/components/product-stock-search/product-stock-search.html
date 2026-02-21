@@ -4,6 +4,7 @@
     <mat-label>Buscar Produto</mat-label>
     <input type="text"
            matInput
+           [required]="isRequired"
            [formControl]="searchControl"
            [matAutocomplete]="auto"
            placeholder="Busque por nome...">

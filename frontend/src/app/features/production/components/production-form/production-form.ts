@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
 
 import { ProductionOrder } from '../../models/production.model';
 import { Product } from '../../../products/models/product.model';
@@ -30,7 +31,8 @@ export interface ProductionFormData {
     MatInputModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    ProductStockSearch
+    ProductStockSearch,
+    MatIconModule
   ],
   templateUrl: './production-form.html',
   styleUrls: ['./production-form.scss'],
@@ -50,15 +52,15 @@ export class ProductionForm implements OnInit {
 
   constructor() {
     this.form = this.fb.group({
-      // Define o valor inicial como string vazia para corresponder à opção "Todos"
-      tipoProducao: ['', Validators.required],
-      produtoId: [null],
+      // O tipo de produção não é mais obrigatório, pois é sincronizado automaticamente.
+      tipoProducao: [''],
+      // O produto passa a ser obrigatório.
+      produtoId: [null, Validators.required],
       quantidade: [null, [Validators.required, Validators.min(1)]]
     });
   }
 
   ngOnInit(): void {
-    // O ngOnInit pode ser usado para outras inicializações se necessário.
     // A lógica de reação a eventos foi movida para métodos específicos.
   }
 
