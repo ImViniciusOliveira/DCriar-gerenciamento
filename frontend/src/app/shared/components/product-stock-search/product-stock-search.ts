@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, input, OnDestroy, OnInit, output, Signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
@@ -9,7 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, skip } from 'rxjs/operators';
 import { Product } from '../../../features/products/models/product.model';
 import { ProductService } from '../../../features/products/services/product.service';
 
@@ -53,17 +53,17 @@ export class ProductStockSearch implements OnInit, OnDestroy {
 
   // --- Estado Interno ---
   products = toSignal(this.productService.getProductsByStock(), { initialValue: [] });
-  /**
-   * O estado de 'buscando' agora é um Signal de leitura (Signal<boolean>)
-   * que reflete diretamente o estado do serviço, garantindo uma única fonte da verdade.
-   */
   isSearching: Signal<boolean>;
+  /**
+   * Controla se os filtros (tipo, estoque) foram alterados manualmente pelo usuário,
+   * para decidir se o campo de busca deve ser limpo no próximo clique.
+   */
+  private filtersAreDirty = signal(false);
 
   constructor() {
-    // Conecta o estado de busca local com o estado do serviço.
     this.isSearching = this.productService.isSearchingByStock;
 
-    // Apenas a digitação no campo de busca principal dispara uma nova busca.
+    // Gatilho para busca ao digitar no campo principal.
     this.searchControl.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
@@ -71,31 +71,51 @@ export class ProductStockSearch implements OnInit, OnDestroy {
     ).subscribe(() => {
       this.triggerSearchNow();
     });
+
+    // Reage a mudanças manuais nos filtros internos para marcar a busca como "suja".
+    this.filterOperatorControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.markFiltersAsDirty());
+    this.filterValueControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.markFiltersAsDirty());
+
+    // Reage a mudanças no `productType` (vindo do pai) para disparar uma nova busca.
+    // Isso acontece tanto na sincronização automática quanto na mudança manual do pai.
+    // Importante: este `effect` NÃO marca os filtros como sujos.
+    effect(() => {
+      this.productType();
+      this.triggerSearchNow();
+    });
   }
 
   ngOnInit(): void {
-    // Preenche o campo se houver valor inicial (modo de edição)
     const initialValue = this.control().value;
     if (initialValue) {
       this.searchControl.setValue(initialValue);
     }
-
-    // Gatilho 1: Dispara a busca inicial ao carregar o componente.
-    this.triggerSearchNow();
   }
 
   ngOnDestroy(): void {}
 
   /**
-   * Gatilho 2: Dispara a busca ao abrir o painel do autocomplete.
+   * Dispara a busca ao abrir o painel do autocomplete e limpa o campo se os filtros mudaram.
    */
   onAutocompleteOpened(): void {
+    if (this.filtersAreDirty()) {
+      this.searchControl.setValue('');
+      this.filtersAreDirty.set(false);
+    }
     this.triggerSearchNow();
   }
 
   /**
+   * Método público para que o componente pai possa notificar que um filtro externo
+   * foi alterado manualmente pelo usuário.
+   */
+  public markFiltersAsDirty(): void {
+    this.filtersAreDirty.set(true);
+  }
+
+  /**
    * Centraliza a lógica de busca, lendo os valores atuais dos controles
-   * e enviando-os para o serviço. Este é o único local que chama o serviço.
+   * e enviando-os para o serviço.
    */
   private triggerSearchNow(): void {
     const searchTerm = typeof this.searchControl.value === 'string' ? this.searchControl.value : '';
@@ -126,7 +146,6 @@ export class ProductStockSearch implements OnInit, OnDestroy {
 
   /**
    * Alterna o operador de filtro de estoque entre 'GTE' (≥) e 'LTE' (≤).
-   * Importante: Apenas muda o valor do controle, não dispara uma nova busca.
    */
   toggleFilterOperator(): void {
     const current = this.filterOperatorControl.value;

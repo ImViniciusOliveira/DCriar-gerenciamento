@@ -8,13 +8,22 @@
         <app-product-stock-search
           [control]="produtoControl"
           [isEditMode]="false"
+          [productType]="tipoProducaoControl.value || null"
           (selectionChange)="onProdutoChange($event)">
         </app-product-stock-search>
       </div>
 
       <mat-form-field appearance="outline">
         <mat-label>Tipo de Produção</mat-label>
-        <mat-select formControlName="tipoProducao">
+        <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()">
+          <mat-select-trigger>
+            @switch (tipoProducaoControl.value) {
+              @case ('') { Todos }
+              @case ('CORTE') { Corte }
+              @case ('CONSUMO_DIRETO') { Consumo Direto }
+            }
+          </mat-select-trigger>
+          <mat-option value="">Todos</mat-option>
           <mat-option value="CORTE">Corte</mat-option>
           <mat-option value="CONSUMO_DIRETO">Consumo Direto</mat-option>
         </mat-select>
