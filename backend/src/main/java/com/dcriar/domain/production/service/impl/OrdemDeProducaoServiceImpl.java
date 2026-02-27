@@ -9,6 +9,7 @@ import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoConsumoDiretoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
 import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
+import com.dcriar.api.mapper.production.PlanoDeConsumoMapper;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.ProdutoDeCorte;
@@ -21,7 +22,9 @@ import com.dcriar.domain.production.entity.Margens;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.dcriar.domain.production.model.ParametrosCorte;
+import com.dcriar.domain.production.model.PlanoDeConsumo;
 import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
+import com.dcriar.domain.production.service.ConsumoCalculatorService;
 import com.dcriar.domain.production.service.CorteCalculatorService;
 import com.dcriar.domain.production.service.OrdemDeProducaoService;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
@@ -72,6 +75,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private final OrdemDeProducaoMapper ordemDeProducaoMapper;
     private final CorteCalculatorService corteCalculatorService;
     private final EstoqueProdutoService estoqueProdutoService;
+    private final ConsumoCalculatorService consumoCalculatorService;
+    private final PlanoDeConsumoMapper planoDeConsumoMapper;
 
     @Override
     @Transactional
@@ -187,7 +192,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw new TipoProducaoIncompativelException("Este produto não é para consumo direto.");
         }
 
-        Set<LoteMateriaPrima> lotesConsumidos = new HashSet<>(loteMateriaPrimaRepository.findAllById(requestDTO.getLotesConsumidosIds()));
+        List<LoteMateriaPrima> lotesConsumidos = loteMateriaPrimaRepository.findAllById(requestDTO.getLotesConsumidosIds());
         if (lotesConsumidos.size() != requestDTO.getLotesConsumidosIds().size()) {
             Set<Long> foundIds = lotesConsumidos.stream().map(LoteMateriaPrima::getId).collect(Collectors.toSet());
             Set<Long> missingIds = new HashSet<>(requestDTO.getLotesConsumidosIds());
@@ -215,20 +220,14 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .motivo(requestDTO.getMotivo())
                 .build();
 
-        OrdemDeProducao ordem = OrdemDeProducao.from(ordemRequestDTO, produto, lotesConsumidos, null);
+        OrdemDeProducao ordem = OrdemDeProducao.from(ordemRequestDTO, produto, new HashSet<>(lotesConsumidos), null);
         OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordem);
 
         // 4. Orquestra as movimentações de estoque.
-        BigDecimal consumoRestante = consumoTotalNecessario;
-        for (LoteMateriaPrima lote : lotesConsumidos) {
-            if (consumoRestante.compareTo(BigDecimal.ZERO) <= 0) break;
-            BigDecimal saldoDoLote = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
-            BigDecimal consumoNesteLote = saldoDoLote.min(consumoRestante);
-            if (consumoNesteLote.compareTo(BigDecimal.ZERO) > 0) {
-                registrarSaidaLote(lote, consumoNesteLote, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
-                consumoRestante = consumoRestante.subtract(consumoNesteLote);
-            }
-        }
+        PlanoDeConsumo plano = consumoCalculatorService.calcularPlanoDeConsumo(lotesConsumidos, consumoTotalNecessario);
+        plano.itens().forEach(item ->
+                registrarSaidaLote(item.lote(), item.quantidadeAConsumir(), "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem)
+        );
 
         registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
         distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
@@ -373,10 +372,28 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumoDireto()) {
             throw new TipoProducaoIncompativelException("Este produto utiliza uma matéria-prima geométrica. Utilize o simulador de corte.");
         }
-        BigDecimal consumoTotalEstimado = new BigDecimal(produto.getUnidadesPorProduto() * requestDTO.getQuantidade());
+
+        List<LoteMateriaPrima> lotesConsumidos = loteMateriaPrimaRepository.findAllById(requestDTO.getLotesConsumidosIds());
+        if (lotesConsumidos.size() != requestDTO.getLotesConsumidosIds().size()) {
+            throw new LotesMateriaPrimaNaoEncontradosException(new HashSet<>(requestDTO.getLotesConsumidosIds()));
+        }
+
+        BigDecimal consumoTotalNecessario = new BigDecimal(produto.getUnidadesPorProduto() * requestDTO.getQuantidade());
+        BigDecimal saldoTotalDisponivel = lotesConsumidos.stream()
+                .map(movimentacaoEstoqueLoteRepository::findSaldoByLote)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (saldoTotalDisponivel.compareTo(consumoTotalNecessario) < 0) {
+            throw new SaldoMateriaPrimaInsuficienteException(consumoTotalNecessario, saldoTotalDisponivel);
+        }
+
+        PlanoDeConsumo plano = consumoCalculatorService.calcularPlanoDeConsumo(lotesConsumidos, consumoTotalNecessario);
+
         return SimulacaoConsumoDiretoResponseDTO.builder()
-                .consumoTotalEstimado(consumoTotalEstimado)
+                .consumoTotalEstimado(consumoTotalNecessario)
                 .unidadeDeConsumo(produto.getTipoMateriaPrima().getUnidadeDeConsumo())
+                .planoDeConsumo(plano.itens().stream().map(planoDeConsumoMapper::toDto).collect(Collectors.toList()))
+                .saldoRestante(plano.saldosRestantes())
                 .build();
     }
 
