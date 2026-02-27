@@ -348,10 +348,17 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
             throw new TipoProducaoIncompativelException("Este produto não utiliza uma matéria-prima geométrica para simulação de corte.");
         }
-        LoteMateriaPrima loteParaSimulacao = loteMateriaPrimaRepository.findAllByTipoMateriaPrima(produto.getTipoMateriaPrima()).stream()
-                .filter(lote -> movimentacaoEstoqueLoteRepository.findSaldoByLote(lote).compareTo(BigDecimal.ZERO) > 0)
-                .findFirst()
-                .orElseThrow(() -> new NenhumLoteComEstoqueException("Não há lotes de matéria-prima com estoque disponível para este produto."));
+        LoteMateriaPrima loteParaSimulacao = findLoteById(requestDTO.getLoteId());
+
+        // Validação de compatibilidade
+        if (!loteParaSimulacao.getTipoMateriaPrima().getId().equals(produto.getTipoMateriaPrima().getId())) {
+            throw new TipoProducaoIncompativelException(
+                    produto.getNome(),
+                    produto.getTipoMateriaPrima().getNome(),
+                    loteParaSimulacao.getId(),
+                    loteParaSimulacao.getTipoMateriaPrima().getNome()
+            );
+        }
 
         ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(requestDTO.getQuantidade(), produto, loteParaSimulacao, null);
         long numeroDeLinhas = (long) Math.ceil((double) requestDTO.getQuantidade() / parametros.produtosPorLinha());
@@ -579,7 +586,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private LoteMateriaPrima findLoteById(Long id) {
-        return loteMateriaPrimaRepository.findById(id)
+        return loteMateriaPrimaRepository.findByIdWithTipoMateriaPrima(id)
                 .orElseThrow(() -> new LoteMateriaPrimaNaoEncontradoException(id));
     }
 }

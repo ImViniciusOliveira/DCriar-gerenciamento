@@ -88,7 +88,7 @@ public class GlobalExceptionHandler {
      * Intercepta {@link PrecoVarejoNaoDefinidoException}, {@link LoteInvalidoException},
      * {@link AtributoLoteInvalidoException}, {@link CalculoCustoIncompativelException},
      * {@link DimensoesManuaisInvalidasException}, {@link MargemInvalidaException},
-     * {@link NenhumLoteComEstoqueException}, {@link LotePrincipalNaoEspecificadoException},
+     * {@link LotePrincipalNaoEspecificadoException},
      * {@link ProdutoNaoCabeNoLoteException}, {@link QuantidadeUnidadesInvalidaException},
      * {@link TipoProducaoIncompativelException}, {@link ImpossivelExcluirProducaoException},
      * {@link TipoProdutoInvalidoException}, {@link OperadorEstoqueInvalidoException}.
@@ -99,7 +99,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             PrecoVarejoNaoDefinidoException.class, LoteInvalidoException.class,
             AtributoLoteInvalidoException.class, CalculoCustoIncompativelException.class, DimensoesManuaisInvalidasException.class,
-            MargemInvalidaException.class, NenhumLoteComEstoqueException.class, LotePrincipalNaoEspecificadoException.class,
+            MargemInvalidaException.class, LotePrincipalNaoEspecificadoException.class,
             ProdutoNaoCabeNoLoteException.class, QuantidadeUnidadesInvalidaException.class, TipoProducaoIncompativelException.class,
             ImpossivelExcluirProducaoException.class,
             TipoProdutoInvalidoException.class, OperadorEstoqueInvalidoException.class

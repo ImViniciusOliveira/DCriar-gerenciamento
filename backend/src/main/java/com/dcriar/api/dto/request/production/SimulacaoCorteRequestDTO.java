@@ -34,4 +34,9 @@ public class SimulacaoCorteRequestDTO {
      */
     @Schema(description = "Quantidade de unidades a serem produzidas na simulação.", example = "1000", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
+    /**
+     * O ID do lote de matéria-prima a ser utilizado na simulação.
+     */
+    @Schema(description = "ID do lote de matéria-prima a ser utilizado na simulação.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    private Long loteId;
 }
