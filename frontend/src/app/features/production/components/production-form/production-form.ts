@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -14,6 +14,7 @@ import { ProductionOrder } from '../../models/production.model';
 import { Product } from '../../../products/models/product.model';
 import { ProductStockSearch } from '../../../../shared/components/product-stock-search/product-stock-search';
 import { ProductionService, SimulationRequest } from '../../services/production.service';
+import { SimulationResult } from '../../models/simulation.model';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -53,6 +54,14 @@ export class ProductionForm implements OnInit {
   isSaving = signal(false);
   isSimulating = signal(false);
   produto = signal<Product | null>(null);
+
+  // Signal com tipo forte para armazenar o resultado da simulação.
+  simulationResult = signal<SimulationResult | null>(null);
+
+  // Propriedades computadas que usam o campo discriminador 'tipoSimulacao'.
+  isCorteResult = computed(() => this.simulationResult()?.tipoSimulacao === 'CORTE');
+  isConsumoResult = computed(() => this.simulationResult()?.tipoSimulacao === 'CONSUMO_DIRETO');
+
 
   constructor() {
     this.form = this.fb.group({
@@ -99,6 +108,7 @@ export class ProductionForm implements OnInit {
   onProdutoChange(event: MatSelectChange): void {
     const produto = event.value as Product;
     this.produto.set(produto);
+    this.simulationResult.set(null); // Limpa o resultado da simulação ao mudar o produto
 
     // Atualiza o formulário com o ID e também sincroniza o dropdown de tipo de produção.
     this.form.patchValue({
@@ -136,11 +146,13 @@ export class ProductionForm implements OnInit {
       .subscribe({
         next: (response) => {
           console.log('✅ Resposta da Simulação:', response);
+          this.simulationResult.set(response as SimulationResult); // Armazena o resultado com tipo
           this.isSimulating.set(false);
           // TODO: Exibir os resultados em um diálogo ou em uma nova seção da UI.
         },
         error: (err) => {
           console.error('Erro ao simular produção:', err);
+          this.simulationResult.set(null); // Limpa o resultado em caso de erro
           this.isSimulating.set(false);
           // TODO: Mostrar uma notificação de erro para o usuário.
         }

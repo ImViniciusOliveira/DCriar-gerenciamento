@@ -44,6 +44,26 @@
       </button>
     </div>
 
+    <!-- Seção para resultados de CORTE -->
+    @if (isCorteResult()) {
+      <div class="filter-group-container">
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Placeholder para CORTE</mat-label>
+          <input matInput value="CORTE" readonly>
+        </mat-form-field>
+      </div>
+    }
+
+    <!-- Seção para resultados de CONSUMO DIRETO -->
+    @if (isConsumoResult()) {
+      <div class="filter-group-container">
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Placeholder para CONSUMO</mat-label>
+          <input matInput value="CONSUMO" readonly>
+        </mat-form-field>
+      </div>
+    }
+
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
