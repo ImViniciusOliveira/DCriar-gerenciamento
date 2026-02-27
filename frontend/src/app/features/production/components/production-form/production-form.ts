@@ -8,10 +8,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
+import { take } from 'rxjs';
 
 import { ProductionOrder } from '../../models/production.model';
 import { Product } from '../../../products/models/product.model';
 import { ProductStockSearch } from '../../../../shared/components/product-stock-search/product-stock-search';
+import { ProductionService, SimulationRequest } from '../../services/production.service';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -42,12 +44,14 @@ export class ProductionForm implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<ProductionForm>);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly productionService = inject(ProductionService);
   public readonly data: ProductionFormData = inject(MAT_DIALOG_DATA);
 
   @ViewChild(ProductStockSearch) private productStockSearchComponent!: ProductStockSearch;
 
   form: FormGroup;
   isSaving = signal(false);
+  isSimulating = signal(false);
   produto = signal<Product | null>(null);
 
   constructor() {
@@ -104,6 +108,43 @@ export class ProductionForm implements OnInit {
 
     // Força a detecção de mudanças para garantir que o mat-select-trigger seja atualizado.
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Executa a simulação de produção.
+   */
+  onSimulate(): void {
+    if (!this.produto() || !this.form.value.quantidade) {
+      console.warn('Produto e quantidade são necessários para simular.');
+      return;
+    }
+
+    const url = this.produto()?._links?.["simulate"]?.href;
+    if (!url) {
+      console.error('Link de simulação (HATEOAS) não encontrado no objeto do produto.');
+      return;
+    }
+
+    const payload: SimulationRequest = {
+      produtoId: this.produto()!.id,
+      quantidade: Number(this.form.value.quantidade)
+    };
+
+    this.isSimulating.set(true);
+    this.productionService.simulateProduction(url, payload)
+      .pipe(take(1))
+      .subscribe({
+        next: (response) => {
+          console.log('✅ Resposta da Simulação:', response);
+          this.isSimulating.set(false);
+          // TODO: Exibir os resultados em um diálogo ou em uma nova seção da UI.
+        },
+        error: (err) => {
+          console.error('Erro ao simular produção:', err);
+          this.isSimulating.set(false);
+          // TODO: Mostrar uma notificação de erro para o usuário.
+        }
+      });
   }
 
   onSave(): void {

@@ -7,6 +7,19 @@ import { ApiRoot } from '../../../core/services/api-root';
 import { ApiResponseProduction, ProductionOrder } from '../models/production.model';
 
 /**
+ * Representa o payload enviado para a simulação.
+ */
+export interface SimulationRequest {
+  produtoId: number;
+  quantidade: number;
+}
+
+/**
+ * Representa a resposta da simulação retornada pelo backend.
+ */
+export type SimulationResponse = any;
+
+/**
  * Serviço para gerenciamento de Ordens de Produção.
  *
  * Implementa uma arquitetura reativa com Signals para gerenciar o estado da busca
@@ -79,6 +92,16 @@ export class ProductionService {
       }),
       shareReplay(1)
     );
+  }
+
+  /**
+   * Executa a simulação de produção no backend.
+   * @param url A URL completa para o endpoint de simulação (descoberta via HATEOAS).
+   * @param payload Os dados para a simulação (produtoId e quantidade).
+   * @returns Um Observable com a resposta da simulação.
+   */
+  simulateProduction(url: string, payload: SimulationRequest): Observable<SimulationResponse> {
+    return this.http.post<SimulationResponse>(url, payload);
   }
 
   /**
