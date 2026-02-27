@@ -24,4 +24,7 @@ public class SimulacaoConsumoDiretoResponseDTO {
 
     @Schema(description = "Unidade de medida do consumo estimado.", example = "LITRO")
     private UnidadeDeMedida unidadeDeConsumo;
+
+    @Schema(description = "Campo discriminador para identificar o tipo de resultado da simulação no frontend.", example = "CONSUMO_DIRETO", accessMode = Schema.AccessMode.READ_ONLY)
+    private final String tipoSimulacao = "CONSUMO_DIRETO";
 }
