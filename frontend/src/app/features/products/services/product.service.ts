@@ -504,7 +504,7 @@ export class ProductService {
   }
 
   private getProductBaseUrl(endpoints: Hateoas): string {
-    const url = endpoints._links?.['produtos']?.href;
+    const url = endpoints?._links?.['produtos']?.href;
     if (!url) {
       throw new Error('URL de produtos não encontrada na resposta da API');
     }
