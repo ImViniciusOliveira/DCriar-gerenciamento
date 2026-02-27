@@ -39,13 +39,13 @@ INSERT INTO canais_venda (nome, data_criacao, data_atualizacao) VALUES
 
 -- Inserção de Lotes de Matéria-Prima (dependem de Tipos de Matérias-Primas)
 INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, custo_total_lote, motivo, atributos, data_criacao, data_atualizacao) VALUES
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Couchê 300g'), 'FOLHA', 150.00, 'Compra NF-1001', '{ "formato": "SRA3 (320x450mm)" }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Couchê 300g'), 'FOLHA', 150.00, 'Compra NF-1001', '{ "larguraMm": 320, "comprimentoMm": 450 }', NOW(), NOW()),
     ((SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 'METRO_QUADRADO', 250.00, 'Compra NF-1002', '{ "larguraMm": 1600 }', NOW(), NOW()),
     ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 'METRO_QUADRADO', 120.00, 'Compra NF-1003', '{ "larguraMm": 1200 }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo BOPP Transparente'), 'FOLHA', 80.00, 'Compra NF-1004', '{ "formato": "A3 (297x420mm)" }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Kraft 180g'), 'FOLHA', 50.00, 'Compra NF-1005', '{ "formato": "A4 (210x297mm)" }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo BOPP Transparente'), 'FOLHA', 80.00, 'Compra NF-1004', '{ "larguraMm": 297, "comprimentoMm": 420 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Kraft 180g'), 'FOLHA', 50.00, 'Compra NF-1005', '{ "larguraMm": 210, "comprimentoMm": 297 }', NOW(), NOW()),
     ((SELECT id FROM tipos_materia_prima WHERE nome = 'Tinta Eco-Solvente Preta'), 'LITRO', 300.00, 'Compra NF-1006', '{ "fornecedor": "InkMaster" }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Fita Dupla Face 25mm'), 'METRO_LINEAR', 75.00, 'Compra NF-1007', '{ "metragem_total_m": 50 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Fita Dupla Face 25mm'), 'METRO_LINEAR', 75.00, 'Compra NF-1007', '{ "larguraMm": 25, "metragem_m": 50 }', NOW(), NOW()),
     ((SELECT id FROM tipos_materia_prima WHERE nome = 'Ilhós de Latão #0'), 'UNIDADE', 200.00, 'Compra NF-1008', '{ "quantidade_caixa": 1000 }', NOW(), NOW());
 
 -- Inserção de Produtos Acabados (dependem de Tipos de Matérias-Primas)
@@ -58,18 +58,20 @@ INSERT INTO produtos (tipo_produto, nome, sku, descricao, cor, unidades_por_prod
     ('CORTE', 'Adesivo Holográfico (Novo)', 'ADSV-HOLO-10', 'Adesivo com efeito holográfico, corte especial.', 'Holográfico', 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 10.0, 10.0, NOW(), NOW(), null, null),
     ('CORTE', 'Tag para Roupas Kraft', 'TAG-KFT-4X9', 'Tag de papel kraft 180g com furo.', 'Pardo', 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Kraft 180g'), 4.0, 9.0, NOW(), NOW(), null, null),
     ('CONSUMO_DIRETO', 'Tinta Preta Eco-Solvente (Litro)', 'TIN-PRE-ES-1L', 'Tinta preta para impressoras eco-solvente, garrafa de 1 litro.', null, 1, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Tinta Eco-Solvente Preta'), null, null, NOW(), NOW(), 'INK-BLK-ES-1L', '{"tipo_tinta": "Eco-Solvente", "cor_pantone": "Black C", "volume_ml": 1000}'),
-    ('CONSUMO_DIRETO', 'Rolo de Fita Dupla Face 25mm', 'FITA-DF-25MM', 'Rolo de fita dupla face de alta aderência com 25mm de largura e 50m de comprimento.', null, 1, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Fita Dupla Face 25mm'), null, null, NOW(), NOW(), '3M-VHB-25', '{"largura_mm": 25, "metragem_m": 50, "adesao": "Alta"}'),
+    ('CORTE', 'Rolo de Fita Dupla Face 25mm', 'FITA-DF-25MM', 'Rolo de fita dupla face de alta aderência com 25mm de largura e 50m de comprimento.', 'Transparente', 1, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Fita Dupla Face 25mm'), 2.5, 5000.0, NOW(), NOW(), null, null),
     ('CONSUMO_DIRETO', 'Pacote de Ilhós para Banner', 'ILHOS-BNR-100', 'Pacote com 100 unidades de ilhós de latão nº 0 para acabamento de banners.', null, 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Ilhós de Latão #0'), null, null, NOW(), NOW(), 'ILHOS-LT-0', '{"diametro_mm": 10, "material": "Latão"}');
 
 -- ETAPA 4: INSERÇÃO DE DADOS DEPENDENTES (Nível 2)
 -- Estas tabelas dependem dos dados inseridos nas Etapas 2 e 3.
 
 -- Inserção de Movimentações de Estoque de Lote (dependem de Lotes)
+-- Garante que cada lote de compra tenha um saldo inicial.
 INSERT INTO movimentacoes_estoque_lote (lote_id, data, tipo, quantidade, motivo) VALUES
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1001'), NOW() - INTERVAL '15 day', 'ENTRADA_COMPRA', 500, 'Nota Fiscal #2024-A1'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002'), NOW() - INTERVAL '10 day', 'ENTRADA_COMPRA', 50, 'Nota Fiscal #2024-B2'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1003'), NOW() - INTERVAL '5 day', 'ENTRADA_COMPRA', 100, 'Nota Fiscal #2024-C3'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1004'), NOW() - INTERVAL '2 day', 'ENTRADA_COMPRA', 1000, 'Nota Fiscal #2024-D4'),
+    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1005'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 500, 'Nota Fiscal #2024-H8'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1006'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 5, 'Nota Fiscal #2024-E5'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1007'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 50, 'Nota Fiscal #2024-F6'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1008'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 1000, 'Nota Fiscal #2024-G7');
@@ -148,14 +150,14 @@ INSERT INTO cortes_realizados (ordem_de_producao_id, largura_cm, comprimento_cm,
 -- Itens de Venda (dependem de Vendas e Produtos)
 INSERT INTO itens_venda (venda_id, produto_id, quantidade, preco_unitario, preco_total) VALUES
     ((SELECT id FROM vendas WHERE valor_total = 99.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio')), (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), 1, 99.90, 99.90),
-    ((SELECT id FROM vendas WHERE valor_total = 170.00), (SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), 2, 85.00, 170.00),
-    ((SELECT id FROM vendas WHERE valor_total = 75.00), (SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), 1, 45.00, 45.00),
-    ((SELECT id FROM vendas WHERE valor_total = 75.00), (SELECT id FROM produtos WHERE sku = 'TAG-KFT-4X9'), 1, 30.00, 30.00);
+    ((SELECT id FROM vendas WHERE valor_total = 170.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Equipe de Vendas')), (SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), 2, 85.00, 170.00),
+    ((SELECT id FROM vendas WHERE valor_total = 75.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Shopee')), (SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), 1, 45.00, 45.00),
+    ((SELECT id FROM vendas WHERE valor_total = 75.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Shopee')), (SELECT id FROM produtos WHERE sku = 'TAG-KFT-4X9'), 1, 30.00, 30.00);
 
 -- Histórico de Movimentações de Estoque de Produto (dependem de Produtos e Ordens de Produção)
 INSERT INTO movimentacoes_estoque_produto (produto_id, data, tipo, quantidade, motivo, ordem_producao_id) VALUES
-    ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), NOW() - INTERVAL '5 day', 'ENTRADA_PRODUCAO', 5000, 'Ordem de Produção #P101', null),
-    ((SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), NOW() - INTERVAL '4 day', 'ENTRADA_PRODUCAO', 10, 'Ordem de Produção #P102', null),
+    ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), NOW() - INTERVAL '5 day', 'ENTRADA_PRODUCAO', 5000, 'Ordem de Produção #P101', (SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-SHP-101')),
+    ((SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), NOW() - INTERVAL '4 day', 'ENTRADA_PRODUCAO', 10, 'Ordem de Produção #P102', (SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-LJA-205')),
     ((SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), NOW() - INTERVAL '3 day', 'ENTRADA_PRODUCAO', 1000, 'Ordem de Produção #P103', null),
     ((SELECT id FROM produtos WHERE sku = 'ROT-CERV-LN'), NOW() - INTERVAL '2 day', 'ENTRADA_PRODUCAO', 250, 'Ordem de Produção #P104', null),
     ((SELECT id FROM produtos WHERE sku = 'TAG-KFT-4X9'), NOW() - INTERVAL '1 day', 'ENTRADA_PRODUCAO', 500, 'Ordem de Produção #P105', null),
