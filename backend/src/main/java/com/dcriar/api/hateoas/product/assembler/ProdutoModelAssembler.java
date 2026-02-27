@@ -3,6 +3,7 @@ package com.dcriar.api.hateoas.product.assembler;
 import com.dcriar.api.controller.enums.StockEnumController;
 import com.dcriar.api.controller.product.EstoqueProdutoController;
 import com.dcriar.api.controller.product.ProdutoController;
+import com.dcriar.api.controller.production.OrdemDeProducaoController;
 import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
 import com.dcriar.api.dto.response.product.ProdutoDeConsumoDiretoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoDeCorteResponseDTO;
@@ -57,6 +58,15 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
             model.add(linkTo(methodOn(ProdutoController.class).patch(dto.getId(), new java.util.HashMap<>())).withRel("atualizar-parcialmente-produto"));
             model.add(linkTo(methodOn(ProdutoController.class).deleteById(dto.getId())).withRel("deletar-produto"));
             model.add(linkTo(methodOn(ProdutoController.class).uploadFoto(dto.getId(), null)).withRel("upload-foto"));
+
+            // Adiciona o link de simulação apropriado com base no tipo de produto
+            if ("CORTE".equals(dto.getTipoProduto())) {
+                model.add(linkTo(methodOn(OrdemDeProducaoController.class)
+                        .simularCorte(null)).withRel("simulate"));
+            } else if ("CONSUMO_DIRETO".equals(dto.getTipoProduto())) {
+                model.add(linkTo(methodOn(OrdemDeProducaoController.class)
+                        .simularConsumoDireto(null)).withRel("simulate"));
+            }
 
             String fileName = dto.getFotoPrincipalUrl();
             

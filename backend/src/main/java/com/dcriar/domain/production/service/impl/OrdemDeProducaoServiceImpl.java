@@ -557,7 +557,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private Produto findProdutoById(Long id) {
-        return produtoRepository.findById(id)
+        return produtoRepository.findByIdWithTipoMateriaPrima(id)
                 .orElseThrow(() -> new ProdutoNaoEncontradoException(id));
     }
 
