@@ -27,7 +27,7 @@ public class FlywayConfig {
      * @return A estratégia de migração configurada.
      */
     @Bean
-    @Profile("dev")
+    @Profile({"dev", "local"})
     public FlywayMigrationStrategy cleanMigrateStrategy() {
         return flyway -> {
             // 1. Limpa completamente o banco de dados (equivalente a um DROP em todas as tabelas, sequences, etc.)
