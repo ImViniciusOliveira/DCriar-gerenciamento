@@ -30,7 +30,8 @@ public enum UnidadeDeMedida {
     MILILITRO("Mililitro", "ml", false, true),
 
     // Unidades de Contagem
-    UNIDADE("Unidade", "un", false, true),
+    UNIDADE("Unidade", "un", false, true), // Para itens não-dimensionais (parafusos, ilhós)
+    FOLHA("Folha", "fl", true, false),     // Para itens dimensionais contáveis (chapas, folhas de adesivo)
 
     // Genérico
     OUTROS("Outros", "N/A", false, false);
