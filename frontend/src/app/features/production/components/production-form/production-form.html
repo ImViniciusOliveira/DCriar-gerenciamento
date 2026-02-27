@@ -4,37 +4,59 @@
   <mat-dialog-content>
     <!-- Container para o grupo de filtros -->
     <div class="filter-group-container">
-      <!-- Controles na mesma linha -->
-      <div style="display: flex; gap: 12px; align-items: flex-start;">
-        <div style="flex: 1;">
-          <app-product-stock-search
-            [control]="produtoControl"
-            [isEditMode]="false"
-            [productType]="tipoProducaoControl.value || null"
-            (selectionChange)="onProdutoChange($event)">
-          </app-product-stock-search>
+      <div class="form-content-wrapper">
+        <!-- Linha 1: Controles principais -->
+        <div class="form-row">
+          <div style="flex: 1;">
+            <app-product-stock-search
+              [control]="produtoControl"
+              [isEditMode]="false"
+              [productType]="tipoProducaoControl.value || null"
+              (selectionChange)="onProdutoChange($event)">
+            </app-product-stock-search>
+          </div>
+
+          <mat-form-field appearance="outline" class="quantity-field">
+            <mat-label>Qtd.</mat-label>
+            <input matInput type="text" formControlName="quantidade">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Tipo de Produção</mat-label>
+            <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()">
+              <mat-select-trigger>
+                @switch (tipoProducaoControl.value) {
+                  @case ('') { Todos }
+                  @case ('CORTE') { Corte }
+                  @case ('CONSUMO_DIRETO') { Consumo Direto }
+                }
+              </mat-select-trigger>
+              <mat-option value="">Todos</mat-option>
+              <mat-option value="CORTE">Corte</mat-option>
+              <mat-option value="CONSUMO_DIRETO">Consumo Direto</mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
 
-        <mat-form-field appearance="outline" class="quantity-field">
-          <mat-label>Qtd.</mat-label>
-          <input matInput type="text" formControlName="quantidade">
-        </mat-form-field>
+        <!-- Linha 2 - Seção para input de CORTE -->
+        @if (showCorteInputs()) {
+          <div class="form-row">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Placeholder para Busca de Lote (CORTE)</mat-label>
+              <input matInput value="Busca de Lote Único" readonly>
+            </mat-form-field>
+          </div>
+        }
 
-        <mat-form-field appearance="outline">
-          <mat-label>Tipo de Produção</mat-label>
-          <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()">
-            <mat-select-trigger>
-              @switch (tipoProducaoControl.value) {
-                @case ('') { Todos }
-                @case ('CORTE') { Corte }
-                @case ('CONSUMO_DIRETO') { Consumo Direto }
-              }
-            </mat-select-trigger>
-            <mat-option value="">Todos</mat-option>
-            <mat-option value="CORTE">Corte</mat-option>
-            <mat-option value="CONSUMO_DIRETO">Consumo Direto</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <!-- Linha 2 - Seção para input de CONSUMO DIRETO -->
+        @if (showConsumoInputs()) {
+          <div class="form-row">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Placeholder para Seleção de Lotes (CONSUMO)</mat-label>
+              <input matInput value="Seleção de Múltiplos Lotes" readonly>
+            </mat-form-field>
+          </div>
+        }
       </div>
 
       <!-- Botão de Ação -->
@@ -43,27 +65,6 @@
         Simular
       </button>
     </div>
-
-    <!-- Seção para resultados de CORTE -->
-    @if (isCorteResult()) {
-      <div class="filter-group-container">
-        <mat-form-field appearance="outline" style="width: 100%;">
-          <mat-label>Placeholder para CORTE</mat-label>
-          <input matInput value="CORTE" readonly>
-        </mat-form-field>
-      </div>
-    }
-
-    <!-- Seção para resultados de CONSUMO DIRETO -->
-    @if (isConsumoResult()) {
-      <div class="filter-group-container">
-        <mat-form-field appearance="outline" style="width: 100%;">
-          <mat-label>Placeholder para CONSUMO</mat-label>
-          <input matInput value="CONSUMO" readonly>
-        </mat-form-field>
-      </div>
-    }
-
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">

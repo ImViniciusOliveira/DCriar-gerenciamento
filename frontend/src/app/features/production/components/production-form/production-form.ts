@@ -58,9 +58,9 @@ export class ProductionForm implements OnInit {
   // Signal com tipo forte para armazenar o resultado da simulação.
   simulationResult = signal<SimulationResult | null>(null);
 
-  // Propriedades computadas que usam o campo discriminador 'tipoSimulacao'.
-  isCorteResult = computed(() => this.simulationResult()?.tipoSimulacao === 'CORTE');
-  isConsumoResult = computed(() => this.simulationResult()?.tipoSimulacao === 'CONSUMO_DIRETO');
+  // Propriedades computadas para controlar a visibilidade das seções de input.
+  showCorteInputs = computed(() => this.produto()?.tipoProduto === 'CORTE');
+  showConsumoInputs = computed(() => this.produto()?.tipoProduto === 'CONSUMO_DIRETO');
 
 
   constructor() {

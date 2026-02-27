@@ -4,15 +4,21 @@
   border: var(--std-border-width) solid var(--std-border-color);
   border-radius: var(--std-border-radius);
   padding: 16px;
-  margin-bottom: 24px;
+}
+
+.form-content-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
 }
 
 .quantity-field {
   max-width: 90px;
-}
-
-.action-button {
-  margin-top: 8px;
 }
 
 // Estilos específicos do formulário de produção
