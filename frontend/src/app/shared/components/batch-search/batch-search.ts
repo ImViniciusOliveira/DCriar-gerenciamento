@@ -56,7 +56,7 @@ export class BatchSearch {
       _links: {}
     } as ApiResponseBatches
   });
-  isSearching = signal(false);
+  readonly isSearching = this.batchService.isSearching;
 
   // Subject para controlar quando disparar a busca
   private readonly searchTrigger$ = new Subject<void>();
@@ -82,7 +82,6 @@ export class BatchSearch {
       const initialValue = this.control().value;
       if (typeof initialValue === 'number') {
         untracked(() => {
-          this.isSearching.set(true);
           this.batchService.updateSearchParams({
             tipoMateriaPrimaId: this.tipoMateriaPrimaId(),
             nome: initialValue.toString()
@@ -94,19 +93,11 @@ export class BatchSearch {
             takeUntilDestroyed(this.destroyRef)
           ).subscribe((batch: Batch) => {
             this.searchControl.setValue(batch);
-            this.isSearching.set(false);
           });
         });
       } else if (initialValue instanceof Object && 'id' in initialValue) {
         this.searchControl.setValue(initialValue);
       }
-    });
-
-    // Reage às mudanças no Observable do serviço (quando batches chegam)
-    toObservable(this.foundBatches).pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => {
-      untracked(() => this.isSearching.set(false));
     });
 
     // Processa o trigger de busca centralizado
@@ -131,7 +122,6 @@ export class BatchSearch {
    * e enviando-os para o serviço.
    */
   private triggerSearchNow(): void {
-    this.isSearching.set(true);
     const searchTerm = typeof this.searchControl.value === 'string' ? this.searchControl.value : null;
 
     this.batchService.updateSearchParams({

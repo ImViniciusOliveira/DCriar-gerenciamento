@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, filter, switchMap, shareReplay, take, map, combineLatest, of, catchError, tap } from 'rxjs';
+import { Observable, filter, switchMap, shareReplay, take, map, combineLatest, of, catchError, tap, finalize } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
@@ -48,6 +48,12 @@ export class BatchService {
   );
 
   /**
+   * Sinal público que indica se a busca de lotes está em andamento.
+   * Os componentes podem usar este sinal para exibir indicadores de carregamento.
+   */
+  readonly isSearching = signal(false);
+
+  /**
    * Observable reativo que emite a lista de Lotes de Matéria-Prima.
    * É acionado sempre que os parâmetros de busca mudam ou um refresh manual é solicitado,
    * mantendo os componentes atualizados automaticamente.
@@ -67,6 +73,7 @@ export class BatchService {
           this.searchParams$,
           this.refresh$
         ]).pipe(
+          tap(() => this.isSearching.set(true)),
           switchMap(([params, _]) => {
             let httpParams = new HttpParams()
               .set('page', params.page.toString())
@@ -85,7 +92,8 @@ export class BatchService {
               catchError(err => {
                 console.error('Erro ao buscar lotes de matéria-prima', err);
                 return of(this.createEmptyResponse());
-              })
+              }),
+              finalize(() => this.isSearching.set(false))
             );
           })
         );

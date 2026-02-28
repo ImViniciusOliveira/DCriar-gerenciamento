@@ -9,7 +9,7 @@
     [matAutocomplete]="auto"
     [required]="isRequired"
   >
-  <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete" (optionSelected)="onOptionSelected($event)">
+  <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete" (optionSelected)="onOptionSelected($event)" [displayWith]="displayFn"> <!-- MOVIDO AQUI -->
     @for (batch of foundBatches()._embedded['lotes-materia-prima']; track batch.id) {
       <mat-option [value]="batch">
         <div class="batch-option-content">

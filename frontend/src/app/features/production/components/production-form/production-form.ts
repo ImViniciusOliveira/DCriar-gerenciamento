@@ -155,13 +155,11 @@ export class ProductionForm implements OnInit {
    */
   onSimulate(): void {
     if (!this.produto() || !this.form.value.quantidade) {
-      console.warn('Produto e quantidade são necessários para simular.');
       return;
     }
 
     const url = this.produto()?._links?.["simulate"]?.href;
     if (!url) {
-      console.error('Link de simulação (HATEOAS) não encontrado no objeto do produto.');
       return;
     }
 
@@ -176,18 +174,18 @@ export class ProductionForm implements OnInit {
     }
     // TODO: Adicionar lotesConsumidosIds para CONSUMO_DIRETO
 
+    console.log('Payload enviado para simulação:', payload);
+
     this.isSimulating.set(true);
     this.productionService.simulateProduction(url, payload)
       .pipe(take(1))
       .subscribe({
         next: (response) => {
-          console.log('✅ Resposta da Simulação:', response);
           this.simulationResult.set(response as SimulationResult); // Armazena o resultado com tipo
           this.isSimulating.set(false);
           // TODO: Exibir os resultados em um diálogo ou em uma nova seção da UI.
         },
-        error: (err) => {
-          console.error('Erro ao simular produção:', err);
+        error: (_err) => {
           this.simulationResult.set(null); // Limpa o resultado em caso de erro
           this.isSimulating.set(false);
           // TODO: Mostrar uma notificação de erro para o usuário.
