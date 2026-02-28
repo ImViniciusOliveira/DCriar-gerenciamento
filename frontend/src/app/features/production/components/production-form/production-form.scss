@@ -17,8 +17,32 @@
   align-items: flex-start;
 }
 
+.product-search-field {
+  flex: 1; /* Ocupa o espaço restante */
+}
+
+.batch-search-field {
+  flex: 1; /* Ocupa o espaço restante */
+}
+
+.consumption-placeholder-field {
+  flex: 1; /* Ocupa o espaço restante */
+}
+
 .quantity-field {
-  max-width: 90px;
+  flex-basis: 90px; /* Tamanho base fixo */
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+.production-type-field {
+  flex-basis: 200px; /* Tamanho base médio */
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+.action-button {
+  /* Removido margin-top: 16px; */
 }
 
 // Estilos específicos do formulário de produção

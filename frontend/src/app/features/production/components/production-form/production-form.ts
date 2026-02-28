@@ -15,6 +15,8 @@ import { Product } from '../../../products/models/product.model';
 import { ProductStockSearch } from '../../../../shared/components/product-stock-search/product-stock-search';
 import { ProductionService, SimulationRequest } from '../../services/production.service';
 import { SimulationResult } from '../../models/simulation.model';
+import { BatchSearch } from '../../../../shared/components/batch-search/batch-search';
+import {Batch} from '../../../stock/models/batch.model';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -35,7 +37,8 @@ export interface ProductionFormData {
     MatButtonModule,
     MatProgressSpinnerModule,
     ProductStockSearch,
-    MatIconModule
+    MatIconModule,
+    BatchSearch
   ],
   templateUrl: './production-form.html',
   styleUrls: ['./production-form.scss'],
@@ -54,6 +57,7 @@ export class ProductionForm implements OnInit {
   isSaving = signal(false);
   isSimulating = signal(false);
   produto = signal<Product | null>(null);
+  loteSelecionado = signal<Batch | null>(null);
 
   // Signal com tipo forte para armazenar o resultado da simulação.
   simulationResult = signal<SimulationResult | null>(null);
@@ -69,7 +73,8 @@ export class ProductionForm implements OnInit {
       tipoProducao: [''],
       // O produto passa a ser obrigatório.
       produtoId: [null, Validators.required],
-      quantidade: [null, [Validators.required, Validators.min(1)]]
+      quantidade: [null, [Validators.required, Validators.min(1)]],
+      loteId: [null]
     });
   }
 
@@ -102,13 +107,21 @@ export class ProductionForm implements OnInit {
   }
 
   /**
+   * Getter para o FormControl de loteId
+   */
+  get loteIdControl(): FormControl {
+    return this.form.get('loteId') as FormControl;
+  }
+
+  /**
    * Callback quando um produto é selecionado no componente de busca.
    * Atualiza o formulário com os dados do produto selecionado.
    */
   onProdutoChange(event: MatSelectChange): void {
     const produto = event.value as Product;
     this.produto.set(produto);
-    this.simulationResult.set(null); // Limpa o resultado da simulação ao mudar o produto
+    this.simulationResult.set(null);
+    this.loteSelecionado.set(null);
 
     // Atualiza o formulário com o ID e também sincroniza o dropdown de tipo de produção.
     this.form.patchValue({
@@ -116,8 +129,25 @@ export class ProductionForm implements OnInit {
       tipoProducao: produto.tipoProduto
     });
 
+    // Adiciona ou remove o validador 'required' para loteId com base no tipo de produto
+    if (produto.tipoProduto === 'CORTE') {
+      this.loteIdControl.addValidators(Validators.required);
+    } else {
+      this.loteIdControl.removeValidators(Validators.required);
+    }
+    this.loteIdControl.updateValueAndValidity();
+
     // Força a detecção de mudanças para garantir que o mat-select-trigger seja atualizado.
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Callback quando um lote é selecionado no componente de busca de lotes.
+   */
+  onLoteChange(lote: Batch): void {
+    this.loteSelecionado.set(lote);
+    this.loteIdControl.setValue(lote.id);
+    this.simulationResult.set(null);
   }
 
   /**
@@ -135,10 +165,16 @@ export class ProductionForm implements OnInit {
       return;
     }
 
-    const payload: SimulationRequest = {
+    let payload: SimulationRequest = {
       produtoId: this.produto()!.id,
       quantidade: Number(this.form.value.quantidade)
     };
+
+    // Adiciona loteId ao payload se for um produto de CORTE
+    if (this.produto()?.tipoProduto === 'CORTE' && this.loteSelecionado()) {
+      payload = { ...payload, loteId: Number(this.loteSelecionado()!.id) };
+    }
+    // TODO: Adicionar lotesConsumidosIds para CONSUMO_DIRETO
 
     this.isSimulating.set(true);
     this.productionService.simulateProduction(url, payload)
@@ -166,11 +202,6 @@ export class ProductionForm implements OnInit {
     }
 
     this.isSaving.set(true);
-    const formValue = this.form.getRawValue();
-    const payload = {
-      produtoId: formValue.produtoId,
-      quantidade: Number(formValue.quantidade)
-    };
 
     setTimeout(() => {
       this.isSaving.set(false);

@@ -1,0 +1,163 @@
+import { Component, DestroyRef, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { debounceTime, distinctUntilChanged, filter, map } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+
+import { ApiResponseBatches, Batch } from '../../../features/stock/models/batch.model';
+import { BatchService } from '../../../features/stock/services/batch.service';
+
+/**
+ * Componente genérico para busca e seleção de Lotes de Matéria-Prima.
+ * Utiliza Autocomplete para combinar busca e seleção em um único campo.
+ */
+@Component({
+  selector: 'app-batch-search',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule
+  ],
+  templateUrl: './batch-search.html',
+  styleUrls: ['./batch-search.scss']
+})
+export class BatchSearch {
+  // --- Entradas e Saídas ---
+  control = input.required<FormControl>();
+  tipoMateriaPrimaId = input<number | null>(null);
+  selectionChange = output<Batch>();
+
+  // --- Injeção de Dependências ---
+  private readonly batchService = inject(BatchService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  // --- Controles de Formulário Internos ---
+  searchControl = new FormControl<string | Batch | null>('');
+
+  // --- Estado Interno ---
+  foundBatches = toSignal(this.batchService.batches$, {
+    initialValue: {
+      _embedded: { 'lotes-materia-prima': [] },
+      page: { size: 0, totalElements: 0, totalPages: 0, number: 0 },
+      _links: {}
+    } as ApiResponseBatches
+  });
+  isSearching = signal(false);
+
+  // Subject para controlar quando disparar a busca
+  private readonly searchTrigger$ = new Subject<void>();
+
+  constructor() {
+    // Reage a mudanças no `tipoMateriaPrimaId` (vindo do pai) para disparar uma nova busca.
+    effect(() => {
+      this.tipoMateriaPrimaId();
+      this.searchTrigger$.next();
+    });
+
+    // Gatilho para busca ao digitar no campo principal.
+    this.searchControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
+      this.searchTrigger$.next();
+    });
+
+    // Efeito para inicializar o searchControl se o control externo já tiver um valor (ID do lote).
+    effect(() => {
+      const initialValue = this.control().value;
+      if (typeof initialValue === 'number') {
+        untracked(() => {
+          this.isSearching.set(true);
+          this.batchService.updateSearchParams({
+            tipoMateriaPrimaId: this.tipoMateriaPrimaId(),
+            nome: initialValue.toString()
+          });
+
+          this.batchService.batches$.pipe(
+            map((response: ApiResponseBatches) => response._embedded['lotes-materia-prima'].find((batch: Batch) => batch.id === initialValue)),
+            filter((batch): batch is Batch => !!batch),
+            takeUntilDestroyed(this.destroyRef)
+          ).subscribe((batch: Batch) => {
+            this.searchControl.setValue(batch);
+            this.isSearching.set(false);
+          });
+        });
+      } else if (initialValue instanceof Object && 'id' in initialValue) {
+        this.searchControl.setValue(initialValue);
+      }
+    });
+
+    // Reage às mudanças no Observable do serviço (quando batches chegam)
+    toObservable(this.foundBatches).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
+      untracked(() => this.isSearching.set(false));
+    });
+
+    // Processa o trigger de busca centralizado
+    this.searchTrigger$.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
+      this.triggerSearchNow();
+    });
+  }
+
+
+  /**
+   * Verifica se o FormControl externo, passado para o componente, é obrigatório.
+   * Isso é usado para exibir o asterisco (*) no mat-form-field interno.
+   */
+  get isRequired(): boolean {
+    return this.control().hasValidator(Validators.required);
+  }
+
+  /**
+   * Centraliza a lógica de busca, lendo os valores atuais dos controles
+   * e enviando-os para o serviço.
+   */
+  private triggerSearchNow(): void {
+    this.isSearching.set(true);
+    const searchTerm = typeof this.searchControl.value === 'string' ? this.searchControl.value : null;
+
+    this.batchService.updateSearchParams({
+      nome: searchTerm,
+      tipoMateriaPrimaId: this.tipoMateriaPrimaId(),
+      page: 0
+    });
+  }
+
+  /**
+   * Formata como o lote é exibido no input e nas opções do autocomplete.
+   */
+  displayFn(batch: Batch): string {
+    if (!batch) return '';
+    const saldo = batch.saldoEstoque !== undefined ? `Saldo: ${batch.saldoEstoque} ${batch.unidadeSimbolo || ''}` : '';
+    const largura = batch.atributos?.['larguraMm'] ? `Largura: ${batch.atributos['larguraMm']}mm` : '';
+
+    return [saldo, largura].filter(Boolean).join(' | ');
+  }
+
+  /**
+   * Chamado quando uma opção é selecionada no autocomplete.
+   */
+  onOptionSelected(event: MatAutocompleteSelectedEvent): void {
+    const selected = event.option.value as Batch;
+    this.control().setValue(selected.id);
+    this.selectionChange.emit(selected);
+  }
+}

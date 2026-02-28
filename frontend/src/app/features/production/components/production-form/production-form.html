@@ -7,7 +7,7 @@
       <div class="form-content-wrapper">
         <!-- Linha 1: Controles principais -->
         <div class="form-row">
-          <div style="flex: 1;">
+          <div class="product-search-field">
             <app-product-stock-search
               [control]="produtoControl"
               [isEditMode]="false"
@@ -21,7 +21,7 @@
             <input matInput type="text" formControlName="quantidade">
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="outline" class="production-type-field">
             <mat-label>Tipo de Produção</mat-label>
             <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()">
               <mat-select-trigger>
@@ -41,20 +41,25 @@
         <!-- Linha 2 - Seção para input de CORTE -->
         @if (showCorteInputs()) {
           <div class="form-row">
-            <mat-form-field appearance="outline" style="width: 100%;">
-              <mat-label>Placeholder para Busca de Lote (CORTE)</mat-label>
-              <input matInput value="Busca de Lote Único" readonly>
-            </mat-form-field>
+            <div class="batch-search-field">
+              <app-batch-search
+                [control]="loteIdControl"
+                [tipoMateriaPrimaId]="produto()?.materiaPrima?.id || null"
+                (selectionChange)="onLoteChange($event)">
+              </app-batch-search>
+            </div>
           </div>
         }
 
         <!-- Linha 2 - Seção para input de CONSUMO DIRETO -->
         @if (showConsumoInputs()) {
           <div class="form-row">
-            <mat-form-field appearance="outline" style="width: 100%;">
-              <mat-label>Placeholder para Seleção de Lotes (CONSUMO)</mat-label>
-              <input matInput value="Seleção de Múltiplos Lotes" readonly>
-            </mat-form-field>
+            <div class="consumption-placeholder-field">
+              <mat-form-field appearance="outline">
+                <mat-label>Placeholder para Seleção de Lotes (CONSUMO)</mat-label>
+                <input matInput value="Seleção de Múltiplos Lotes" readonly>
+              </mat-form-field>
+            </div>
           </div>
         }
       </div>

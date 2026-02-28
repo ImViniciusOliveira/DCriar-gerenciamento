@@ -22,12 +22,21 @@ export class BatchService {
     page: number;
     size: number;
     sort: string;
+    tipoMateriaPrimaId: number | null;
+    nome: string | null;
   }>({
     page: 0,
     size: 10,
-    sort: 'id,asc'
+    sort: 'id,asc',
+    tipoMateriaPrimaId: null,
+    nome: null,
   }, {
-    equal: (a, b) => a.page === b.page && a.size === b.size && a.sort === b.sort
+    equal: (a, b) =>
+      a.page === b.page &&
+      a.size === b.size &&
+      a.sort === b.sort &&
+      a.tipoMateriaPrimaId === b.tipoMateriaPrimaId &&
+      a.nome === b.nome
   });
 
   private readonly refresh$ = toObservable(this.refreshTrigger);
@@ -59,10 +68,18 @@ export class BatchService {
           this.refresh$
         ]).pipe(
           switchMap(([params, _]) => {
-            const httpParams = new HttpParams()
+            let httpParams = new HttpParams()
               .set('page', params.page.toString())
               .set('size', params.size.toString())
               .set('sort', params.sort);
+
+            // Adicionar os novos filtros se existirem
+            if (params.tipoMateriaPrimaId) {
+              httpParams = httpParams.set('tipoMateriaPrimaId', params.tipoMateriaPrimaId.toString());
+            }
+            if (params.nome) {
+              httpParams = httpParams.set('nome', params.nome);
+            }
 
             return this.http.get<ApiResponseBatches>(baseUrl, { params: httpParams }).pipe(
               catchError(err => {
@@ -80,7 +97,7 @@ export class BatchService {
   /**
    * Atualiza os parâmetros de busca, o que dispara uma nova emissão no `batches$`.
    */
-  updateSearchParams(params: Partial<{ page: number; size: number; sort: string; }>): void {
+  updateSearchParams(params: Partial<{ page: number; size: number; sort: string; tipoMateriaPrimaId: number | null; nome: string | null; }>): void {
     this.searchParams.update(current => ({ ...current, ...params }));
   }
 

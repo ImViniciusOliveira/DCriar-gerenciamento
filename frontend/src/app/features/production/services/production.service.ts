@@ -1,10 +1,10 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
-import { Observable, filter, switchMap, shareReplay, take, map, combineLatest, of, catchError, tap, throwError } from 'rxjs';
+import { Observable, filter, switchMap, shareReplay, combineLatest, of, catchError, tap, throwError } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
-import { ApiResponseProduction, ProductionOrder } from '../models/production.model';
+import { ApiResponseProduction } from '../models/production.model';
 
 /**
  * Representa o payload enviado para a simulação.
@@ -12,6 +12,8 @@ import { ApiResponseProduction, ProductionOrder } from '../models/production.mod
 export interface SimulationRequest {
   produtoId: number;
   quantidade: number;
+  loteId?: number;
+  lotesConsumidosIds?: number[];
 }
 
 /**
@@ -112,15 +114,6 @@ export class ProductionService {
   }
 
   /**
-   * Retorna um template HATEOAS para a criação de uma nova ordem de produção.
-   */
-  getNewTemplate(): Observable<ProductionOrder> {
-    return this.getBaseUrl().pipe(
-      switchMap(baseUrl => this.http.get<ProductionOrder>(`${baseUrl}/new`))
-    );
-  }
-
-  /**
    * Remove uma ordem de produção.
    * Trata o erro 404 (Not Found) como sucesso (idempotência).
    */
@@ -133,19 +126,6 @@ export class ProductionService {
         return throwError(() => error);
       }),
       tap(() => this.refreshTrigger.set(undefined))
-    );
-  }
-
-  private getBaseUrl(): Observable<string> {
-    return this.endpoints$.pipe(
-      take(1),
-      map(endpoints => {
-        const url = endpoints._links?.['ordens-de-producao']?.href;
-        if (!url) {
-          throw new Error('URL de ordens-de-producao não encontrada na resposta da API raiz.');
-        }
-        return url.split('{')[0];
-      })
     );
   }
 
