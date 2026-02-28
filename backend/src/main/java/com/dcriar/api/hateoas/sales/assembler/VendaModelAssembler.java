@@ -1,11 +1,11 @@
 package com.dcriar.api.hateoas.sales.assembler;
 
 import com.dcriar.api.controller.sales.VendaController;
-import com.dcriar.api.dto.request.sales.VendaRequestDTO;
 import com.dcriar.api.dto.response.sales.VendaResponseDTO;
 import com.dcriar.api.hateoas.sales.model.ItemVendaModel;
 import com.dcriar.api.hateoas.sales.model.VendaModel;
 import com.dcriar.api.mapper.sales.VendaMapper;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -77,8 +77,18 @@ public class VendaModelAssembler extends RepresentationModelAssemblerSupport<Ven
         // Adiciona links de ação apenas se o ID existir
         if (dto.getId() != null) {
             model.add(linkTo(methodOn(VendaController.class).findById(dto.getId())).withSelfRel());
-            model.add(linkTo(methodOn(VendaController.class).atualizarVenda(dto.getId(), new VendaRequestDTO())).withRel("update"));
-            model.add(linkTo(methodOn(VendaController.class).deletarVenda(dto.getId())).withRel("delete"));
+
+            String atualizarUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/vendas/{id}")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(atualizarUrl, "update"));
+
+            String deletarUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/vendas/{id}")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(deletarUrl, "delete"));
         }
         
         // Adiciona link para a coleção de vendas

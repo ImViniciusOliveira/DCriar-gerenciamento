@@ -4,12 +4,11 @@ import com.dcriar.api.controller.enums.StockEnumController;
 import com.dcriar.api.hateoas.enums.model.UnidadeDeMedidaModel;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import org.springframework.beans.BeanUtils;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
  * Assembler para converter o enum {@link UnidadeDeMedida} em um modelo HATEOAS {@link UnidadeDeMedidaModel}.
@@ -36,7 +35,11 @@ public class UnidadeDeMedidaModelAssembler extends RepresentationModelAssemblerS
         model.setName(unidadeDeMedida.name());
 
         // 4. Adiciona o link para o próprio recurso (self link).
-        model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida()).slash(unidadeDeMedida.name()).withSelfRel());
+        String selfUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/v1/enums/unidades-de-medida/{name}")
+                .buildAndExpand(unidadeDeMedida.name())
+                .toUriString();
+        model.add(Link.of(selfUrl).withSelfRel());
 
         return model;
     }

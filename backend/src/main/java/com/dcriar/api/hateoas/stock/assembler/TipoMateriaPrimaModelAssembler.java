@@ -3,7 +3,6 @@ package com.dcriar.api.hateoas.stock.assembler;
 import com.dcriar.api.controller.enums.StockEnumController;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
 import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
-import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
 import com.dcriar.api.hateoas.stock.model.TipoMateriaPrimaModel;
 import com.dcriar.api.mapper.stock.TipoMateriaPrimaMapper;
@@ -52,9 +51,17 @@ public class TipoMateriaPrimaModelAssembler extends RepresentationModelAssembler
             model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findById(dto.getId())).withSelfRel());
             model.add(linkTo(TipoMateriaPrimaController.class).withRel(IanaLinkRelations.COLLECTION));
             
-            // Passa um objeto vazio em vez de null para evitar avisos
-            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).Update(dto.getId(), new TipoMateriaPrimaRequestDTO())).withRel("update"));
-            model.add(linkTo(methodOn(TipoMateriaPrimaController.class).deleteById(dto.getId())).withRel("delete"));
+            String atualizarUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/tipos-materia-prima/{id}")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(atualizarUrl, "update"));
+
+            String deletarUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/tipos-materia-prima/{id}")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(deletarUrl, "delete"));
 
             // Link para o recurso relacionado: listar todos os lotes deste tipo
             String lotesUri = linkTo(LoteMateriaPrimaController.class).toUri().toString();

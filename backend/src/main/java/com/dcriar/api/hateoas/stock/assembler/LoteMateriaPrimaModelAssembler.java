@@ -3,13 +3,12 @@ package com.dcriar.api.hateoas.stock.assembler;
 import com.dcriar.api.controller.enums.StockEnumController;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
 import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
-import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
-import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
 import com.dcriar.api.hateoas.stock.model.LoteMateriaPrimaModel;
 import com.dcriar.api.mapper.stock.LoteMateriaPrimaMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -53,12 +52,25 @@ public class LoteMateriaPrimaModelAssembler extends RepresentationModelAssembler
         if (dto.getId() != null) {
             model.add(linkTo(methodOn(LoteMateriaPrimaController.class).findById(dto.getId())).withSelfRel());
             
-            // CORREÇÃO: Passa o DTO de Requisição correto para o método de update
-            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).update(dto.getId(), new LoteMateriaPrimaRequestDTO())).withRel("update"));
-            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).delete(dto.getId())).withRel("delete"));
+            String atualizarUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/lotes-materia-prima/{id}")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(atualizarUrl, "update"));
+
+            String deletarUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/lotes-materia-prima/{id}")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(deletarUrl, "delete"));
+
             model.add(linkTo(methodOn(LoteMateriaPrimaController.class).listarMovimentacoes(dto.getId())).withRel("movimentacoes"));
             
-            model.add(linkTo(methodOn(LoteMateriaPrimaController.class).registrarMovimentacao(dto.getId(), new MovimentacaoRequestDTO())).withRel("registrar-movimentacao"));
+            String registrarMovimentacaoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/lotes-materia-prima/{id}/movimentacoes")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(registrarMovimentacaoUrl, "registrar-movimentacao"));
 
             if (model.getTipoMateriaPrimaId() != null) {
                 model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findById(model.getTipoMateriaPrimaId())).withRel("tipo-materia-prima"));

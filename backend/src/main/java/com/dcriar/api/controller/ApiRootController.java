@@ -1,21 +1,20 @@
 package com.dcriar.api.controller;
 
 import com.dcriar.api.controller.product.CanalVendaController;
-import com.dcriar.api.controller.product.EstoqueProdutoController;
 import com.dcriar.api.controller.product.ProdutoController;
 import com.dcriar.api.controller.production.OrdemDeProducaoController;
 import com.dcriar.api.controller.sales.VendaController;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
-import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
  * Controller para o ponto de entrada (root) da API.
@@ -37,13 +36,20 @@ public class ApiRootController {
 
         rootModel.add(linkTo(ProdutoController.class).withRel("produtos"));
         rootModel.add(linkTo(LoteMateriaPrimaController.class).withRel("lotes-materia-prima"));
-        rootModel.add(linkTo(methodOn(TipoMateriaPrimaController.class).findAll()).withRel("tipos-materia-prima"));
+
+        String tiposMateriaPrimaUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/v1/tipos-materia-prima")
+                .toUriString();
+        rootModel.add(Link.of(tiposMateriaPrimaUrl, "tipos-materia-prima"));
+
         rootModel.add(linkTo(VendaController.class).withRel("vendas"));
         rootModel.add(linkTo(OrdemDeProducaoController.class).withRel("ordens-de-producao"));
         rootModel.add(linkTo(CanalVendaController.class).withRel("canais-venda"));
         
-        // Adiciona o link para o recurso raiz de estoques (sub-menu)
-        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class).getRoot()).withRel("estoques"));
+        String estoquesUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/v1/estoques")
+                .toUriString();
+        rootModel.add(Link.of(estoquesUrl, "estoques"));
 
         return rootModel;
     }

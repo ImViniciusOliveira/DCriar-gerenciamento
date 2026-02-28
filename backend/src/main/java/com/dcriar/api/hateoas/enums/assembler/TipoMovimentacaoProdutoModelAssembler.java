@@ -3,12 +3,11 @@ package com.dcriar.api.hateoas.enums.assembler;
 import com.dcriar.api.controller.enums.ProductEnumController;
 import com.dcriar.api.hateoas.enums.model.TipoMovimentacaoProdutoModel;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
  * Assembler para converter o enum {@link TipoMovimentacaoProduto} em um modelo HATEOAS {@link TipoMovimentacaoProdutoModel}.
@@ -26,7 +25,11 @@ public class TipoMovimentacaoProdutoModelAssembler extends RepresentationModelAs
         TipoMovimentacaoProdutoModel model = instantiateModel(tipoMovimentacao);
         model.setName(tipoMovimentacao.name());
 
-        model.add(linkTo(methodOn(ProductEnumController.class).getTiposMovimentacaoProduto()).slash(tipoMovimentacao.name()).withSelfRel());
+        String selfUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/v1/enums/tipos-movimentacao-produto/{name}")
+                .buildAndExpand(tipoMovimentacao.name())
+                .toUriString();
+        model.add(Link.of(selfUrl).withSelfRel());
 
         return model;
     }

@@ -3,7 +3,6 @@ package com.dcriar.api.hateoas.product.assembler;
 import com.dcriar.api.controller.enums.StockEnumController;
 import com.dcriar.api.controller.product.EstoqueProdutoController;
 import com.dcriar.api.controller.product.ProdutoController;
-import com.dcriar.api.controller.production.OrdemDeProducaoController;
 import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
 import com.dcriar.api.dto.response.product.ProdutoDeConsumoDiretoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoDeCorteResponseDTO;
@@ -54,18 +53,42 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
         // Adiciona links específicos do recurso apenas se o produto já existir (tiver um ID)
         if (dto.getId() != null) {
             model.add(linkTo(methodOn(ProdutoController.class).findById(dto.getId())).withSelfRel());
-            model.add(linkTo(methodOn(ProdutoController.class).update(dto.getId(), new com.dcriar.api.dto.request.product.ProdutoRequestDTO())).withRel("atualizar-produto"));
-            model.add(linkTo(methodOn(ProdutoController.class).patch(dto.getId(), new java.util.HashMap<>())).withRel("atualizar-parcialmente-produto"));
-            model.add(linkTo(methodOn(ProdutoController.class).deleteById(dto.getId())).withRel("deletar-produto"));
-            model.add(linkTo(methodOn(ProdutoController.class).uploadFoto(dto.getId(), null)).withRel("upload-foto"));
+
+            String atualizarUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/produtos/{id}")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(atualizarUrl, "atualizar-produto"));
+
+            String atualizarParcialUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/produtos/{id}")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(atualizarParcialUrl, "atualizar-parcialmente-produto"));
+
+            String deletarUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/produtos/{id}")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(deletarUrl, "deletar-produto"));
+
+            String uploadFotoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/produtos/{id}/foto")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(uploadFotoUrl, "upload-foto"));
 
             // Adiciona o link de simulação apropriado com base no tipo de produto
             if ("CORTE".equals(dto.getTipoProduto())) {
-                model.add(linkTo(methodOn(OrdemDeProducaoController.class)
-                        .simularCorte(null)).withRel("simulate"));
+                String simularCorteUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/api/v1/ordens-de-producao/simular/corte")
+                        .toUriString();
+                model.add(Link.of(simularCorteUrl, "simulate"));
             } else if ("CONSUMO_DIRETO".equals(dto.getTipoProduto())) {
-                model.add(linkTo(methodOn(OrdemDeProducaoController.class)
-                        .simularConsumoDireto(null)).withRel("simulate"));
+                String simularConsumoDiretoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/api/v1/ordens-de-producao/simular/consumo-direto")
+                        .toUriString();
+                model.add(Link.of(simularConsumoDiretoUrl, "simulate"));
             }
 
             String fileName = dto.getFotoPrincipalUrl();

@@ -4,6 +4,7 @@ import com.dcriar.api.controller.production.OrdemDeProducaoController;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
 import com.dcriar.api.hateoas.production.model.OrdemDeProducaoModel;
 import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -11,9 +12,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
  * Assembler principal para o recurso de Ordem de Produção.
@@ -62,18 +60,45 @@ public class OrdemDeProducaoModelAssembler extends RepresentationModelAssemblerS
 
         // Adiciona links de ação apenas se a ordem de produção já existir (tiver um ID)
         if (dto.getId() != null) {
-            model.add(linkTo(methodOn(OrdemDeProducaoController.class).buscarPorId(dto.getId())).withSelfRel());
-            model.add(linkTo(methodOn(OrdemDeProducaoController.class).excluir(dto.getId())).withRel("deletar-ordem-de-producao"));
+            String selfUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/ordens-de-producao/{id}")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(selfUrl).withSelfRel());
+
+            String deletarUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/ordens-de-producao/{id}")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(deletarUrl, "deletar-ordem-de-producao"));
         } else {
             // Links para o esqueleto de criação
-            model.add(linkTo(methodOn(OrdemDeProducaoController.class).simularCorte(null)).withRel("simular-corte"));
-            model.add(linkTo(methodOn(OrdemDeProducaoController.class).simularConsumoDireto(null)).withRel("simular-consumo-direto"));
-            model.add(linkTo(methodOn(OrdemDeProducaoController.class).criarOrdemDeCorte(null)).withRel("criar-ordem-corte"));
-            model.add(linkTo(methodOn(OrdemDeProducaoController.class).criarOrdemDeConsumoDireto(null)).withRel("criar-ordem-consumo-direto"));
+            String simularCorteUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/ordens-de-producao/simular/corte")
+                    .toUriString();
+            model.add(Link.of(simularCorteUrl, "simular-corte"));
+
+            String simularConsumoDiretoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/ordens-de-producao/simular/consumo-direto")
+                    .toUriString();
+            model.add(Link.of(simularConsumoDiretoUrl, "simular-consumo-direto"));
+
+            String criarOrdemCorteUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/ordens-de-producao/corte")
+                    .toUriString();
+            model.add(Link.of(criarOrdemCorteUrl, "criar-ordem-corte"));
+
+            String criarOrdemConsumoDiretoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/ordens-de-producao/consumo-direto")
+                    .toUriString();
+            model.add(Link.of(criarOrdemConsumoDiretoUrl, "criar-ordem-consumo-direto"));
         }
         
         // Adiciona link para a coleção de ordens de produção
-        model.add(linkTo(OrdemDeProducaoController.class).withRel("ordens-de-producao"));
+        String colecaoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/v1/ordens-de-producao")
+                .toUriString();
+        model.add(Link.of(colecaoUrl, "ordens-de-producao"));
 
         return model;
     }
