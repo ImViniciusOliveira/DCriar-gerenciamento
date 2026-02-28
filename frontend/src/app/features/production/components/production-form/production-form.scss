@@ -1,86 +1,143 @@
-@use '../../../../shared/styles/form-layout';
+@use '../../../../shared/styles/form-layout' as fl;
+
+// --- Layout do Formulário ---
 
 .filter-group-container {
   border: var(--std-border-width) solid var(--std-border-color);
   border-radius: var(--std-border-radius);
   padding: 16px;
+
+  & + .filter-group-container {
+    margin-top: 16px;
+  }
 }
 
-.form-content-wrapper {
+.simulation-placeholder + .filter-group-container {
+  margin-top: 16px;
+}
+
+.form-row {
+  @include fl.form-row;
+  margin: 0;
+  gap: 16px;
+}
+
+.form-left {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
-.form-row {
+.form-right {
+  flex: 1;
+  min-width: 0;
   display: flex;
+  flex-direction: column;
+}
+
+.form-right-row {
+  display: flex;
+  flex-direction: row;
   gap: 12px;
-  align-items: flex-start;
+
+  .full-width {
+    flex: 1;
+  }
 }
 
 .product-search-field {
-  flex: 1; /* Ocupa o espaço restante */
+  flex: 1;
 }
 
 .batch-search-field {
-  flex: 1; /* Ocupa o espaço restante */
+  flex: 1;
 }
 
 .consumption-placeholder-field {
-  flex: 1; /* Ocupa o espaço restante */
+  flex: 1;
 }
 
 .quantity-field {
-  flex-basis: 90px; /* Tamanho base fixo */
+  flex-basis: 90px;
   flex-grow: 0;
   flex-shrink: 0;
 }
 
 .production-type-field {
-  flex-basis: 200px; /* Tamanho base médio */
+  flex-basis: 200px;
   flex-grow: 0;
   flex-shrink: 0;
 }
 
-.action-button {
-  /* Removido margin-top: 16px; */
+.dimensoes-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-// Estilos específicos do formulário de produção
-
-.no-resize {
-  resize: none;
+.dimensao-separator {
+  font-size: 18px;
+  font-weight: 500;
+  color: #424242;
+  line-height: 1;
+  margin-bottom: 20px;
 }
 
-.details-section {
-  padding-top: 16px;
+.dimensao-unit {
+  font-size: 14px;
+  color: #666;
+  line-height: 1;
+  margin-bottom: 20px;
+}
 
-  .section-title {
-    font-size: 1rem;
-    font-weight: 500;
-    margin-bottom: 12px;
-    color: rgba(0, 0, 0, 0.6);
-    text-align: left;
+.dimensao-input {
+  width: 180px;
+  max-width: 180px;
+  flex-basis: 180px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+.numeric-input {
+  width: 191px;
+  max-width: 191px;
+  flex-basis: 191px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+.margens-container {
+  display: grid;
+  grid-template-columns: 191px 191px;
+  grid-template-rows: auto auto auto;
+  column-gap: 12px;
+  row-gap: 0;
+  width: fit-content;
+
+  > div:nth-child(1) {
+    grid-column: 1 / 3;
+    display: flex;
+    justify-content: center;
+  }
+
+  > .form-row {
+    grid-column: 1 / 3;
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    justify-content: space-between;
+    margin: 0;
+  }
+
+  > div:nth-child(3) {
+    grid-column: 1 / 3;
+    display: flex;
+    justify-content: center;
   }
 }
 
-.details-checkbox {
-  margin-bottom: 16px;
-  display: block;
-  text-align: left;
+.full-width {
+  flex-basis: 100%;
 }
 
-.margins-cross-layout {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: auto auto auto;
-  gap: 8px 16px;
-  align-items: center;
-  justify-items: stretch; // Faz os campos se esticarem para preencher a célula do grid
-  margin-top: 16px;
-
-  // Define a área de cada campo no grid
-  .margin-superior { grid-area: 1 / 2 / 2 / 3; }
-  .margin-esquerda { grid-area: 2 / 1 / 3 / 2; }
-  .margin-direita  { grid-area: 2 / 3 / 3 / 4; }
-  .margin-inferior { grid-area: 3 / 2 / 4 / 3; }
-}

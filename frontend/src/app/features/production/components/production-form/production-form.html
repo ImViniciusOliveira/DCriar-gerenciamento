@@ -2,82 +2,232 @@
 
 <form [formGroup]="form" (ngSubmit)="onSave()">
   <mat-dialog-content>
-    <!-- Container para o grupo de filtros -->
+    <!-- ETAPA 1: SELEÇÃO -->
     <div class="filter-group-container">
-      <div class="form-content-wrapper">
-        <!-- Linha 1: Controles principais -->
-        <div class="form-row">
-          <div class="product-search-field">
-            <app-product-stock-search
-              [control]="produtoControl"
-              [isEditMode]="false"
-              [productType]="tipoProducaoControl.value || null"
-              (selectionChange)="onProdutoChange($event)">
-            </app-product-stock-search>
-          </div>
-
-          <mat-form-field appearance="outline" class="quantity-field">
-            <mat-label>Qtd.</mat-label>
-            <input matInput type="text" formControlName="quantidade">
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="production-type-field">
-            <mat-label>Tipo de Produção</mat-label>
-            <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()">
-              <mat-select-trigger>
-                @switch (tipoProducaoControl.value) {
-                  @case ('') { Todos }
-                  @case ('CORTE') { Corte }
-                  @case ('CONSUMO_DIRETO') { Consumo Direto }
-                }
-              </mat-select-trigger>
-              <mat-option value="">Todos</mat-option>
-              <mat-option value="CORTE">Corte</mat-option>
-              <mat-option value="CONSUMO_DIRETO">Consumo Direto</mat-option>
-            </mat-select>
-          </mat-form-field>
+      <!-- Linha 1: Controles principais -->
+      <div class="form-row">
+        <div class="product-search-field">
+          <app-product-stock-search
+            [control]="produtoControl"
+            [isEditMode]="false"
+            [productType]="tipoProducaoControl.value || null"
+            (selectionChange)="onProdutoChange($event)">
+          </app-product-stock-search>
         </div>
 
-        <!-- Linha 2 - Seção para input de CORTE -->
-        @if (showCorteInputs()) {
-          <div class="form-row">
-            <div class="batch-search-field">
-              <app-batch-search
-                [control]="loteIdControl"
-                [tipoMateriaPrimaId]="produto()?.materiaPrima?.id || null"
-                (selectionChange)="onLoteChange($event)">
-              </app-batch-search>
-            </div>
-          </div>
-        }
+        <mat-form-field appearance="outline" class="quantity-field">
+          <mat-label>Qtd.</mat-label>
+          <input matInput type="text" formControlName="quantidade">
+        </mat-form-field>
 
-        <!-- Linha 2 - Seção para input de CONSUMO DIRETO -->
-        @if (showConsumoInputs()) {
-          <div class="form-row">
-            <div class="consumption-placeholder-field">
-              <mat-form-field appearance="outline">
-                <mat-label>Placeholder para Seleção de Lotes (CONSUMO)</mat-label>
-                <input matInput value="Seleção de Múltiplos Lotes" readonly>
-              </mat-form-field>
-            </div>
-          </div>
-        }
+        <mat-form-field appearance="outline" class="production-type-field">
+          <mat-label>Tipo de Produção</mat-label>
+          <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()">
+            <mat-select-trigger>
+              @switch (tipoProducaoControl.value) {
+                @case ('') { Todos }
+                @case ('CORTE') { Corte }
+                @case ('CONSUMO_DIRETO') { Consumo Direto }
+              }
+            </mat-select-trigger>
+            <mat-option value="">Todos</mat-option>
+            <mat-option value="CORTE">Corte</mat-option>
+            <mat-option value="CONSUMO_DIRETO">Consumo Direto</mat-option>
+          </mat-select>
+        </mat-form-field>
       </div>
 
+      <!-- Linha 2 - Seção para input de CORTE -->
+      @if (showCorteInputs()) {
+        <div class="form-row">
+          <div class="batch-search-field">
+            <app-batch-search
+              [control]="loteIdControl"
+              [tipoMateriaPrimaId]="produto()?.materiaPrima?.id || null"
+              (selectionChange)="onLoteChange($event)">
+            </app-batch-search>
+          </div>
+        </div>
+      }
+
+      <!-- Linha 2 - Seção para input de CONSUMO DIRETO -->
+      @if (showConsumoInputs()) {
+        <div class="form-row">
+          <div class="consumption-placeholder-field">
+            <mat-form-field appearance="outline">
+              <mat-label>Placeholder para Seleção de Lotes (CONSUMO)</mat-label>
+              <input matInput value="Seleção de Múltiplos Lotes" readonly>
+            </mat-form-field>
+          </div>
+        </div>
+      }
+
       <!-- Botão de Ação -->
-      <button mat-stroked-button type="button" class="action-button" (click)="onSimulate()">
+      <button mat-stroked-button color="primary" type="button" class="action-button" (click)="onSimulate()" [disabled]="isSimulating()">
         <mat-icon>model_training</mat-icon>
         Simular
       </button>
     </div>
+
+    <!-- ETAPA 2: Espaço vazio para resultado da simulação -->
+    <div class="simulation-placeholder"></div>
+
+    <!-- ETAPA 3: FORMULÁRIO REAL -->
+    @if (simulationResult()) {
+      <div class="filter-group-container">
+        <div class="form-row">
+
+          <!-- LADO ESQUERDO: Dimensões + Margens + Motivo -->
+          <div class="form-left">
+
+            <!-- LINHA 1: Dimensões (lado a lado) -->
+            <div class="dimensoes-inline">
+              @if (modoCalculoControl.value === 'AUTOMATICO') {
+                <mat-form-field appearance="outline" class="dimensao-input">
+                  <mat-label>Largura</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    formControlName="larguraFinalCm"
+                    readonly>
+                </mat-form-field>
+
+                <span class="dimensao-separator">×</span>
+
+                <mat-form-field appearance="outline" class="dimensao-input">
+                  <mat-label>Comprimento</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    formControlName="comprimentoFinalCm"
+                    readonly>
+                </mat-form-field>
+
+                <span class="dimensao-unit">cm</span>
+              }
+
+              @if (modoCalculoControl.value === 'MANUAL') {
+                <mat-form-field appearance="outline" class="dimensao-input">
+                  <mat-label>Largura</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    formControlName="larguraFinalCm"
+                    required>
+                </mat-form-field>
+
+                <span class="dimensao-separator">×</span>
+
+                <mat-form-field appearance="outline" class="dimensao-input">
+                  <mat-label>Comprimento</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    formControlName="comprimentoFinalCm"
+                    required>
+                </mat-form-field>
+
+                <span class="dimensao-unit">cm *</span>
+              }
+            </div>
+
+            <!-- LINHA 2-4: Margens em layout diamante (APENAS AUTOMATICO) -->
+            @if (modoCalculoControl.value === 'AUTOMATICO') {
+              <div class="margens-container" formGroupName="margens">
+
+                <!-- Superior (centralizado) -->
+                <div>
+                  <mat-form-field appearance="outline" class="numeric-input">
+                    <mat-label>Superior (cm)</mat-label>
+                    <input matInput type="text" formControlName="superior">
+                  </mat-form-field>
+                </div>
+
+                <!-- Esquerda + Direita (lado a lado) -->
+                <div class="form-row">
+                  <mat-form-field appearance="outline" class="numeric-input">
+                    <mat-label>Esquerda (cm)</mat-label>
+                    <input matInput type="text" formControlName="esquerda">
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="numeric-input">
+                    <mat-label>Direita (cm)</mat-label>
+                    <input matInput type="text" formControlName="direita">
+                  </mat-form-field>
+                </div>
+
+                <!-- Inferior (centralizado) -->
+                <div>
+                  <mat-form-field appearance="outline" class="numeric-input">
+                    <mat-label>Inferior (cm)</mat-label>
+                    <input matInput type="text" formControlName="inferior">
+                  </mat-form-field>
+                </div>
+
+              </div>
+            }
+
+            <!-- LINHA 5: Motivo (ocupar 100% da esquerda) -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Motivo/Referência (opcional)</mat-label>
+              <textarea
+                matInput
+                formControlName="motivo"
+                rows="3"
+                maxlength="255"
+                placeholder="Ex: Pedido Cliente #456">
+              </textarea>
+              <mat-hint align="end">{{ motivoControl.value?.length || 0 }}/255</mat-hint>
+            </mat-form-field>
+
+          </div>
+
+          <!-- LADO DIREITO: Canal + Modo (lado a lado) -->
+          <div class="form-right">
+
+            <div class="form-right-row">
+              <!-- Canal de Venda (primeiro) -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Canal de Venda Destino (opcional)</mat-label>
+                <mat-select formControlName="canalVendaDestinoId">
+                  <mat-option [value]="null">Nenhum</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Modo de Cálculo (segundo) -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Modo de Cálculo</mat-label>
+                <mat-select formControlName="modoCalculo" (selectionChange)="onModoCalculoChange()">
+                  <mat-select-trigger>
+                    @switch (modoCalculoControl.value) {
+                      @case ('AUTOMATICO') { AUTOMATICO }
+                      @case ('MANUAL') { MANUAL }
+                    }
+                  </mat-select-trigger>
+                  <mat-option value="AUTOMATICO">AUTOMATICO</mat-option>
+                  <mat-option value="MANUAL">MANUAL</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    }
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
     <button mat-button type="button" (click)="onCancel()">
       Cancelar
     </button>
-    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isSaving()">
-      @if (isSaving()) { <mat-spinner diameter="20"></mat-spinner> } @else { Salvar }
+    <button mat-raised-button color="primary" type="submit" [disabled]="!simulationResult() || form.invalid || isSaving()">
+      @if (isSaving()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        Confirmar e Criar Ordem
+      }
     </button>
   </mat-dialog-actions>
 </form>

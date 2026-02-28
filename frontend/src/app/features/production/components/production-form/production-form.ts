@@ -69,12 +69,24 @@ export class ProductionForm implements OnInit {
 
   constructor() {
     this.form = this.fb.group({
-      // O tipo de produção não é mais obrigatório, pois é sincronizado automaticamente.
+      // ETAPA 1: SELEÇÃO
       tipoProducao: [''],
-      // O produto passa a ser obrigatório.
       produtoId: [null, Validators.required],
       quantidade: [null, [Validators.required, Validators.min(1)]],
-      loteId: [null]
+      loteId: [null],
+
+      // ETAPA 3: FORMULÁRIO REAL
+      modoCalculo: ['AUTOMATICO', Validators.required],
+      larguraFinalCm: [null],  // validators dinâmicos no onModoCalculoChange
+      comprimentoFinalCm: [null],  // validators dinâmicos no onModoCalculoChange
+      margens: this.fb.group({
+        superior: [null],
+        inferior: [null],
+        esquerda: [null],
+        direita: [null]
+      }),
+      canalVendaDestinoId: [null],
+      motivo: ['', Validators.maxLength(255)]
     });
   }
 
@@ -114,6 +126,48 @@ export class ProductionForm implements OnInit {
   }
 
   /**
+   * Getter para o FormControl de modoCalculo
+   */
+  get modoCalculoControl(): FormControl {
+    return this.form.get('modoCalculo') as FormControl;
+  }
+
+  /**
+   * Getter para o FormControl de larguraFinalCm
+   */
+  get larguraFinalCmControl(): FormControl {
+    return this.form.get('larguraFinalCm') as FormControl;
+  }
+
+  /**
+   * Getter para o FormControl de comprimentoFinalCm
+   */
+  get comprimentoFinalCmControl(): FormControl {
+    return this.form.get('comprimentoFinalCm') as FormControl;
+  }
+
+  /**
+   * Getter para o FormGroup de margens
+   */
+  get margensFormGroup(): FormGroup {
+    return this.form.get('margens') as FormGroup;
+  }
+
+  /**
+   * Getter para o FormControl de canalVendaDestinoId
+   */
+  get canalVendaDestinoIdControl(): FormControl {
+    return this.form.get('canalVendaDestinoId') as FormControl;
+  }
+
+  /**
+   * Getter para o FormControl de motivo
+   */
+  get motivoControl(): FormControl {
+    return this.form.get('motivo') as FormControl;
+  }
+
+  /**
    * Callback quando um produto é selecionado no componente de busca.
    * Atualiza o formulário com os dados do produto selecionado.
    */
@@ -148,6 +202,32 @@ export class ProductionForm implements OnInit {
     this.loteSelecionado.set(lote);
     this.loteIdControl.setValue(lote.id);
     this.simulationResult.set(null);
+  }
+
+  /**
+   * Callback quando o modo de cálculo é alterado.
+   * Atualiza os validators das dimensões conforme o modo escolhido.
+   * - AUTOMATICO: dimensões readonly (vêm da simulação), margens opcionais
+   * - MANUAL: dimensões obrigatórias (usuário digita), margens não aparecem
+   */
+  onModoCalculoChange(): void {
+    const modo = this.modoCalculoControl.value;
+    const larguraControl = this.larguraFinalCmControl;
+    const comprimentoControl = this.comprimentoFinalCmControl;
+
+    if (modo === 'MANUAL') {
+      // Modo MANUAL: dimensões são obrigatórias e devem ser positivas
+      larguraControl.addValidators([Validators.required, Validators.min(0.1)]);
+      comprimentoControl.addValidators([Validators.required, Validators.min(0.1)]);
+    } else {
+      // Modo AUTOMATICO: dimensões vêm da simulação (readonly, sem validator)
+      larguraControl.removeValidators([Validators.required, Validators.min(0.1)]);
+      comprimentoControl.removeValidators([Validators.required, Validators.min(0.1)]);
+    }
+
+    larguraControl.updateValueAndValidity();
+    comprimentoControl.updateValueAndValidity();
+    this.cdr.markForCheck();
   }
 
   /**
@@ -193,6 +273,11 @@ export class ProductionForm implements OnInit {
   }
 
   onSave(): void {
+    // Validar que existe simulação antes de criar a ordem
+    if (!this.simulationResult()) {
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -200,6 +285,33 @@ export class ProductionForm implements OnInit {
 
     this.isSaving.set(true);
 
+    // Montar payload para criar a ordem de produção
+    const formValue = this.form.getRawValue();
+    const modo = formValue.modoCalculo;
+
+    const payload: any = {
+      produtoId: Number(formValue.produtoId),
+      lotePrincipalId: Number(formValue.loteId),
+      quantidadeProduzida: Number(formValue.quantidade),
+      modoCalculo: modo,
+      larguraFinalCm: Number(formValue.larguraFinalCm),
+      comprimentoFinalCm: Number(formValue.comprimentoFinalCm),
+      canalVendaDestinoId: formValue.canalVendaDestinoId ? Number(formValue.canalVendaDestinoId) : null,
+      motivo: formValue.motivo || null
+    };
+
+    // Margens apenas no modo AUTOMATICO
+    if (modo === 'AUTOMATICO') {
+      payload.margens = {
+        superior: formValue.margens.superior ? Number(formValue.margens.superior) : 0,
+        inferior: formValue.margens.inferior ? Number(formValue.margens.inferior) : 0,
+        esquerda: formValue.margens.esquerda ? Number(formValue.margens.esquerda) : 0,
+        direita: formValue.margens.direita ? Number(formValue.margens.direita) : 0
+      };
+    }
+
+    // TODO: Chamar ProductionService.createCutOrder(payload)
+    // Por enquanto, apenas simular sucesso
     setTimeout(() => {
       this.isSaving.set(false);
       this.dialogRef.close(true);
