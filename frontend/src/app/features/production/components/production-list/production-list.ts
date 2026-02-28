@@ -62,8 +62,7 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
 
     const productionResponse = toSignal(
       this.productionService.productionOrders$.pipe(
-        catchError((error) => {
-          console.error('Erro ao carregar ordens de produção:', error);
+        catchError(() => {
           this.entityDialog.showErrorSnackbar(ProductionList.Texts.loadError);
           return of(undefined);
         })

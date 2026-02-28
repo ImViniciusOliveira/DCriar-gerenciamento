@@ -89,10 +89,7 @@ export class MaterialTypeService {
 
             return this.http.get<any>(baseUrl, { params: httpParams }).pipe(
               map(response => this.normalizeAndSortResponse(response, params)),
-              catchError(err => {
-                console.error('Erro ao buscar tipos de matéria-prima', err);
-                return of(this.createEmptyResponse());
-              })
+              catchError(() => of(this.createEmptyResponse()))
             );
           })
         );

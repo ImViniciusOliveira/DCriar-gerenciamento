@@ -347,7 +347,6 @@ export class SalesForm implements OnInit {
         this.dialogRef.close(true);
       },
       error: (err) => {
-        console.error('Erro ao salvar venda:', err);
         const errorMsg = err.error?.detail || SalesForm.Texts.SAVE_ERROR;
         this.entityDialog.showErrorSnackbar(errorMsg);
         this.isSaving.set(false);

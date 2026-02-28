@@ -74,11 +74,6 @@ export class MaterialTypeSearch implements OnInit {
       this.apiRoot.endpoints()?._links?.[link]?.href?.split('{')[0];
     const materialTypesSearchUrl = getUrl('tipos-materia-prima') ?? null;
 
-    if (!materialTypesSearchUrl) {
-      console.error('URL para busca de matéria-prima não pôde ser determinada.');
-    }
-
-    // Desabilita o controle se a URL da API não for encontrada.
     effect(() => {
        if (!materialTypesSearchUrl) {
          this.control().disable();

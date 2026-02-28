@@ -67,10 +67,7 @@ export class SalesService {
               .set('sort', params.sort);
 
             return this.http.get<ApiResponseSales>(baseUrl, { params: httpParams }).pipe(
-              catchError(err => {
-                console.error('Erro ao buscar vendas', err);
-                return of(this.createEmptyResponse());
-              })
+              catchError(() => of(this.createEmptyResponse()))
             );
           })
         );

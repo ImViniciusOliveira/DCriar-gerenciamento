@@ -174,19 +174,18 @@ export class ProductionForm implements OnInit {
     }
     // TODO: Adicionar lotesConsumidosIds para CONSUMO_DIRETO
 
-    console.log('Payload enviado para simulação:', payload);
 
     this.isSimulating.set(true);
     this.productionService.simulateProduction(url, payload)
       .pipe(take(1))
       .subscribe({
         next: (response) => {
-          this.simulationResult.set(response as SimulationResult); // Armazena o resultado com tipo
+          this.simulationResult.set(response as SimulationResult);
           this.isSimulating.set(false);
           // TODO: Exibir os resultados em um diálogo ou em uma nova seção da UI.
         },
         error: (_err) => {
-          this.simulationResult.set(null); // Limpa o resultado em caso de erro
+          this.simulationResult.set(null);
           this.isSimulating.set(false);
           // TODO: Mostrar uma notificação de erro para o usuário.
         }

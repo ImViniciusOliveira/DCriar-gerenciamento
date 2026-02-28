@@ -89,10 +89,7 @@ export class BatchService {
             }
 
             return this.http.get<ApiResponseBatches>(baseUrl, { params: httpParams }).pipe(
-              catchError(err => {
-                console.error('Erro ao buscar lotes de matéria-prima', err);
-                return of(this.createEmptyResponse());
-              }),
+              catchError(() => of(this.createEmptyResponse())),
               finalize(() => this.isSearching.set(false))
             );
           })

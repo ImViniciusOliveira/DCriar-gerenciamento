@@ -67,8 +67,7 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
 
     const salesResponse = toSignal(
       this.salesService.sales$.pipe(
-        catchError((error) => {
-          console.error('Erro ao carregar vendas:', error);
+        catchError(() => {
           this.entityDialog.showErrorSnackbar(SalesList.Texts.loadError);
           return of(undefined);
         })
@@ -116,8 +115,7 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
         title: SalesList.Texts.createTitle
       }, SalesList.Texts.createSuccess);
 
-    } catch (error) {
-      console.error('Erro ao buscar template para nova venda:', error);
+    } catch {
       this.openSalesDialog({
         title: SalesList.Texts.createTitle
       }, SalesList.Texts.createSuccess);

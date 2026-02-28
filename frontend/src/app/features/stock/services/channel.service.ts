@@ -31,19 +31,14 @@ export class ChannelService {
       switchMap(endpoints => {
         const url = endpoints?._links?.['canais-venda']?.href;
         if (!url) {
-          console.warn('URL de canais-venda não encontrada na API Root.');
           return of([]);
         }
 
-        // Remove parâmetros de template se houver (ex: {?page,size,sort})
         const cleanUrl = url.split('{')[0];
 
         return this.http.get<ApiResponseChannels>(cleanUrl).pipe(
           map(response => response._embedded?.['canais-venda'] || []),
-          catchError(err => {
-            console.error('Erro ao buscar canais de venda:', err);
-            return of([]);
-          })
+          catchError(() => of([]))
         );
       }),
       shareReplay(1)

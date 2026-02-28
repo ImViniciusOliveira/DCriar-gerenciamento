@@ -169,7 +169,7 @@ export class ProductFormComponent implements OnInit {
           this.cdr.markForCheck();
         }
       })
-      .catch(err => console.error(ProductFormComponent.Texts.LOAD_ERROR, err));
+      .catch(() => {});
   }
 
   get specifications(): FormArray {
@@ -300,8 +300,7 @@ export class ProductFormComponent implements OnInit {
       } else {
         await this.handleCreateSubmit();
       }
-    } catch (error) {
-      console.error(ProductFormComponent.Texts.SUBMIT_ERROR, error);
+    } catch {
       this.dialogRef.close(false);
     } finally {
       this.isUploading.set(false);
@@ -364,7 +363,6 @@ export class ProductFormComponent implements OnInit {
     // Se o formulário mudou ou a foto foi removida, envia o PATCH.
     if (hasFormChanged || this.isPhotoRemoved()) {
       if (!this.product()?.id) {
-        console.error(ProductFormComponent.Texts.UPDATE_ERROR, this.product());
         return;
       }
       await lastValueFrom(this.productService.patchProduct(this.product().id, dirtyValues));

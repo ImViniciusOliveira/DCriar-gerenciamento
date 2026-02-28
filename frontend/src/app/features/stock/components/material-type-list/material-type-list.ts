@@ -58,8 +58,7 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
 
     const materialTypesResponse = toSignal(
       this.materialTypeService.getMaterialTypes().pipe(
-        catchError((error) => {
-          console.error('Erro ao carregar tipos de matéria-prima:', error);
+        catchError(() => {
           this.entityDialog.showErrorSnackbar(MaterialTypeList.Texts.loadError);
           return of(undefined);
         })
@@ -110,8 +109,7 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
         template,
         title: MaterialTypeList.Texts.createTitle
       }, MaterialTypeList.Texts.createSuccess);
-    } catch (error) {
-      console.error('Erro ao buscar template para nova matéria-prima:', error);
+    } catch {
       this.entityDialog.showErrorSnackbar(MaterialTypeList.Texts.createError);
     }
   }

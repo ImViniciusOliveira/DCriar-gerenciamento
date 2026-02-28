@@ -128,7 +128,6 @@ export class MaterialTypeForm implements OnInit {
     const url = this.data.template?._links?.['unidades-de-medida']?.href || this.apiRoot.endpoints()?._links?.['unidades-de-medida']?.href;
 
     if (!url) {
-      console.error(MaterialTypeForm.Texts.unitsUrlError);
       return;
     }
 
@@ -150,8 +149,7 @@ export class MaterialTypeForm implements OnInit {
           this.form.get('unidadeDeConsumo')?.updateValueAndValidity();
           this.cdr.markForCheck();
         }
-      },
-      error: (err) => console.error(MaterialTypeForm.Texts.loadUnitsError, err)
+      }
     });
   }
 

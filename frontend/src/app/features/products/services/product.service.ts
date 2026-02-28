@@ -112,10 +112,7 @@ export class ProductService {
           switchMap(productsApiResponse => this.enrichProductsWithStock(productsApiResponse)),
           // Passo 2: Ordenar e paginar os dados combinados no lado do cliente.
           map(responseWithMergedStocks => this.sortAndPaginateClientSide(responseWithMergedStocks, params)),
-          catchError(err => {
-            console.error(`Falha ao buscar produtos na página ${params.page}, tamanho ${params.size}`, err);
-            return of(this.createEmptyResponse());
-          })
+          catchError(() => of(this.createEmptyResponse()))
         );
       })
     );
@@ -130,7 +127,6 @@ export class ProductService {
   private createProductsByStockObservable(endpoints: Hateoas | null): Observable<Partial<Product>[]> {
     const productsUrl = endpoints?._links?.['produtos']?.href;
     if (!productsUrl) {
-      console.error('Link "produtos" não encontrado na raiz da API.');
       return of([]);
     }
     const url = `${productsUrl.split('{')[0]}/by-tipo`;
@@ -159,11 +155,8 @@ export class ProductService {
             const consumo = response._embedded?.produtoDeConsumoDiretoModelList || [];
             return [...corte, ...consumo];
           }),
-          catchError(err => {
-            console.error('Erro ao buscar produtos por estoque:', err);
-            return of([]);
-          }),
-          finalize(() => this.isSearchingByStock.set(false)) // Garante que o spinner seja desativado ao final
+          catchError(() => of([])),
+          finalize(() => this.isSearchingByStock.set(false))
         );
       })
     );
@@ -227,16 +220,13 @@ export class ProductService {
           const stocksRootUrl = endpoints._links?.['estoques']?.href;
 
           if (!stocksRootUrl) {
-            console.error('[ProductService] Link "estoques" não encontrado na raiz da API.');
             return of([]);
           }
 
-          // 1. Busca o recurso raiz de estoques para descobrir o link de resumo
           return this.http.get<Hateoas>(stocksRootUrl).pipe(
             switchMap(stocksRoot => {
               const resumoUrl = stocksRoot._links?.['resumo']?.href;
               if (!resumoUrl) {
-                console.error('[ProductService] Link "resumo" não encontrado no recurso de estoques.');
                 return of([]);
               }
 
@@ -264,10 +254,7 @@ export class ProductService {
                 })
               );
             }),
-            catchError(err => {
-              console.error('[ProductService] Erro na navegação/busca de estoque:', err);
-              return of([]);
-            })
+            catchError(() => of([]))
           );
         }
 
@@ -303,10 +290,7 @@ export class ProductService {
                catchError(() => of(products))
              );
           }),
-          catchError(err => {
-            console.error('Erro na busca de produtos:', err);
-            return of([]);
-          })
+          catchError(() => of([]))
         );
       })
     );
@@ -442,13 +426,10 @@ export class ProductService {
           _embedded: { produtos: mergedProducts }
         };
       }),
-      catchError(() => {
-        console.warn('Falha ao buscar estoque para produtos, retornando produtos sem estoque por canal.');
-        return of({
-          ...productsApiResponse,
-          _embedded: { produtos: productsFromApi }
-        });
-      })
+      catchError(() => of({
+        ...productsApiResponse,
+        _embedded: { produtos: productsFromApi }
+      }))
     );
   }
 

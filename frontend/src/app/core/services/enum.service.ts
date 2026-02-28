@@ -78,10 +78,7 @@ export class EnumService {
         }));
       }),
       shareReplay(1),
-      catchError(err => {
-        console.error(`Falha ao buscar enum da URL: ${url}`, err);
-        return of([]);
-      })
+      catchError(() => of([]))
     );
   }
 }

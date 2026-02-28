@@ -84,10 +84,7 @@ export class ProductionService {
               .set('sort', params.sort);
 
             return this.http.get<ApiResponseProduction>(baseUrl, { params: httpParams }).pipe(
-              catchError(err => {
-                console.error('Erro ao buscar ordens de produção', err);
-                return of(this.createEmptyResponse());
-              })
+              catchError(() => of(this.createEmptyResponse()))
             );
           })
         );

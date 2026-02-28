@@ -164,10 +164,8 @@ export class BatchForm implements OnInit {
     const url = this.data.template._links?.['unidades-de-medida']?.href;
     if (url) {
       this.unitsUrl.set(url);
-    } else {
-      console.error(BatchForm.Texts.UNITS_URL_ERROR);
     }
-    this.initializeForm().catch(err => console.error('Erro na inicialização do formulário:', err));
+    this.initializeForm().catch(() => {});
   }
 
   async initializeForm(): Promise<void> {
@@ -175,7 +173,6 @@ export class BatchForm implements OnInit {
       try {
         const selfLink = this.data.template._links?.['self']?.href;
         if (!selfLink) {
-          console.error("Link 'self' não encontrado para carregar o lote.");
           return;
         }
         const fullBatch = await lastValueFrom(this.batchService.findByUrl(selfLink));
@@ -207,8 +204,7 @@ export class BatchForm implements OnInit {
           });
         }
         this.cdr.markForCheck();
-      } catch (error) {
-        console.error("Falha ao carregar dados iniciais", error);
+      } catch {
         this.entityDialog.showErrorSnackbar(BatchForm.Texts.LOAD_ERROR);
       }
     }
@@ -334,8 +330,7 @@ export class BatchForm implements OnInit {
         this.entityDialog.showSuccessSnackbar(this.isEditMode() ? BatchForm.Texts.SAVE_SUCCESS_UPDATE : BatchForm.Texts.SAVE_SUCCESS_CREATE);
         this.dialogRef.close(true);
       },
-      error: (err) => {
-        console.error('Falha ao salvar lote:', err);
+      error: () => {
         this.entityDialog.showErrorSnackbar(BatchForm.Texts.SAVE_ERROR);
       }
     });

@@ -68,8 +68,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
 
     const lotesResponse = toSignal(
       this.batchService.batches$.pipe(
-        catchError((error) => {
-          console.error('Erro ao carregar lotes:', error);
+        catchError(() => {
           this.entityDialog.showErrorSnackbar(BatchList.Texts.loadError);
           return of(undefined);
         })
@@ -129,8 +128,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
         template,
         title: BatchList.Texts.createTitle
       }, BatchList.Texts.createSuccess);
-    } catch (error) {
-      console.error('Erro ao buscar template para novo lote:', error);
+    } catch {
       this.entityDialog.showErrorSnackbar(BatchList.Texts.createError);
     }
   }

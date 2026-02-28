@@ -66,8 +66,7 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
     super('products');
     const productsResponse = toSignal(
       this.productService.getProducts().pipe(
-        catchError((error) => {
-          console.error('Erro ao carregar produtos:', error);
+        catchError(() => {
           this.entityDialog.showErrorSnackbar(ProductList.Texts.loadError);
           return of(undefined);
         })
@@ -157,8 +156,7 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
         isCreationMode: true,
         title: 'Cadastrar Produto'
       }, ProductList.Texts.createSuccess);
-    } catch (error) {
-      console.error('Erro ao buscar template para novo produto:', error);
+    } catch {
       this.entityDialog.showErrorSnackbar(ProductList.Texts.createError);
     }
   }
