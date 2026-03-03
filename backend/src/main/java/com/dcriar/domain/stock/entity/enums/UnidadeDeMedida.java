@@ -31,7 +31,7 @@ public enum UnidadeDeMedida {
 
     // Unidades de Contagem
     UNIDADE("Unidade", "un", false, true), // Para itens não-dimensionais (parafusos, ilhós)
-    FOLHA("Folha", "fl", true, false),     // Para itens dimensionais contáveis (chapas, folhas de adesivo)
+    FOLHA("Folha", "fl", false, true),
 
     // Genérico
     OUTROS("Outros", "N/A", false, false);

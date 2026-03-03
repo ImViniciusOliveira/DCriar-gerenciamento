@@ -30,6 +30,7 @@ import com.dcriar.domain.production.service.OrdemDeProducaoService;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.exception.custom.*;
@@ -517,6 +518,25 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     private void criarLoteDeRetalho(LoteMateriaPrima lotePrincipal, BigDecimal larguraSobraCm, BigDecimal comprimentoMetros, OrdemDeProducao ordemOrigem) {
         if (larguraSobraCm.compareTo(BigDecimal.ZERO) <= 0 || comprimentoMetros.compareTo(BigDecimal.ZERO) <= 0) return;
+        
+        // 1. Calcular a quantidade real do retalho com base na unidade de estoque
+        BigDecimal quantidadeRealRetalho;
+        if (lotePrincipal.getUnidadeDeEstoque() == UnidadeDeMedida.METRO_QUADRADO) {
+            // Área = Largura (m) * Comprimento (m)
+            BigDecimal larguraMetros = larguraSobraCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+            quantidadeRealRetalho = larguraMetros.multiply(comprimentoMetros);
+        } else if (lotePrincipal.getUnidadeDeEstoque() == UnidadeDeMedida.METRO_LINEAR) {
+            quantidadeRealRetalho = comprimentoMetros;
+        } else {
+            return;
+        }
+
+        // 2. Calcular o custo unitário do lote pai
+        BigDecimal custoUnitario = calcularCustoUnitario(lotePrincipal);
+        
+        // 3. Calcular o custo total do retalho
+        BigDecimal custoTotalRetalho = custoUnitario.multiply(quantidadeRealRetalho);
+
         Map<String, Object> novosAtributos = Map.of("larguraMm", larguraSobraCm.multiply(new BigDecimal("10")).intValue());
         LoteMateriaPrima loteRetalho = LoteMateriaPrima.builder()
                 .tipoMateriaPrima(lotePrincipal.getTipoMateriaPrima())
@@ -524,19 +544,37 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .atributos(novosAtributos)
                 .loteDeOrigem(lotePrincipal)
                 .ordemDeProducaoOrigem(ordemOrigem)
+                .custoTotalLote(custoTotalRetalho) // Definindo o custo calculado
+                .motivo("Retalho gerado pela Ordem de Produção #" + ordemOrigem.getId()) // Motivo obrigatório
                 .build();
         
         loteRetalho = loteMateriaPrimaRepository.save(loteRetalho);
 
         MovimentacaoRequestDTO entradaRetalhoDTO = com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO.builder()
                 .tipo(TipoMovimentacao.ENTRADA_SOBRA)
-                .quantidade(comprimentoMetros)
+                .quantidade(quantidadeRealRetalho) // Usando a quantidade correta calculada
                 .motivo("Retalho gerado pela Ordem de Produção #" + ordemOrigem.getId())
                 .build();
         MovimentacaoEstoqueLote entradaRetalho = MovimentacaoEstoqueLote.from(entradaRetalhoDTO, loteRetalho);
         entradaRetalho.setOrdemDeProducao(ordemOrigem);
         
         movimentacaoEstoqueLoteRepository.save(entradaRetalho);
+    }
+
+    private BigDecimal calcularCustoUnitario(LoteMateriaPrima lote) {
+        // Soma todas as entradas (COMPRA, SOBRA, AJUSTE positivo) para determinar a quantidade total adquirida/gerada
+        BigDecimal quantidadeTotalEntrada = lote.getMovimentacoes().stream()
+                .filter(m -> m.getQuantidade().compareTo(BigDecimal.ZERO) > 0)
+                .map(MovimentacaoEstoqueLote::getQuantidade)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (quantidadeTotalEntrada.compareTo(BigDecimal.ZERO) == 0) {
+            // Evitar divisão por zero. Se não houve entrada, o custo unitário é indefinido (ou zero).
+            // Isso não deve acontecer em um cenário real consistente.
+            return BigDecimal.ZERO;
+        }
+
+        return lote.getCustoTotalLote().divide(quantidadeTotalEntrada, 4, RoundingMode.HALF_UP);
     }
 
     private void registrarSaidaLote(LoteMateriaPrima lote, BigDecimal quantidade, String motivo, OrdemDeProducao ordem) {
