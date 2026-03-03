@@ -9,7 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { take } from 'rxjs';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { ProductionOrder } from '../../models/production.model';
 import { Product } from '../../../products/models/product.model';
@@ -59,6 +59,8 @@ export class ProductionForm implements OnInit {
   form: FormGroup;
   isSaving = signal(false);
   isSimulating = signal(false);
+  isVerifying = signal(false);
+
   produto = signal<Product | null>(null);
   loteSelecionado = signal<Batch | null>(null);
 
@@ -67,6 +69,9 @@ export class ProductionForm implements OnInit {
 
   // Signal com tipo forte para armazenar o resultado da simulação.
   simulationResult = signal<SimulationResult | null>(null);
+
+  // Signal para controlar se a verificação é necessária (dados alterados após simulação)
+  needsVerification = signal(false);
 
   // Propriedades computadas para controlar a visibilidade das seções de input.
   showCorteInputs = computed(() => this.produto()?.tipoProduto === 'CORTE');
@@ -112,10 +117,37 @@ export class ProductionForm implements OnInit {
       }
       return this.channels().find(c => c.id === channelId)?.nome || 'Nenhum';
     });
+
+    // Monitora mudanças nos campos críticos para exigir nova verificação
+    this.setupVerificationTriggers();
   }
 
   ngOnInit(): void {
     // A lógica de reação a eventos foi movida para métodos específicos.
+  }
+
+  private setupVerificationTriggers(): void {
+    // Lista de controles que invalidam a simulação
+    const criticalControls = [
+      this.form.get('quantidade'),
+      this.larguraFinalCmControl,
+      this.comprimentoFinalCmControl,
+      this.form.get('margens.superior'),
+      this.form.get('margens.inferior'),
+      this.form.get('margens.esquerda'),
+      this.form.get('margens.direita')
+    ];
+
+    criticalControls.forEach(control => {
+      control?.valueChanges
+        .pipe(takeUntilDestroyed())
+        .subscribe(() => {
+          // Só marca como necessário verificar se já houver um resultado de simulação
+          if (this.simulationResult()) {
+            this.needsVerification.set(true);
+          }
+        });
+    });
   }
 
   /**
@@ -251,7 +283,7 @@ export class ProductionForm implements OnInit {
         this.form.patchValue({
           larguraFinalCm: result.larguraFinalCm,
           comprimentoFinalCm: result.comprimentoFinalCm
-        });
+        }, { emitEvent: false });
       }
     }
 
@@ -261,7 +293,7 @@ export class ProductionForm implements OnInit {
   }
 
   /**
-   * Executa a simulação de produção.
+   * Executa a simulação de produção inicial.
    */
   onSimulate(): void {
     if (!this.produto() || !this.form.value.quantidade) {
@@ -292,13 +324,14 @@ export class ProductionForm implements OnInit {
         next: (response) => {
           this.simulationResult.set(response as SimulationResult);
           this.isSimulating.set(false);
+          this.needsVerification.set(false);
 
           // Popula os campos do formulário com os dados da simulação
           if (response.tipoSimulacao === 'CORTE') {
             this.form.patchValue({
               larguraFinalCm: response.larguraFinalCm,
               comprimentoFinalCm: response.comprimentoFinalCm
-            });
+            }, { emitEvent: false });
           }
         },
         error: (_err) => {
@@ -307,6 +340,34 @@ export class ProductionForm implements OnInit {
           // TODO: Mostrar uma notificação de erro para o usuário.
         }
       });
+  }
+
+  /**
+   * Executa a verificação dos dados (re-simulação).
+   */
+  onVerify(): void {
+    const formValue = this.form.getRawValue();
+    const modo = formValue.modoCalculo;
+
+    const payload: any = {
+      produtoId: Number(formValue.produtoId),
+      loteId: Number(formValue.loteId),
+      quantidade: Number(formValue.quantidade),
+      modoCalculo: modo,
+      larguraFinalCm: Number(formValue.larguraFinalCm),
+      comprimentoFinalCm: Number(formValue.comprimentoFinalCm),
+    };
+
+    if (modo === 'AUTOMATICO') {
+      payload.margens = {
+        superior: formValue.margens.superior ? Number(formValue.margens.superior) : 0,
+        inferior: formValue.margens.inferior ? Number(formValue.margens.inferior) : 0,
+        esquerda: formValue.margens.esquerda ? Number(formValue.margens.esquerda) : 0,
+        direita: formValue.margens.direita ? Number(formValue.margens.direita) : 0
+      };
+    }
+
+    console.log('Payload para verificação:', payload);
   }
 
   onSave(): void {
@@ -346,6 +407,8 @@ export class ProductionForm implements OnInit {
         direita: formValue.margens.direita ? Number(formValue.margens.direita) : 0
       };
     }
+
+    console.log('Payload final para criação:', payload);
 
     // TODO: Chamar ProductionService.createCutOrder(payload)
     // Por enquanto, apenas simular sucesso
