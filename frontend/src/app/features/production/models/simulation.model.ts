@@ -8,6 +8,7 @@ export interface SimulationCutResult {
   larguraFinalCm: number;
   comprimentoFinalCm: number;
   consumoEstimado: number;
+  rotacionado: boolean;
 }
 
 /**

@@ -5,6 +5,7 @@ import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
 import { ApiResponseProduction } from '../models/production.model';
+import { SimulationResult } from '../models/simulation.model';
 
 /**
  * Representa o payload enviado para a simulação.
@@ -15,11 +16,6 @@ export interface SimulationRequest {
   loteId?: number;
   lotesConsumidosIds?: number[];
 }
-
-/**
- * Representa a resposta da simulação retornada pelo backend.
- */
-export type SimulationResponse = any;
 
 /**
  * Serviço para gerenciamento de Ordens de Produção.
@@ -97,8 +93,8 @@ export class ProductionService {
    * @param payload Os dados para a simulação (produtoId e quantidade).
    * @returns Um Observable com a resposta da simulação.
    */
-  simulateProduction(url: string, payload: SimulationRequest): Observable<SimulationResponse> {
-    return this.http.post<SimulationResponse>(url, payload);
+  simulateProduction(url: string, payload: SimulationRequest): Observable<SimulationResult> {
+    return this.http.post<SimulationResult>(url, payload);
   }
 
   /**

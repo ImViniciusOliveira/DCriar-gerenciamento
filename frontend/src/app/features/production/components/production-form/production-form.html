@@ -73,7 +73,7 @@
     <div class="simulation-placeholder"></div>
 
     <!-- ETAPA 3: FORMULÁRIO REAL -->
-    @if (simulationResult()) {
+    @if (simulationResult(); as result) {
       <div class="filter-group-container">
         <div class="form-row">
 
@@ -226,13 +226,20 @@
         <!-- Feedback de Simulação -->
         <div class="simulation-feedback">
           <mat-form-field appearance="outline" class="feedback-text-field">
-            <input matInput [value]="'Layout: 2 por linha. Total: 5 linhas.'" readonly>
+            <input matInput [value]="'Produtos: 2 por linha 5 vezes, ultima linha 1 produto'" readonly>
           </mat-form-field>
 
           <fieldset class="rotated-fieldset">
-            <mat-checkbox [checked]="true">
-              Rotacionado
-            </mat-checkbox>
+            @if (result.tipoSimulacao === 'CORTE') {
+              <div class="icon-label">
+                @if (result.rotacionado) {
+                  <mat-icon color="accent">toggle_on</mat-icon>
+                } @else {
+                  <mat-icon>toggle_off</mat-icon>
+                }
+                <span>Rotacionado</span>
+              </div>
+            }
           </fieldset>
         </div>
 
