@@ -31,6 +31,9 @@ public class SimulacaoCorteResponseDTO {
     @Schema(description = "Consumo estimado de matéria-prima (na unidade de estoque do lote, ex: metros lineares).", example = "12.0000")
     private BigDecimal consumoEstimado;
 
+    @Schema(description = "Indica se o layout otimizado dos produtos foi rotacionado para melhor aproveitamento.", example = "true")
+    private boolean rotacionado;
+
     @Schema(description = "Campo discriminador para identificar o tipo de resultado da simulação no frontend.", example = "CORTE", accessMode = Schema.AccessMode.READ_ONLY)
     private final String tipoSimulacao = "CORTE";
 }

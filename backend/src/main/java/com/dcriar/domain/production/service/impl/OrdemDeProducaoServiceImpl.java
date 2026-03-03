@@ -371,6 +371,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .larguraFinalCm(parametros.larguraTotalLoteCm())
                 .comprimentoFinalCm(comprimentoFinalCm)
                 .consumoEstimado(consumoEstimado)
+                .rotacionado(parametros.rotacionado())
                 .build();
     }
 
