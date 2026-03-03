@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { take } from 'rxjs';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -40,7 +41,8 @@ export interface ProductionFormData {
     MatProgressSpinnerModule,
     ProductStockSearch,
     MatIconModule,
-    BatchSearch
+    BatchSearch,
+    MatCheckboxModule
   ],
   templateUrl: './production-form.html',
   styleUrls: ['./production-form.scss'],

@@ -43,7 +43,7 @@ export class ProductionService {
   }>({
     page: 0,
     size: 10,
-    sort: 'dataCriacao,desc' // Ordenação padrão por data decrescente
+    sort: 'dataCriacao,desc'
   }, {
     equal: (a, b) => a.page === b.page && a.size === b.size && a.sort === b.sort
   });
@@ -65,8 +65,6 @@ export class ProductionService {
   constructor() {
     this.productionOrders$ = this.endpoints$.pipe(
       switchMap(endpoints => {
-        // O link 'ordens-de-producao' deve estar presente na raiz da API
-        // Conforme visto no OrdemDeProducaoModelAssembler: .withRel("ordens-de-producao")
         const url = endpoints._links?.['ordens-de-producao']?.href;
         if (!url) {
           return of(this.createEmptyResponse());

@@ -223,6 +223,19 @@
 
         </div>
 
+        <!-- Feedback de Simulação -->
+        <div class="simulation-feedback">
+          <mat-form-field appearance="outline" class="feedback-text-field">
+            <input matInput [value]="'Layout: 2 por linha. Total: 5 linhas.'" readonly>
+          </mat-form-field>
+
+          <fieldset class="rotated-fieldset">
+            <mat-checkbox [checked]="true">
+              Rotacionado
+            </mat-checkbox>
+          </fieldset>
+        </div>
+
         <!-- Botão de Verificação -->
         <div class="verification-actions">
           <button mat-stroked-button color="accent" type="button" (click)="onVerify()" [disabled]="!needsVerification() || isVerifying()">
