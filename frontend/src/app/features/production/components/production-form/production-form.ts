@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, computed, OnDestroy } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -75,6 +75,9 @@ export class ProductionForm implements OnInit {
   // Signal para controlar se a verificação é necessária (dados alterados após simulação)
   needsVerification = signal(false);
 
+  // Signal para o texto de feedback (APENAS PARA TESTE VISUAL)
+  testFeedbackMessage = signal('');
+
   // Propriedades computadas para controlar a visibilidade das seções de input.
   showCorteInputs = computed(() => this.produto()?.tipoProduto === 'CORTE');
   showConsumoInputs = computed(() => this.produto()?.tipoProduto === 'CONSUMO_DIRETO');
@@ -125,7 +128,13 @@ export class ProductionForm implements OnInit {
   }
 
   ngOnInit(): void {
-    // A lógica de reação a eventos foi movida para métodos específicos.
+    // Popula o signal de teste com o texto formatado
+    this.testFeedbackMessage.set(
+      'Informação: 11 produtos (8x12cm).\n' +
+      'Produtos: 2 por linha (5 linhas completas + 1 parcial).\n' +
+      'Sobras: Lateral 37x800cm | Final 160x4cm.\n' +
+      'Consumo Total: 160x804cm.'
+    );
   }
 
   private setupVerificationTriggers(): void {
