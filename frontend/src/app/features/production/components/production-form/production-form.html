@@ -17,12 +17,12 @@
 
         <mat-form-field appearance="outline" class="quantity-field">
           <mat-label>Qtd.</mat-label>
-          <input matInput type="text" formControlName="quantidade">
+          <input matInput type="text" formControlName="quantidade" required>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="production-type-field">
           <mat-label>Tipo de Produção</mat-label>
-          <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()">
+          <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()" required>
             <mat-select-trigger>
               @switch (tipoProducaoControl.value) {
                 @case ('') { Todos }
@@ -127,7 +127,7 @@
                     required>
                 </mat-form-field>
 
-                <span class="dimensao-unit">cm *</span>
+                <span class="dimensao-unit">cm</span>
               }
             </div>
 
@@ -169,7 +169,7 @@
 
             <!-- LINHA 5: Motivo (ocupar 100% da esquerda) -->
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Motivo/Referência (opcional)</mat-label>
+              <mat-label>Motivo/Referência</mat-label>
               <textarea
                 matInput
                 formControlName="motivo"
@@ -188,16 +188,25 @@
             <div class="form-right-row">
               <!-- Canal de Venda (primeiro) -->
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Canal de Venda Destino (opcional)</mat-label>
-                <mat-select formControlName="canalVendaDestinoId">
-                  <mat-option [value]="null">Nenhum</mat-option>
+                <mat-label>Canal de Venda</mat-label>
+                <mat-select formControlName="canalVendaId">
+                  <mat-select-trigger>
+                    @switch (canalVendaIdControl.value) {
+                      @case ('') { Nenhum }
+                      @default { {{ selectedChannelName() }} }
+                    }
+                  </mat-select-trigger>
+                  <mat-option value="">Nenhum</mat-option>
+                  @for (channel of channels(); track channel.id) {
+                    <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
 
               <!-- Modo de Cálculo (segundo) -->
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Modo de Cálculo</mat-label>
-                <mat-select formControlName="modoCalculo" (selectionChange)="onModoCalculoChange()">
+                <mat-select formControlName="modoCalculo" (selectionChange)="onModoCalculoChange()" required>
                   <mat-select-trigger>
                     @switch (modoCalculoControl.value) {
                       @case ('AUTOMATICO') { AUTOMATICO }

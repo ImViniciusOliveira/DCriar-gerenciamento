@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { take } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 import { ProductionOrder } from '../../models/production.model';
 import { Product } from '../../../products/models/product.model';
@@ -17,6 +18,7 @@ import { ProductionService, SimulationRequest } from '../../services/production.
 import { SimulationResult } from '../../models/simulation.model';
 import { BatchSearch } from '../../../../shared/components/batch-search/batch-search';
 import {Batch} from '../../../stock/models/batch.model';
+import { ChannelService } from '../../../stock/services/channel.service';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -49,6 +51,7 @@ export class ProductionForm implements OnInit {
   private readonly dialogRef = inject(MatDialogRef<ProductionForm>);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly productionService = inject(ProductionService);
+  private readonly channelService = inject(ChannelService);
   public readonly data: ProductionFormData = inject(MAT_DIALOG_DATA);
 
   @ViewChild(ProductStockSearch) private productStockSearchComponent!: ProductStockSearch;
@@ -59,12 +62,21 @@ export class ProductionForm implements OnInit {
   produto = signal<Product | null>(null);
   loteSelecionado = signal<Batch | null>(null);
 
+  // Carrega os canais reais da API usando o novo serviço
+  channels = toSignal(this.channelService.getAllChannels(), { initialValue: [] });
+
   // Signal com tipo forte para armazenar o resultado da simulação.
   simulationResult = signal<SimulationResult | null>(null);
 
   // Propriedades computadas para controlar a visibilidade das seções de input.
   showCorteInputs = computed(() => this.produto()?.tipoProduto === 'CORTE');
   showConsumoInputs = computed(() => this.produto()?.tipoProduto === 'CONSUMO_DIRETO');
+
+  // Signal reativo para o valor do controle de canal de venda
+  canalVendaIdValue;
+
+  // Propriedade computada para exibir o nome do canal selecionado.
+  selectedChannelName;
 
 
   constructor() {
@@ -77,16 +89,28 @@ export class ProductionForm implements OnInit {
 
       // ETAPA 3: FORMULÁRIO REAL
       modoCalculo: ['AUTOMATICO', Validators.required],
-      larguraFinalCm: [null],  // validators dinâmicos no onModoCalculoChange
-      comprimentoFinalCm: [null],  // validators dinâmicos no onModoCalculoChange
+      larguraFinalCm: [{ value: null, disabled: true }],
+      comprimentoFinalCm: [{ value: null, disabled: true }],
       margens: this.fb.group({
         superior: [null],
         inferior: [null],
         esquerda: [null],
         direita: [null]
       }),
-      canalVendaDestinoId: [null],
+      canalVendaId: [''],
       motivo: ['', Validators.maxLength(255)]
+    });
+
+    // Inicializa o signal reativo após a criação do formulário
+    this.canalVendaIdValue = toSignal(this.canalVendaIdControl.valueChanges, { initialValue: '' });
+
+    // Inicializa o computed signal que depende do signal reativo
+    this.selectedChannelName = computed(() => {
+      const channelId = this.canalVendaIdValue();
+      if (channelId === '' || channelId === null) {
+        return 'Nenhum';
+      }
+      return this.channels().find(c => c.id === channelId)?.nome || 'Nenhum';
     });
   }
 
@@ -147,17 +171,10 @@ export class ProductionForm implements OnInit {
   }
 
   /**
-   * Getter para o FormGroup de margens
+   * Getter para o FormControl de canalVendaId
    */
-  get margensFormGroup(): FormGroup {
-    return this.form.get('margens') as FormGroup;
-  }
-
-  /**
-   * Getter para o FormControl de canalVendaDestinoId
-   */
-  get canalVendaDestinoIdControl(): FormControl {
-    return this.form.get('canalVendaDestinoId') as FormControl;
+  get canalVendaIdControl(): FormControl {
+    return this.form.get('canalVendaId') as FormControl;
   }
 
   /**
@@ -216,13 +233,26 @@ export class ProductionForm implements OnInit {
     const comprimentoControl = this.comprimentoFinalCmControl;
 
     if (modo === 'MANUAL') {
-      // Modo MANUAL: dimensões são obrigatórias e devem ser positivas
-      larguraControl.addValidators([Validators.required, Validators.min(0.1)]);
-      comprimentoControl.addValidators([Validators.required, Validators.min(0.1)]);
+      // Modo MANUAL: habilita os campos e adiciona validadores
+      larguraControl.enable();
+      comprimentoControl.enable();
+      larguraControl.setValidators([Validators.required, Validators.min(0.1)]);
+      comprimentoControl.setValidators([Validators.required, Validators.min(0.1)]);
     } else {
-      // Modo AUTOMATICO: dimensões vêm da simulação (readonly, sem validator)
-      larguraControl.removeValidators([Validators.required, Validators.min(0.1)]);
-      comprimentoControl.removeValidators([Validators.required, Validators.min(0.1)]);
+      // Modo AUTOMATICO: desabilita os campos (remove validadores implicitamente)
+      larguraControl.disable();
+      comprimentoControl.disable();
+      larguraControl.clearValidators();
+      comprimentoControl.clearValidators();
+
+      // Restaura os valores originais da simulação se disponíveis
+      const result = this.simulationResult();
+      if (result && result.tipoSimulacao === 'CORTE') {
+        this.form.patchValue({
+          larguraFinalCm: result.larguraFinalCm,
+          comprimentoFinalCm: result.comprimentoFinalCm
+        });
+      }
     }
 
     larguraControl.updateValueAndValidity();
@@ -262,7 +292,14 @@ export class ProductionForm implements OnInit {
         next: (response) => {
           this.simulationResult.set(response as SimulationResult);
           this.isSimulating.set(false);
-          // TODO: Exibir os resultados em um diálogo ou em uma nova seção da UI.
+
+          // Popula os campos do formulário com os dados da simulação
+          if (response.tipoSimulacao === 'CORTE') {
+            this.form.patchValue({
+              larguraFinalCm: response.larguraFinalCm,
+              comprimentoFinalCm: response.comprimentoFinalCm
+            });
+          }
         },
         error: (_err) => {
           this.simulationResult.set(null);
@@ -296,7 +333,7 @@ export class ProductionForm implements OnInit {
       modoCalculo: modo,
       larguraFinalCm: Number(formValue.larguraFinalCm),
       comprimentoFinalCm: Number(formValue.comprimentoFinalCm),
-      canalVendaDestinoId: formValue.canalVendaDestinoId ? Number(formValue.canalVendaDestinoId) : null,
+      canalVendaId: formValue.canalVendaId ? Number(formValue.canalVendaId) : null, // Renomeado
       motivo: formValue.motivo || null
     };
 
