@@ -9,6 +9,13 @@ export interface SimulationCutResult {
   comprimentoFinalCm: number;
   consumoEstimado: number;
   rotacionado: boolean;
+  produtosPorLinha: number;
+  numeroLinhasCompletas: number;
+  produtosNaUltimaLinha: number;
+  sobraLateral: string;
+  sobraFinal: string;
+  dimensaoProduto: string;
+  consumoTotal: string;
 }
 
 /**

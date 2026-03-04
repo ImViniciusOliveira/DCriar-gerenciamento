@@ -228,7 +228,7 @@
           <mat-form-field appearance="outline" class="feedback-text-field">
             <textarea
               matInput
-              [value]="testFeedbackMessage()"
+              [value]="feedbackMessage()"
               rows="4"
               readonly>
             </textarea>
@@ -238,7 +238,7 @@
             @if (result.tipoSimulacao === 'CORTE') {
               <div class="icon-label">
                 @if (result.rotacionado) {
-                  <mat-icon color="accent">toggle_on</mat-icon>
+                  <mat-icon class="rotated-active">toggle_on</mat-icon>
                 } @else {
                   <mat-icon>toggle_off</mat-icon>
                 }

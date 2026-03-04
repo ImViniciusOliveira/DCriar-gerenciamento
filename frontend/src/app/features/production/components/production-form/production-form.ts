@@ -75,8 +75,45 @@ export class ProductionForm implements OnInit {
   // Signal para controlar se a verificação é necessária (dados alterados após simulação)
   needsVerification = signal(false);
 
-  // Signal para o texto de feedback (APENAS PARA TESTE VISUAL)
-  testFeedbackMessage = signal('');
+  // Propriedade computada que monta a mensagem de feedback detalhada.
+  feedbackMessage = computed(() => {
+    const result = this.simulationResult();
+    if (!result || result.tipoSimulacao !== 'CORTE') {
+      return '';
+    }
+
+    const lines: string[] = [];
+    const qtd = Number(this.form.get('quantidade')?.value || 0);
+
+    // Linha 1: Informação Geral (com correção de plural)
+    const labelProduto = qtd === 1 ? 'produto' : 'produtos';
+    lines.push(`Informação: ${qtd} ${labelProduto} (${result.dimensaoProduto}).`);
+
+    // Linha 2: Layout dos Produtos (lógica inteligente para linha única)
+    const totalLinhas = result.numeroLinhasCompletas + (result.produtosNaUltimaLinha > 0 ? 1 : 0);
+
+    if (totalLinhas === 1) {
+      // Caso de linha única: foca na ocupação real
+      lines.push(`Produtos: ${qtd} na única linha (Capacidade: ${result.produtosPorLinha}).`);
+    } else {
+      // Caso de múltiplas linhas: mantém a descrição detalhada
+      const descLinhas = result.produtosNaUltimaLinha === result.produtosPorLinha
+        ? `${totalLinhas} linhas completas`
+        : `${result.numeroLinhasCompletas} linhas completas + 1 parcial`;
+      lines.push(`Produtos: ${result.produtosPorLinha} por linha (${descLinhas}).`);
+    }
+
+    // Linha 3: Sobras
+    const sobras: string[] = [];
+    if (result.sobraLateral) sobras.push(`Lateral ${result.sobraLateral}`);
+    if (result.sobraFinal) sobras.push(`Final ${result.sobraFinal}`);
+    lines.push(`Sobras: ${sobras.length > 0 ? sobras.join(' | ') : 'Nenhuma'}.`);
+
+    // Linha 4: Consumo Total
+    lines.push(`Consumo Total: ${result.consumoTotal}.`);
+
+    return lines.join('\n');
+  });
 
   // Propriedades computadas para controlar a visibilidade das seções de input.
   showCorteInputs = computed(() => this.produto()?.tipoProduto === 'CORTE');
@@ -128,13 +165,6 @@ export class ProductionForm implements OnInit {
   }
 
   ngOnInit(): void {
-    // Popula o signal de teste com o texto formatado
-    this.testFeedbackMessage.set(
-      'Informação: 11 produtos (8x12cm).\n' +
-      'Produtos: 2 por linha (5 linhas completas + 1 parcial).\n' +
-      'Sobras: Lateral 37x800cm | Final 160x4cm.\n' +
-      'Consumo Total: 160x804cm.'
-    );
   }
 
   private setupVerificationTriggers(): void {
