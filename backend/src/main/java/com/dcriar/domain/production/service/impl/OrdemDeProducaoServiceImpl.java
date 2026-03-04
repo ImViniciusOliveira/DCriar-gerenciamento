@@ -23,6 +23,7 @@ import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.dcriar.domain.production.model.ParametrosCorte;
 import com.dcriar.domain.production.model.PlanoDeConsumo;
+import com.dcriar.domain.production.model.ResumoLayoutCorte;
 import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
 import com.dcriar.domain.production.service.ConsumoCalculatorService;
 import com.dcriar.domain.production.service.CorteCalculatorService;
@@ -123,7 +124,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             }
             consumoTotalMetros = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
             larguraFinalCm = parametros.larguraTotalLoteCm();
-            cortesRealizadosDTOs = gerarCortesRealizadosDinamico(parametros, comprimentoFinalCm);
+            
+            ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm);
+            cortesRealizadosDTOs = resumo.cortes();
         }
 
 
@@ -362,8 +365,14 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
 
         ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(requestDTO.getQuantidade(), produto, loteParaSimulacao, null);
-        long numeroDeLinhas = (long) Math.ceil((double) requestDTO.getQuantidade() / parametros.produtosPorLinha());
-        BigDecimal comprimentoFinalCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhas));
+        
+        // Cálculo do comprimento linear total (mesma lógica da criação da ordem)
+        long numeroDeLinhasTotal = (long) Math.ceil((double) requestDTO.getQuantidade() / parametros.produtosPorLinha());
+        BigDecimal comprimentoFinalCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhasTotal));
+        
+        // Executa a simulação detalhada do layout
+        ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm);
+        
         BigDecimal consumoEstimado = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
 
         return SimulacaoCorteResponseDTO.builder()
@@ -372,6 +381,13 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .comprimentoFinalCm(comprimentoFinalCm)
                 .consumoEstimado(consumoEstimado)
                 .rotacionado(parametros.rotacionado())
+                .produtosPorLinha(resumo.produtosPorLinha())
+                .numeroLinhasCompletas(resumo.numeroLinhasCompletas())
+                .produtosNaUltimaLinha(resumo.produtosNaUltimaLinha())
+                .sobraLateral(resumo.sobraLateral())
+                .sobraFinal(resumo.sobraFinal())
+                .dimensaoProduto(formatarDimensao(parametros.larguraProduto(), parametros.comprimentoProduto()))
+                .consumoTotal(formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoFinalCm))
                 .build();
     }
 
@@ -424,78 +440,20 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
         int produtosRestantes = quantidadeProduzida;
         BigDecimal comprimentoAcumulado = BigDecimal.ZERO;
-        RetalhoLateralTracker tracker = new RetalhoLateralTracker();
         while (produtosRestantes > 0) {
             int produtosNestaLinha = Math.min(produtosPorLinha, produtosRestantes);
             if (comprimentoAcumulado.add(comprimentoProduto).compareTo(comprimentoFinalCm) > 0) {
                 throw new DimensoesManuaisInvalidasException(String.format("O comprimento final (%.2f cm) não é suficiente para produzir a quantidade solicitada.", comprimentoFinalCm));
             }
             cortes.add(criarCorteProduto(larguraProduto, comprimentoProduto, produtosNestaLinha));
-            BigDecimal larguraOcupada = larguraProduto.multiply(new BigDecimal(produtosNestaLinha));
-            BigDecimal larguraRetalhoAtual = larguraFinalCm.subtract(larguraOcupada);
-            processarRetalhoLateral(tracker, larguraRetalhoAtual, comprimentoProduto, cortes);
             comprimentoAcumulado = comprimentoAcumulado.add(comprimentoProduto);
             produtosRestantes -= produtosNestaLinha;
         }
-        fecharSequenciaDeRetalhoLateral(tracker, cortes);
         BigDecimal comprimentoRetalhoFinal = comprimentoFinalCm.subtract(comprimentoAcumulado);
         if (comprimentoRetalhoFinal.compareTo(BigDecimal.ZERO) > 0) {
-            cortes.add(criarCorteRetalho(larguraFinalCm, comprimentoRetalhoFinal, "FINAL"));
+            cortes.add(criarCorteRetalho(larguraFinalCm, comprimentoRetalhoFinal));
         }
         return cortes;
-    }
-
-    private List<CorteRealizadoResponseDTO> gerarCortesRealizadosDinamico(ParametrosCorte parametros, BigDecimal ordemComprimentoFinalCm) {
-        List<CorteRealizadoResponseDTO> cortesRealizados = new ArrayList<>();
-        int produtosRestantes = parametros.quantidade();
-        RetalhoLateralTracker tracker = new RetalhoLateralTracker();
-        BigDecimal comprimentoAcumuladoProdutos = BigDecimal.ZERO;
-        while (produtosRestantes > 0) {
-            int produtosNestaLinha = Math.min(parametros.produtosPorLinha(), produtosRestantes);
-            if (produtosNestaLinha <= 0) break;
-            cortesRealizados.add(criarCorteProduto(parametros.larguraProduto(), parametros.comprimentoProduto(), produtosNestaLinha));
-            BigDecimal larguraProdutosOcupada = parametros.larguraProduto().multiply(new BigDecimal(produtosNestaLinha));
-            BigDecimal larguraRetalhoLinha = parametros.larguraUtilCm().subtract(larguraProdutosOcupada);
-            BigDecimal comprimentoLinha = parametros.comprimentoProduto();
-            processarRetalhoLateral(tracker, larguraRetalhoLinha, comprimentoLinha, cortesRealizados);
-            comprimentoAcumuladoProdutos = comprimentoAcumuladoProdutos.add(comprimentoLinha);
-            produtosRestantes -= produtosNestaLinha;
-        }
-        fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
-        BigDecimal comprimentoRetalhoFinal = ordemComprimentoFinalCm.subtract(comprimentoAcumuladoProdutos);
-        if (comprimentoRetalhoFinal.compareTo(BigDecimal.ZERO) > 0) {
-            cortesRealizados.add(criarCorteRetalho(parametros.larguraTotalLoteCm(), comprimentoRetalhoFinal, "FINAL"));
-        }
-        return cortesRealizados;
-    }
-
-    // --- Métodos Auxiliares ---
-
-    private static class RetalhoLateralTracker {
-        BigDecimal larguraSequencia = null;
-        BigDecimal comprimentoSequencia = BigDecimal.ZERO;
-    }
-
-    private void processarRetalhoLateral(RetalhoLateralTracker tracker, BigDecimal larguraRetalhoLinha, BigDecimal comprimentoLinha, List<CorteRealizadoResponseDTO> cortesRealizados) {
-        if (larguraRetalhoLinha.compareTo(BigDecimal.ZERO) > 0) {
-            if (tracker.larguraSequencia != null && larguraRetalhoLinha.compareTo(tracker.larguraSequencia) == 0) {
-                tracker.comprimentoSequencia = tracker.comprimentoSequencia.add(comprimentoLinha);
-            } else {
-                fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
-                tracker.larguraSequencia = larguraRetalhoLinha;
-                tracker.comprimentoSequencia = comprimentoLinha;
-            }
-        } else {
-            fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
-        }
-    }
-
-    private void fecharSequenciaDeRetalhoLateral(RetalhoLateralTracker tracker, List<CorteRealizadoResponseDTO> cortesRealizados) {
-        if (tracker.larguraSequencia != null && tracker.comprimentoSequencia.compareTo(BigDecimal.ZERO) > 0) {
-            cortesRealizados.add(criarCorteRetalho(tracker.larguraSequencia, tracker.comprimentoSequencia, "LATERAL"));
-            tracker.larguraSequencia = null;
-            tracker.comprimentoSequencia = BigDecimal.ZERO;
-        }
     }
 
     private CorteRealizadoResponseDTO criarCorteProduto(BigDecimal larguraProduto, BigDecimal comprimentoProduto, int quantidade) {
@@ -507,13 +465,13 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .build();
     }
 
-    private CorteRealizadoResponseDTO criarCorteRetalho(BigDecimal largura, BigDecimal comprimento, String retalhoCategoria) {
+    private CorteRealizadoResponseDTO criarCorteRetalho(BigDecimal largura, BigDecimal comprimento) {
         return CorteRealizadoResponseDTO.builder()
                 .larguraCm(largura)
                 .comprimentoCm(comprimento)
                 .quantidade(1)
                 .tipo("RETALHO")
-                .retalhoCategoria(retalhoCategoria)
+                .retalhoCategoria("FINAL")
                 .build();
     }
 
@@ -565,8 +523,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private BigDecimal calcularCustoUnitario(LoteMateriaPrima lote) {
         // Soma todas as entradas (COMPRA, SOBRA, AJUSTE positivo) para determinar a quantidade total adquirida/gerada
         BigDecimal quantidadeTotalEntrada = lote.getMovimentacoes().stream()
-                .filter(m -> m.getQuantidade().compareTo(BigDecimal.ZERO) > 0)
                 .map(MovimentacaoEstoqueLote::getQuantidade)
+                .filter(quantidade -> quantidade.compareTo(BigDecimal.ZERO) > 0)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         if (quantidadeTotalEntrada.compareTo(BigDecimal.ZERO) == 0) {
@@ -627,5 +585,11 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private LoteMateriaPrima findLoteById(Long id) {
         return loteMateriaPrimaRepository.findByIdWithTipoMateriaPrima(id)
                 .orElseThrow(() -> new LoteMateriaPrimaNaoEncontradoException(id));
+    }
+
+    private String formatarDimensao(BigDecimal largura, BigDecimal comprimento) {
+        return String.format("%scm x %scm",
+                largura.stripTrailingZeros().toPlainString(),
+                comprimento.stripTrailingZeros().toPlainString());
     }
 }

@@ -1,10 +1,12 @@
 package com.dcriar.domain.production.service.impl;
 
 import com.dcriar.api.dto.request.production.MargensRequestDTO;
+import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
 import com.dcriar.domain.product.entity.Dimensoes;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.ProdutoDeCorte;
 import com.dcriar.domain.production.model.ParametrosCorte;
+import com.dcriar.domain.production.model.ResumoLayoutCorte;
 import com.dcriar.domain.production.service.CorteCalculatorService;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.exception.custom.AtributoLoteInvalidoException;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -100,6 +104,126 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
                 rotacionado
         );
     }
+
+    @Override
+    public ResumoLayoutCorte calcularLayoutDetalhado(ParametrosCorte parametros, BigDecimal ordemComprimentoFinalCm) {
+        List<CorteRealizadoResponseDTO> cortesRealizados = new ArrayList<>();
+        int produtosRestantes = parametros.quantidade();
+        RetalhoLateralTracker tracker = new RetalhoLateralTracker();
+        BigDecimal comprimentoAcumuladoProdutos = BigDecimal.ZERO;
+
+        int numeroLinhasCompletas = 0;
+        int produtosNaUltimaLinha = 0;
+
+        while (produtosRestantes > 0) {
+            int produtosNestaLinha = Math.min(parametros.produtosPorLinha(), produtosRestantes);
+            if (produtosNestaLinha <= 0) break;
+
+            if (produtosNestaLinha == parametros.produtosPorLinha()) {
+                numeroLinhasCompletas++;
+            } else {
+                produtosNaUltimaLinha = produtosNestaLinha;
+            }
+
+            cortesRealizados.add(criarCorteProduto(parametros.larguraProduto(), parametros.comprimentoProduto(), produtosNestaLinha));
+
+            BigDecimal larguraProdutosOcupada = parametros.larguraProduto().multiply(new BigDecimal(produtosNestaLinha));
+            BigDecimal larguraRetalhoLinha = parametros.larguraUtilCm().subtract(larguraProdutosOcupada);
+            BigDecimal comprimentoLinha = parametros.comprimentoProduto();
+
+            processarRetalhoLateral(tracker, larguraRetalhoLinha, comprimentoLinha, cortesRealizados);
+
+            comprimentoAcumuladoProdutos = comprimentoAcumuladoProdutos.add(comprimentoLinha);
+            produtosRestantes -= produtosNestaLinha;
+        }
+
+        // Se não houve linha parcial, a última linha completa é a última linha.
+        if (produtosNaUltimaLinha == 0 && numeroLinhasCompletas > 0) {
+            produtosNaUltimaLinha = parametros.produtosPorLinha();
+            numeroLinhasCompletas--;
+        }
+
+        fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
+
+        BigDecimal comprimentoRetalhoFinal = ordemComprimentoFinalCm.subtract(comprimentoAcumuladoProdutos);
+        String sobraFinalStr = "";
+        if (comprimentoRetalhoFinal.compareTo(BigDecimal.ZERO) > 0) {
+            cortesRealizados.add(criarCorteRetalho(parametros.larguraTotalLoteCm(), comprimentoRetalhoFinal, "FINAL"));
+            sobraFinalStr = formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoRetalhoFinal);
+        }
+
+        // Extrair sobra lateral da lista de cortes (se existir)
+        String sobraLateralStr = cortesRealizados.stream()
+                .filter(c -> "RETALHO".equals(c.getTipo()) && "LATERAL".equals(c.getRetalhoCategoria()))
+                .map(c -> formatarDimensao(c.getLarguraCm(), c.getComprimentoCm()))
+                .findFirst()
+                .orElse("");
+
+        return ResumoLayoutCorte.builder()
+                .cortes(cortesRealizados)
+                .produtosPorLinha(parametros.produtosPorLinha())
+                .numeroLinhasCompletas(numeroLinhasCompletas)
+                .produtosNaUltimaLinha(produtosNaUltimaLinha)
+                .sobraLateral(sobraLateralStr)
+                .sobraFinal(sobraFinalStr)
+                .build();
+    }
+
+    // --- Métodos Auxiliares de Layout ---
+
+    private static class RetalhoLateralTracker {
+        BigDecimal larguraSequencia = null;
+        BigDecimal comprimentoSequencia = BigDecimal.ZERO;
+    }
+
+    private void processarRetalhoLateral(RetalhoLateralTracker tracker, BigDecimal larguraRetalhoLinha, BigDecimal comprimentoLinha, List<CorteRealizadoResponseDTO> cortesRealizados) {
+        if (larguraRetalhoLinha.compareTo(BigDecimal.ZERO) > 0) {
+            if (tracker.larguraSequencia != null && larguraRetalhoLinha.compareTo(tracker.larguraSequencia) == 0) {
+                tracker.comprimentoSequencia = tracker.comprimentoSequencia.add(comprimentoLinha);
+            } else {
+                fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
+                tracker.larguraSequencia = larguraRetalhoLinha;
+                tracker.comprimentoSequencia = comprimentoLinha;
+            }
+        } else {
+            fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
+        }
+    }
+
+    private void fecharSequenciaDeRetalhoLateral(RetalhoLateralTracker tracker, List<CorteRealizadoResponseDTO> cortesRealizados) {
+        if (tracker.larguraSequencia != null && tracker.comprimentoSequencia.compareTo(BigDecimal.ZERO) > 0) {
+            cortesRealizados.add(criarCorteRetalho(tracker.larguraSequencia, tracker.comprimentoSequencia, "LATERAL"));
+            tracker.larguraSequencia = null;
+            tracker.comprimentoSequencia = BigDecimal.ZERO;
+        }
+    }
+
+    private CorteRealizadoResponseDTO criarCorteProduto(BigDecimal larguraProduto, BigDecimal comprimentoProduto, int quantidade) {
+        return CorteRealizadoResponseDTO.builder()
+                .larguraCm(larguraProduto)
+                .comprimentoCm(comprimentoProduto)
+                .quantidade(quantidade)
+                .tipo("PRODUTO")
+                .build();
+    }
+
+    private CorteRealizadoResponseDTO criarCorteRetalho(BigDecimal largura, BigDecimal comprimento, String retalhoCategoria) {
+        return CorteRealizadoResponseDTO.builder()
+                .larguraCm(largura)
+                .comprimentoCm(comprimento)
+                .quantidade(1)
+                .tipo("RETALHO")
+                .retalhoCategoria(retalhoCategoria)
+                .build();
+    }
+
+    private String formatarDimensao(BigDecimal largura, BigDecimal comprimento) {
+        return String.format("%scm x %scm",
+                largura.stripTrailingZeros().toPlainString(),
+                comprimento.stripTrailingZeros().toPlainString());
+    }
+
+    // --- Métodos Auxiliares de Cálculo Base ---
 
     private BigDecimal getLarguraEmCm(Map<String, Object> atributos) {
         Object larguraMmObj = atributos.get("larguraMm");

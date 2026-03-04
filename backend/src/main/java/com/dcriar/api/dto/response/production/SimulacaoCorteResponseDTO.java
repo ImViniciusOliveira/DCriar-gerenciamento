@@ -34,6 +34,27 @@ public class SimulacaoCorteResponseDTO {
     @Schema(description = "Indica se o layout otimizado dos produtos foi rotacionado para melhor aproveitamento.", example = "true")
     private boolean rotacionado;
 
+    @Schema(description = "Quantidade máxima de produtos que cabem em uma única linha.", example = "2")
+    private Integer produtosPorLinha;
+
+    @Schema(description = "Quantidade de linhas que estão totalmente preenchidas com produtos.", example = "5")
+    private Integer numeroLinhasCompletas;
+
+    @Schema(description = "Quantidade de produtos presentes na última linha (pode ser parcial).", example = "1")
+    private Integer produtosNaUltimaLinha;
+
+    @Schema(description = "Descrição formatada das dimensões da sobra lateral.", example = "37cm x 800cm")
+    private String sobraLateral;
+
+    @Schema(description = "Descrição formatada das dimensões da sobra final.", example = "160cm x 4cm")
+    private String sobraFinal;
+
+    @Schema(description = "Descrição formatada das dimensões unitárias do produto.", example = "8cm x 12cm")
+    private String dimensaoProduto;
+
+    @Schema(description = "Descrição formatada das dimensões totais de matéria-prima consumida.", example = "160cm x 804cm")
+    private String consumoTotal;
+
     @Schema(description = "Campo discriminador para identificar o tipo de resultado da simulação no frontend.", example = "CORTE", accessMode = Schema.AccessMode.READ_ONLY)
     private final String tipoSimulacao = "CORTE";
 }

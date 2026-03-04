@@ -3,7 +3,10 @@ package com.dcriar.domain.production.service;
 import com.dcriar.api.dto.request.production.MargensRequestDTO;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.production.model.ParametrosCorte;
+import com.dcriar.domain.production.model.ResumoLayoutCorte;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
+
+import java.math.BigDecimal;
 
 /**
  * Interface responsável por realizar os cálculos geométricos para o planejamento de ordens de corte.
@@ -29,4 +32,14 @@ public interface CorteCalculatorService {
             LoteMateriaPrima lotePrincipal,
             MargensRequestDTO margensRequest
     );
+
+    /**
+     * Realiza o cálculo detalhado do layout de corte, simulando a disposição física das peças
+     * e identificando as sobras (retalhos) geradas.
+     *
+     * @param parametros Os parâmetros de corte já calculados e otimizados.
+     * @param ordemComprimentoFinalCm O comprimento total de matéria-prima que será consumido.
+     * @return um objeto {@link ResumoLayoutCorte} contendo a lista detalhada de cortes e o resumo do layout.
+     */
+    ResumoLayoutCorte calcularLayoutDetalhado(ParametrosCorte parametros, BigDecimal ordemComprimentoFinalCm);
 }
