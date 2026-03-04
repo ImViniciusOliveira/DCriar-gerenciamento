@@ -159,6 +159,7 @@
     @include fl.fieldset-compact;
     justify-content: center;
     padding: 0 16px 0 12px;
+    margin-top: 8px;
     margin-bottom: 20px;
     pointer-events: none;
 
@@ -166,6 +167,10 @@
       display: flex;
       align-items: center;
       gap: 8px;
+
+      .rotated-active {
+        color: #3f51b5 !important; // Azul padrão do Material
+      }
     }
   }
 }

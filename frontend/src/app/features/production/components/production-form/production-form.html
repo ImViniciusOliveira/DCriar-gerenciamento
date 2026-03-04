@@ -264,7 +264,7 @@
     <button mat-button type="button" (click)="onCancel()">
       Cancelar
     </button>
-    <button mat-raised-button color="primary" type="submit" [disabled]="!simulationResult() || form.invalid || isSaving()">
+    <button mat-raised-button color="primary" type="submit" [disabled]="!simulationResult() || form.invalid || isSaving() || needsVerification()">
       @if (isSaving()) {
         <mat-spinner diameter="20"></mat-spinner>
       } @else {

@@ -1,14 +1,14 @@
-import { Component, DestroyRef, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { Component, DestroyRef, effect, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { debounceTime, distinctUntilChanged, filter, map } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 
 import { ApiResponseBatches, Batch } from '../../../features/stock/models/batch.model';
@@ -77,29 +77,6 @@ export class BatchSearch {
       this.searchTrigger$.next();
     });
 
-    // Efeito para inicializar o searchControl se o control externo já tiver um valor (ID do lote).
-    effect(() => {
-      const initialValue = this.control().value;
-      if (typeof initialValue === 'number') {
-        untracked(() => {
-          this.batchService.updateSearchParams({
-            tipoMateriaPrimaId: this.tipoMateriaPrimaId(),
-            nome: initialValue.toString()
-          });
-
-          this.batchService.batches$.pipe(
-            map((response: ApiResponseBatches) => response._embedded['lotes-materia-prima'].find((batch: Batch) => batch.id === initialValue)),
-            filter((batch): batch is Batch => !!batch),
-            takeUntilDestroyed(this.destroyRef)
-          ).subscribe((batch: Batch) => {
-            this.searchControl.setValue(batch);
-          });
-        });
-      } else if (initialValue instanceof Object && 'id' in initialValue) {
-        this.searchControl.setValue(initialValue);
-      }
-    });
-
     // Processa o trigger de busca centralizado
     this.searchTrigger$.pipe(
       takeUntilDestroyed(this.destroyRef)
@@ -149,5 +126,14 @@ export class BatchSearch {
     const selected = event.option.value as Batch;
     this.control().setValue(selected.id);
     this.selectionChange.emit(selected);
+  }
+
+  /**
+   * Método público para resetar o componente ao estado inicial.
+   * Limpa o campo de busca e o controle do formulário pai.
+   */
+  public reset(): void {
+    this.searchControl.setValue('', { emitEvent: false });
+    this.control().setValue(null);
   }
 }

@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,10 +16,11 @@ import { ProductionOrder } from '../../models/production.model';
 import { Product } from '../../../products/models/product.model';
 import { ProductStockSearch } from '../../../../shared/components/product-stock-search/product-stock-search';
 import { ProductionService, SimulationRequest } from '../../services/production.service';
-import { SimulationResult } from '../../models/simulation.model';
+import { SimulationResult, SimulationCutResult } from '../../models/simulation.model';
 import { BatchSearch } from '../../../../shared/components/batch-search/batch-search';
 import {Batch} from '../../../stock/models/batch.model';
 import { ChannelService } from '../../../stock/services/channel.service';
+import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -51,12 +52,14 @@ export interface ProductionFormData {
 export class ProductionForm implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<ProductionForm>);
+  private readonly dialog = inject(MatDialog);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly productionService = inject(ProductionService);
   private readonly channelService = inject(ChannelService);
   public readonly data: ProductionFormData = inject(MAT_DIALOG_DATA);
 
   @ViewChild(ProductStockSearch) private productStockSearchComponent!: ProductStockSearch;
+  @ViewChild(BatchSearch) private batchSearchComponent!: BatchSearch;
 
   form: FormGroup;
   isSaving = signal(false);
@@ -74,6 +77,9 @@ export class ProductionForm implements OnInit {
 
   // Signal para controlar se a verificação é necessária (dados alterados após simulação)
   needsVerification = signal(false);
+
+  // Snapshot para restaurar o formulário em caso de cancelamento da verificação
+  private formSnapshot: any;
 
   // Propriedade computada que monta a mensagem de feedback detalhada.
   feedbackMessage = computed(() => {
@@ -183,12 +189,43 @@ export class ProductionForm implements OnInit {
       control?.valueChanges
         .pipe(takeUntilDestroyed())
         .subscribe(() => {
-          // Só marca como necessário verificar se já houver um resultado de simulação
           if (this.simulationResult()) {
-            this.needsVerification.set(true);
+            // Verificação Inteligente: só ativa se houver mudança real em relação ao snapshot
+            this.needsVerification.set(this.checkIfVerificationIsNeeded());
           }
         });
     });
+  }
+
+  /**
+   * Verifica se o estado atual do formulário difere do último snapshot estável,
+   * considerando apenas os campos relevantes para o modo de cálculo atual.
+   */
+  private checkIfVerificationIsNeeded(): boolean {
+    if (!this.formSnapshot) return false;
+
+    const current = this.form.getRawValue();
+    const snapshot = this.formSnapshot;
+
+    // 1. Quantidade é crítica em ambos os modos
+    if (Number(current.quantidade || 0) !== Number(snapshot.quantidade || 0)) return true;
+
+    // 2. Validação específica por modo
+    if (current.modoCalculo === 'AUTOMATICO') {
+      const m1 = current.margens;
+      const m2 = snapshot.margens;
+      return (
+        Number(m1.superior || 0) !== Number(m2.superior || 0) ||
+        Number(m1.inferior || 0) !== Number(m2.inferior || 0) ||
+        Number(m1.esquerda || 0) !== Number(m2.esquerda || 0) ||
+        Number(m1.direita || 0) !== Number(m2.direita || 0)
+      );
+    } else {
+      return (
+        Number(current.larguraFinalCm || 0) !== Number(snapshot.larguraFinalCm || 0) ||
+        Number(current.comprimentoFinalCm || 0) !== Number(snapshot.comprimentoFinalCm || 0)
+      );
+    }
   }
 
   /**
@@ -273,6 +310,11 @@ export class ProductionForm implements OnInit {
       tipoProducao: produto.tipoProduto
     });
 
+    // Reseta o componente BatchSearch usando seu método público (mantém encapsulamento)
+    if (this.batchSearchComponent) {
+      this.batchSearchComponent.reset();
+    }
+
     // Adiciona ou remove o validador 'required' para loteId com base no tipo de produto
     if (produto.tipoProduto === 'CORTE') {
       this.loteIdControl.addValidators(Validators.required);
@@ -328,8 +370,15 @@ export class ProductionForm implements OnInit {
       }
     }
 
-    larguraControl.updateValueAndValidity();
-    comprimentoControl.updateValueAndValidity();
+    // Verificação Inteligente: avalia se o novo estado exige verificação
+    this.needsVerification.set(this.checkIfVerificationIsNeeded());
+
+    larguraControl.updateValueAndValidity({ emitEvent: false });
+    comprimentoControl.updateValueAndValidity({ emitEvent: false });
+
+    // Scroll automático para o final para garantir visibilidade das margens ou botões
+    this.scrollToBottom();
+
     this.cdr.markForCheck();
   }
 
@@ -359,6 +408,8 @@ export class ProductionForm implements OnInit {
 
 
     this.isSimulating.set(true);
+    this.needsVerification.set(false); // Reseta o estado de verificação ao iniciar nova simulação
+
     this.productionService.simulateProduction(url, payload)
       .pipe(take(1))
       .subscribe({
@@ -374,6 +425,12 @@ export class ProductionForm implements OnInit {
               comprimentoFinalCm: response.comprimentoFinalCm
             }, { emitEvent: false });
           }
+
+          // Salva o estado atual do formulário para restauração futura
+          this.formSnapshot = this.form.getRawValue();
+
+          // Scroll automático para o final do diálogo para focar no feedback
+          this.scrollToBottom();
         },
         error: (_err) => {
           this.simulationResult.set(null);
@@ -388,27 +445,107 @@ export class ProductionForm implements OnInit {
    */
   onVerify(): void {
     const formValue = this.form.getRawValue();
-    const modo = formValue.modoCalculo;
+    const result = this.simulationResult();
 
-    const payload: any = {
-      produtoId: Number(formValue.produtoId),
-      loteId: Number(formValue.loteId),
-      quantidade: Number(formValue.quantidade),
-      modoCalculo: modo,
-      larguraFinalCm: Number(formValue.larguraFinalCm),
-      comprimentoFinalCm: Number(formValue.comprimentoFinalCm),
-    };
+    if (!result || result.tipoSimulacao !== 'CORTE') return;
+    const cutResult = result as SimulationCutResult;
 
-    if (modo === 'AUTOMATICO') {
-      payload.margens = {
-        superior: formValue.margens.superior ? Number(formValue.margens.superior) : 0,
-        inferior: formValue.margens.inferior ? Number(formValue.margens.inferior) : 0,
-        esquerda: formValue.margens.esquerda ? Number(formValue.margens.esquerda) : 0,
-        direita: formValue.margens.direita ? Number(formValue.margens.direita) : 0
-      };
+    // --- Lógica para o estado ATUAL (Antigo) ---
+    const oldQtd = this.formSnapshot?.quantidade || 1;
+    const oldLabel = oldQtd === 1 ? 'produto' : 'produtos';
+
+    const oldTotalLinhas = cutResult.numeroLinhasCompletas + (cutResult.produtosNaUltimaLinha > 0 ? 1 : 0);
+    let oldLayout = '';
+    if (oldTotalLinhas === 1) {
+      oldLayout = `${oldQtd} na única linha (Capacidade: ${cutResult.produtosPorLinha})`;
+    } else {
+      const desc = cutResult.produtosNaUltimaLinha === cutResult.produtosPorLinha
+        ? `${oldTotalLinhas} linhas completas`
+        : `${cutResult.numeroLinhasCompletas} linhas completas + 1 parcial`;
+      oldLayout = `${cutResult.produtosPorLinha} por linha (${desc})`;
     }
 
-    console.log('Payload para verificação:', payload);
+    // --- Lógica para o estado NOVO (Simulado/Hardcoded para o protótipo) ---
+    const newQtd = formValue.quantidade;
+    const newLabel = newQtd === 1 ? 'produto' : 'produtos';
+    const newLayout = `2 por linha (5 linhas completas + 1 parcial)`;
+
+    // Margens com alinhamento profissional (padEnd)
+    const oldM = this.formSnapshot?.margens;
+    const newM = formValue.margens;
+
+    const labelSup = "Superior:".padEnd(10);
+    const labelInf = "Inferior:".padEnd(10);
+    const labelEsq = "Esquerda:".padEnd(10);
+    const labelDir = "Direita:".padEnd(10);
+
+    // Rotação
+    const oldRot = cutResult.rotacionado ? 'Sim' : 'Não';
+    const newRot = 'Sim'; // Hardcoded para o protótipo
+
+    const message = `As alterações mudaram o plano de produção:\n\n` +
+                    `Informação: ${oldQtd} ${oldLabel} → ${newQtd} ${newLabel}.\n` +
+                    `Produtos: ${oldLayout} → ${newLayout}\n` +
+                    `Sobras: Lateral ${cutResult.sobraLateral || 'Nenhuma'} → 105x10cm. Final ${cutResult.sobraFinal || '0'} → 100x5\n` +
+                    `Consumo total: ${cutResult.consumoTotal} → 120x25cm\n` +
+                    `Rotação: ${oldRot} → ${newRot}\n\n` +
+                    `Margens: ${labelSup} ${oldM?.superior || 0} → ${newM.superior || 0}  ${labelInf} ${oldM?.inferior || 0} → ${newM.inferior || 0}\n` +
+                    `         ${labelEsq} ${oldM?.esquerda || 0} → ${newM.esquerda || 0}  ${labelDir} ${oldM?.direita || 0} → ${newM.direita || 0}\n\n` +
+                    `Deseja aplicar estas mudanças?`;
+
+    const dialogData: ConfirmDialogData = {
+      title: 'Confirmar Alterações',
+      message: message
+    };
+
+    const dialogRef = this.dialog.open(ConfirmDialog, {
+      data: dialogData,
+      width: '550px'
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        console.log('Verificação ACEITA. Dados que seriam mudados:', {
+          quantidade: newQtd,
+          modoCalculo: formValue.modoCalculo,
+          margens: formValue.margens,
+          larguraFinalCm: formValue.larguraFinalCm,
+          comprimentoFinalCm: formValue.comprimentoFinalCm
+        });
+        this.formSnapshot = this.form.getRawValue();
+        this.needsVerification.set(false);
+      } else {
+        console.log('Verificação CANCELADA. Restaurando formulário...');
+        if (this.formSnapshot) {
+          // Cria uma cópia do snapshot para restauração
+          const restoreData = { ...this.formSnapshot };
+
+          // Preserva os valores atuais de canal e motivo (não restaura do snapshot)
+          restoreData.canalVendaId = this.form.get('canalVendaId')?.value;
+          restoreData.motivo = this.form.get('motivo')?.value;
+
+          this.form.patchValue(restoreData, { emitEvent: false });
+
+          // Força a re-execução da lógica de modo para corrigir o estado visual (bug do cinza)
+          this.onModoCalculoChange();
+
+          this.needsVerification.set(false);
+          this.cdr.markForCheck();
+        }
+      }
+    });
+  }
+
+  /**
+   * Rola o conteúdo do diálogo para o final de forma suave.
+   */
+  private scrollToBottom(): void {
+    setTimeout(() => {
+      const dialogContent = document.querySelector('mat-dialog-content');
+      if (dialogContent) {
+        dialogContent.scrollTo({ top: dialogContent.scrollHeight, behavior: 'smooth' });
+      }
+    }, 100);
   }
 
   onSave(): void {

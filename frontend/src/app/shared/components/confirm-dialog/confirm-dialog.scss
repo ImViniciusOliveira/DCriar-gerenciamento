@@ -1,5 +1,16 @@
 // Alinha os botões de ação ("Cancelar", "Confirmar") para o final (direita)
-// do contêiner do diálogo, seguindo um padrão de design de UI comum.
 .mat-mdc-dialog-actions {
   justify-content: flex-end;
+}
+
+// Força a renderização de quebras de linha (\n) no corpo do diálogo.
+// Usamos fonte monoespaçada para permitir alinhamentos precisos via código.
+[mat-dialog-content] p,
+.mat-mdc-dialog-content p,
+.mat-dialog-content p {
+  white-space: pre-wrap !important;
+  margin: 0;
+  line-height: 1.5;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
 }
