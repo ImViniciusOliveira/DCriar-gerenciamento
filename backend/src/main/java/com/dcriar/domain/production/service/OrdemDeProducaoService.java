@@ -1,9 +1,6 @@
 package com.dcriar.domain.production.service;
 
-import com.dcriar.api.dto.request.production.OrdemDeConsumoDiretoRequestDTO;
-import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
-import com.dcriar.api.dto.request.production.SimulacaoConsumoDiretoRequestDTO;
-import com.dcriar.api.dto.request.production.SimulacaoCorteRequestDTO;
+import com.dcriar.api.dto.request.production.*;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoConsumoDiretoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
@@ -65,6 +62,14 @@ public interface OrdemDeProducaoService {
      * @return Um DTO com os resultados da simulação de corte.
      */
     SimulacaoCorteResponseDTO simularCorte(SimulacaoCorteRequestDTO requestDTO);
+
+    /**
+     * Verifica e valida um layout de corte editado manualmente pelo usuário.
+     *
+     * @param requestDTO O DTO com os dados editados (margens, dimensões, etc.).
+     * @return Um DTO com os resultados do novo layout calculado.
+     */
+    SimulacaoCorteResponseDTO verificarCorte(VerificacaoCorteRequestDTO requestDTO);
 
     /**
      * Simula uma produção baseada em consumo direto (ex: líquidos, pós, unidades),

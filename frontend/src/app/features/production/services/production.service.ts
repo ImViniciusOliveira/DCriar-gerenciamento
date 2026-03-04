@@ -1,11 +1,11 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
-import { Observable, filter, switchMap, shareReplay, combineLatest, of, catchError, tap, throwError } from 'rxjs';
+import { Observable, filter, switchMap, shareReplay, combineLatest, of, catchError, tap, throwError, take } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
 import { ApiResponseProduction } from '../models/production.model';
-import { SimulationResult } from '../models/simulation.model';
+import { SimulationResult, SimulationCutResult } from '../models/simulation.model';
 
 /**
  * Representa o payload enviado para a simulação.
@@ -15,6 +15,24 @@ export interface SimulationRequest {
   quantidade: number;
   loteId?: number;
   lotesConsumidosIds?: number[];
+}
+
+/**
+ * Representa o payload enviado para a verificação de layout.
+ */
+export interface VerificationRequest {
+  produtoId: number;
+  loteId: number;
+  quantidade: number;
+  modoCalculo: string;
+  margens?: {
+    superior: number | null;
+    inferior: number | null;
+    esquerda: number | null;
+    direita: number | null;
+  };
+  larguraFinalCm?: number | null;
+  comprimentoFinalCm?: number | null;
 }
 
 /**
@@ -98,6 +116,25 @@ export class ProductionService {
   }
 
   /**
+   * Executa a verificação de layout de corte no backend.
+   * @param payload Os dados editados para verificação.
+   * @returns Um Observable com o novo resultado da simulação.
+   */
+  verifyCutLayout(payload: VerificationRequest): Observable<SimulationCutResult> {
+    // Como o endpoint de verificação não está no ApiRoot (é um sub-recurso),
+    // construímos a URL a partir do base path de ordens de produção.
+    return this.endpoints$.pipe(
+      take(1),
+      switchMap((endpoints: any) => {
+        const url = endpoints._links?.['ordens-de-producao']?.href;
+        if (!url) return throwError(() => new Error('Endpoint de ordens de produção não encontrado.'));
+        const baseUrl = url.split('{')[0];
+        return this.http.post<SimulationCutResult>(`${baseUrl}/verificar-corte`, payload);
+      })
+    );
+  }
+
+  /**
    * Atualiza os parâmetros de busca, disparando uma nova requisição.
    */
   updateSearchParams(params: Partial<{ page: number; size: number; sort: string; }>): void {
@@ -119,9 +156,6 @@ export class ProductionService {
       tap(() => this.refreshTrigger.set(undefined))
     );
   }
-
-  // TODO: Implementar métodos de criação (createCorte, createConsumoDireto) e simulação
-  // quando formos implementar o formulário. Por enquanto, focamos na listagem.
 
   private createEmptyResponse(): ApiResponseProduction {
     return {

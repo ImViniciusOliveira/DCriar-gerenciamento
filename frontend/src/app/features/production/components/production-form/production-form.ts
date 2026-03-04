@@ -15,12 +15,13 @@ import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProductionOrder } from '../../models/production.model';
 import { Product } from '../../../products/models/product.model';
 import { ProductStockSearch } from '../../../../shared/components/product-stock-search/product-stock-search';
-import { ProductionService, SimulationRequest } from '../../services/production.service';
+import { ProductionService, SimulationRequest, VerificationRequest } from '../../services/production.service';
 import { SimulationResult, SimulationCutResult } from '../../models/simulation.model';
 import { BatchSearch } from '../../../../shared/components/batch-search/batch-search';
 import {Batch} from '../../../stock/models/batch.model';
 import { ChannelService } from '../../../stock/services/channel.service';
-import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
+import { ConfirmDialog } from '../../../../shared/components/confirm-dialog/confirm-dialog';
+import { RethalboBadgeComponent, RetalhoValue } from '../retalho-badge/retalho-badge.component';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -43,7 +44,8 @@ export interface ProductionFormData {
     ProductStockSearch,
     MatIconModule,
     BatchSearch,
-    MatCheckboxModule
+    MatCheckboxModule,
+    RethalboBadgeComponent
   ],
   templateUrl: './production-form.html',
   styleUrls: ['./production-form.scss'],
@@ -68,6 +70,7 @@ export class ProductionForm implements OnInit {
 
   produto = signal<Product | null>(null);
   loteSelecionado = signal<Batch | null>(null);
+  showRetalhoPreview = signal(false);
 
   // Carrega os canais reais da API usando o novo serviço
   channels = toSignal(this.channelService.getAllChannels(), { initialValue: [] });
@@ -87,38 +90,99 @@ export class ProductionForm implements OnInit {
     if (!result || result.tipoSimulacao !== 'CORTE') {
       return '';
     }
+    return this.formatFeedbackString(result as SimulationCutResult, Number(this.form.get('quantidade')?.value || 0));
+  });
 
-    const lines: string[] = [];
-    const qtd = Number(this.form.get('quantidade')?.value || 0);
-
-    // Linha 1: Informação Geral (com correção de plural)
-    const labelProduto = qtd === 1 ? 'produto' : 'produtos';
-    lines.push(`Informação: ${qtd} ${labelProduto} (${result.dimensaoProduto}).`);
-
-    // Linha 2: Layout dos Produtos (lógica inteligente para linha única)
-    const totalLinhas = result.numeroLinhasCompletas + (result.produtosNaUltimaLinha > 0 ? 1 : 0);
-
-    if (totalLinhas === 1) {
-      // Caso de linha única: foca na ocupação real
-      lines.push(`Produtos: ${qtd} na única linha (Capacidade: ${result.produtosPorLinha}).`);
-    } else {
-      // Caso de múltiplas linhas: mantém a descrição detalhada
-      const descLinhas = result.produtosNaUltimaLinha === result.produtosPorLinha
-        ? `${totalLinhas} linhas completas`
-        : `${result.numeroLinhasCompletas} linhas completas + 1 parcial`;
-      lines.push(`Produtos: ${result.produtosPorLinha} por linha (${descLinhas}).`);
+  // Monta a lista completa do preview com total por linha, ex.: [10] [5] [1] [R] = 16
+  retalhoPreviewRows = computed(() => {
+    const result = this.simulationResult();
+    if (!result || result.tipoSimulacao !== 'CORTE') {
+      return [] as Array<{ items: RetalhoValue[]; total: number }>;
     }
 
-    // Linha 3: Sobras
-    const sobras: string[] = [];
-    if (result.sobraLateral) sobras.push(`Lateral ${result.sobraLateral}`);
-    if (result.sobraFinal) sobras.push(`Final ${result.sobraFinal}`);
-    lines.push(`Sobras: ${sobras.length > 0 ? sobras.join(' | ') : 'Nenhuma'}.`);
+    const cut = result as SimulationCutResult;
+    const capacidadeLinha = Number(cut.produtosPorLinha || 0);
+    if (capacidadeLinha <= 0) {
+      return [] as Array<{ items: RetalhoValue[]; total: number }>;
+    }
 
-    // Linha 4: Consumo Total
-    lines.push(`Consumo Total: ${result.consumoTotal}.`);
+    // Passo 1: Montar array com total de produtos por linha
+    const rowTotals: number[] = [];
+    for (let i = 0; i < Number(cut.numeroLinhasCompletas || 0); i += 1) {
+      rowTotals.push(capacidadeLinha);
+    }
 
-    return lines.join('\n');
+    const ultimaLinha = Number(cut.produtosNaUltimaLinha || 0);
+    if (ultimaLinha > 0) {
+      rowTotals.push(ultimaLinha);
+    }
+
+    const totalLinhas = rowTotals.length;
+    let padraoQuadrados = 0; // Quantos quadrados (tokens) na primeira linha incompleta
+    let primeiraLinhaIncompletaIndex = -1;
+
+    // Passo 2: Primeira passada - identificar a primeira linha incompleta e definir padrão
+    for (let i = 0; i < totalLinhas; i++) {
+      if (rowTotals[i] < capacidadeLinha) {
+        primeiraLinhaIncompletaIndex = i;
+        const tempItems = this.buildCompactProductTokens(rowTotals[i]);
+        padraoQuadrados = tempItems.length + 1; // +1 pelo R
+        break;
+      }
+    }
+
+    // Passo 3: Segunda passada - montar as linhas com a regra correta
+    return rowTotals.map((rowTotal, lineIndex) => {
+      const items = this.buildCompactProductTokens(rowTotal);
+      const isUltimaLinha = lineIndex === totalLinhas - 1;
+      const linhaCompleta = rowTotal === capacidadeLinha;
+
+      // Regra 3: Se linha completa, não coloca R
+      if (linhaCompleta) {
+        return { items, total: rowTotal };
+      }
+
+      // Linha incompleta
+      const tokensProdutos = items.length;
+
+      // Regra 4: Primeira linha incompleta - adiciona 1 R (padrão já foi guardado)
+      if (lineIndex === primeiraLinhaIncompletaIndex) {
+        items.push('R');
+        return { items, total: rowTotal };
+      }
+
+      // Regra 5: Última linha incompleta
+      if (isUltimaLinha) {
+        if (padraoQuadrados === 0) {
+          // Nenhuma linha anterior incompleta: define próprio padrão
+          items.push('R');
+          padraoQuadrados = items.length;
+
+          // Preenche até o próprio padrão se necessário
+          const rsExtras = padraoQuadrados - tokensProdutos - 1;
+          for (let i = 0; i < rsExtras; i++) {
+            items.push('R');
+          }
+        } else {
+          // Existe padrão da primeira linha incompleta
+          if (tokensProdutos >= padraoQuadrados) {
+            // Excedeu o padrão E ainda tem espaço vazio: apenas 1 R
+            items.push('R');
+          } else {
+            // Preenche com R até atingir o padrão de quadrados
+            const rsNecessarios = padraoQuadrados - tokensProdutos;
+            for (let i = 0; i < rsNecessarios; i++) {
+              items.push('R');
+            }
+          }
+        }
+        return { items, total: rowTotal };
+      }
+
+      // Linha intermediária incompleta: adiciona 1 R
+      items.push('R');
+      return { items, total: rowTotal };
+    });
   });
 
   // Propriedades computadas para controlar a visibilidade das seções de input.
@@ -445,95 +509,194 @@ export class ProductionForm implements OnInit {
    */
   onVerify(): void {
     const formValue = this.form.getRawValue();
-    const result = this.simulationResult();
+    const currentResult = this.simulationResult();
 
-    if (!result || result.tipoSimulacao !== 'CORTE') return;
-    const cutResult = result as SimulationCutResult;
+    if (!currentResult || currentResult.tipoSimulacao !== 'CORTE') return;
+    const oldResult = currentResult as SimulationCutResult;
 
-    // --- Lógica para o estado ATUAL (Antigo) ---
-    const oldQtd = this.formSnapshot?.quantidade || 1;
-    const oldLabel = oldQtd === 1 ? 'produto' : 'produtos';
+    // Montar payload para a API de verificação
+    const payload: VerificationRequest = {
+      produtoId: Number(formValue.produtoId),
+      loteId: Number(formValue.loteId),
+      quantidade: Number(formValue.quantidade),
+      modoCalculo: formValue.modoCalculo,
+      margens: {
+        superior: formValue.margens.superior ? Number(formValue.margens.superior) : 0,
+        inferior: formValue.margens.inferior ? Number(formValue.margens.inferior) : 0,
+        esquerda: formValue.margens.esquerda ? Number(formValue.margens.esquerda) : 0,
+        direita: formValue.margens.direita ? Number(formValue.margens.direita) : 0
+      },
+      larguraFinalCm: formValue.larguraFinalCm ? Number(formValue.larguraFinalCm) : null,
+      comprimentoFinalCm: formValue.comprimentoFinalCm ? Number(formValue.comprimentoFinalCm) : null
+    };
 
-    const oldTotalLinhas = cutResult.numeroLinhasCompletas + (cutResult.produtosNaUltimaLinha > 0 ? 1 : 0);
-    let oldLayout = '';
-    if (oldTotalLinhas === 1) {
-      oldLayout = `${oldQtd} na única linha (Capacidade: ${cutResult.produtosPorLinha})`;
-    } else {
-      const desc = cutResult.produtosNaUltimaLinha === cutResult.produtosPorLinha
-        ? `${oldTotalLinhas} linhas completas`
-        : `${cutResult.numeroLinhasCompletas} linhas completas + 1 parcial`;
-      oldLayout = `${cutResult.produtosPorLinha} por linha (${desc})`;
+    this.isVerifying.set(true);
+
+    this.productionService.verifyCutLayout(payload)
+      .pipe(take(1))
+      .subscribe({
+        next: (newResult) => {
+          this.isVerifying.set(false);
+          this.showVerificationDialog(oldResult, newResult, formValue);
+        },
+        error: (err) => {
+          this.isVerifying.set(false);
+          // TODO: Mostrar alerta de erro (ex: dimensões insuficientes no manual)
+          console.error('Erro na verificação:', err);
+        }
+      });
+  }
+
+  toggleRetalhoPreview(): void {
+    this.showRetalhoPreview.set(!this.showRetalhoPreview());
+  }
+
+  /**
+   * Compacta a quantidade de produtos em tokens grandes para reduzir ruido visual.
+   * Ex.: 23 -> [10, 10, 1, 1, 1]
+   */
+  private buildCompactProductTokens(count: number): RetalhoValue[] {
+    const tokens: RetalhoValue[] = [];
+    const groups: Array<{ value: RetalhoValue; size: number }> = [
+      { value: '100', size: 100 },
+      { value: '50', size: 50 },
+      { value: '10', size: 10 },
+      { value: '5', size: 5 },
+      { value: '1', size: 1 }
+    ];
+
+    let remaining = Math.max(0, Math.floor(count));
+
+    for (const group of groups) {
+      while (remaining >= group.size) {
+        tokens.push(group.value);
+        remaining -= group.size;
+      }
     }
 
-    // --- Lógica para o estado NOVO (Simulado/Hardcoded para o protótipo) ---
-    const newQtd = formValue.quantidade;
-    const newLabel = newQtd === 1 ? 'produto' : 'produtos';
-    const newLayout = `2 por linha (5 linhas completas + 1 parcial)`;
+    return tokens;
+  }
 
-    // Margens com alinhamento profissional (padEnd)
+  /**
+   * Exibe o diálogo de confirmação com a comparação real entre o estado atual e o verificado.
+   */
+  private showVerificationDialog(oldR: SimulationCutResult, newR: SimulationCutResult, formValue: any): void {
+    const oldQtd = this.formSnapshot?.quantidade || 0;
+    const newQtd = formValue.quantidade;
+
+    // Formatação das linhas de comparação
+    const infoLine = `Informação: ${oldQtd} ${oldQtd === 1 ? 'produto' : 'produtos'} → ${newQtd} ${newQtd === 1 ? 'produto' : 'produtos'}.`;
+
+    const oldLayoutStr = this.formatLayoutShortString(oldR, oldQtd);
+    const newLayoutStr = this.formatLayoutShortString(newR, newQtd);
+    const layoutLine = `Produtos: ${oldLayoutStr} → ${newLayoutStr}`;
+
+    const oldSobras = this.formatSobrasString(oldR);
+    const newSobras = this.formatSobrasString(newR);
+    const sobrasLine = `Sobras: ${oldSobras} → ${newSobras}`;
+
+    const consumoLine = `Consumo total: ${oldR.consumoTotal} → ${newR.consumoTotal}`;
+    const rotacaoLine = `Rotação: ${oldR.rotacionado ? 'Sim' : 'Não'} → ${newR.rotacionado ? 'Sim' : 'Não'}`;
+
+    // Margens com alinhamento profissional
     const oldM = this.formSnapshot?.margens;
     const newM = formValue.margens;
-
     const labelSup = "Superior:".padEnd(10);
     const labelInf = "Inferior:".padEnd(10);
     const labelEsq = "Esquerda:".padEnd(10);
     const labelDir = "Direita:".padEnd(10);
-
-    // Rotação
-    const oldRot = cutResult.rotacionado ? 'Sim' : 'Não';
-    const newRot = 'Sim'; // Hardcoded para o protótipo
+    const margensMsg = `Margens: ${labelSup} ${oldM?.superior || 0} → ${newM.superior || 0}  ${labelInf} ${oldM?.inferior || 0} → ${newM.inferior || 0}\n` +
+                       `         ${labelEsq} ${oldM?.esquerda || 0} → ${newM.esquerda || 0}  ${labelDir} ${oldM?.direita || 0} → ${newM.direita || 0}`;
 
     const message = `As alterações mudaram o plano de produção:\n\n` +
-                    `Informação: ${oldQtd} ${oldLabel} → ${newQtd} ${newLabel}.\n` +
-                    `Produtos: ${oldLayout} → ${newLayout}\n` +
-                    `Sobras: Lateral ${cutResult.sobraLateral || 'Nenhuma'} → 105x10cm. Final ${cutResult.sobraFinal || '0'} → 100x5\n` +
-                    `Consumo total: ${cutResult.consumoTotal} → 120x25cm\n` +
-                    `Rotação: ${oldRot} → ${newRot}\n\n` +
-                    `Margens: ${labelSup} ${oldM?.superior || 0} → ${newM.superior || 0}  ${labelInf} ${oldM?.inferior || 0} → ${newM.inferior || 0}\n` +
-                    `         ${labelEsq} ${oldM?.esquerda || 0} → ${newM.esquerda || 0}  ${labelDir} ${oldM?.direita || 0} → ${newM.direita || 0}\n\n` +
+                    `${infoLine}\n` +
+                    `${layoutLine}\n` +
+                    `${sobrasLine}\n` +
+                    `${consumoLine}\n` +
+                    `${rotacaoLine}\n\n` +
+                    `${margensMsg}\n\n` +
                     `Deseja aplicar estas mudanças?`;
 
-    const dialogData: ConfirmDialogData = {
-      title: 'Confirmar Alterações',
-      message: message
-    };
-
     const dialogRef = this.dialog.open(ConfirmDialog, {
-      data: dialogData,
-      width: '550px'
+      data: { title: 'Confirmar Alterações', message: message },
+      width: '600px'
     });
 
     dialogRef.afterClosed().subscribe(confirmed => {
       if (confirmed) {
-        console.log('Verificação ACEITA. Dados que seriam mudados:', {
-          quantidade: newQtd,
-          modoCalculo: formValue.modoCalculo,
-          margens: formValue.margens,
-          larguraFinalCm: formValue.larguraFinalCm,
-          comprimentoFinalCm: formValue.comprimentoFinalCm
-        });
+        // ACEITAR: Atualiza o estado estável
+        this.simulationResult.set(newR);
         this.formSnapshot = this.form.getRawValue();
         this.needsVerification.set(false);
-      } else {
-        console.log('Verificação CANCELADA. Restaurando formulário...');
-        if (this.formSnapshot) {
-          // Cria uma cópia do snapshot para restauração
-          const restoreData = { ...this.formSnapshot };
 
-          // Preserva os valores atuais de canal e motivo (não restaura do snapshot)
+        // Se for automático, atualiza os campos de dimensão com os novos valores calculados
+        if (formValue.modoCalculo === 'AUTOMATICO') {
+          this.form.patchValue({
+            larguraFinalCm: newR.larguraFinalCm,
+            comprimentoFinalCm: newR.comprimentoFinalCm
+          }, { emitEvent: false });
+        }
+      } else {
+        // CANCELAR: Restaura o último estado estável
+        if (this.formSnapshot) {
+          const restoreData = { ...this.formSnapshot };
           restoreData.canalVendaId = this.form.get('canalVendaId')?.value;
           restoreData.motivo = this.form.get('motivo')?.value;
-
           this.form.patchValue(restoreData, { emitEvent: false });
-
-          // Força a re-execução da lógica de modo para corrigir o estado visual (bug do cinza)
           this.onModoCalculoChange();
-
           this.needsVerification.set(false);
-          this.cdr.markForCheck();
         }
       }
+      this.cdr.markForCheck();
     });
+  }
+
+  /**
+   * Formata uma string curta descrevendo o layout (usado no alerta).
+   */
+  private formatLayoutShortString(r: SimulationCutResult, qtd: number): string {
+    const totalLinhas = r.numeroLinhasCompletas + (r.produtosNaUltimaLinha > 0 ? 1 : 0);
+    if (totalLinhas === 1) {
+      return `${qtd} na única linha`;
+    }
+    return `${r.produtosPorLinha} por linha`;
+  }
+
+  /**
+   * Formata uma string descrevendo as sobras (usado no alerta).
+   */
+  private formatSobrasString(r: SimulationCutResult): string {
+    const parts: string[] = [];
+    if (r.sobraLateral) parts.push(`Lateral ${r.sobraLateral}`);
+    if (r.sobraFinal) parts.push(`Final ${r.sobraFinal}`);
+    return parts.length > 0 ? parts.join(' | ') : 'Nenhuma';
+  }
+
+  /**
+   * Formata a string completa de feedback exibida no formulário.
+   */
+  private formatFeedbackString(result: SimulationCutResult, qtd: number): string {
+    const lines: string[] = [];
+    const labelProduto = qtd === 1 ? 'produto' : 'produtos';
+    lines.push(`Informação: ${qtd} ${labelProduto} (${result.dimensaoProduto}).`);
+
+    const totalLinhas = result.numeroLinhasCompletas + (result.produtosNaUltimaLinha > 0 ? 1 : 0);
+    if (totalLinhas === 1) {
+      lines.push(`Produtos: ${qtd} na única linha (Capacidade: ${result.produtosPorLinha}).`);
+    } else {
+      const descLinhas = result.produtosNaUltimaLinha === result.produtosPorLinha
+        ? `${totalLinhas} linhas completas`
+        : `${result.numeroLinhasCompletas} linhas completas + 1 parcial`;
+      lines.push(`Produtos: ${result.produtosPorLinha} por linha (${descLinhas}).`);
+    }
+
+    const sobras: string[] = [];
+    if (result.sobraLateral) sobras.push(`Lateral ${result.sobraLateral}`);
+    if (result.sobraFinal) sobras.push(`Final ${result.sobraFinal}`);
+    lines.push(`Sobras: ${sobras.length > 0 ? sobras.join(' | ') : 'Nenhuma'}.`);
+    lines.push(`Consumo Total: ${result.consumoTotal}.`);
+
+    return lines.join('\n');
   }
 
   /**

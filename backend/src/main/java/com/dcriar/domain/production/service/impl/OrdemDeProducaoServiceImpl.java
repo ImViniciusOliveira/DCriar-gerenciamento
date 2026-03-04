@@ -392,6 +392,68 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     @Override
+    public SimulacaoCorteResponseDTO verificarCorte(VerificacaoCorteRequestDTO requestDTO) {
+        Produto produto = findProdutoById(requestDTO.getProdutoId());
+        LoteMateriaPrima lote = findLoteById(requestDTO.getLoteId());
+
+        BigDecimal comprimentoFinalCm;
+        ParametrosCorte parametros;
+
+        if (requestDTO.getModoCalculo() == ModoCalculo.MANUAL) {
+            comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
+            
+            // No modo manual, criamos os parâmetros baseados no que o usuário digitou
+            BigDecimal larguraProduto = ((ProdutoDeCorte) produto).getDimensoes().getLarguraCm();
+            BigDecimal comprimentoProduto = ((ProdutoDeCorte) produto).getDimensoes().getComprimentoCm();
+            
+            // Determina se cabe na largura informada (simulação simples para o DTO)
+            int produtosPorLinha = requestDTO.getLarguraFinalCm().divide(larguraProduto, 0, RoundingMode.FLOOR).intValue();
+            
+            parametros = ParametrosCorte.builder()
+                    .larguraTotalLoteCm(requestDTO.getLarguraFinalCm())
+                    .larguraProduto(larguraProduto)
+                    .comprimentoProduto(comprimentoProduto)
+                    .quantidade(requestDTO.getQuantidade())
+                    .larguraUtilCm(requestDTO.getLarguraFinalCm())
+                    .produtosPorLinha(produtosPorLinha)
+                    .rotacionado(false) // No manual não rotacionamos automaticamente
+                    .build();
+        } else {
+            // No modo automático, recalculamos usando as margens informadas
+            parametros = corteCalculatorService.extrairParametrosCorte(
+                    requestDTO.getQuantidade(), produto, lote, requestDTO.getMargens()
+            );
+
+            long numeroDeLinhas = (long) Math.ceil((double) requestDTO.getQuantidade() / parametros.produtosPorLinha());
+            comprimentoFinalCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhas));
+            
+            if (requestDTO.getMargens() != null) {
+                comprimentoFinalCm = comprimentoFinalCm
+                        .add(Optional.ofNullable(requestDTO.getMargens().getSuperior()).orElse(BigDecimal.ZERO))
+                        .add(Optional.ofNullable(requestDTO.getMargens().getInferior()).orElse(BigDecimal.ZERO));
+            }
+        }
+
+        ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm);
+        BigDecimal consumoEstimado = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+
+        return SimulacaoCorteResponseDTO.builder()
+                .modoCalculo(requestDTO.getModoCalculo())
+                .larguraFinalCm(parametros.larguraTotalLoteCm())
+                .comprimentoFinalCm(comprimentoFinalCm)
+                .consumoEstimado(consumoEstimado)
+                .rotacionado(parametros.rotacionado())
+                .produtosPorLinha(resumo.produtosPorLinha())
+                .numeroLinhasCompletas(resumo.numeroLinhasCompletas())
+                .produtosNaUltimaLinha(resumo.produtosNaUltimaLinha())
+                .sobraLateral(resumo.sobraLateral())
+                .sobraFinal(resumo.sobraFinal())
+                .dimensaoProduto(formatarDimensao(parametros.larguraProduto(), parametros.comprimentoProduto()))
+                .consumoTotal(formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoFinalCm))
+                .build();
+    }
+
+    @Override
     public SimulacaoConsumoDiretoResponseDTO simularConsumoDireto(SimulacaoConsumoDiretoRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumoDireto()) {

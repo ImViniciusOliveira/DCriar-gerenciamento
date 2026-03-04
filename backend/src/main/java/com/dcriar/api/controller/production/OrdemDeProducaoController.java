@@ -1,9 +1,6 @@
 package com.dcriar.api.controller.production;
 
-import com.dcriar.api.dto.request.production.OrdemDeConsumoDiretoRequestDTO;
-import com.dcriar.api.dto.request.production.OrdemDeCorteRequestDTO;
-import com.dcriar.api.dto.request.production.SimulacaoConsumoDiretoRequestDTO;
-import com.dcriar.api.dto.request.production.SimulacaoCorteRequestDTO;
+import com.dcriar.api.dto.request.production.*;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoConsumoDiretoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
@@ -110,6 +107,17 @@ public class OrdemDeProducaoController {
     @ApiResponse(responseCode = "200", description = "Simulação realizada com sucesso.")
     public ResponseEntity<SimulacaoCorteResponseDTO> simularCorte(@RequestBody @Valid SimulacaoCorteRequestDTO requestDTO) {
         SimulacaoCorteResponseDTO response = ordemDeProducaoService.simularCorte(requestDTO);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/verificar-corte")
+    @Operation(summary = "Verificar e validar um layout de corte editado manualmente")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Verificação realizada com sucesso."),
+            @ApiResponse(responseCode = "400", description = "Dados de edição inválidos.", content = @Content)
+    })
+    public ResponseEntity<SimulacaoCorteResponseDTO> verificarCorte(@RequestBody @Valid VerificacaoCorteRequestDTO requestDTO) {
+        SimulacaoCorteResponseDTO response = ordemDeProducaoService.verificarCorte(requestDTO);
         return ResponseEntity.ok(response);
     }
 

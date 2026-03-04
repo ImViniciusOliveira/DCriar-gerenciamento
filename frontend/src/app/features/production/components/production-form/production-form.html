@@ -250,6 +250,24 @@
 
         <!-- Botão de Verificação -->
         <div class="verification-actions">
+          <button mat-stroked-button color="accent" type="button" (click)="toggleRetalhoPreview()">
+            <mat-icon>{{ showRetalhoPreview() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            {{ showRetalhoPreview() ? 'Esconder' : 'Mostrar' }}
+          </button>
+
+          @if (showRetalhoPreview()) {
+            <div class="retalho-icon-preview">
+              @for (row of retalhoPreviewRows(); track $index) {
+                <div class="retalho-row-simulation">
+                  @for (item of row.items; track $index) {
+                    <app-retalho-badge [value]="item"></app-retalho-badge>
+                  }
+                  <span class="retalho-row-total">= {{ row.total }}</span>
+                </div>
+              }
+            </div>
+          }
+
           <button mat-stroked-button color="accent" type="button" (click)="onVerify()" [disabled]="!needsVerification() || isVerifying()">
             <mat-icon>check_circle</mat-icon>
             Verificar
