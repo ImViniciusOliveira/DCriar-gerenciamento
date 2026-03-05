@@ -385,7 +385,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .numeroLinhasCompletas(resumo.numeroLinhasCompletas())
                 .produtosNaUltimaLinha(resumo.produtosNaUltimaLinha())
                 .sobraLateral(resumo.sobraLateral())
-                .sobraFinal(resumo.sobraFinal())
+                .sobraInferior(resumo.sobraInferior())
+                .saldoRolo(resumo.saldoRolo())
                 .dimensaoProduto(formatarDimensao(parametros.larguraProduto(), parametros.comprimentoProduto()))
                 .consumoTotal(formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoFinalCm))
                 .build();
@@ -447,7 +448,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .numeroLinhasCompletas(resumo.numeroLinhasCompletas())
                 .produtosNaUltimaLinha(resumo.produtosNaUltimaLinha())
                 .sobraLateral(resumo.sobraLateral())
-                .sobraFinal(resumo.sobraFinal())
+                .sobraInferior(resumo.sobraInferior())
+                .saldoRolo(resumo.saldoRolo())
                 .dimensaoProduto(formatarDimensao(parametros.larguraProduto(), parametros.comprimentoProduto()))
                 .consumoTotal(formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoFinalCm))
                 .build();

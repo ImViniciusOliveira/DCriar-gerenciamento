@@ -43,11 +43,14 @@ public class SimulacaoCorteResponseDTO {
     @Schema(description = "Quantidade de produtos presentes na última linha (pode ser parcial).", example = "1")
     private Integer produtosNaUltimaLinha;
 
-    @Schema(description = "Descrição formatada das dimensões da sobra lateral.", example = "37cm x 800cm")
+    @Schema(description = "Descrição formatada da tira de sobra contínua (r1).", example = "10cm x 30cm")
     private String sobraLateral;
 
-    @Schema(description = "Descrição formatada das dimensões da sobra final.", example = "160cm x 4cm")
-    private String sobraFinal;
+    @Schema(description = "Descrição formatada do bloco de sobra na última linha (r2).", example = "54cm x 10cm")
+    private String sobraInferior;
+
+    @Schema(description = "Descrição formatada da sobra de comprimento do rolo.", example = "100cm x 49.7m")
+    private String saldoRolo;
 
     @Schema(description = "Descrição formatada das dimensões unitárias do produto.", example = "8cm x 12cm")
     private String dimensaoProduto;

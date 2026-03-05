@@ -45,52 +45,54 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
             throw new TipoProducaoIncompativelException("Cálculo de corte só é aplicável a produtos do tipo 'CORTE'.");
         }
 
-        // 1. Obter a largura total do lote e calcular a largura útil, descontando as margens.
+        // 1. Obter a largura total do lote e as dimensões do produto.
         BigDecimal larguraTotalLoteCm = getLarguraEmCm(lotePrincipal.getAtributos());
-        BigDecimal margemEsquerda = Optional.ofNullable(margensRequest != null ? margensRequest.getEsquerda() : null).orElse(BigDecimal.ZERO);
-        BigDecimal margemDireita = Optional.ofNullable(margensRequest != null ? margensRequest.getDireita() : null).orElse(BigDecimal.ZERO);
-        BigDecimal larguraUtilCm = calcularLarguraUtilCm(larguraTotalLoteCm, margemEsquerda, margemDireita);
-
-        if (larguraUtilCm.compareTo(BigDecimal.ZERO) < 0) {
-            throw new MargemInvalidaException("A soma das margens laterais não pode exceder a largura do lote.");
-        }
-
         Dimensoes dimensoesProduto = produtoDeCorte.getDimensoes();
         BigDecimal larguraProduto = dimensoesProduto.getLarguraCm();
         BigDecimal comprimentoProduto = dimensoesProduto.getComprimentoCm();
+        BigDecimal margemEsquerda = Optional.ofNullable(margensRequest != null ? margensRequest.getEsquerda() : null).orElse(BigDecimal.ZERO);
+        BigDecimal margemDireita = Optional.ofNullable(margensRequest != null ? margensRequest.getDireita() : null).orElse(BigDecimal.ZERO);
 
-        // --- Lógica de Otimização por Rotação ---
-        // O objetivo é encontrar a orientação (normal ou rotacionada) que consome o menor comprimento do rolo de matéria-prima.
+        // --- Lógica de Otimização Estrita ---
 
-        // 2. Simulação 1: Orientação Normal (produto não rotacionado)
-        int produtosPorLinhaNormal = calcularProdutosPorLinha(larguraUtilCm, larguraProduto);
-        int linhasNormal = calcularLinhas(quantidade, produtosPorLinhaNormal);
-        // Se a orientação for impossível (não cabe nenhum produto), atribui-se um custo infinito para desqualificá-la.
-        BigDecimal comprimentoTotalNormal = (produtosPorLinhaNormal > 0)
-                ? comprimentoProduto.multiply(new BigDecimal(linhasNormal))
+        // 2. Determinar a orientação ótima SEM margens.
+        int produtosPorLinhaNormalSemMargem = calcularProdutosPorLinhaSemMargem(larguraTotalLoteCm, larguraProduto);
+        int linhasNormalSemMargem = calcularLinhas(quantidade, produtosPorLinhaNormalSemMargem);
+        BigDecimal comprimentoTotalNormalSemMargem = (produtosPorLinhaNormalSemMargem > 0)
+                ? comprimentoProduto.multiply(new BigDecimal(linhasNormalSemMargem))
                 : BigDecimal.valueOf(Long.MAX_VALUE);
 
-        // 3. Simulação 2: Orientação Rotacionada (produto rotacionado 90 graus)
-        int produtosPorLinhaRotacionado = calcularProdutosPorLinha(larguraUtilCm, comprimentoProduto);
-        int linhasRotacionado = calcularLinhas(quantidade, produtosPorLinhaRotacionado);
-        // Atribui-se um custo infinito se a orientação for impossível.
-        BigDecimal comprimentoTotalRotacionado = (produtosPorLinhaRotacionado > 0)
-                ? larguraProduto.multiply(new BigDecimal(linhasRotacionado))
+        int produtosPorLinhaRotacionadoSemMargem = calcularProdutosPorLinhaSemMargem(larguraTotalLoteCm, comprimentoProduto);
+        int linhasRotacionadoSemMargem = calcularLinhas(quantidade, produtosPorLinhaRotacionadoSemMargem);
+        BigDecimal comprimentoTotalRotacionadoSemMargem = (produtosPorLinhaRotacionadoSemMargem > 0)
+                ? larguraProduto.multiply(new BigDecimal(linhasRotacionadoSemMargem))
                 : BigDecimal.valueOf(Long.MAX_VALUE);
 
-        // 4. Decisão: Escolhe a orientação que resulta no menor consumo de comprimento.
-        boolean rotacionado;
-        if (produtosPorLinhaNormal == 0 && produtosPorLinhaRotacionado == 0) {
-            throw new ProdutoNaoCabeNoLoteException("O produto não cabe na largura útil do lote em nenhuma orientação.");
+        if (produtosPorLinhaNormalSemMargem == 0 && produtosPorLinhaRotacionadoSemMargem == 0) {
+            throw new ProdutoNaoCabeNoLoteException("O produto não cabe na largura do lote em nenhuma orientação.");
+        }
+        
+        boolean orientacaoOtimaEhRotacionado = comprimentoTotalRotacionadoSemMargem.compareTo(comprimentoTotalNormalSemMargem) < 0;
+
+        // 3. Aplicar margens APENAS na orientação ótima.
+        int produtosPorLinhaFinal;
+        if (orientacaoOtimaEhRotacionado) {
+            produtosPorLinhaFinal = calcularProdutosPorLinhaComMargem(larguraTotalLoteCm, comprimentoProduto, margemEsquerda, margemDireita);
         } else {
-            // Compara o comprimento total consumido em cada simulação.
-            rotacionado = comprimentoTotalRotacionado.compareTo(comprimentoTotalNormal) < 0;
+            produtosPorLinhaFinal = calcularProdutosPorLinhaComMargem(larguraTotalLoteCm, larguraProduto, margemEsquerda, margemDireita);
         }
 
-        // 5. Define os parâmetros finais com base na orientação escolhida.
+        // 4. Se a margem invalidou o layout ótimo (retornou 0), lançar exceção.
+        if (produtosPorLinhaFinal == 0) {
+            throw new MargemInvalidaException("A margem solicitada excede o espaço disponível no layout de corte otimizado.");
+        }
+
+        // 5. Define os parâmetros finais com base na orientação ótima.
+        boolean rotacionado = orientacaoOtimaEhRotacionado;
         BigDecimal pLarguraFinal = rotacionado ? comprimentoProduto : larguraProduto;
         BigDecimal pComprimentoFinal = rotacionado ? larguraProduto : comprimentoProduto;
-        int pProdutosPorLinhaFinal = rotacionado ? produtosPorLinhaRotacionado : produtosPorLinhaNormal;
+        
+        BigDecimal larguraUtilCm = larguraTotalLoteCm.subtract(margemEsquerda).subtract(margemDireita);
 
         return new ParametrosCorte(
                 larguraTotalLoteCm,
@@ -100,7 +102,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
                 margemEsquerda,
                 margemDireita,
                 larguraUtilCm,
-                pProdutosPorLinhaFinal,
+                produtosPorLinhaFinal,
                 rotacionado
         );
     }
@@ -108,95 +110,88 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
     @Override
     public ResumoLayoutCorte calcularLayoutDetalhado(ParametrosCorte parametros, BigDecimal ordemComprimentoFinalCm) {
         List<CorteRealizadoResponseDTO> cortesRealizados = new ArrayList<>();
+        
+        // --- ETAPA 1: Validação de Segurança (Guard Clause) ---
+        int produtosPorLinha = parametros.produtosPorLinha();
+        if (produtosPorLinha <= 0) {
+            return ResumoLayoutCorte.builder()
+                    .cortes(cortesRealizados)
+                    .produtosPorLinha(0)
+                    .numeroLinhasCompletas(0)
+                    .produtosNaUltimaLinha(0)
+                    .sobraLateral("")
+                    .sobraInferior("")
+                    .saldoRolo("")
+                    .build();
+        }
+
+        // --- ETAPA 2: Calcular contagem de linhas e produtos ---
+        int numeroLinhasCompletas = parametros.quantidade() / produtosPorLinha;
+        int produtosNaUltimaLinha = parametros.quantidade() % produtosPorLinha;
+        if (produtosNaUltimaLinha == 0 && parametros.quantidade() > 0) {
+            produtosNaUltimaLinha = produtosPorLinha;
+            // Se a última linha é completa, o número de linhas completas é o total de linhas.
+            numeroLinhasCompletas = calcularLinhas(parametros.quantidade(), produtosPorLinha);
+        }
+
+        // --- ETAPA 3: Calcular dimensões das sobras LATERAL (r1) e INFERIOR (r2) ---
+        BigDecimal larguraSobraLateral = parametros.larguraTotalLoteCm()
+            .subtract(parametros.larguraProduto().multiply(new BigDecimal(produtosPorLinha)))
+            .subtract(parametros.margemEsquerda())
+            .subtract(parametros.margemDireita());
+
+        BigDecimal larguraSobraInferior = BigDecimal.ZERO;
+        if (produtosNaUltimaLinha > 0 && produtosNaUltimaLinha < produtosPorLinha) {
+            larguraSobraInferior = parametros.larguraTotalLoteCm()
+                .subtract(parametros.larguraProduto().multiply(new BigDecimal(produtosNaUltimaLinha)))
+                .subtract(larguraSobraLateral)
+                .subtract(parametros.margemEsquerda())
+                .subtract(parametros.margemDireita());
+        }
+
+        // --- ETAPA 4: Gerar cortes de PRODUTO ---
         int produtosRestantes = parametros.quantidade();
-        RetalhoLateralTracker tracker = new RetalhoLateralTracker();
         BigDecimal comprimentoAcumuladoProdutos = BigDecimal.ZERO;
-
-        int numeroLinhasCompletas = 0;
-        int produtosNaUltimaLinha = 0;
-
         while (produtosRestantes > 0) {
-            int produtosNestaLinha = Math.min(parametros.produtosPorLinha(), produtosRestantes);
-            if (produtosNestaLinha <= 0) break;
-
-            if (produtosNestaLinha == parametros.produtosPorLinha()) {
-                numeroLinhasCompletas++;
-            } else {
-                produtosNaUltimaLinha = produtosNestaLinha;
-            }
-
+            int produtosNestaLinha = Math.min(produtosPorLinha, produtosRestantes);
             cortesRealizados.add(criarCorteProduto(parametros.larguraProduto(), parametros.comprimentoProduto(), produtosNestaLinha));
-
-            BigDecimal larguraProdutosOcupada = parametros.larguraProduto().multiply(new BigDecimal(produtosNestaLinha));
-            BigDecimal larguraRetalhoLinha = parametros.larguraUtilCm().subtract(larguraProdutosOcupada);
-            BigDecimal comprimentoLinha = parametros.comprimentoProduto();
-
-            processarRetalhoLateral(tracker, larguraRetalhoLinha, comprimentoLinha, cortesRealizados);
-
-            comprimentoAcumuladoProdutos = comprimentoAcumuladoProdutos.add(comprimentoLinha);
+            comprimentoAcumuladoProdutos = comprimentoAcumuladoProdutos.add(parametros.comprimentoProduto());
             produtosRestantes -= produtosNestaLinha;
         }
 
-        // Se não houve linha parcial, a última linha completa é a última linha.
-        if (produtosNaUltimaLinha == 0 && numeroLinhasCompletas > 0) {
-            produtosNaUltimaLinha = parametros.produtosPorLinha();
-            numeroLinhasCompletas--;
+        // --- ETAPA 5: Gerar cortes de RETALHO ---
+        String sobraLateralStr = "";
+        if (larguraSobraLateral.compareTo(BigDecimal.ZERO) > 0) {
+            cortesRealizados.add(criarCorteRetalho(larguraSobraLateral, comprimentoAcumuladoProdutos, "LATERAL"));
+            sobraLateralStr = formatarDimensao(larguraSobraLateral, comprimentoAcumuladoProdutos);
         }
 
-        fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
-
-        BigDecimal comprimentoRetalhoFinal = ordemComprimentoFinalCm.subtract(comprimentoAcumuladoProdutos);
-        String sobraFinalStr = "";
-        if (comprimentoRetalhoFinal.compareTo(BigDecimal.ZERO) > 0) {
-            cortesRealizados.add(criarCorteRetalho(parametros.larguraTotalLoteCm(), comprimentoRetalhoFinal, "FINAL"));
-            sobraFinalStr = formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoRetalhoFinal);
+        String sobraInferiorStr = "";
+        if (larguraSobraInferior.compareTo(BigDecimal.ZERO) > 0) {
+            cortesRealizados.add(criarCorteRetalho(larguraSobraInferior, parametros.comprimentoProduto(), "INFERIOR"));
+            sobraInferiorStr = formatarDimensao(larguraSobraInferior, parametros.comprimentoProduto());
         }
 
-        // Extrair sobra lateral da lista de cortes (se existir)
-        String sobraLateralStr = cortesRealizados.stream()
-                .filter(c -> "RETALHO".equals(c.getTipo()) && "LATERAL".equals(c.getRetalhoCategoria()))
-                .map(c -> formatarDimensao(c.getLarguraCm(), c.getComprimentoCm()))
-                .findFirst()
-                .orElse("");
+        String saldoRoloStr = "";
+        BigDecimal comprimentoSaldoRolo = ordemComprimentoFinalCm.subtract(comprimentoAcumuladoProdutos);
+        if (comprimentoSaldoRolo.compareTo(BigDecimal.ZERO) > 0) {
+            cortesRealizados.add(criarCorteRetalho(parametros.larguraTotalLoteCm(), comprimentoSaldoRolo, "SALDO_ROLO"));
+            saldoRoloStr = formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoSaldoRolo);
+        }
 
+        // --- ETAPA 6: Construir o resumo final ---
         return ResumoLayoutCorte.builder()
                 .cortes(cortesRealizados)
-                .produtosPorLinha(parametros.produtosPorLinha())
+                .produtosPorLinha(produtosPorLinha)
                 .numeroLinhasCompletas(numeroLinhasCompletas)
                 .produtosNaUltimaLinha(produtosNaUltimaLinha)
                 .sobraLateral(sobraLateralStr)
-                .sobraFinal(sobraFinalStr)
+                .sobraInferior(sobraInferiorStr)
+                .saldoRolo(saldoRoloStr)
                 .build();
     }
 
     // --- Métodos Auxiliares de Layout ---
-
-    private static class RetalhoLateralTracker {
-        BigDecimal larguraSequencia = null;
-        BigDecimal comprimentoSequencia = BigDecimal.ZERO;
-    }
-
-    private void processarRetalhoLateral(RetalhoLateralTracker tracker, BigDecimal larguraRetalhoLinha, BigDecimal comprimentoLinha, List<CorteRealizadoResponseDTO> cortesRealizados) {
-        if (larguraRetalhoLinha.compareTo(BigDecimal.ZERO) > 0) {
-            if (tracker.larguraSequencia != null && larguraRetalhoLinha.compareTo(tracker.larguraSequencia) == 0) {
-                tracker.comprimentoSequencia = tracker.comprimentoSequencia.add(comprimentoLinha);
-            } else {
-                fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
-                tracker.larguraSequencia = larguraRetalhoLinha;
-                tracker.comprimentoSequencia = comprimentoLinha;
-            }
-        } else {
-            fecharSequenciaDeRetalhoLateral(tracker, cortesRealizados);
-        }
-    }
-
-    private void fecharSequenciaDeRetalhoLateral(RetalhoLateralTracker tracker, List<CorteRealizadoResponseDTO> cortesRealizados) {
-        if (tracker.larguraSequencia != null && tracker.comprimentoSequencia.compareTo(BigDecimal.ZERO) > 0) {
-            cortesRealizados.add(criarCorteRetalho(tracker.larguraSequencia, tracker.comprimentoSequencia, "LATERAL"));
-            tracker.larguraSequencia = null;
-            tracker.comprimentoSequencia = BigDecimal.ZERO;
-        }
-    }
 
     private CorteRealizadoResponseDTO criarCorteProduto(BigDecimal larguraProduto, BigDecimal comprimentoProduto, int quantidade) {
         return CorteRealizadoResponseDTO.builder()
@@ -234,15 +229,38 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         return new BigDecimal(larguraMmObj.toString()).divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal calcularLarguraUtilCm(BigDecimal larguraTotalLoteCm, BigDecimal margemEsquerda, BigDecimal margemDireita) {
-        return larguraTotalLoteCm.subtract(margemEsquerda).subtract(margemDireita);
-    }
-
-    private int calcularProdutosPorLinha(BigDecimal larguraUtilCm, BigDecimal dimensaoProduto) {
+    /**
+     * Calcula quantos produtos cabem na largura total, considerando que a soma (produtos + margens)
+     * não pode exceder a largura total.
+     */
+    private int calcularProdutosPorLinhaComMargem(BigDecimal larguraTotalLoteCm, BigDecimal dimensaoProduto, BigDecimal margemEsquerda, BigDecimal margemDireita) {
         if (dimensaoProduto == null || dimensaoProduto.compareTo(BigDecimal.ZERO) <= 0) {
             return 0;
         }
-        return larguraUtilCm.divide(dimensaoProduto, 0, RoundingMode.FLOOR).intValue();
+
+        // 1. Cálculo teórico: Quantos cabem na largura total SEM margem?
+        int maxProdutosTeorico = larguraTotalLoteCm.divide(dimensaoProduto, 0, RoundingMode.FLOOR).intValue();
+        
+        // 2. Validação Estrita: Se (maxProdutos * largura + margens) > larguraTotal, retorna 0.
+        BigDecimal margemTotal = margemEsquerda.add(margemDireita);
+        BigDecimal larguraOcupada = dimensaoProduto.multiply(new BigDecimal(maxProdutosTeorico));
+        
+        if (larguraOcupada.add(margemTotal).compareTo(larguraTotalLoteCm) > 0) {
+             return 0;
+        }
+        
+        return maxProdutosTeorico;
+    }
+    
+    /**
+     * Método auxiliar para verificar se o produto caberia SEM margem.
+     * Usado apenas para diagnóstico de erro.
+     */
+    private int calcularProdutosPorLinhaSemMargem(BigDecimal larguraTotalLoteCm, BigDecimal dimensaoProduto) {
+        if (dimensaoProduto == null || dimensaoProduto.compareTo(BigDecimal.ZERO) <= 0) {
+            return 0;
+        }
+        return larguraTotalLoteCm.divide(dimensaoProduto, 0, RoundingMode.FLOOR).intValue();
     }
 
     private int calcularLinhas(int quantidade, int produtosPorLinha) {

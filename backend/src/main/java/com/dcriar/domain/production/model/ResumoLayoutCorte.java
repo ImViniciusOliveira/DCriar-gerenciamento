@@ -15,8 +15,9 @@ import java.util.List;
  * @param produtosPorLinha      Quantidade máxima de produtos que cabem em uma única linha.
  * @param numeroLinhasCompletas Quantidade de linhas que estão totalmente preenchidas com produtos.
  * @param produtosNaUltimaLinha Quantidade de produtos presentes na última linha (pode ser parcial).
- * @param sobraLateral          Descrição formatada das dimensões da sobra lateral (ex: "37cm x 800cm").
- * @param sobraFinal            Descrição formatada das dimensões da sobra final (ex: "160cm x 4cm").
+ * @param sobraLateral          Descrição formatada da tira de sobra contínua (r1).
+ * @param sobraInferior         Descrição formatada do bloco de sobra na última linha (r2).
+ * @param saldoRolo             Descrição formatada da sobra de comprimento do rolo.
  */
 @Builder
 public record ResumoLayoutCorte(
@@ -25,6 +26,7 @@ public record ResumoLayoutCorte(
         int numeroLinhasCompletas,
         int produtosNaUltimaLinha,
         String sobraLateral,
-        String sobraFinal
+        String sobraInferior,
+        String saldoRolo
 ) {
 }
