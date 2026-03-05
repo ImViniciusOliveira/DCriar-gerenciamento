@@ -118,68 +118,44 @@ export class ProductionForm implements OnInit {
     }
 
     const totalLinhas = rowTotals.length;
-    let padraoQuadrados = 0; // Quantos quadrados (tokens) na primeira linha incompleta
-    let primeiraLinhaIncompletaIndex = -1;
+    if (totalLinhas === 0) return [];
 
-    // Passo 2: Primeira passada - identificar a primeira linha incompleta e definir padrão
-    for (let i = 0; i < totalLinhas; i++) {
-      if (rowTotals[i] < capacidadeLinha) {
-        primeiraLinhaIncompletaIndex = i;
-        const tempItems = this.buildCompactProductTokens(rowTotals[i]);
-        padraoQuadrados = tempItems.length + 1; // +1 pelo R
-        break;
-      }
-    }
+    // Passo 2: Definir o gabarito visual baseado na PRIMEIRA LINHA (índice 0)
+    // Se a primeira linha for completa, o gabarito é o número de tokens dela.
+    // Se for incompleta, é tokens + 1 (o R).
+    const tokensPrimeiraLinha = this.buildCompactProductTokens(rowTotals[0]);
+    const primeiraLinhaCompleta = rowTotals[0] === capacidadeLinha;
+    const gabaritoQuadrados = tokensPrimeiraLinha.length + (primeiraLinhaCompleta ? 0 : 1);
 
-    // Passo 3: Segunda passada - montar as linhas com a regra correta
+    // Passo 3: Montar as linhas aplicando as regras
     return rowTotals.map((rowTotal, lineIndex) => {
       const items = this.buildCompactProductTokens(rowTotal);
       const isUltimaLinha = lineIndex === totalLinhas - 1;
       const linhaCompleta = rowTotal === capacidadeLinha;
 
-      // Regra 3: Se linha completa, não coloca R
+      // Regra: Linha completa nunca tem R
       if (linhaCompleta) {
         return { items, total: rowTotal };
       }
 
-      // Linha incompleta
-      const tokensProdutos = items.length;
-
-      // Regra 4: Primeira linha incompleta - adiciona 1 R (padrão já foi guardado)
-      if (lineIndex === primeiraLinhaIncompletaIndex) {
-        items.push('R');
-        return { items, total: rowTotal };
-      }
-
-      // Regra 5: Última linha incompleta
+      // Regra: Última linha tenta preencher até o gabarito
       if (isUltimaLinha) {
-        if (padraoQuadrados === 0) {
-          // Nenhuma linha anterior incompleta: define próprio padrão
-          items.push('R');
-          padraoQuadrados = items.length;
+        const quadradosAtuais = items.length;
 
-          // Preenche até o próprio padrão se necessário
-          const rsExtras = padraoQuadrados - tokensProdutos - 1;
-          for (let i = 0; i < rsExtras; i++) {
-            items.push('R');
-          }
+        if (quadradosAtuais >= gabaritoQuadrados) {
+          // Se já tem mais ou igual ao gabarito, coloca apenas 1 R
+          items.push('R');
         } else {
-          // Existe padrão da primeira linha incompleta
-          if (tokensProdutos >= padraoQuadrados) {
-            // Excedeu o padrão E ainda tem espaço vazio: apenas 1 R
+          // Se tem menos, preenche com R até igualar o gabarito
+          const rsNecessarios = gabaritoQuadrados - quadradosAtuais;
+          for (let i = 0; i < rsNecessarios; i++) {
             items.push('R');
-          } else {
-            // Preenche com R até atingir o padrão de quadrados
-            const rsNecessarios = padraoQuadrados - tokensProdutos;
-            for (let i = 0; i < rsNecessarios; i++) {
-              items.push('R');
-            }
           }
         }
         return { items, total: rowTotal };
       }
 
-      // Linha intermediária incompleta: adiciona 1 R
+      // Regra: Qualquer outra linha incompleta (primeira ou meio) sempre tem apenas 1 R
       items.push('R');
       return { items, total: rowTotal };
     });
