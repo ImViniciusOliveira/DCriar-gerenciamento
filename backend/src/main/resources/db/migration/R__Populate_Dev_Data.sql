@@ -17,11 +17,11 @@ TRUNCATE TABLE
 
 -- Inserção de Tipos de Matérias-Primas
 INSERT INTO tipos_materia_prima (nome, unidade_de_consumo, data_criacao, data_atualizacao) VALUES
-    ('Papel Couchê 300g', 'FOLHA', NOW(), NOW()),
+    ('Papel Couchê 300g', 'METRO_QUADRADO', NOW(), NOW()),
     ('Lona Fosca 440g', 'METRO_QUADRADO', NOW(), NOW()),
     ('Adesivo Vinil Branco', 'METRO_QUADRADO', NOW(), NOW()),
-    ('Adesivo BOPP Transparente', 'FOLHA', NOW(), NOW()),
-    ('Papel Kraft 180g', 'FOLHA', NOW(), NOW()),
+    ('Adesivo BOPP Transparente', 'METRO_QUADRADO', NOW(), NOW()),
+    ('Papel Kraft 180g', 'METRO_QUADRADO', NOW(), NOW()),
     ('Tinta Eco-Solvente Preta', 'LITRO', NOW(), NOW()),
     ('Fita Dupla Face 25mm', 'METRO_LINEAR', NOW(), NOW()),
     ('Ilhós de Latão #0', 'UNIDADE', NOW(), NOW());
@@ -39,11 +39,11 @@ INSERT INTO canais_venda (nome, data_criacao, data_atualizacao) VALUES
 
 -- Inserção de Lotes de Matéria-Prima (dependem de Tipos de Matérias-Primas)
 INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, custo_total_lote, motivo, atributos, data_criacao, data_atualizacao) VALUES
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Couchê 300g'), 'FOLHA', 150.00, 'Compra NF-1001', '{ "larguraMm": 320, "comprimentoMm": 450 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Couchê 300g'), 'METRO_QUADRADO', 150.00, 'Compra NF-1001', '{ "larguraMm": 320, "comprimentoMm": 450 }', NOW(), NOW()),
     ((SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 'METRO_QUADRADO', 250.00, 'Compra NF-1002', '{ "larguraMm": 1600 }', NOW(), NOW()),
     ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 'METRO_QUADRADO', 120.00, 'Compra NF-1003', '{ "larguraMm": 1200 }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo BOPP Transparente'), 'FOLHA', 80.00, 'Compra NF-1004', '{ "larguraMm": 297, "comprimentoMm": 420 }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Kraft 180g'), 'FOLHA', 50.00, 'Compra NF-1005', '{ "larguraMm": 210, "comprimentoMm": 297 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo BOPP Transparente'), 'METRO_QUADRADO', 80.00, 'Compra NF-1004', '{ "larguraMm": 297, "comprimentoMm": 420 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Kraft 180g'), 'METRO_QUADRADO', 50.00, 'Compra NF-1005', '{ "larguraMm": 210, "comprimentoMm": 297 }', NOW(), NOW()),
     ((SELECT id FROM tipos_materia_prima WHERE nome = 'Tinta Eco-Solvente Preta'), 'LITRO', 300.00, 'Compra NF-1006', '{ "fornecedor": "InkMaster" }', NOW(), NOW()),
     ((SELECT id FROM tipos_materia_prima WHERE nome = 'Fita Dupla Face 25mm'), 'METRO_LINEAR', 75.00, 'Compra NF-1007', '{ "larguraMm": 25, "metragem_m": 50 }', NOW(), NOW()),
     ((SELECT id FROM tipos_materia_prima WHERE nome = 'Ilhós de Latão #0'), 'UNIDADE', 200.00, 'Compra NF-1008', '{ "quantidade_caixa": 1000 }', NOW(), NOW());
