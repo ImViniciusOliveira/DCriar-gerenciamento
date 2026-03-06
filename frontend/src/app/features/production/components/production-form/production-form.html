@@ -257,41 +257,52 @@
 
           @if (showRetalhoPreview()) {
             <span class="retalho-row-total">{{ totalLinhasPreview() }} linha(s)</span>
-            <div class="retalho-icon-preview" [class.retalho-ocultas-expandido]="linhasOcultasExpandido()" (click)="linhasOcultasExpandido() ? toggleLinhasOcultas() : null">
-              @let previewRows = retalhoPreviewRowsVisiveis();
-              @let totalRows = retalhoPreviewRows().length;
-              @let penultimaIndex = penultimaIndexPreview();
-              <!-- Renderiza as linhas visíveis -->
-              @for (row of previewRows; track $index) {
-                <div class="retalho-row-simulation">
-                  @for (item of row.items; track $index) {
-                    <app-retalho-badge [value]="item"></app-retalho-badge>
-                  }
-                  <span class="retalho-row-total">= {{ row.total }}</span>
-                  <!-- Renderiza o botão ao lado da última linha visível -->
-                  @if (linhasOcultasPreview() > 0 && $index === previewRows.length - 1) {
-                    <button
-                      type="button"
-                      class="retalho-more-btn retalho-row-total"
-                      [attr.aria-label]="'Mostrar linhas ocultas: +' + linhasOcultasPreview() + ' linha(s)'"
-                      (click)="toggleLinhasOcultas(); $event.stopPropagation()"
-                    >
-                      (+{{ linhasOcultasPreview() }} linha(s))
-                    </button>
-                  }
-                </div>
-              }
-              <!-- Linhas ocultas, logo abaixo do botão -->
-              @if (linhasOcultasExpandido()) {
-                @for (rowOculta of retalhoPreviewRows().slice(previewRows.length, totalRows); track $index) {
+            <div class="retalho-icon-preview">
+              <div
+                class="retalho-clickable-area"
+                [class.retalho-ocultas-expandido]="linhasOcultasExpandido()"
+                (click)="linhasOcultasExpandido() ? toggleLinhasOcultas() : null">
+
+                @let previewRows = retalhoPreviewRowsVisiveis();
+                @let totalRows = retalhoPreviewRows().length;
+                @let penultimaIndex = penultimaIndexPreview();
+
+                <!-- Renderiza as linhas visíveis -->
+                @for (row of previewRows; track $index) {
                   <div class="retalho-row-simulation">
-                    @for (item of rowOculta.items; track $index) {
+                    @for (item of row.items; track $index) {
                       <app-retalho-badge [value]="item"></app-retalho-badge>
                     }
-                    <span class="retalho-row-total">= {{ rowOculta.total }}</span>
+                    <span class="retalho-row-total">= {{ row.total }}</span>
+                    <!-- CONDIÇÃO CORRIGIDA -->
+                    @if (
+                      linhasOcultasPreview() > 0 &&
+                      !linhasOcultasExpandido() &&
+                      $index === penultimaIndex - 1
+                    ) {
+                      <button
+                        type="button"
+                        class="retalho-more-btn retalho-row-total"
+                        [attr.aria-label]="'Mostrar linhas ocultas: +' + linhasOcultasPreview() + ' linha(s)'"
+                        (click)="toggleLinhasOcultas(); $event.stopPropagation()"
+                      >
+                        (+{{ linhasOcultasPreview() }} linha(s))
+                      </button>
+                    }
                   </div>
                 }
-              }
+                <!-- Linhas ocultas, logo abaixo do botão -->
+                @if (linhasOcultasExpandido()) {
+                  @for (rowOculta of retalhoPreviewRows().slice(previewRows.length, totalRows); track $index) {
+                    <div class="retalho-row-simulation">
+                      @for (item of rowOculta.items; track $index) {
+                        <app-retalho-badge [value]="item"></app-retalho-badge>
+                      }
+                      <span class="retalho-row-total">= {{ rowOculta.total }}</span>
+                    </div>
+                  }
+                }
+              </div>
             </div>
           }
 

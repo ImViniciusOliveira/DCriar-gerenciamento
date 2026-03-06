@@ -185,10 +185,27 @@ export class ProductionForm implements OnInit {
 
   // Linhas visíveis: até penultimaIndexPreview; se expandido, mostra todas
   retalhoPreviewRowsVisiveis = computed(() => {
-    const rows = this.retalhoPreviewRows();
-    const penultima = this.penultimaIndexPreview();
-    if (this.linhasOcultasExpandido()) return rows;
-    return rows.slice(0, penultima);
+    const allRows = this.retalhoPreviewRows();
+    const totalRows = allRows.length;
+
+    // Se estiver expandido ou se não houver linhas suficientes para precisar de compactação, mostra tudo.
+    if (this.linhasOcultasExpandido() || totalRows <= 10) {
+      return allRows;
+    }
+
+    const breakIndex = this.penultimaIndexPreview(); // Será 9 ou 10
+
+    // Se o breakIndex for 10, significa que todas as linhas são iguais (ou não há o suficiente para esconder).
+    // Mostramos as 10 primeiras.
+    if (breakIndex === 10) {
+      return allRows.slice(0, 10);
+    }
+
+    // Se o breakIndex for 9, significa que a última linha é diferente.
+    // Mostramos as 9 primeiras e a última de todas para dar o contexto completo.
+    const firstPart = allRows.slice(0, 9);
+    const lastRow = allRows[totalRows - 1];
+    return [...firstPart, lastRow];
   });
 
   // Toggle para expandir/ocultar linhas
@@ -198,19 +215,7 @@ export class ProductionForm implements OnInit {
 
   // Índice da linha onde o resumo (+N) deve aparecer no preview compactado.
   // Regra: penúltima (8) por padrão; última (9) só se a última linha for igual à anterior.
-  indiceLinhaResumoPreview = computed(() => {
-    const ocultas = this.linhasOcultasPreview();
-    const rows = this.retalhoPreviewRowsVisiveis();
-
-    if (ocultas <= 0 || rows.length < 2) return -1;
-
-    const ultimo = rows[rows.length - 1]?.total;
-    const penultimo = rows[rows.length - 2]?.total;
-
-    return ultimo === penultimo ? 9 : 8;
-  });
-
-  // Propriedades computadas para controlar a visibilidade das seções de input.
+// Propriedades computadas para controlar a visibilidade das seções de input.
   showCorteInputs = computed(() => this.produto()?.tipoProduto === 'CORTE');
   showConsumoInputs = computed(() => this.produto()?.tipoProduto === 'CONSUMO_DIRETO');
 
@@ -721,8 +726,6 @@ export class ProductionForm implements OnInit {
     const labelProduto = qtd === 1 ? 'produto' : 'produtos';
     const lines: string[] = [];
     lines.push(`Informação: ${qtd} ${labelProduto} (${result.dimensaoProduto}).`);
-
-    const totalLinhas = result.numeroLinhasCompletas + (result.produtosNaUltimaLinha > 0 ? 1 : 0);
     if (result.produtosPorLinha > 0) {
       if (result.numeroLinhasCompletas === 0) {
         lines.push(`Produtos: ${result.produtosNaUltimaLinha} na única linha (Capacidade: ${result.produtosPorLinha}).`);
@@ -805,8 +808,4 @@ export class ProductionForm implements OnInit {
   }
 }
 
-// Definição do tipo RetalhoPreviewRow fora da classe
-export interface RetalhoPreviewRow {
-  items: string[];
-  total: number;
-}
+

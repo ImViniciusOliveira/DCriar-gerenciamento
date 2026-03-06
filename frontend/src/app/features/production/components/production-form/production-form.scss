@@ -200,7 +200,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: flex-start; // Impede que os itens filhos sejam esticados
 }
 
 .retalho-row-simulation {
@@ -208,6 +208,8 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+  position: relative; // Necessário para o z-index funcionar
+  z-index: 2; // Garante que o conteúdo fique acima da animação
 }
 
 .retalho-row-total {
@@ -239,4 +241,43 @@
 
 .retalho-more-btn:focus-visible {
   outline: none;
+}
+
+.retalho-clickable-area {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--std-border-radius);
+
+  // Quando as linhas estiverem expandidas, o cursor vira uma "mãozinha"
+  // indicando que é possível clicar para recolher.
+  &.retalho-ocultas-expandido {
+    cursor: pointer;
+
+    // O pseudo-elemento que criará a animação
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(63, 81, 181, 0.25) 0%,
+        rgba(63, 81, 181, 0) 70%
+      );
+      z-index: 1; // Fica entre o fundo e o conteúdo
+      transform: scale(0);
+      transform-origin: center;
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    // No hover, o pseudo-elemento se expande
+    &:hover::before {
+      transform: scale(1);
+    }
+  }
 }
