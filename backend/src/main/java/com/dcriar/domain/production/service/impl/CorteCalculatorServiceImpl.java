@@ -187,8 +187,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         int numeroLinhasCompletas = parametros.quantidade() / produtosPorLinha;
         int produtosNaUltimaLinha = parametros.quantidade() % produtosPorLinha;
         if (produtosNaUltimaLinha == 0 && parametros.quantidade() > 0) {
-            produtosNaUltimaLinha = produtosPorLinha;
-            numeroLinhasCompletas = calcularLinhas(parametros.quantidade(), produtosPorLinha);
+            numeroLinhasCompletas = parametros.quantidade() / produtosPorLinha;
         }
 
         // --- ETAPA 3: Aplicar margens de comprimento ao bloco principal ---
