@@ -66,14 +66,21 @@ public class ProdutoServiceImpl implements ProdutoService {
             Pageable pageable) {
 
         // Valida o operador de estoque para segurança.
-        if (estoqueOperador == null || (!estoqueOperador.equalsIgnoreCase("GTE") && !estoqueOperador.equalsIgnoreCase("LTE"))) {
+        if (estoqueOperador != null && (!estoqueOperador.equalsIgnoreCase("GTE") && !estoqueOperador.equalsIgnoreCase("LTE"))) {
             throw new OperadorEstoqueInvalidoException(estoqueOperador);
         }
 
-        // Constrói a especificação de forma dinâmica.
-        Specification<Produto> spec = Specification.where(ProdutoSpecifications.comNomeLike(nome))
-                .and(ProdutoSpecifications.comTipo(tipoProduto))
-                .and(ProdutoSpecifications.comEstoque(estoqueValor, estoqueOperador));
+        Specification<Produto> spec = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
+
+        if (nome != null && !nome.isBlank()) {
+            spec = spec.and(ProdutoSpecifications.comNomeLike(nome));
+        }
+        if (tipoProduto != null && !tipoProduto.isBlank()) {
+            spec = spec.and(ProdutoSpecifications.comTipo(tipoProduto));
+        }
+        if (estoqueValor != null && estoqueOperador != null && !estoqueOperador.isBlank()) {
+            spec = spec.and(ProdutoSpecifications.comEstoque(estoqueValor, estoqueOperador));
+        }
 
         // Executa a busca no banco de dados com os filtros aplicados.
         Page<Produto> produtoPage = produtoRepository.findAll(spec, pageable);

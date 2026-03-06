@@ -125,7 +125,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             consumoTotalMetros = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
             larguraFinalCm = parametros.larguraTotalLoteCm();
             
-            ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm);
+            ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, false);
             cortesRealizadosDTOs = resumo.cortes();
         }
 
@@ -371,8 +371,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         BigDecimal comprimentoFinalCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhasTotal));
         
         // Executa a simulação detalhada do layout
-        ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm);
-        
+        ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, false);
+
         BigDecimal consumoEstimado = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
 
         return SimulacaoCorteResponseDTO.builder()
@@ -399,28 +399,19 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         BigDecimal comprimentoFinalCm;
         ParametrosCorte parametros;
+        boolean isModoManual = requestDTO.getModoCalculo() == ModoCalculo.MANUAL;
 
-        if (requestDTO.getModoCalculo() == ModoCalculo.MANUAL) {
+        if (isModoManual) {
+            // Modo manual: usuário define dimensões do corte
             comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
-            
-            // No modo manual, criamos os parâmetros baseados no que o usuário digitou
-            BigDecimal larguraProduto = ((ProdutoDeCorte) produto).getDimensoes().getLarguraCm();
-            BigDecimal comprimentoProduto = ((ProdutoDeCorte) produto).getDimensoes().getComprimentoCm();
-            
-            // Determina se cabe na largura informada (simulação simples para o DTO)
-            int produtosPorLinha = requestDTO.getLarguraFinalCm().divide(larguraProduto, 0, RoundingMode.FLOOR).intValue();
-            
-            parametros = ParametrosCorte.builder()
-                    .larguraTotalLoteCm(requestDTO.getLarguraFinalCm())
-                    .larguraProduto(larguraProduto)
-                    .comprimentoProduto(comprimentoProduto)
-                    .quantidade(requestDTO.getQuantidade())
-                    .larguraUtilCm(requestDTO.getLarguraFinalCm())
-                    .produtosPorLinha(produtosPorLinha)
-                    .rotacionado(false) // No manual não rotacionamos automaticamente
-                    .build();
+            parametros = corteCalculatorService.extrairParametrosCorteManual(
+                    requestDTO.getQuantidade(),
+                    produto,
+                    lote,
+                    requestDTO.getLarguraFinalCm()
+            );
         } else {
-            // No modo automático, recalculamos usando as margens informadas
+            // Modo automático: sistema calcula com margens
             parametros = corteCalculatorService.extrairParametrosCorte(
                     requestDTO.getQuantidade(), produto, lote, requestDTO.getMargens()
             );
@@ -435,7 +426,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             }
         }
 
-        ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm);
+        ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, isModoManual);
         BigDecimal consumoEstimado = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
 
         return SimulacaoCorteResponseDTO.builder()
