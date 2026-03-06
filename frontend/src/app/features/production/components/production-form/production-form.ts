@@ -170,12 +170,31 @@ export class ProductionForm implements OnInit {
     return total > 10 ? total - 10 : 0;
   });
 
-  // Linhas visíveis: até 10 normais; se passar, mostra 9 primeiras + última
+  // Estado para expandir/ocultar linhas ocultas
+  linhasOcultasExpandido = signal(false);
+
+  // Regra: penúltima (9) por padrão; última (10) só se a última linha for igual à anterior.
+  penultimaIndexPreview = computed(() => {
+    const previewRows = this.retalhoPreviewRows();
+    const totalRows = previewRows.length;
+    if (totalRows <= 10) return totalRows;
+    // Se última linha é igual à primeira, botão na 10ª linha
+    const ultimaIgualPrimeira = previewRows[totalRows - 1].total === previewRows[0].total;
+    return ultimaIgualPrimeira ? 10 : 9;
+  });
+
+  // Linhas visíveis: até penultimaIndexPreview; se expandido, mostra todas
   retalhoPreviewRowsVisiveis = computed(() => {
     const rows = this.retalhoPreviewRows();
-    if (rows.length <= 10) return rows;
-    return [...rows.slice(0, 9), rows[rows.length - 1]];
+    const penultima = this.penultimaIndexPreview();
+    if (this.linhasOcultasExpandido()) return rows;
+    return rows.slice(0, penultima);
   });
+
+  // Toggle para expandir/ocultar linhas
+  public toggleLinhasOcultas() {
+    this.linhasOcultasExpandido.set(!this.linhasOcultasExpandido());
+  }
 
   // Índice da linha onde o resumo (+N) deve aparecer no preview compactado.
   // Regra: penúltima (8) por padrão; última (9) só se a última linha for igual à anterior.
@@ -573,6 +592,7 @@ export class ProductionForm implements OnInit {
     this.showRetalhoPreview.set(!this.showRetalhoPreview());
   }
 
+
   /**
    * Compacta a quantidade de produtos em tokens grandes para reduzir ruido visual.
    * Ex.: 23 -> [10, 10, 1, 1, 1]
@@ -698,24 +718,27 @@ export class ProductionForm implements OnInit {
    * Formata a string completa de feedback exibida no formulário.
    */
   private formatFeedbackString(result: SimulationCutResult, qtd: number): string {
-    const lines: string[] = [];
     const labelProduto = qtd === 1 ? 'produto' : 'produtos';
+    const lines: string[] = [];
     lines.push(`Informação: ${qtd} ${labelProduto} (${result.dimensaoProduto}).`);
 
     const totalLinhas = result.numeroLinhasCompletas + (result.produtosNaUltimaLinha > 0 ? 1 : 0);
-    if (totalLinhas === 1) {
-      lines.push(`Produtos: ${qtd} na única linha (Capacidade: ${result.produtosPorLinha}).`);
-    } else {
-      const descLinhas = result.produtosNaUltimaLinha === result.produtosPorLinha
-        ? `${totalLinhas} linhas completas`
-        : `${result.numeroLinhasCompletas} linhas completas + 1 parcial`;
-      lines.push(`Produtos: ${result.produtosPorLinha} por linha (${descLinhas}).`);
+    if (result.produtosPorLinha > 0) {
+      if (result.numeroLinhasCompletas === 0) {
+        lines.push(`Produtos: ${result.produtosNaUltimaLinha} na única linha (Capacidade: ${result.produtosPorLinha}).`);
+      } else {
+        const descLinhas = result.produtosNaUltimaLinha > 0
+          ? `${result.numeroLinhasCompletas} linhas completas + 1 parcial`
+          : `${result.numeroLinhasCompletas} linhas completas`;
+        lines.push(`Produtos: ${result.produtosPorLinha} por linha (${descLinhas}).`);
+      }
     }
 
     const sobras: string[] = [];
     if (result.sobraLateral) sobras.push(`Lateral ${result.sobraLateral}`);
     if (result.sobraInferior) sobras.push(`Inferior ${result.sobraInferior}`);
-    lines.push(`Sobras: ${sobras.length > 0 ? sobras.join(' | ') : 'Nenhuma'}.`);
+    if (sobras.length > 0) lines.push(`Sobras: ${sobras.join(' | ')}.`);
+
     lines.push(`Consumo Total: ${result.consumoTotal}.`);
 
     return lines.join('\n');
@@ -780,4 +803,10 @@ export class ProductionForm implements OnInit {
   onCancel(): void {
     this.dialogRef.close(false);
   }
+}
+
+// Definição do tipo RetalhoPreviewRow fora da classe
+export interface RetalhoPreviewRow {
+  items: string[];
+  total: number;
 }
