@@ -13,7 +13,7 @@ export interface SimulationCutResult {
   numeroLinhasCompletas: number;
   produtosNaUltimaLinha: number;
   sobraLateral: string;
-  sobraFinal: string;
+  sobraInferior: string;
   dimensaoProduto: string;
   consumoTotal: string;
 }

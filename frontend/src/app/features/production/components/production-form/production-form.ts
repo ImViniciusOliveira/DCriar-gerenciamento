@@ -481,6 +481,23 @@ export class ProductionForm implements OnInit {
   }
 
   /**
+   * Monta o objeto de margens a partir dos valores do formulário.
+   * Retorna undefined se o modo não for AUTOMATICO.
+   */
+  private buildMargensPayload(formValue: any): { superior: number; inferior: number; esquerda: number; direita: number } | undefined {
+    if (formValue.modoCalculo !== 'AUTOMATICO') {
+      return undefined;
+    }
+
+    return {
+      superior: formValue.margens.superior ? Number(formValue.margens.superior) : 0,
+      inferior: formValue.margens.inferior ? Number(formValue.margens.inferior) : 0,
+      esquerda: formValue.margens.esquerda ? Number(formValue.margens.esquerda) : 0,
+      direita: formValue.margens.direita ? Number(formValue.margens.direita) : 0
+    };
+  }
+
+  /**
    * Executa a verificação dos dados (re-simulação).
    */
   onVerify(): void {
@@ -496,15 +513,14 @@ export class ProductionForm implements OnInit {
       loteId: Number(formValue.loteId),
       quantidade: Number(formValue.quantidade),
       modoCalculo: formValue.modoCalculo,
-      margens: {
-        superior: formValue.margens.superior ? Number(formValue.margens.superior) : 0,
-        inferior: formValue.margens.inferior ? Number(formValue.margens.inferior) : 0,
-        esquerda: formValue.margens.esquerda ? Number(formValue.margens.esquerda) : 0,
-        direita: formValue.margens.direita ? Number(formValue.margens.direita) : 0
-      },
       larguraFinalCm: formValue.larguraFinalCm ? Number(formValue.larguraFinalCm) : null,
       comprimentoFinalCm: formValue.comprimentoFinalCm ? Number(formValue.comprimentoFinalCm) : null
     };
+
+    const margens = this.buildMargensPayload(formValue);
+    if (margens) {
+      payload.margens = margens;
+    }
 
     this.isVerifying.set(true);
 
@@ -644,7 +660,7 @@ export class ProductionForm implements OnInit {
   private formatSobrasString(r: SimulationCutResult): string {
     const parts: string[] = [];
     if (r.sobraLateral) parts.push(`Lateral ${r.sobraLateral}`);
-    if (r.sobraFinal) parts.push(`Final ${r.sobraFinal}`);
+    if (r.sobraInferior) parts.push(`Inferior ${r.sobraInferior}`);
     return parts.length > 0 ? parts.join(' | ') : 'Nenhuma';
   }
 
@@ -668,7 +684,7 @@ export class ProductionForm implements OnInit {
 
     const sobras: string[] = [];
     if (result.sobraLateral) sobras.push(`Lateral ${result.sobraLateral}`);
-    if (result.sobraFinal) sobras.push(`Final ${result.sobraFinal}`);
+    if (result.sobraInferior) sobras.push(`Inferior ${result.sobraInferior}`);
     lines.push(`Sobras: ${sobras.length > 0 ? sobras.join(' | ') : 'Nenhuma'}.`);
     lines.push(`Consumo Total: ${result.consumoTotal}.`);
 
@@ -711,18 +727,13 @@ export class ProductionForm implements OnInit {
       modoCalculo: modo,
       larguraFinalCm: Number(formValue.larguraFinalCm),
       comprimentoFinalCm: Number(formValue.comprimentoFinalCm),
-      canalVendaId: formValue.canalVendaId ? Number(formValue.canalVendaId) : null, // Renomeado
+      canalVendaId: formValue.canalVendaId ? Number(formValue.canalVendaId) : null,
       motivo: formValue.motivo || null
     };
 
-    // Margens apenas no modo AUTOMATICO
-    if (modo === 'AUTOMATICO') {
-      payload.margens = {
-        superior: formValue.margens.superior ? Number(formValue.margens.superior) : 0,
-        inferior: formValue.margens.inferior ? Number(formValue.margens.inferior) : 0,
-        esquerda: formValue.margens.esquerda ? Number(formValue.margens.esquerda) : 0,
-        direita: formValue.margens.direita ? Number(formValue.margens.direita) : 0
-      };
+    const margens = this.buildMargensPayload(formValue);
+    if (margens) {
+      payload.margens = margens;
     }
 
     console.log('Payload final para criação:', payload);
