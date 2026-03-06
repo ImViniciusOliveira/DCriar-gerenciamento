@@ -256,13 +256,23 @@
           </button>
 
           @if (showRetalhoPreview()) {
+            <span class="retalho-row-total">{{ totalLinhasPreview() }} linha(s)</span>
             <div class="retalho-icon-preview">
-              @for (row of retalhoPreviewRows(); track $index) {
+              @for (row of retalhoPreviewRowsVisiveis(); track $index) {
                 <div class="retalho-row-simulation">
                   @for (item of row.items; track $index) {
                     <app-retalho-badge [value]="item"></app-retalho-badge>
                   }
                   <span class="retalho-row-total">= {{ row.total }}</span>
+                  @if (linhasOcultasPreview() > 0 && $index === indiceLinhaResumoPreview()) {
+                    <button
+                      type="button"
+                      class="retalho-more-btn retalho-row-total"
+                      [attr.aria-label]="'Mostrar linhas ocultas: +' + linhasOcultasPreview() + ' linha(s)'"
+                    >
+                      (+{{ linhasOcultasPreview() }} linha(s))
+                    </button>
+                  }
                 </div>
               }
             </div>

@@ -211,7 +211,32 @@
 }
 
 .retalho-row-total {
-  margin-left: 6px;
   font-weight: 700;
   color: #1f2937;
+}
+
+.retalho-more-btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: var(--std-border-radius);
+  background-color: #ffffff;
+  color: #1f2937;
+  font: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 0.12s ease, transform 0.08s ease;
+}
+
+.retalho-more-btn:hover {
+  background-color: rgba(63, 81, 181, 0.14);
+  color: #1f2937;
+}
+
+.retalho-more-btn:active {
+  background-color: rgba(63, 81, 181, 0.22);
+  transform: translateY(1px);
+}
+
+.retalho-more-btn:focus-visible {
+  outline: none;
 }

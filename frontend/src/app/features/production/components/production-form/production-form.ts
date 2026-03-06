@@ -161,6 +161,36 @@ export class ProductionForm implements OnInit {
     });
   });
 
+  // Total de linhas do preview atual
+  totalLinhasPreview = computed(() => this.retalhoPreviewRows().length);
+
+  // Quantas linhas ficam ocultas quando compacta (>10)
+  linhasOcultasPreview = computed(() => {
+    const total = this.retalhoPreviewRows().length;
+    return total > 10 ? total - 10 : 0;
+  });
+
+  // Linhas visíveis: até 10 normais; se passar, mostra 9 primeiras + última
+  retalhoPreviewRowsVisiveis = computed(() => {
+    const rows = this.retalhoPreviewRows();
+    if (rows.length <= 10) return rows;
+    return [...rows.slice(0, 9), rows[rows.length - 1]];
+  });
+
+  // Índice da linha onde o resumo (+N) deve aparecer no preview compactado.
+  // Regra: penúltima (8) por padrão; última (9) só se a última linha for igual à anterior.
+  indiceLinhaResumoPreview = computed(() => {
+    const ocultas = this.linhasOcultasPreview();
+    const rows = this.retalhoPreviewRowsVisiveis();
+
+    if (ocultas <= 0 || rows.length < 2) return -1;
+
+    const ultimo = rows[rows.length - 1]?.total;
+    const penultimo = rows[rows.length - 2]?.total;
+
+    return ultimo === penultimo ? 9 : 8;
+  });
+
   // Propriedades computadas para controlar a visibilidade das seções de input.
   showCorteInputs = computed(() => this.produto()?.tipoProduto === 'CORTE');
   showConsumoInputs = computed(() => this.produto()?.tipoProduto === 'CONSUMO_DIRETO');
