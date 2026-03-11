@@ -36,6 +36,26 @@ export interface VerificationRequest {
 }
 
 /**
+ * Representa o payload para criar uma ordem de produção por corte.
+ */
+export interface CreateCutOrderRequest {
+  produtoId: number;
+  lotePrincipalId: number;
+  quantidadeProduzida: number;
+  modoCalculo: string;
+  larguraFinalCm: number;
+  comprimentoFinalCm: number;
+  canalVendaDestinoId?: number | null;
+  motivo?: string | null;
+  margens?: {
+    superior: number | null;
+    inferior: number | null;
+    esquerda: number | null;
+    direita: number | null;
+  };
+}
+
+/**
  * Serviço para gerenciamento de Ordens de Produção.
  *
  * Implementa uma arquitetura reativa com Signals para gerenciar o estado da busca
@@ -131,6 +151,18 @@ export class ProductionService {
         const baseUrl = url.split('{')[0];
         return this.http.post<SimulationCutResult>(`${baseUrl}/verificar-corte`, payload);
       })
+    );
+  }
+
+  /**
+   * Cria uma nova ordem de produção por corte.
+   * @param url A URL completa para o endpoint de criação (descoberta via HATEOAS).
+   * @param payload Os dados da ordem de produção.
+   * @returns Um Observable com a resposta da criação.
+   */
+  createCutOrder(url: string, payload: CreateCutOrderRequest): Observable<any> {
+    return this.http.post<any>(url, payload).pipe(
+      tap(() => this.refreshTrigger.set(undefined))
     );
   }
 

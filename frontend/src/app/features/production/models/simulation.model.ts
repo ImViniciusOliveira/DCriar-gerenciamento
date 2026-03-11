@@ -1,8 +1,30 @@
 /**
+ * Representa um único link HATEOAS.
+ */
+export interface HateoasLink {
+  href: string;
+}
+
+/**
+ * Representa o objeto _links em uma resposta HATEOAS.
+ */
+export interface HateoasLinks {
+  [key: string]: HateoasLink;
+}
+
+/**
+ * Interface base para qualquer resposta de API que siga o padrão HATEOAS,
+ * incluindo a propriedade opcional _links.
+ */
+export interface RepresentationModel {
+  _links?: HateoasLinks;
+}
+
+/**
  * Representa o resultado de uma simulação de corte.
  * O campo 'tipoSimulacao' atua como um discriminador para type guards.
  */
-export interface SimulationCutResult {
+export interface SimulationCutResult extends RepresentationModel {
   tipoSimulacao: 'CORTE';
   modoCalculo: string;
   larguraFinalCm: number;
@@ -22,7 +44,7 @@ export interface SimulationCutResult {
  * Representa o resultado de uma simulação de consumo direto.
  * O campo 'tipoSimulacao' atua como um discriminador para type guards.
  */
-export interface SimulationConsumptionResult {
+export interface SimulationConsumptionResult extends RepresentationModel {
   tipoSimulacao: 'CONSUMO_DIRETO';
   consumoTotalEstimado: number;
   unidadeDeConsumo: string;

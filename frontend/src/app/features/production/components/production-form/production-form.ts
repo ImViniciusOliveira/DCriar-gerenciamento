@@ -15,7 +15,7 @@ import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProductionOrder } from '../../models/production.model';
 import { Product } from '../../../products/models/product.model';
 import { ProductStockSearch } from '../../../../shared/components/product-stock-search/product-stock-search';
-import { ProductionService, SimulationRequest, VerificationRequest } from '../../services/production.service';
+import { CreateCutOrderRequest, ProductionService, SimulationRequest, VerificationRequest } from '../../services/production.service';
 import { SimulationResult, SimulationCutResult } from '../../models/simulation.model';
 import { BatchSearch } from '../../../../shared/components/batch-search/batch-search';
 import {Batch} from '../../../stock/models/batch.model';
@@ -760,8 +760,10 @@ export class ProductionForm implements OnInit {
   }
 
   onSave(): void {
-    // Validar que existe simulação antes de criar a ordem
-    if (!this.simulationResult()) {
+    const simulation = this.simulationResult();
+    const url = simulation?._links?.['create-order']?.href;
+
+    if (!simulation || !url) {
       return;
     }
 
@@ -771,41 +773,40 @@ export class ProductionForm implements OnInit {
     }
 
     this.isSaving.set(true);
-
-    // Montar payload para criar a ordem de produção
     const formValue = this.form.getRawValue();
-    const modo = formValue.modoCalculo;
 
-    const payload: any = {
-      produtoId: Number(formValue.produtoId),
-      lotePrincipalId: Number(formValue.loteId),
-      quantidadeProduzida: Number(formValue.quantidade),
-      modoCalculo: modo,
-      larguraFinalCm: Number(formValue.larguraFinalCm),
-      comprimentoFinalCm: Number(formValue.comprimentoFinalCm),
-      canalVendaId: formValue.canalVendaId ? Number(formValue.canalVendaId) : null,
-      motivo: formValue.motivo || null
-    };
+    if (simulation.tipoSimulacao === 'CORTE') {
+      const payload: CreateCutOrderRequest = {
+        produtoId: Number(formValue.produtoId),
+        lotePrincipalId: Number(formValue.loteId),
+        quantidadeProduzida: Number(formValue.quantidade),
+        modoCalculo: formValue.modoCalculo,
+        larguraFinalCm: Number(formValue.larguraFinalCm),
+        comprimentoFinalCm: Number(formValue.comprimentoFinalCm),
+        canalVendaDestinoId: formValue.canalVendaId ? Number(formValue.canalVendaId) : null,
+        motivo: formValue.motivo || null,
+        margens: this.buildMargensPayload(formValue)
+      };
 
-    const margens = this.buildMargensPayload(formValue);
-    if (margens) {
-      payload.margens = margens;
+      this.productionService.createCutOrder(url, payload)
+        .pipe(take(1))
+        .subscribe({
+          next: () => {
+            this.isSaving.set(false);
+            this.dialogRef.close(true);
+            this.cdr.markForCheck();
+          },
+          error: (err) => {
+            console.error('Erro ao criar ordem de produção por corte:', err);
+            this.isSaving.set(false);
+            this.cdr.markForCheck();
+          }
+        });
     }
-
-    console.log('Payload final para criação:', payload);
-
-    // TODO: Chamar ProductionService.createCutOrder(payload)
-    // Por enquanto, apenas simular sucesso
-    setTimeout(() => {
-      this.isSaving.set(false);
-      this.dialogRef.close(true);
-      this.cdr.markForCheck();
-    }, 500);
+    // TODO: Implementar a lógica para 'CONSUMO_DIRETO'
   }
 
   onCancel(): void {
     this.dialogRef.close(false);
   }
 }
-
-
