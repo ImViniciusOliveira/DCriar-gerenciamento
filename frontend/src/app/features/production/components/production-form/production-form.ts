@@ -84,13 +84,11 @@ export class ProductionForm implements OnInit {
   // Snapshot para restaurar o formulário em caso de cancelamento da verificação
   private formSnapshot: any;
 
-  // Propriedade computada que monta a mensagem de feedback detalhada.
-  feedbackMessage = computed(() => {
-    const result = this.simulationResult();
-    if (!result || result.tipoSimulacao !== 'CORTE') {
-      return '';
-    }
-    return this.formatFeedbackString(result as SimulationCutResult, Number(this.form.get('quantidade')?.value || 0));
+  feedbackLabel = computed(() => {
+    const qtd = this.form.get('quantidade')?.value;
+    if (!qtd) return 'Resultado da Simulação';
+    const labelProduto = qtd === 1 ? 'produto' : 'produtos';
+    return `Resultado da Simulação para ${qtd} ${labelProduto}`;
   });
 
   // Monta a lista completa do preview com total por linha, ex.: [10] [5] [1] [R] = 16
@@ -717,34 +715,6 @@ export class ProductionForm implements OnInit {
     if (r.sobraLateral) parts.push(`Lateral ${r.sobraLateral}`);
     if (r.sobraInferior) parts.push(`Inferior ${r.sobraInferior}`);
     return parts.length > 0 ? parts.join(' | ') : 'Nenhuma';
-  }
-
-  /**
-   * Formata a string completa de feedback exibida no formulário.
-   */
-  private formatFeedbackString(result: SimulationCutResult, qtd: number): string {
-    const labelProduto = qtd === 1 ? 'produto' : 'produtos';
-    const lines: string[] = [];
-    lines.push(`Informação: ${qtd} ${labelProduto} (${result.dimensaoProduto}).`);
-    if (result.produtosPorLinha > 0) {
-      if (result.numeroLinhasCompletas === 0) {
-        lines.push(`Produtos: ${result.produtosNaUltimaLinha} na única linha (Capacidade: ${result.produtosPorLinha}).`);
-      } else {
-        const descLinhas = result.produtosNaUltimaLinha > 0
-          ? `${result.numeroLinhasCompletas} linhas completas + 1 parcial`
-          : `${result.numeroLinhasCompletas} linhas completas`;
-        lines.push(`Produtos: ${result.produtosPorLinha} por linha (${descLinhas}).`);
-      }
-    }
-
-    const sobras: string[] = [];
-    if (result.sobraLateral) sobras.push(`Lateral ${result.sobraLateral}`);
-    if (result.sobraInferior) sobras.push(`Inferior ${result.sobraInferior}`);
-    if (sobras.length > 0) lines.push(`Sobras: ${sobras.join(' | ')}.`);
-
-    lines.push(`Consumo Total: ${result.consumoTotal}.`);
-
-    return lines.join('\n');
   }
 
   /**

@@ -146,45 +146,84 @@
   background-color: #f5f5f5 !important;
 }
 
+// --- Feedback de Simulação ---
+
 .simulation-feedback {
+  margin-top: 20px;
+}
+
+.feedback-container {
+  border: var(--std-border-width) solid var(--std-border-color);
+  border-radius: var(--std-border-radius);
+  padding: 16px;
   display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-items: flex-start;
+}
 
-  .feedback-text-field {
-    flex: 1;
+.feedback-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: #424242;
+  margin: 0;
+  padding-bottom: 16px;
+  text-align: center;
+  border-bottom: var(--std-border-width) solid var(--std-border-color);
+}
 
-    textarea {
-      user-select: text;
-      cursor: text;
-    }
+.feedback-columns-wrapper {
+  display: flex;
+  gap: 24px;
+}
 
-    // Remove o destaque azul e a borda de foco do Angular Material
-    &.mat-form-field-appearance-outline.mat-focused .mat-mdc-notched-outline__leading,
-    &.mat-form-field-appearance-outline.mat-focused .mat-mdc-notched-outline__notch,
-    &.mat-form-field-appearance-outline.mat-focused .mat-mdc-notched-outline__trailing {
-      border-color: var(--std-border-color) !important;
-      border-width: var(--std-border-width) !important;
-    }
+.feedback-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.feedback-header {
+  font-size: 15px;
+  font-weight: 700;
+  color: #3f51b5;
+  margin: 0;
+
+  // Espaçamento entre grupos
+  &:not(:first-child) {
+    margin-top: 16px;
   }
+}
 
-  .rotated-fieldset {
-    @include fl.fieldset-compact;
-    justify-content: center;
-    padding: 0 16px 0 12px;
-    margin-top: 8px;
-    margin-bottom: 20px;
-    pointer-events: none;
+.feedback-item {
+  font-size: 14px;
+  color: #333;
+  margin: 0;
+  line-height: 1.5;
 
-    .icon-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
 
-      // Força a cor azul para o ícone de rotação ativo
-      mat-icon.rotated-active {
-        color: #3f51b5 !important;
-      }
+  strong {
+    font-weight: 600;
+    color: #000;
+  }
+}
+
+.rotated-fieldset {
+  @include fl.fieldset-compact;
+  justify-content: flex-start;
+  padding: 8px 12px;
+  margin-top: 0;
+  margin-bottom: 0;
+  width: 100%;
+  pointer-events: none;
+
+  .icon-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    mat-icon.rotated-active {
+      color: #3f51b5 !important;
     }
   }
 }
@@ -194,13 +233,14 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
+  margin-top: 16px;
 }
 
 .retalho-icon-preview {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: flex-start; // Impede que os itens filhos sejam esticados
+  align-items: flex-start;
 }
 
 .retalho-row-simulation {
@@ -208,8 +248,8 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  position: relative; // Necessário para o z-index funcionar
-  z-index: 2; // Garante que o conteúdo fique acima da animação
+  position: relative;
+  z-index: 2;
 }
 
 .retalho-row-total {
@@ -251,12 +291,9 @@
   overflow: hidden;
   border-radius: var(--std-border-radius);
 
-  // Quando as linhas estiverem expandidas, o cursor vira uma "mãozinha"
-  // indicando que é possível clicar para recolher.
   &.retalho-ocultas-expandido {
     cursor: pointer;
 
-    // O pseudo-elemento que criará a animação
     &::before {
       content: '';
       position: absolute;
@@ -269,13 +306,12 @@
         rgba(63, 81, 181, 0.25) 0%,
         rgba(63, 81, 181, 0) 70%
       );
-      z-index: 1; // Fica entre o fundo e o conteúdo
+      z-index: 1;
       transform: scale(0);
       transform-origin: center;
       transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
 
-    // No hover, o pseudo-elemento se expande
     &:hover::before {
       transform: scale(1);
     }
