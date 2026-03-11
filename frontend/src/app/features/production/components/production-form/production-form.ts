@@ -236,8 +236,8 @@ export class ProductionForm implements OnInit {
 
       // ETAPA 3: FORMULÁRIO REAL
       modoCalculo: ['AUTOMATICO', Validators.required],
-      larguraFinalCm: [{ value: null, disabled: true }],
-      comprimentoFinalCm: [{ value: null, disabled: true }],
+      larguraBlocoProdutosCm: [{ value: null, disabled: true }],
+      comprimentoBlocoProdutosCm: [{ value: null, disabled: true }],
       margens: this.fb.group({
         superior: [null],
         inferior: [null],
@@ -271,8 +271,8 @@ export class ProductionForm implements OnInit {
     // Lista de controles que invalidam a simulação
     const criticalControls = [
       this.form.get('quantidade'),
-      this.larguraFinalCmControl,
-      this.comprimentoFinalCmControl,
+      this.larguraBlocoProdutosCmControl,
+      this.comprimentoBlocoProdutosCmControl,
       this.form.get('margens.superior'),
       this.form.get('margens.inferior'),
       this.form.get('margens.esquerda'),
@@ -316,8 +316,8 @@ export class ProductionForm implements OnInit {
       );
     } else {
       return (
-        Number(current.larguraFinalCm || 0) !== Number(snapshot.larguraFinalCm || 0) ||
-        Number(current.comprimentoFinalCm || 0) !== Number(snapshot.comprimentoFinalCm || 0)
+        Number(current.larguraBlocoProdutosCm || 0) !== Number(snapshot.larguraBlocoProdutosCm || 0) ||
+        Number(current.comprimentoBlocoProdutosCm || 0) !== Number(snapshot.comprimentoBlocoProdutosCm || 0)
       );
     }
   }
@@ -361,17 +361,17 @@ export class ProductionForm implements OnInit {
   }
 
   /**
-   * Getter para o FormControl de larguraFinalCm
+   * Getter para o FormControl de larguraBlocoProdutosCm
    */
-  get larguraFinalCmControl(): FormControl {
-    return this.form.get('larguraFinalCm') as FormControl;
+  get larguraBlocoProdutosCmControl(): FormControl {
+    return this.form.get('larguraBlocoProdutosCm') as FormControl;
   }
 
   /**
-   * Getter para o FormControl de comprimentoFinalCm
+   * Getter para o FormControl de comprimentoBlocoProdutosCm
    */
-  get comprimentoFinalCmControl(): FormControl {
-    return this.form.get('comprimentoFinalCm') as FormControl;
+  get comprimentoBlocoProdutosCmControl(): FormControl {
+    return this.form.get('comprimentoBlocoProdutosCm') as FormControl;
   }
 
   /**
@@ -438,8 +438,8 @@ export class ProductionForm implements OnInit {
    */
   onModoCalculoChange(): void {
     const modo = this.modoCalculoControl.value;
-    const larguraControl = this.larguraFinalCmControl;
-    const comprimentoControl = this.comprimentoFinalCmControl;
+    const larguraControl = this.larguraBlocoProdutosCmControl;
+    const comprimentoControl = this.comprimentoBlocoProdutosCmControl;
 
     if (modo === 'MANUAL') {
       // Modo MANUAL: habilita os campos e adiciona validadores
@@ -458,8 +458,8 @@ export class ProductionForm implements OnInit {
       const result = this.simulationResult();
       if (result && result.tipoSimulacao === 'CORTE') {
         this.form.patchValue({
-          larguraFinalCm: result.larguraFinalCm,
-          comprimentoFinalCm: result.comprimentoFinalCm
+          larguraBlocoProdutosCm: result.larguraBlocoProdutosCm,
+          comprimentoBlocoProdutosCm: result.comprimentoBlocoProdutosCm
         }, { emitEvent: false });
       }
     }
@@ -515,8 +515,8 @@ export class ProductionForm implements OnInit {
           // Popula os campos do formulário com os dados da simulação
           if (response.tipoSimulacao === 'CORTE') {
             this.form.patchValue({
-              larguraFinalCm: response.larguraFinalCm,
-              comprimentoFinalCm: response.comprimentoFinalCm
+              larguraBlocoProdutosCm: response.larguraBlocoProdutosCm,
+              comprimentoBlocoProdutosCm: response.comprimentoBlocoProdutosCm
             }, { emitEvent: false });
           }
 
@@ -567,8 +567,8 @@ export class ProductionForm implements OnInit {
       loteId: Number(formValue.loteId),
       quantidade: Number(formValue.quantidade),
       modoCalculo: formValue.modoCalculo,
-      larguraFinalCm: formValue.larguraFinalCm ? Number(formValue.larguraFinalCm) : null,
-      comprimentoFinalCm: formValue.comprimentoFinalCm ? Number(formValue.comprimentoFinalCm) : null
+      larguraFinalCm: formValue.larguraBlocoProdutosCm ? Number(formValue.larguraBlocoProdutosCm) : null,
+      comprimentoFinalCm: formValue.comprimentoBlocoProdutosCm ? Number(formValue.comprimentoBlocoProdutosCm) : null
     };
 
     const margens = this.buildMargensPayload(formValue);
@@ -679,8 +679,8 @@ export class ProductionForm implements OnInit {
         // Se for automático, atualiza os campos de dimensão com os novos valores calculados
         if (formValue.modoCalculo === 'AUTOMATICO') {
           this.form.patchValue({
-            larguraFinalCm: newR.larguraFinalCm,
-            comprimentoFinalCm: newR.comprimentoFinalCm
+            larguraBlocoProdutosCm: newR.larguraBlocoProdutosCm,
+            comprimentoBlocoProdutosCm: newR.comprimentoBlocoProdutosCm
           }, { emitEvent: false });
         }
       } else {
@@ -753,8 +753,8 @@ export class ProductionForm implements OnInit {
         lotePrincipalId: Number(formValue.loteId),
         quantidadeProduzida: Number(formValue.quantidade),
         modoCalculo: formValue.modoCalculo,
-        larguraFinalCm: Number(formValue.larguraFinalCm),
-        comprimentoFinalCm: Number(formValue.comprimentoFinalCm),
+        larguraFinalCm: Number(formValue.larguraBlocoProdutosCm),
+        comprimentoFinalCm: Number(formValue.comprimentoBlocoProdutosCm),
         canalVendaDestinoId: formValue.canalVendaId ? Number(formValue.canalVendaId) : null,
         motivo: formValue.motivo || null,
         margens: this.buildMargensPayload(formValue)

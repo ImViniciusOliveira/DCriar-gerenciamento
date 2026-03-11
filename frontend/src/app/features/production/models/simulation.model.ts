@@ -38,6 +38,8 @@ export interface SimulationCutResult extends RepresentationModel {
   sobraInferior: string;
   dimensaoProduto: string;
   consumoTotal: string;
+  larguraBlocoProdutosCm?: number;
+  comprimentoBlocoProdutosCm?: number;
 }
 
 /**
