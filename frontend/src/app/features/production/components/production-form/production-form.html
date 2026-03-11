@@ -243,7 +243,15 @@
                   <h4 class="feedback-header">Matéria-Prima</h4>
                   <p class="feedback-item">Lote: <strong>{{ produto()?.materiaPrima?.nome }}</strong></p>
                   @if(loteSelecionado(); as lote) {
-                    <p class="feedback-item">Dimensão do Lote (L x C): <strong>{{ (lote.atributos?.['larguraMm'] || 0) / 10 }}cm x {{ lote.saldoEstoque }}{{ lote.unidadeSimbolo }}</strong></p>
+                    <p class="feedback-item">
+                      Dimensão do Lote (L x C):
+                      <strong>
+                        {{ (lote.atributos?.['larguraMm'] || 0) / 10 }}cm x {{ lote.saldoEstoque }}{{ lote.unidadeSimbolo }}
+                        @if (lote.unidadeSimbolo === 'm²' && typeof lote.saldoEstoque === 'number') {
+                          <span>({{ (lote.saldoEstoque * 10000) | number:'1.0-0' }}cm²)</span>
+                        }
+                      </strong>
+                    </p>
                   }
 
                   <h4 class="feedback-header">Produto</h4>

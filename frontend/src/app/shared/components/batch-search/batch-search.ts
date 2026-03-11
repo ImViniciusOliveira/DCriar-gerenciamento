@@ -115,8 +115,11 @@ export class BatchSearch {
     if (!batch) return '';
     const saldo = batch.saldoEstoque !== undefined ? `Saldo: ${batch.saldoEstoque} ${batch.unidadeSimbolo || ''}` : '';
     const largura = batch.atributos?.['larguraMm'] ? `Largura: ${(batch.atributos['larguraMm'] || 0) / 10}cm` : '';
-
-    return [saldo, largura].filter(Boolean).join(' | ');
+    let saldoCm = '';
+    if (batch.unidadeSimbolo === 'm²' && typeof batch.saldoEstoque === 'number') {
+      saldoCm = ` (${batch.saldoEstoque * 10000}cm²)`;
+    }
+    return [saldo + saldoCm, largura].filter(Boolean).join(' | ');
   }
 
   /**
