@@ -71,19 +71,22 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         BigDecimal comprimentoProduto = contextoBase.comprimentoProduto();
         BigDecimal margemEsquerda = Optional.ofNullable(margensRequest != null ? margensRequest.getEsquerda() : null).orElse(BigDecimal.ZERO);
         BigDecimal margemDireita = Optional.ofNullable(margensRequest != null ? margensRequest.getDireita() : null).orElse(BigDecimal.ZERO);
-        BigDecimal margensLateraisTotais = margemEsquerda.add(margemDireita);
+        BigDecimal margemSuperior = Optional.ofNullable(margensRequest != null ? margensRequest.getSuperior() : null).orElse(BigDecimal.ZERO);
+        BigDecimal margemInferior = Optional.ofNullable(margensRequest != null ? margensRequest.getInferior() : null).orElse(BigDecimal.ZERO);
 
-        BigDecimal larguraProdutoComMargens = larguraProduto.add(margensLateraisTotais);
-        if (larguraProdutoComMargens.compareTo(larguraTotalLoteCm) > 0) {
-            // Verifica se na orientação rotacionada caberia
-            BigDecimal comprimentoProdutoComMargens = comprimentoProduto.add(margensLateraisTotais);
-            if (comprimentoProdutoComMargens.compareTo(larguraTotalLoteCm) > 0) {
-                throw new ProdutoNaoCabeNoLoteException(larguraProdutoComMargens, comprimentoProdutoComMargens, larguraTotalLoteCm);
-            }
+        // 2. Calcular bloco de produtos com margens
+        BigDecimal larguraBlocoProdutosFinal = larguraProduto.multiply(new BigDecimal(quantidade)).add(margemEsquerda).add(margemDireita);
+        BigDecimal comprimentoBlocoProdutosFinal = comprimentoProduto.add(margemSuperior).add(margemInferior);
+
+        // 3. Validar limites
+        if (larguraBlocoProdutosFinal.compareTo(BigDecimal.ZERO) <= 0 || larguraBlocoProdutosFinal.compareTo(larguraTotalLoteCm) > 0) {
+            throw new DimensoesManuaisInvalidasException(larguraBlocoProdutosFinal, larguraTotalLoteCm);
+        }
+        if (comprimentoBlocoProdutosFinal.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new DimensoesManuaisInvalidasException(comprimentoBlocoProdutosFinal, BigDecimal.valueOf(Long.MAX_VALUE));
         }
 
-
-        // 2. Determinar a orientação ótima SEM margens
+        // 4. Determinar orientação ótima (mantém lógica original)
         int produtosPorLinhaNormalSemMargem = calcularProdutosPorLinhaSemMargem(larguraTotalLoteCm, larguraProduto);
         int linhasNormalSemMargem = calcularLinhas(quantidade, produtosPorLinhaNormalSemMargem);
         BigDecimal comprimentoTotalNormalSemMargem = (produtosPorLinhaNormalSemMargem > 0)
@@ -99,29 +102,19 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         if (produtosPorLinhaNormalSemMargem == 0 && produtosPorLinhaRotacionadoSemMargem == 0) {
             throw new ProdutoNaoCabeNoLoteException("O produto não cabe na largura do lote em nenhuma orientação.");
         }
-        
         boolean orientacaoOtimaEhRotacionado = comprimentoTotalRotacionadoSemMargem.compareTo(comprimentoTotalNormalSemMargem) < 0;
 
-        // 3. Definir os parâmetros do layout ótimo
         int produtosPorLinhaOtima = orientacaoOtimaEhRotacionado ? produtosPorLinhaRotacionadoSemMargem : produtosPorLinhaNormalSemMargem;
         BigDecimal larguraProdutoNaOrientacaoOtima = orientacaoOtimaEhRotacionado ? comprimentoProduto : larguraProduto;
         BigDecimal comprimentoProdutoNaOrientacaoOtima = orientacaoOtimaEhRotacionado ? larguraProduto : comprimentoProduto;
 
-        // 4. Calcular as dimensões finais do bloco de produtos e do retalho, aplicando as margens.
-        BigDecimal larguraBlocoProdutosFinal;
-        if (quantidade < produtosPorLinhaNormalSemMargem) {
-            larguraBlocoProdutosFinal = larguraProduto.multiply(new BigDecimal(quantidade));
-        } else {
-            larguraBlocoProdutosFinal = larguraTotalLoteCm;
-        }
+        // 5. Calcular retalho lateral
         BigDecimal larguraRetalhoLateralFinal = larguraTotalLoteCm.subtract(larguraBlocoProdutosFinal);
-
-        // Se o retalho lateral ficar negativo (margem excede o lote), trunca em 0
         if (larguraRetalhoLateralFinal.compareTo(BigDecimal.ZERO) < 0) {
             larguraRetalhoLateralFinal = BigDecimal.ZERO;
         }
 
-        // 5. Retornar os parâmetros finais para o próximo método.
+        // 6. Retornar os parâmetros finais para o próximo método.
         return new ParametrosCorte(
                 larguraTotalLoteCm,
                 larguraProdutoNaOrientacaoOtima,
