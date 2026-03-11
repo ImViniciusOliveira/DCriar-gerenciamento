@@ -108,12 +108,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     lotePrincipal,
                     requestDTO.getLarguraFinalCm()
             );
-            validarComprimentoManualSuficiente(
-                    requestDTO.getQuantidadeProduzida(),
-                    requestDTO.getComprimentoFinalCm(),
-                    parametros.comprimentoProduto(),
-                    parametros.produtosPorLinha()
-            );
             larguraFinalCm = requestDTO.getLarguraFinalCm();
             comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
             ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, true);
@@ -390,7 +384,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         return SimulacaoCorteResponseDTO.builder()
                 .modoCalculo(ModoCalculo.AUTOMATICO)
-                .larguraFinalCm(parametros.larguraTotalLoteCm())
+                .larguraFinalCm(parametros.larguraBlocoProdutosCm()) // Corrigido: largura do corte real
                 .comprimentoFinalCm(comprimentoFinalCm)
                 .consumoEstimado(consumoEstimado)
                 .rotacionado(parametros.rotacionado())
@@ -424,13 +418,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     requestDTO.getLarguraFinalCm()
             );
 
-            validarComprimentoManualSuficiente(
-                    requestDTO.getQuantidade(),
-                    comprimentoFinalCm,
-                    parametros.comprimentoProduto(),
-                    parametros.produtosPorLinha()
-            );
-
         } else {
             // Modo automático: sistema calcula com margens
             parametros = corteCalculatorService.extrairParametrosCorte(
@@ -454,7 +441,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         return SimulacaoCorteResponseDTO.builder()
                 .modoCalculo(requestDTO.getModoCalculo())
-                .larguraFinalCm(parametros.larguraTotalLoteCm())
+                .larguraFinalCm(parametros.larguraBlocoProdutosCm()) // Corrigido: largura do corte real
                 .comprimentoFinalCm(comprimentoFinalCm)
                 .consumoEstimado(consumoEstimado)
                 .rotacionado(parametros.rotacionado())
@@ -602,17 +589,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
     }
 
-    private void validarComprimentoManualSuficiente(int quantidadeProduzida, BigDecimal comprimentoFinalCm, BigDecimal comprimentoProduto, int produtosPorLinha) {
-        if (produtosPorLinha == 0) {
-            throw new DimensoesManuaisInvalidasException("A largura informada não comporta nenhum produto.");
-        }
-        long numeroDeLinhasNecessarias = (long) Math.ceil((double) quantidadeProduzida / produtosPorLinha);
-        BigDecimal comprimentoMinimoNecessario = comprimentoProduto.multiply(new BigDecimal(numeroDeLinhasNecessarias));
-
-        if (comprimentoFinalCm.compareTo(comprimentoMinimoNecessario) < 0) {
-            throw new DimensoesManuaisInvalidasException(comprimentoFinalCm, comprimentoMinimoNecessario, "O comprimento final não é suficiente.");
-        }
-    }
 
     private Produto findProdutoById(Long id) {
         return produtoRepository.findByIdWithTipoMateriaPrima(id)

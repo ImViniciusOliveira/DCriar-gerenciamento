@@ -154,9 +154,6 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
 
         // 2. Estimar produtos por linha baseado na largura manual
         int produtosPorLinha = larguraCorteManualCm.divide(larguraProduto, 0, RoundingMode.FLOOR).intValue();
-        if (produtosPorLinha == 0) {
-            throw new ProdutoNaoCabeNoLoteException(larguraCorteManualCm, larguraProduto);
-        }
 
         // 3. Calcular retalho lateral (R1): diferença entre lote e corte manual
         BigDecimal larguraRetalhoLateralFinal = larguraTotalLoteCm.subtract(larguraCorteManualCm);
