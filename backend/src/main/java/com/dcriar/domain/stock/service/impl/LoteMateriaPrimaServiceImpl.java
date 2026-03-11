@@ -222,6 +222,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
             BigDecimal saldo = calcularSaldo(lote);
             LoteMateriaPrimaResponseDTO dto = loteMateriaPrimaMapper.toResponseDTO(lote);
             dto.setSaldoEstoque(saldo);
+            dto.setAtributos(lote.getAtributos());
             return dto;
         });
     }
