@@ -60,4 +60,10 @@ public class SimulacaoCorteResponseDTO {
 
     @Schema(description = "Campo discriminador para identificar o tipo de resultado da simulação no frontend.", example = "CORTE", accessMode = Schema.AccessMode.READ_ONLY)
     private final String tipoSimulacao = "CORTE";
+
+    @Schema(description = "Largura do bloco de produtos no corte (em cm).", example = "75.0")
+    private BigDecimal larguraBlocoProdutosCm;
+
+    @Schema(description = "Comprimento do bloco de produtos no corte (em cm).", example = "1150.0")
+    private BigDecimal comprimentoBlocoProdutosCm;
 }

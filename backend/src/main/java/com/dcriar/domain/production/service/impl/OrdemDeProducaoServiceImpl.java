@@ -384,7 +384,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         return SimulacaoCorteResponseDTO.builder()
                 .modoCalculo(ModoCalculo.AUTOMATICO)
-                .larguraFinalCm(parametros.larguraBlocoProdutosCm()) // Corrigido: largura do corte real
+                .larguraFinalCm(parametros.larguraTotalLoteCm())
                 .comprimentoFinalCm(comprimentoFinalCm)
                 .consumoEstimado(consumoEstimado)
                 .rotacionado(parametros.rotacionado())
@@ -396,6 +396,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .saldoRolo(resumo.saldoRolo())
                 .dimensaoProduto(formatarDimensao(parametros.larguraProduto(), parametros.comprimentoProduto()))
                 .consumoTotal(formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoFinalCm))
+                .larguraBlocoProdutosCm(parametros.larguraBlocoProdutosCm())
+                .comprimentoBlocoProdutosCm(comprimentoFinalCm)
                 .build();
     }
 
@@ -441,7 +443,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         return SimulacaoCorteResponseDTO.builder()
                 .modoCalculo(requestDTO.getModoCalculo())
-                .larguraFinalCm(parametros.larguraBlocoProdutosCm()) // Corrigido: largura do corte real
+                .larguraFinalCm(parametros.larguraTotalLoteCm()) // Corrigido: largura total do lote
                 .comprimentoFinalCm(comprimentoFinalCm)
                 .consumoEstimado(consumoEstimado)
                 .rotacionado(parametros.rotacionado())
@@ -453,6 +455,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .saldoRolo(resumo.saldoRolo())
                 .dimensaoProduto(formatarDimensao(parametros.larguraProduto(), parametros.comprimentoProduto()))
                 .consumoTotal(formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoFinalCm))
+                .larguraBlocoProdutosCm(parametros.larguraBlocoProdutosCm())
+                .comprimentoBlocoProdutosCm(comprimentoFinalCm)
                 .build();
     }
 
