@@ -10,6 +10,7 @@ import com.dcriar.domain.production.model.ResumoLayoutCorte;
 import com.dcriar.domain.production.service.CorteCalculatorService;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.exception.custom.AtributoLoteInvalidoException;
+import com.dcriar.exception.custom.DimensoesManuaisInvalidasException;
 import com.dcriar.exception.custom.ProdutoNaoCabeNoLoteException;
 import com.dcriar.exception.custom.TipoProducaoIncompativelException;
 import lombok.RequiredArgsConstructor;
@@ -71,6 +72,16 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         BigDecimal margemEsquerda = Optional.ofNullable(margensRequest != null ? margensRequest.getEsquerda() : null).orElse(BigDecimal.ZERO);
         BigDecimal margemDireita = Optional.ofNullable(margensRequest != null ? margensRequest.getDireita() : null).orElse(BigDecimal.ZERO);
         BigDecimal margensLateraisTotais = margemEsquerda.add(margemDireita);
+
+        BigDecimal larguraProdutoComMargens = larguraProduto.add(margensLateraisTotais);
+        if (larguraProdutoComMargens.compareTo(larguraTotalLoteCm) > 0) {
+            // Verifica se na orientação rotacionada caberia
+            BigDecimal comprimentoProdutoComMargens = comprimentoProduto.add(margensLateraisTotais);
+            if (comprimentoProdutoComMargens.compareTo(larguraTotalLoteCm) > 0) {
+                throw new ProdutoNaoCabeNoLoteException(larguraProdutoComMargens, comprimentoProdutoComMargens, larguraTotalLoteCm);
+            }
+        }
+
 
         // 2. Determinar a orientação ótima SEM margens
         int produtosPorLinhaNormalSemMargem = calcularProdutosPorLinhaSemMargem(larguraTotalLoteCm, larguraProduto);
@@ -136,19 +147,19 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         BigDecimal larguraProduto = contextoBase.larguraProduto();
         BigDecimal comprimentoProduto = contextoBase.comprimentoProduto();
 
+        // BUGFIX: Validar se a largura do corte manual é maior que a do lote
+        if (larguraCorteManualCm.compareTo(larguraTotalLoteCm) > 0) {
+            throw new DimensoesManuaisInvalidasException(larguraCorteManualCm, larguraTotalLoteCm);
+        }
+
         // 2. Estimar produtos por linha baseado na largura manual
         int produtosPorLinha = larguraCorteManualCm.divide(larguraProduto, 0, RoundingMode.FLOOR).intValue();
         if (produtosPorLinha == 0) {
-            produtosPorLinha = 1; // Mínimo 1 (usuário decide, não validamos)
+            throw new ProdutoNaoCabeNoLoteException(larguraCorteManualCm, larguraProduto);
         }
 
         // 3. Calcular retalho lateral (R1): diferença entre lote e corte manual
         BigDecimal larguraRetalhoLateralFinal = larguraTotalLoteCm.subtract(larguraCorteManualCm);
-
-        // Truncar em 0 se usuário definiu corte maior que lote
-        if (larguraRetalhoLateralFinal.compareTo(BigDecimal.ZERO) < 0) {
-            larguraRetalhoLateralFinal = BigDecimal.ZERO;
-        }
 
         // 4. Retornar parâmetros para modo manual
         return new ParametrosCorte(

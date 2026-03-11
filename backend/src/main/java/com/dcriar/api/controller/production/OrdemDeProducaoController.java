@@ -5,7 +5,11 @@ import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoConsumoDiretoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
 import com.dcriar.api.hateoas.production.assembler.OrdemDeProducaoModelAssembler;
+import com.dcriar.api.hateoas.production.assembler.SimulacaoConsumoDiretoModelAssembler;
+import com.dcriar.api.hateoas.production.assembler.SimulacaoCorteModelAssembler;
 import com.dcriar.api.hateoas.production.model.OrdemDeProducaoModel;
+import com.dcriar.api.hateoas.production.model.SimulacaoConsumoDiretoModel;
+import com.dcriar.api.hateoas.production.model.SimulacaoCorteModel;
 import com.dcriar.domain.production.service.OrdemDeProducaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -36,6 +40,8 @@ public class OrdemDeProducaoController {
 
     private final OrdemDeProducaoService ordemDeProducaoService;
     private final OrdemDeProducaoModelAssembler ordemDeProducaoModelAssembler;
+    private final SimulacaoCorteModelAssembler simulacaoCorteModelAssembler;
+    private final SimulacaoConsumoDiretoModelAssembler simulacaoConsumoDiretoModelAssembler;
 
     @GetMapping("/new")
     @Operation(summary = "Obter um modelo 'esqueleto' para criação de uma nova ordem de produção")
@@ -105,9 +111,9 @@ public class OrdemDeProducaoController {
     @PostMapping("/simular/corte")
     @Operation(summary = "Simular uma produção baseada em corte")
     @ApiResponse(responseCode = "200", description = "Simulação realizada com sucesso.")
-    public ResponseEntity<SimulacaoCorteResponseDTO> simularCorte(@RequestBody @Valid SimulacaoCorteRequestDTO requestDTO) {
+    public ResponseEntity<SimulacaoCorteModel> simularCorte(@RequestBody @Valid SimulacaoCorteRequestDTO requestDTO) {
         SimulacaoCorteResponseDTO response = ordemDeProducaoService.simularCorte(requestDTO);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(simulacaoCorteModelAssembler.toModel(response));
     }
 
     @PostMapping("/verificar-corte")
@@ -116,16 +122,16 @@ public class OrdemDeProducaoController {
             @ApiResponse(responseCode = "200", description = "Verificação realizada com sucesso."),
             @ApiResponse(responseCode = "400", description = "Dados de edição inválidos.", content = @Content)
     })
-    public ResponseEntity<SimulacaoCorteResponseDTO> verificarCorte(@RequestBody @Valid VerificacaoCorteRequestDTO requestDTO) {
+    public ResponseEntity<SimulacaoCorteModel> verificarCorte(@RequestBody @Valid VerificacaoCorteRequestDTO requestDTO) {
         SimulacaoCorteResponseDTO response = ordemDeProducaoService.verificarCorte(requestDTO);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(simulacaoCorteModelAssembler.toModel(response));
     }
 
     @PostMapping("/simular/consumo-direto")
     @Operation(summary = "Simular uma produção baseada em consumo direto (líquidos, pós, etc.)")
     @ApiResponse(responseCode = "200", description = "Simulação realizada com sucesso.")
-    public ResponseEntity<SimulacaoConsumoDiretoResponseDTO> simularConsumoDireto(@RequestBody @Valid SimulacaoConsumoDiretoRequestDTO requestDTO) {
+    public ResponseEntity<SimulacaoConsumoDiretoModel> simularConsumoDireto(@RequestBody @Valid SimulacaoConsumoDiretoRequestDTO requestDTO) {
         SimulacaoConsumoDiretoResponseDTO response = ordemDeProducaoService.simularConsumoDireto(requestDTO);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(simulacaoConsumoDiretoModelAssembler.toModel(response));
     }
 }

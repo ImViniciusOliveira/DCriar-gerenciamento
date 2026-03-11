@@ -12,7 +12,6 @@ import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
 import com.dcriar.api.mapper.production.PlanoDeConsumoMapper;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
-import com.dcriar.domain.product.entity.ProdutoDeCorte;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
@@ -99,17 +98,28 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         BigDecimal comprimentoFinalCm;
         List<CorteRealizadoResponseDTO> cortesRealizadosDTOs;
         BigDecimal larguraFinalCm;
-        ParametrosCorte parametros = null;
+        ParametrosCorte parametros;
 
         // 2. Determina os parâmetros de corte (manual ou automático).
         if (requestDTO.getModoCalculo() == ModoCalculo.MANUAL) {
+            parametros = corteCalculatorService.extrairParametrosCorteManual(
+                    requestDTO.getQuantidadeProduzida(),
+                    produto,
+                    lotePrincipal,
+                    requestDTO.getLarguraFinalCm()
+            );
+            validarComprimentoManualSuficiente(
+                    requestDTO.getQuantidadeProduzida(),
+                    requestDTO.getComprimentoFinalCm(),
+                    parametros.comprimentoProduto(),
+                    parametros.produtosPorLinha()
+            );
             larguraFinalCm = requestDTO.getLarguraFinalCm();
             comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
-            consumoTotalMetros = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+            ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, true);
+            cortesRealizadosDTOs = resumo.cortes();
 
-            cortesRealizadosDTOs = gerarCortesManuais(requestDTO, produto);
-
-        } else {
+        } else { // MODO AUTOMÁTICO
             parametros = corteCalculatorService.extrairParametrosCorte(
                     requestDTO.getQuantidadeProduzida(), produto, lotePrincipal, requestDTO.getMargens()
             );
@@ -122,13 +132,13 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                         .add(Optional.ofNullable(requestDTO.getMargens().getSuperior()).orElse(BigDecimal.ZERO))
                         .add(Optional.ofNullable(requestDTO.getMargens().getInferior()).orElse(BigDecimal.ZERO));
             }
-            consumoTotalMetros = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
             larguraFinalCm = parametros.larguraTotalLoteCm();
             
             ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, false);
             cortesRealizadosDTOs = resumo.cortes();
         }
 
+        consumoTotalMetros = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
 
         // 3. Valida se o lote principal tem saldo suficiente.
         validarSaldoLoteCorte(lotePrincipal, consumoTotalMetros);
@@ -150,7 +160,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .larguraFinalCm(larguraFinalCm)
                 .comprimentoFinalCm(comprimentoFinalCm)
                 .motivo(requestDTO.getMotivo())
-                .rotacionado(parametros != null && parametros.rotacionado())
+                .rotacionado(parametros.rotacionado())
                 .build();
 
         OrdemDeProducao ordem = OrdemDeProducao.from(ordemRequestDTO, produto, Set.of(lotePrincipal), margensEntity);
@@ -309,6 +319,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     .motivo("Estorno da Ordem de Produção #" + ordem.getId())
                     .build();
             MovimentacaoEstoqueLote estornoMP = MovimentacaoEstoqueLote.from(estornoMPDTO, baixa.getLote());
+            estornoMP.setOrdemDeProducao(ordem);
             movimentacaoEstoqueLoteRepository.save(estornoMP);
         }
 
@@ -375,6 +386,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         BigDecimal consumoEstimado = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
 
+        validarSaldoLoteCorte(loteParaSimulacao, consumoEstimado);
+
         return SimulacaoCorteResponseDTO.builder()
                 .modoCalculo(ModoCalculo.AUTOMATICO)
                 .larguraFinalCm(parametros.larguraTotalLoteCm())
@@ -410,6 +423,14 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     lote,
                     requestDTO.getLarguraFinalCm()
             );
+
+            validarComprimentoManualSuficiente(
+                    requestDTO.getQuantidade(),
+                    comprimentoFinalCm,
+                    parametros.comprimentoProduto(),
+                    parametros.produtosPorLinha()
+            );
+
         } else {
             // Modo automático: sistema calcula com margens
             parametros = corteCalculatorService.extrairParametrosCorte(
@@ -428,6 +449,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, isModoManual);
         BigDecimal consumoEstimado = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+
+        validarSaldoLoteCorte(lote, consumoEstimado);
 
         return SimulacaoCorteResponseDTO.builder()
                 .modoCalculo(requestDTO.getModoCalculo())
@@ -474,59 +497,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .unidadeDeConsumo(produto.getTipoMateriaPrima().getUnidadeDeConsumo())
                 .planoDeConsumo(plano.itens().stream().map(planoDeConsumoMapper::toDto).collect(Collectors.toList()))
                 .saldoRestante(plano.saldosRestantes())
-                .build();
-    }
-
-    // --- Métodos Privados de Geração de Cortes ---
-
-    private List<CorteRealizadoResponseDTO> gerarCortesManuais(OrdemDeCorteRequestDTO requestDTO, Produto produto) {
-        if (!(produto instanceof ProdutoDeCorte produtoDeCorte)) {
-            throw new TipoProducaoIncompativelException("Corte manual só é aplicável a produtos do tipo 'CORTE'.");
-        }
-        BigDecimal larguraFinalCm = requestDTO.getLarguraFinalCm();
-        BigDecimal comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
-        BigDecimal larguraProduto = produtoDeCorte.getDimensoes().getLarguraCm();
-        BigDecimal comprimentoProduto = produtoDeCorte.getDimensoes().getComprimentoCm();
-        int quantidadeProduzida = requestDTO.getQuantidadeProduzida();
-        List<CorteRealizadoResponseDTO> cortes = new ArrayList<>();
-        int produtosPorLinha = larguraFinalCm.divide(larguraProduto, 0, RoundingMode.DOWN).intValue();
-        if (produtosPorLinha == 0) {
-            throw new DimensoesManuaisInvalidasException(String.format("A largura final (%.2f cm) é menor que a largura do produto (%.2f cm).", larguraFinalCm, larguraProduto));
-        }
-        int produtosRestantes = quantidadeProduzida;
-        BigDecimal comprimentoAcumulado = BigDecimal.ZERO;
-        while (produtosRestantes > 0) {
-            int produtosNestaLinha = Math.min(produtosPorLinha, produtosRestantes);
-            if (comprimentoAcumulado.add(comprimentoProduto).compareTo(comprimentoFinalCm) > 0) {
-                throw new DimensoesManuaisInvalidasException(String.format("O comprimento final (%.2f cm) não é suficiente para produzir a quantidade solicitada.", comprimentoFinalCm));
-            }
-            cortes.add(criarCorteProduto(larguraProduto, comprimentoProduto, produtosNestaLinha));
-            comprimentoAcumulado = comprimentoAcumulado.add(comprimentoProduto);
-            produtosRestantes -= produtosNestaLinha;
-        }
-        BigDecimal comprimentoRetalhoFinal = comprimentoFinalCm.subtract(comprimentoAcumulado);
-        if (comprimentoRetalhoFinal.compareTo(BigDecimal.ZERO) > 0) {
-            cortes.add(criarCorteRetalho(larguraFinalCm, comprimentoRetalhoFinal));
-        }
-        return cortes;
-    }
-
-    private CorteRealizadoResponseDTO criarCorteProduto(BigDecimal larguraProduto, BigDecimal comprimentoProduto, int quantidade) {
-        return CorteRealizadoResponseDTO.builder()
-                .larguraCm(larguraProduto)
-                .comprimentoCm(comprimentoProduto)
-                .quantidade(quantidade)
-                .tipo("PRODUTO")
-                .build();
-    }
-
-    private CorteRealizadoResponseDTO criarCorteRetalho(BigDecimal largura, BigDecimal comprimento) {
-        return CorteRealizadoResponseDTO.builder()
-                .larguraCm(largura)
-                .comprimentoCm(comprimento)
-                .quantidade(1)
-                .tipo("RETALHO")
-                .retalhoCategoria("FINAL")
                 .build();
     }
 
@@ -629,6 +599,18 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         BigDecimal saldoAtual = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
         if (consumoEmMetros.compareTo(saldoAtual) > 0) {
             throw new SaldoMateriaPrimaInsuficienteException(consumoEmMetros, saldoAtual);
+        }
+    }
+
+    private void validarComprimentoManualSuficiente(int quantidadeProduzida, BigDecimal comprimentoFinalCm, BigDecimal comprimentoProduto, int produtosPorLinha) {
+        if (produtosPorLinha == 0) {
+            throw new DimensoesManuaisInvalidasException("A largura informada não comporta nenhum produto.");
+        }
+        long numeroDeLinhasNecessarias = (long) Math.ceil((double) quantidadeProduzida / produtosPorLinha);
+        BigDecimal comprimentoMinimoNecessario = comprimentoProduto.multiply(new BigDecimal(numeroDeLinhasNecessarias));
+
+        if (comprimentoFinalCm.compareTo(comprimentoMinimoNecessario) < 0) {
+            throw new DimensoesManuaisInvalidasException(comprimentoFinalCm, comprimentoMinimoNecessario, "O comprimento final não é suficiente.");
         }
     }
 
