@@ -51,7 +51,6 @@
 
 @mixin fieldset-compact {
   @include form-fieldset-base;
-  height: 56px; // Altura padrão aproximada de um input outline
   align-items: center;
   min-width: 100px;
 }

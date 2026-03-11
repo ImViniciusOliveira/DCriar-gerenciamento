@@ -16,6 +16,27 @@
   margin-top: 16px;
 }
 
+// LINHA DE CONTROLES DE SIMULAÇÃO - CONTROLE TOTAL
+.simulation-controls-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+
+  .product-search-field {
+    flex: 1 1 auto; // Cresce e encolhe conforme necessário
+    min-width: 0;    // Permite que o campo encolha abaixo do seu conteúdo
+  }
+
+  .quantity-field {
+    flex: 0 0 90px; // Não cresce, não encolhe, base de 90px
+  }
+
+  .production-type-field {
+    flex: 0 0 200px; // Não cresce, não encolhe, base de 200px
+  }
+}
+
+
 .form-row {
   @include fl.form-row;
   margin: 0;
@@ -46,28 +67,12 @@
   }
 }
 
-.product-search-field {
-  flex: 1;
-}
-
 .batch-search-field {
   flex: 1;
 }
 
 .consumption-placeholder-field {
   flex: 1;
-}
-
-.quantity-field {
-  flex-basis: 90px;
-  flex-grow: 0;
-  flex-shrink: 0;
-}
-
-.production-type-field {
-  flex-basis: 200px;
-  flex-grow: 0;
-  flex-shrink: 0;
 }
 
 .dimensoes-inline {
