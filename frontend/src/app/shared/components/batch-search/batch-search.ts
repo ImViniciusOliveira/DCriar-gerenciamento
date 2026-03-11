@@ -113,11 +113,12 @@ export class BatchSearch {
    */
   displayFn(batch: Batch): string {
     if (!batch) return '';
-    const saldo = batch.saldoEstoque !== undefined ? `Saldo: ${batch.saldoEstoque} ${batch.unidadeSimbolo || ''}` : '';
+    const saldo = batch.saldoEstoque !== undefined ? `Saldo: ${batch.saldoEstoque}${batch.unidadeSimbolo || ''}` : '';
     const largura = batch.atributos?.['larguraMm'] ? `Largura: ${(batch.atributos['larguraMm'] || 0) / 10}cm` : '';
     let saldoCm = '';
     if (batch.unidadeSimbolo === 'm²' && typeof batch.saldoEstoque === 'number') {
-      saldoCm = ` (${batch.saldoEstoque * 10000}cm²)`;
+      const formattedCm2 = new Intl.NumberFormat('pt-BR').format(batch.saldoEstoque * 10000);
+      saldoCm = ` (${formattedCm2}cm²)`;
     }
     return [saldo + saldoCm, largura].filter(Boolean).join(' | ');
   }

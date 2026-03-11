@@ -1,9 +1,14 @@
-import { ApplicationConfig, provideZonelessChangeDetection } from '@angular/core';
+import { ApplicationConfig, provideZonelessChangeDetection, LOCALE_ID } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { registerLocaleData } from '@angular/common';
+import pt from '@angular/common/locales/pt';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth-interceptor';
+
+// Registra o locale 'pt' para que o Angular possa formatar números e datas em português do Brasil.
+registerLocaleData(pt);
 
 /**
  * Configuração global da aplicação Angular, definindo os provedores (providers)
@@ -22,5 +27,8 @@ export const appConfig: ApplicationConfig = {
     // Configura o HttpClient global e registra os interceptadores.
     // `withInterceptors` é a forma moderna e funcional de adicionar interceptadores.
     provideHttpClient(withInterceptors([authInterceptor])),
+
+    // Define o LOCALE_ID para 'pt-BR' para toda a aplicação.
+    { provide: LOCALE_ID, useValue: 'pt-BR' }
   ],
 };
