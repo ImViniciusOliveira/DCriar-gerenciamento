@@ -84,11 +84,13 @@ export class ProductionForm implements OnInit {
   // Snapshot para restaurar o formulário em caso de cancelamento da verificação
   private formSnapshot: any;
 
-  feedbackLabel = computed(() => {
-    const qtd = this.form.get('quantidade')?.value;
-    if (!qtd) return 'Resultado da Simulação';
-    const labelProduto = qtd === 1 ? 'produto' : 'produtos';
-    return `Resultado da Simulação para ${qtd} ${labelProduto}`;
+  // Formata a string da dimensão rotacionada de forma segura
+  rotatedDimensionString = computed(() => {
+    const result = this.simulationResult();
+    if (!result || result.tipoSimulacao !== 'CORTE' || !result.dimensaoProduto) {
+      return '';
+    }
+    return result.dimensaoProduto.split('x').map(s => s.trim()).reverse().join(' x ');
   });
 
   // Monta a lista completa do preview com total por linha, ex.: [10] [5] [1] [R] = 16

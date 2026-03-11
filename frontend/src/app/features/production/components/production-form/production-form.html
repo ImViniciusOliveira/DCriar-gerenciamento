@@ -236,45 +236,47 @@
         <div class="simulation-feedback">
           @if (result.tipoSimulacao === 'CORTE') {
             <div class="feedback-container">
-              <h3 class="feedback-title">{{ feedbackLabel() }}</h3>
+              <h3 class="feedback-title">Informações da ordem de produção</h3>
               <div class="feedback-columns-wrapper">
                 <!-- Coluna Esquerda -->
                 <div class="feedback-column">
                   <h4 class="feedback-header">Matéria-Prima</h4>
                   <p class="feedback-item">Lote: <strong>{{ produto()?.materiaPrima?.nome }}</strong></p>
-                  <p class="feedback-item">Largura p/ Cálculo: <strong>{{ result.larguraFinalCm }}cm</strong></p>
+                  @if(loteSelecionado(); as lote) {
+                    <p class="feedback-item">Dimensão do Lote (L x C): <strong>{{ (lote.atributos?.['larguraMm'] || 0) / 10 }}cm x {{ lote.saldoEstoque }}{{ lote.unidadeSimbolo }}</strong></p>
+                  }
 
                   <h4 class="feedback-header">Produto</h4>
-                  <p class="feedback-item">Dimensão Original: <strong>{{ result.dimensaoProduto }}</strong></p>
+                  <p class="feedback-item">Tamanho do Produto (L x C): <strong>{{ result.dimensaoProduto }}</strong></p>
                   @if (result.rotacionado) {
-                    <p class="feedback-item">Uso no Corte: <strong>{{ result.dimensaoProduto.split('x').reverse().join('x') }}</strong> (Rotacionado)</p>
+                    <p class="feedback-item">Tamanho no Corte (L x C): <strong>{{ rotatedDimensionString() }}</strong> (rotacionado)</p>
                   } @else {
-                    <p class="feedback-item">Uso no Corte: <strong>{{ result.dimensaoProduto }}</strong></p>
+                    <p class="feedback-item">Tamanho no Corte (L x C): <strong>{{ result.dimensaoProduto }}</strong></p>
                   }
                 </div>
 
                 <!-- Coluna Direita -->
                 <div class="feedback-column">
-                  <h4 class="feedback-header">Layout</h4>
-                  <p class="feedback-item">Qtd. Solicitada: <strong>{{ form.get('quantidade')?.value }} produto(s)</strong></p>
-                  <p class="feedback-item">Capacidade: <strong>{{ result.produtosPorLinha }}</strong> produtos por linha</p>
+                  <h4 class="feedback-header">Distribuição dos Produtos</h4>
+                  <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }} unidades</strong></p>
+                  <p class="feedback-item">Produtos por Linha: <strong>{{ result.produtosPorLinha }}</strong></p>
                   @if (result.numeroLinhasCompletas > 0) {
                     <p class="feedback-item">Linhas Completas: <strong>{{ result.numeroLinhasCompletas }}</strong></p>
                   }
                   @if (result.produtosNaUltimaLinha > 0) {
-                    <p class="feedback-item">Linha Parcial: <strong>{{ result.produtosNaUltimaLinha }}</strong> produto(s)</p>
+                    <p class="feedback-item">Produtos na Última Linha: <strong>{{ result.produtosNaUltimaLinha }}</strong></p>
                   }
 
-                  <h4 class="feedback-header">Consumo</h4>
-                  <p class="feedback-item">Área Total: <strong>{{ result.consumoTotal }}</strong></p>
+                  <h4 class="feedback-header">Material Utilizado</h4>
+                  <p class="feedback-item">Área Utilizada (L x C): <strong>{{ result.consumoTotal }}</strong></p>
 
                   <h4 class="feedback-header">Sobras Aproveitáveis</h4>
                   @if (result.sobraLateral || result.sobraInferior) {
                     @if (result.sobraLateral) {
-                      <p class="feedback-item">Lateral: <strong>{{ result.sobraLateral }}</strong></p>
+                      <p class="feedback-item">Sobra Lateral (L x C): <strong>{{ result.sobraLateral }}</strong></p>
                     }
                     @if (result.sobraInferior) {
-                      <p class="feedback-item">Fim de Linha: <strong>{{ result.sobraInferior }}</strong></p>
+                      <p class="feedback-item">Sobra Final (L x C): <strong>{{ result.sobraInferior }}</strong></p>
                     }
                   } @else {
                     <p class="feedback-item">Nenhuma sobra principal aproveitável.</p>
@@ -285,7 +287,7 @@
           } @else {
             <!-- Placeholder para outros tipos de simulação, como CONSUMO_DIRETO -->
             <div class="feedback-container">
-              <h3 class="feedback-title">{{ feedbackLabel() }}</h3>
+              <h3 class="feedback-title">Informações da ordem de produção</h3>
               <p>Feedback para este tipo de simulação ainda não implementado.</p>
             </div>
           }

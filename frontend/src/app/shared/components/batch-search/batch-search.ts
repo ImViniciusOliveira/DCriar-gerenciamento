@@ -114,7 +114,7 @@ export class BatchSearch {
   displayFn(batch: Batch): string {
     if (!batch) return '';
     const saldo = batch.saldoEstoque !== undefined ? `Saldo: ${batch.saldoEstoque} ${batch.unidadeSimbolo || ''}` : '';
-    const largura = batch.atributos?.['larguraMm'] ? `Largura: ${batch.atributos['larguraMm']}mm` : '';
+    const largura = batch.atributos?.['larguraMm'] ? `Largura: ${(batch.atributos['larguraMm'] || 0) / 10}cm` : '';
 
     return [saldo, largura].filter(Boolean).join(' | ');
   }
