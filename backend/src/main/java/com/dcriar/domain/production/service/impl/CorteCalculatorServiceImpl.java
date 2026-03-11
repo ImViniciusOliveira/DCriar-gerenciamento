@@ -108,9 +108,12 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         BigDecimal comprimentoProdutoNaOrientacaoOtima = orientacaoOtimaEhRotacionado ? larguraProduto : comprimentoProduto;
 
         // 4. Calcular as dimensões finais do bloco de produtos e do retalho, aplicando as margens.
-        // Regra: margens laterais alteram a largura do bloco final, sem recalcular produtos por linha.
-        BigDecimal larguraOcupadaProdutos = larguraProdutoNaOrientacaoOtima.multiply(new BigDecimal(produtosPorLinhaOtima));
-        BigDecimal larguraBlocoProdutosFinal = larguraOcupadaProdutos.add(margensLateraisTotais);
+        BigDecimal larguraBlocoProdutosFinal;
+        if (quantidade < produtosPorLinhaNormalSemMargem) {
+            larguraBlocoProdutosFinal = larguraProduto.multiply(new BigDecimal(quantidade));
+        } else {
+            larguraBlocoProdutosFinal = larguraTotalLoteCm;
+        }
         BigDecimal larguraRetalhoLateralFinal = larguraTotalLoteCm.subtract(larguraBlocoProdutosFinal);
 
         // Se o retalho lateral ficar negativo (margem excede o lote), trunca em 0
@@ -147,7 +150,6 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         BigDecimal larguraProduto = contextoBase.larguraProduto();
         BigDecimal comprimentoProduto = contextoBase.comprimentoProduto();
 
-        // BUGFIX: Validar se a largura do corte manual é maior que a do lote
         if (larguraCorteManualCm.compareTo(larguraTotalLoteCm) > 0) {
             throw new DimensoesManuaisInvalidasException(larguraCorteManualCm, larguraTotalLoteCm);
         }
@@ -199,7 +201,6 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         }
 
         // --- ETAPA 3: Aplicar margens de comprimento ao bloco principal ---
-        // Regra: superior/inferior alteram o comprimento total do bloco de produto e retalho lateral.
 
         // --- ETAPA 4: Gerar cortes de PRODUTO ---
         int produtosRestantes = parametros.quantidade();
