@@ -357,6 +357,13 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         LoteMateriaPrima loteParaSimulacao = findLoteById(requestDTO.getLoteId());
 
+        if (!produto.getTipoMateriaPrima().equals(loteParaSimulacao.getTipoMateriaPrima())) {
+            throw new IncompatibilidadeMaterialException(
+                    "A matéria-prima do produto (" + produto.getTipoMateriaPrima().getNome() + ") " +
+                            "é diferente da matéria-prima do lote (" + loteParaSimulacao.getTipoMateriaPrima().getNome() + ")."
+            );
+        }
+
         ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(
                 requestDTO.getQuantidade(), produto, loteParaSimulacao, null
         );

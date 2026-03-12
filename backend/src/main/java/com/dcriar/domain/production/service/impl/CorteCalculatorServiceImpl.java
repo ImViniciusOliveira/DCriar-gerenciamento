@@ -9,10 +9,7 @@ import com.dcriar.domain.production.model.ParametrosCorte;
 import com.dcriar.domain.production.model.ResumoLayoutCorte;
 import com.dcriar.domain.production.service.CorteCalculatorService;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
-import com.dcriar.exception.custom.AtributoLoteInvalidoException;
-import com.dcriar.exception.custom.DimensoesManuaisInvalidasException;
-import com.dcriar.exception.custom.ProdutoNaoCabeNoLoteException;
-import com.dcriar.exception.custom.TipoProducaoIncompativelException;
+import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -37,9 +34,11 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
     // Contexto base compartilhado entre os fluxos automático e manual.
     private record ContextoBaseCorte(
             BigDecimal larguraTotalLoteCm,
+            Optional<BigDecimal> comprimentoTotalLoteCm,
             BigDecimal larguraProduto,
             BigDecimal comprimentoProduto
-    ) {}
+    ) {
+    }
 
     private ContextoBaseCorte extrairContextoBaseCorte(Produto produto, LoteMateriaPrima lotePrincipal) {
         if (!(produto instanceof ProdutoDeCorte produtoDeCorte)) {
@@ -47,10 +46,12 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         }
 
         BigDecimal larguraTotalLoteCm = getLarguraEmCm(lotePrincipal.getAtributos());
+        Optional<BigDecimal> comprimentoTotalLoteCm = getComprimentoOpcionalEmCm(lotePrincipal.getAtributos());
         Dimensoes dimensoesProduto = produtoDeCorte.getDimensoes();
 
         return new ContextoBaseCorte(
                 larguraTotalLoteCm,
+                comprimentoTotalLoteCm,
                 dimensoesProduto.getLarguraCm(),
                 dimensoesProduto.getComprimentoCm()
         );
@@ -67,10 +68,10 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
      *     <li>Calcula a largura final do bloco de produtos (produtos + margens) e o retalho lateral resultante.</li>
      * </ol>
      *
-     * @param quantidade A quantidade de produtos a serem produzidos.
-     * @param produto O produto a ser cortado.
-     * @param lotePrincipal O lote de matéria-prima a ser utilizado.
-     * @param margensRequest As margens de segurança a serem aplicadas no corte.
+     * @param quantidade      A quantidade de produtos a serem produzidos.
+     * @param produto         O produto a ser cortado.
+     * @param lotePrincipal   O lote de matéria-prima a ser utilizado.
+     * @param margensRequest  As margens de segurança a serem aplicadas no corte.
      * @return um objeto {@link ParametrosCorte} contendo os dados calculados para o layout de corte mais eficiente.
      */
     @Override
@@ -84,6 +85,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
 
         // 1. Obter dimensões e margens
         BigDecimal larguraTotalLoteCm = contextoBase.larguraTotalLoteCm();
+        Optional<BigDecimal> comprimentoTotalLoteCm = contextoBase.comprimentoTotalLoteCm();
         BigDecimal larguraProduto = contextoBase.larguraProduto();
         BigDecimal comprimentoProduto = contextoBase.comprimentoProduto();
         BigDecimal margemEsquerda = Optional.ofNullable(margensRequest != null ? margensRequest.getEsquerda() : null).orElse(BigDecimal.ZERO);
@@ -112,6 +114,18 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
                 ? larguraProduto.multiply(new BigDecimal(linhasRotacionado))
                 : BigDecimal.valueOf(Long.MAX_VALUE);
 
+        // Validar contra o comprimento do lote, se existir
+        if (comprimentoTotalLoteCm.isPresent() && comprimentoTotalNormal.compareTo(comprimentoTotalLoteCm.get()) > 0) {
+            comprimentoTotalNormal = BigDecimal.valueOf(Long.MAX_VALUE);
+        }
+        if (comprimentoTotalLoteCm.isPresent() && comprimentoTotalRotacionado.compareTo(comprimentoTotalLoteCm.get()) > 0) {
+            comprimentoTotalRotacionado = BigDecimal.valueOf(Long.MAX_VALUE);
+        }
+
+        if (comprimentoTotalNormal.equals(BigDecimal.valueOf(Long.MAX_VALUE)) && comprimentoTotalRotacionado.equals(BigDecimal.valueOf(Long.MAX_VALUE))) {
+            throw new QuantidadeExcedeCapacidadeLoteException("A quantidade solicitada excede a capacidade do lote em ambas as orientações.");
+        }
+
         boolean orientacaoOtimaEhRotacionado = comprimentoTotalRotacionado.compareTo(comprimentoTotalNormal) < 0;
 
         int produtosPorLinhaOtima = orientacaoOtimaEhRotacionado ? produtosPorLinhaRotacionado : produtosPorLinhaNormal;
@@ -124,9 +138,9 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
                 .add(margemEsquerda).add(margemDireita);
 
         if (larguraBlocoProdutosFinal.compareTo(larguraTotalLoteCm) > 0) {
-             larguraBlocoProdutosFinal = larguraTotalLoteCm;
+            larguraBlocoProdutosFinal = larguraTotalLoteCm;
         }
-        
+
         BigDecimal larguraRetalhoLateralFinal = larguraTotalLoteCm.subtract(larguraBlocoProdutosFinal);
         if (larguraRetalhoLateralFinal.compareTo(BigDecimal.ZERO) < 0) {
             larguraRetalhoLateralFinal = BigDecimal.ZERO;
@@ -226,10 +240,10 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         String sobraInferiorStr = "";
         if (!isModoManual && produtosNaUltimaLinha > 0 && produtosNaUltimaLinha < produtosPorLinha) {
             BigDecimal larguraSobraInferior = parametros.larguraTotalLoteCm()
-                .subtract(parametros.larguraProduto().multiply(new BigDecimal(produtosNaUltimaLinha)))
-                .subtract(parametros.larguraRetalhoLateralCm())
-                .subtract(parametros.margemEsquerda())
-                .subtract(parametros.margemDireita());
+                    .subtract(parametros.larguraProduto().multiply(new BigDecimal(produtosNaUltimaLinha)))
+                    .subtract(parametros.larguraRetalhoLateralCm())
+                    .subtract(parametros.margemEsquerda())
+                    .subtract(parametros.margemDireita());
 
             if (larguraSobraInferior.compareTo(BigDecimal.ZERO) > 0) {
                 cortesRealizados.add(criarCorteRetalho(larguraSobraInferior, parametros.comprimentoProduto(), "INFERIOR"));
@@ -287,7 +301,15 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         }
         return new BigDecimal(larguraMmObj.toString()).divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
     }
-    
+
+    private Optional<BigDecimal> getComprimentoOpcionalEmCm(Map<String, Object> atributos) {
+        Object comprimentoMmObj = atributos.get("comprimentoMm");
+        if (!(comprimentoMmObj instanceof Number)) {
+            return Optional.empty();
+        }
+        return Optional.of(new BigDecimal(comprimentoMmObj.toString()).divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP));
+    }
+
     private int calcularProdutosPorLinhaSemMargem(BigDecimal larguraTotalLoteCm, BigDecimal dimensaoProduto) {
         if (dimensaoProduto == null || dimensaoProduto.compareTo(BigDecimal.ZERO) <= 0) {
             return 0;
