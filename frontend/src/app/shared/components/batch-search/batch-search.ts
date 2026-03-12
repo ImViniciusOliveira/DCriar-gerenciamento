@@ -113,14 +113,25 @@ export class BatchSearch {
    */
   displayFn(batch: Batch): string {
     if (!batch) return '';
-    const saldo = batch.saldoEstoque !== undefined ? `Saldo: ${batch.saldoEstoque}${batch.unidadeSimbolo || ''}` : '';
-    const largura = batch.atributos?.['larguraMm'] ? `Largura: ${(batch.atributos['larguraMm'] || 0) / 10}cm` : '';
-    let saldoCm = '';
-    if (batch.unidadeSimbolo === 'm²' && typeof batch.saldoEstoque === 'number') {
-      const formattedCm2 = new Intl.NumberFormat('pt-BR').format(batch.saldoEstoque * 10000);
-      saldoCm = ` (${formattedCm2}cm²)`;
+    const nf = new Intl.NumberFormat('pt-BR');
+    // Saldo em m²
+    const saldoM2 = batch.saldoEstoque !== undefined ? nf.format(batch.saldoEstoque) : '';
+    // Saldo em cm²
+    const saldoCm2 = batch.unidadeSimbolo === 'm²' && typeof batch.saldoEstoque === 'number' ? nf.format(batch.saldoEstoque * 10000) : '';
+    // Largura em mm e cm
+    const larguraMm = batch.atributos?.['larguraMm'] ? batch.atributos['larguraMm'] : '';
+    const larguraCm = larguraMm ? nf.format(larguraMm / 10) : '';
+    // Comprimento calculado a partir do saldo e largura
+    let comprimentoMm = '';
+    let comprimentoCm = '';
+    if (batch.saldoEstoque && larguraMm) {
+      // Comprimento em mm: saldoEstoque (m²) * 1_000_000 / larguraMm (mm)
+      const comprimentoMmVal = (batch.saldoEstoque * 1000000) / larguraMm;
+      comprimentoMm = nf.format(comprimentoMmVal);
+      comprimentoCm = nf.format(comprimentoMmVal / 10);
     }
-    return [saldo + saldoCm, largura].filter(Boolean).join(' | ');
+    // Monta string final
+    return `Saldo: ${saldoM2}m² (${saldoCm2}cm²) | Largura: ${larguraMm}mm (${larguraCm}cm) | Comprimento: ${comprimentoMm}mm (${comprimentoCm}cm)`;
   }
 
   /**
