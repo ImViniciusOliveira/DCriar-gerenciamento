@@ -34,6 +34,4 @@ public record ParametrosCorte(
     boolean rotacionado,
     BigDecimal larguraBlocoProdutosCm,
     BigDecimal larguraRetalhoLateralCm
-) {
-
-}
+) {}

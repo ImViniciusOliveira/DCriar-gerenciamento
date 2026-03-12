@@ -355,39 +355,25 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Override
     public SimulacaoCorteResponseDTO simularCorte(SimulacaoCorteRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
-        if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
-            throw new TipoProducaoIncompativelException("Este produto não utiliza uma matéria-prima geométrica para simulação de corte.");
-        }
         LoteMateriaPrima loteParaSimulacao = findLoteById(requestDTO.getLoteId());
 
-        // Validação de compatibilidade
-        if (!loteParaSimulacao.getTipoMateriaPrima().getId().equals(produto.getTipoMateriaPrima().getId())) {
-            throw new TipoProducaoIncompativelException(
-                    produto.getNome(),
-                    produto.getTipoMateriaPrima().getNome(),
-                    loteParaSimulacao.getId(),
-                    loteParaSimulacao.getTipoMateriaPrima().getNome()
-            );
-        }
+        ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(
+                requestDTO.getQuantidade(), produto, loteParaSimulacao, null
+        );
 
-        ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(requestDTO.getQuantidade(), produto, loteParaSimulacao, null);
-        
-        // Cálculo do comprimento linear total (mesma lógica da criação da ordem)
         long numeroDeLinhasTotal = (long) Math.ceil((double) requestDTO.getQuantidade() / parametros.produtosPorLinha());
-        BigDecimal comprimentoFinalCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhasTotal));
-        
-        // Executa a simulação detalhada do layout
-        ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, false);
+        BigDecimal comprimentoBlocoProdutosCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhasTotal));
+        BigDecimal larguraFinalCm = parametros.larguraTotalLoteCm();
 
-        BigDecimal consumoEstimado = parametros.larguraTotalLoteCm().multiply(comprimentoFinalCm)
-                                               .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
+        ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoBlocoProdutosCm, false);
 
-        validarSaldoLoteCorte(loteParaSimulacao, consumoEstimado);
+        BigDecimal consumoEstimado = larguraFinalCm.multiply(comprimentoBlocoProdutosCm)
+                .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
 
         return SimulacaoCorteResponseDTO.builder()
                 .modoCalculo(ModoCalculo.AUTOMATICO)
-                .larguraFinalCm(parametros.larguraTotalLoteCm())
-                .comprimentoFinalCm(comprimentoFinalCm)
+                .larguraFinalCm(larguraFinalCm)
+                .comprimentoFinalCm(comprimentoBlocoProdutosCm)
                 .consumoEstimado(consumoEstimado)
                 .rotacionado(parametros.rotacionado())
                 .produtosPorLinha(resumo.produtosPorLinha())
@@ -397,9 +383,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .sobraInferior(resumo.sobraInferior())
                 .saldoRolo(resumo.saldoRolo())
                 .dimensaoProduto(formatarDimensao(parametros.larguraProduto(), parametros.comprimentoProduto()))
-                .consumoTotal(formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoFinalCm))
+                .consumoTotal(formatarDimensao(larguraFinalCm, comprimentoBlocoProdutosCm))
                 .larguraBlocoProdutosCm(parametros.larguraBlocoProdutosCm())
-                .comprimentoBlocoProdutosCm(comprimentoFinalCm)
+                .comprimentoBlocoProdutosCm(comprimentoBlocoProdutosCm)
                 .build();
     }
 
@@ -408,32 +394,24 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         LoteMateriaPrima lote = findLoteById(requestDTO.getLoteId());
 
+        BigDecimal comprimentoBlocoProdutosCm;
         BigDecimal comprimentoFinalCm;
         ParametrosCorte parametros;
         boolean isModoManual = requestDTO.getModoCalculo() == ModoCalculo.MANUAL;
-        BigDecimal larguraFinalCm;
 
         if (isModoManual) {
-            // Modo manual: usuário define dimensões do corte
-            comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
-            larguraFinalCm = requestDTO.getLarguraFinalCm();
+            comprimentoBlocoProdutosCm = requestDTO.getComprimentoFinalCm();
+            comprimentoFinalCm = comprimentoBlocoProdutosCm;
             parametros = corteCalculatorService.extrairParametrosCorteManual(
-                    requestDTO.getQuantidade(),
-                    produto,
-                    lote,
-                    requestDTO.getLarguraFinalCm()
+                    requestDTO.getQuantidade(), produto, lote, requestDTO.getLarguraFinalCm()
             );
-
         } else {
-            // Modo automático: sistema calcula com margens
             parametros = corteCalculatorService.extrairParametrosCorte(
                     requestDTO.getQuantidade(), produto, lote, requestDTO.getMargens()
             );
-
             long numeroDeLinhas = (long) Math.ceil((double) requestDTO.getQuantidade() / parametros.produtosPorLinha());
-            comprimentoFinalCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhas));
-            larguraFinalCm = parametros.larguraTotalLoteCm();
-            
+            comprimentoBlocoProdutosCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhas));
+            comprimentoFinalCm = comprimentoBlocoProdutosCm;
             if (requestDTO.getMargens() != null) {
                 comprimentoFinalCm = comprimentoFinalCm
                         .add(Optional.ofNullable(requestDTO.getMargens().getSuperior()).orElse(BigDecimal.ZERO))
@@ -442,12 +420,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
 
         ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, isModoManual);
-        
+
         BigDecimal larguraParaCalculoConsumo = parametros.larguraTotalLoteCm();
         BigDecimal consumoEstimado = larguraParaCalculoConsumo.multiply(comprimentoFinalCm)
-                                               .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
-
-        validarSaldoLoteCorte(lote, consumoEstimado);
+                .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
 
         return SimulacaoCorteResponseDTO.builder()
                 .modoCalculo(requestDTO.getModoCalculo())
@@ -464,7 +440,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .dimensaoProduto(formatarDimensao(parametros.larguraProduto(), parametros.comprimentoProduto()))
                 .consumoTotal(formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoFinalCm))
                 .larguraBlocoProdutosCm(parametros.larguraBlocoProdutosCm())
-                .comprimentoBlocoProdutosCm(comprimentoFinalCm)
+                .comprimentoBlocoProdutosCm(comprimentoBlocoProdutosCm)
                 .build();
     }
 

@@ -119,7 +119,8 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         BigDecimal comprimentoProdutoNaOrientacaoOtima = orientacaoOtimaEhRotacionado ? larguraProduto : comprimentoProduto;
 
         // 3. Calcular a largura real do bloco de produtos e o retalho lateral
-        BigDecimal larguraBlocoProdutosFinal = larguraProdutoNaOrientacaoOtima.multiply(new BigDecimal(produtosPorLinhaOtima))
+        int produtosNaLinha = Math.min(quantidade, produtosPorLinhaOtima);
+        BigDecimal larguraBlocoProdutosFinal = larguraProdutoNaOrientacaoOtima.multiply(new BigDecimal(produtosNaLinha))
                 .add(margemEsquerda).add(margemDireita);
 
         if (larguraBlocoProdutosFinal.compareTo(larguraTotalLoteCm) > 0) {

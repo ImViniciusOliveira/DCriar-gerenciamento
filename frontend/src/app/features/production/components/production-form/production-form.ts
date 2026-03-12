@@ -500,6 +500,9 @@ export class ProductionForm implements OnInit {
     }
     // TODO: Adicionar lotesConsumidosIds para CONSUMO_DIRETO
 
+    // --- DEBUG INÍCIO ---
+    console.log('%c[DEBUG] Payload ENVIADO para Simulação:', 'color: blue; font-weight: bold;', payload);
+    // --- DEBUG FIM ---
 
     this.isSimulating.set(true);
     this.needsVerification.set(false); // Reseta o estado de verificação ao iniciar nova simulação
@@ -508,6 +511,10 @@ export class ProductionForm implements OnInit {
       .pipe(take(1))
       .subscribe({
         next: (response) => {
+          // --- DEBUG INÍCIO ---
+          console.log('%c[DEBUG] Resposta RECEBIDA da Simulação:', 'color: green; font-weight: bold;', response);
+          // --- DEBUG FIM ---
+
           this.simulationResult.set(response as SimulationResult);
           this.isSimulating.set(false);
           this.needsVerification.set(false);
@@ -527,6 +534,9 @@ export class ProductionForm implements OnInit {
           this.scrollToBottom();
         },
         error: (_err) => {
+          // --- DEBUG INÍCIO ---
+          console.error('%c[DEBUG] Erro na Simulação:', 'color: red; font-weight: bold;', _err);
+          // --- DEBUG FIM ---
           this.simulationResult.set(null);
           this.isSimulating.set(false);
           // TODO: Mostrar uma notificação de erro para o usuário.
