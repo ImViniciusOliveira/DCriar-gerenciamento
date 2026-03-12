@@ -132,7 +132,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             cortesRealizadosDTOs = resumo.cortes();
         }
 
-        consumoTotalMetros = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+        consumoTotalMetros = parametros.larguraTotalLoteCm().multiply(comprimentoFinalCm)
+                                           .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
 
         // 3. Valida se o lote principal tem saldo suficiente.
         validarSaldoLoteCorte(lotePrincipal, consumoTotalMetros);
@@ -378,7 +379,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         // Executa a simulação detalhada do layout
         ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, false);
 
-        BigDecimal consumoEstimado = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+        BigDecimal consumoEstimado = parametros.larguraTotalLoteCm().multiply(comprimentoFinalCm)
+                                               .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
 
         validarSaldoLoteCorte(loteParaSimulacao, consumoEstimado);
 
@@ -409,10 +411,12 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         BigDecimal comprimentoFinalCm;
         ParametrosCorte parametros;
         boolean isModoManual = requestDTO.getModoCalculo() == ModoCalculo.MANUAL;
+        BigDecimal larguraFinalCm;
 
         if (isModoManual) {
             // Modo manual: usuário define dimensões do corte
             comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
+            larguraFinalCm = requestDTO.getLarguraFinalCm();
             parametros = corteCalculatorService.extrairParametrosCorteManual(
                     requestDTO.getQuantidade(),
                     produto,
@@ -428,6 +432,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
             long numeroDeLinhas = (long) Math.ceil((double) requestDTO.getQuantidade() / parametros.produtosPorLinha());
             comprimentoFinalCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhas));
+            larguraFinalCm = parametros.larguraTotalLoteCm();
             
             if (requestDTO.getMargens() != null) {
                 comprimentoFinalCm = comprimentoFinalCm
@@ -437,13 +442,16 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
 
         ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, isModoManual);
-        BigDecimal consumoEstimado = comprimentoFinalCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+        
+        BigDecimal larguraParaCalculoConsumo = parametros.larguraTotalLoteCm();
+        BigDecimal consumoEstimado = larguraParaCalculoConsumo.multiply(comprimentoFinalCm)
+                                               .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
 
         validarSaldoLoteCorte(lote, consumoEstimado);
 
         return SimulacaoCorteResponseDTO.builder()
                 .modoCalculo(requestDTO.getModoCalculo())
-                .larguraFinalCm(parametros.larguraTotalLoteCm()) // Corrigido: largura total do lote
+                .larguraFinalCm(parametros.larguraTotalLoteCm())
                 .comprimentoFinalCm(comprimentoFinalCm)
                 .consumoEstimado(consumoEstimado)
                 .rotacionado(parametros.rotacionado())
@@ -494,10 +502,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private void criarLoteDeRetalho(LoteMateriaPrima lotePrincipal, BigDecimal larguraSobraCm, BigDecimal comprimentoMetros, OrdemDeProducao ordemOrigem) {
         if (larguraSobraCm.compareTo(BigDecimal.ZERO) <= 0 || comprimentoMetros.compareTo(BigDecimal.ZERO) <= 0) return;
         
-        // 1. Calcular a quantidade real do retalho com base na unidade de estoque
         BigDecimal quantidadeRealRetalho;
         if (lotePrincipal.getUnidadeDeEstoque() == UnidadeDeMedida.METRO_QUADRADO) {
-            // Área = Largura (m) * Comprimento (m)
             BigDecimal larguraMetros = larguraSobraCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
             quantidadeRealRetalho = larguraMetros.multiply(comprimentoMetros);
         } else if (lotePrincipal.getUnidadeDeEstoque() == UnidadeDeMedida.METRO_LINEAR) {
@@ -506,10 +512,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             return;
         }
 
-        // 2. Calcular o custo unitário do lote pai
         BigDecimal custoUnitario = calcularCustoUnitario(lotePrincipal);
         
-        // 3. Calcular o custo total do retalho
         BigDecimal custoTotalRetalho = custoUnitario.multiply(quantidadeRealRetalho);
 
         Map<String, Object> novosAtributos = Map.of("larguraMm", larguraSobraCm.multiply(new BigDecimal("10")).intValue());
@@ -519,15 +523,15 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .atributos(novosAtributos)
                 .loteDeOrigem(lotePrincipal)
                 .ordemDeProducaoOrigem(ordemOrigem)
-                .custoTotalLote(custoTotalRetalho) // Definindo o custo calculado
-                .motivo("Retalho gerado pela Ordem de Produção #" + ordemOrigem.getId()) // Motivo obrigatório
+                .custoTotalLote(custoTotalRetalho)
+                .motivo("Retalho gerado pela Ordem de Produção #" + ordemOrigem.getId())
                 .build();
         
         loteRetalho = loteMateriaPrimaRepository.save(loteRetalho);
 
         MovimentacaoRequestDTO entradaRetalhoDTO = com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO.builder()
                 .tipo(TipoMovimentacao.ENTRADA_SOBRA)
-                .quantidade(quantidadeRealRetalho) // Usando a quantidade correta calculada
+                .quantidade(quantidadeRealRetalho)
                 .motivo("Retalho gerado pela Ordem de Produção #" + ordemOrigem.getId())
                 .build();
         MovimentacaoEstoqueLote entradaRetalho = MovimentacaoEstoqueLote.from(entradaRetalhoDTO, loteRetalho);
@@ -537,15 +541,12 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private BigDecimal calcularCustoUnitario(LoteMateriaPrima lote) {
-        // Soma todas as entradas (COMPRA, SOBRA, AJUSTE positivo) para determinar a quantidade total adquirida/gerada
         BigDecimal quantidadeTotalEntrada = lote.getMovimentacoes().stream()
                 .map(MovimentacaoEstoqueLote::getQuantidade)
                 .filter(quantidade -> quantidade.compareTo(BigDecimal.ZERO) > 0)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         if (quantidadeTotalEntrada.compareTo(BigDecimal.ZERO) == 0) {
-            // Evitar divisão por zero. Se não houve entrada, o custo unitário é indefinido (ou zero).
-            // Isso não deve acontecer em um cenário real consistente.
             return BigDecimal.ZERO;
         }
 
