@@ -577,8 +577,10 @@ export class ProductionForm implements OnInit {
       loteId: Number(formValue.loteId),
       quantidade: Number(formValue.quantidade),
       modoCalculo: formValue.modoCalculo,
-      larguraFinalCm: formValue.larguraBlocoProdutosCm ? Number(formValue.larguraBlocoProdutosCm) : null,
-      comprimentoFinalCm: formValue.comprimentoBlocoProdutosCm ? Number(formValue.comprimentoBlocoProdutosCm) : null
+      larguraFinalCm: oldResult.larguraFinalCm,
+      comprimentoFinalCm: oldResult.comprimentoFinalCm,
+      larguraBlocoProdutosCm: oldResult.larguraBlocoProdutosCm,
+      comprimentoBlocoProdutosCm: oldResult.comprimentoBlocoProdutosCm
     };
 
     const margens = this.buildMargensPayload(formValue);
@@ -587,11 +589,13 @@ export class ProductionForm implements OnInit {
     }
 
     this.isVerifying.set(true);
+    console.log('%c[DEBUG] Payload ENVIADO para Verificação:', 'color: orange; font-weight: bold;', payload);
 
     this.productionService.verifyCutLayout(payload)
       .pipe(take(1))
       .subscribe({
         next: (newResult) => {
+          console.log('%c[DEBUG] Resposta RECEBIDA da Verificação:', 'color: purple; font-weight: bold;', newResult);
           this.isVerifying.set(false);
           this.showVerificationDialog(oldResult, newResult, formValue);
         },
@@ -770,10 +774,13 @@ export class ProductionForm implements OnInit {
         margens: this.buildMargensPayload(formValue)
       };
 
+      console.log('%c[DEBUG] Payload FINAL ENVIADO para Criar Ordem:', 'color: #bada55; font-weight: bold;', payload);
+
       this.productionService.createCutOrder(url, payload)
         .pipe(take(1))
         .subscribe({
-          next: () => {
+          next: (response) => {
+            console.log('%c[DEBUG] Ordem de Produção criada com SUCESSO:', 'color: green; font-weight: bold;', response);
             this.isSaving.set(false);
             this.dialogRef.close(true);
             this.cdr.markForCheck();

@@ -33,6 +33,8 @@ export interface VerificationRequest {
   };
   larguraFinalCm?: number | null;
   comprimentoFinalCm?: number | null;
+  larguraBlocoProdutosCm?: number | null;
+  comprimentoBlocoProdutosCm?: number | null;
 }
 
 /**
