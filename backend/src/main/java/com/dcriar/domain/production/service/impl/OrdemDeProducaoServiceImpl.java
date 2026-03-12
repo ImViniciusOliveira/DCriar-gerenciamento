@@ -167,7 +167,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                         .add(Optional.ofNullable(requestDTO.getMargens().getSuperior()).orElse(BigDecimal.ZERO))
                         .add(Optional.ofNullable(requestDTO.getMargens().getInferior()).orElse(BigDecimal.ZERO));
             }
-
             if (comprimentoFinalCm.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new MargemInvalidaException(
                     String.format("As margens aplicadas resultam em um comprimento final nulo ou negativo (%.2fcm).", comprimentoFinalCm)
@@ -449,6 +448,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         LoteMateriaPrima lote = findLoteById(requestDTO.getLoteId());
 
         BigDecimal comprimentoBlocoProdutosCm;
+        BigDecimal larguraBlocoProdutosCm;
         BigDecimal comprimentoFinalCm;
         ParametrosCorte parametros;
         boolean isModoManual = requestDTO.getModoCalculo() == ModoCalculo.MANUAL;
@@ -463,12 +463,13 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 );
             }
 
-            comprimentoBlocoProdutosCm = requestDTO.getComprimentoFinalCm();
-            comprimentoFinalCm = comprimentoBlocoProdutosCm;
+            comprimentoBlocoProdutosCm = requestDTO.getComprimentoBlocoProdutosCm() != null ? requestDTO.getComprimentoBlocoProdutosCm() : requestDTO.getComprimentoFinalCm();
+            larguraBlocoProdutosCm = requestDTO.getLarguraBlocoProdutosCm() != null ? requestDTO.getLarguraBlocoProdutosCm() : requestDTO.getLarguraFinalCm();
+            comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
             parametros = corteCalculatorService.extrairParametrosCorteManual(
                     requestDTO.getQuantidade(), produto, lote, requestDTO.getLarguraFinalCm(), requestDTO.getComprimentoFinalCm()
             );
-        } else { // MODO AUTOMÁTICO - LÓGICA CORRIGIDA
+        } else { // MODO AUTOMÁTICO
             // ETAPA 1: Calcular layout físico com margens zero para validar a capacidade.
             ParametrosCorte parametrosBase = corteCalculatorService.extrairParametrosCorte(
                     requestDTO.getQuantidade(), produto, lote, null // Força margens zero
@@ -478,22 +479,22 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             BigDecimal margemEsquerda = Optional.ofNullable(requestDTO.getMargens()).map(MargensRequestDTO::getEsquerda).orElse(BigDecimal.ZERO);
             BigDecimal margemDireita = Optional.ofNullable(requestDTO.getMargens()).map(MargensRequestDTO::getDireita).orElse(BigDecimal.ZERO);
 
-            BigDecimal larguraProdutosAgrupados = parametrosBase.larguraBlocoProdutosCm();
-            BigDecimal larguraBlocoFinalComMargens = larguraProdutosAgrupados
-                    .add(margemEsquerda)
-                    .add(margemDireita);
+            larguraBlocoProdutosCm = requestDTO.getLarguraBlocoProdutosCm() != null ? requestDTO.getLarguraBlocoProdutosCm() : parametrosBase.larguraBlocoProdutosCm();
+            comprimentoBlocoProdutosCm = requestDTO.getComprimentoBlocoProdutosCm() != null ? requestDTO.getComprimentoBlocoProdutosCm() : parametrosBase.comprimentoProduto().multiply(new BigDecimal((long) Math.ceil((double) requestDTO.getQuantidade() / parametrosBase.produtosPorLinha())));
+
+            BigDecimal larguraBlocoFinalComMargens = larguraBlocoProdutosCm.add(margemEsquerda).add(margemDireita);
 
             if (larguraBlocoFinalComMargens.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new MargemInvalidaException(
                         String.format("As margens aplicadas resultam em uma largura de bloco nula ou negativa (%.2fcm). A largura dos produtos é %.2fcm e as margens somam %.2fcm.",
-                                larguraBlocoFinalComMargens, larguraProdutosAgrupados, margemEsquerda.add(margemDireita))
+                                larguraBlocoFinalComMargens, larguraBlocoProdutosCm, margemEsquerda.add(margemDireita))
                 );
             }
 
             if (larguraBlocoFinalComMargens.compareTo(parametrosBase.larguraTotalLoteCm()) > 0) {
                 throw new MargemInvalidaException(
                         String.format("A soma da largura dos produtos (%.2fcm) e das margens (%.2fcm + %.2fcm) excede a largura do lote (%.2fcm).",
-                                larguraProdutosAgrupados, margemEsquerda, margemDireita, parametrosBase.larguraTotalLoteCm())
+                                larguraBlocoProdutosCm, margemEsquerda, margemDireita, parametrosBase.larguraTotalLoteCm())
                 );
             }
 
@@ -513,16 +514,13 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     larguraRetalhoFinal
             );
 
-            // Calcula o comprimento final
-            long numeroDeLinhas = (long) Math.ceil((double) requestDTO.getQuantidade() / parametros.produtosPorLinha());
-            comprimentoBlocoProdutosCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhas));
+            // Comprimento final considera margens
             comprimentoFinalCm = comprimentoBlocoProdutosCm;
             if (requestDTO.getMargens() != null) {
                 comprimentoFinalCm = comprimentoFinalCm
                         .add(Optional.ofNullable(requestDTO.getMargens().getSuperior()).orElse(BigDecimal.ZERO))
                         .add(Optional.ofNullable(requestDTO.getMargens().getInferior()).orElse(BigDecimal.ZERO));
             }
-
             if (comprimentoFinalCm.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new MargemInvalidaException(
                     String.format("As margens aplicadas resultam em um comprimento final nulo ou negativo (%.2fcm).", comprimentoFinalCm)
@@ -550,7 +548,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .saldoRolo(resumo.saldoRolo())
                 .dimensaoProduto(formatarDimensao(parametros.larguraProduto(), parametros.comprimentoProduto()))
                 .consumoTotal(formatarDimensao(parametros.larguraTotalLoteCm(), comprimentoFinalCm))
-                .larguraBlocoProdutosCm(parametros.larguraBlocoProdutosCm())
+                .larguraBlocoProdutosCm(larguraBlocoProdutosCm)
                 .comprimentoBlocoProdutosCm(comprimentoBlocoProdutosCm)
                 .build();
     }

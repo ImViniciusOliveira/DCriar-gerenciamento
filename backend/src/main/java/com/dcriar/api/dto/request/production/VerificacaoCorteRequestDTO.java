@@ -46,4 +46,10 @@ public class VerificacaoCorteRequestDTO {
 
     @Schema(description = "Comprimento final informado (obrigatório no modo MANUAL).", example = "120.0")
     private BigDecimal comprimentoFinalCm;
+
+    @Schema(description = "Largura do bloco de produtos no corte (em cm).", example = "75.0")
+    private BigDecimal larguraBlocoProdutosCm;
+
+    @Schema(description = "Comprimento do bloco de produtos no corte (em cm).", example = "1150.0")
+    private BigDecimal comprimentoBlocoProdutosCm;
 }
