@@ -572,20 +572,29 @@ export class ProductionForm implements OnInit {
     const oldResult = currentResult as SimulationCutResult;
 
     // Montar payload para a API de verificação
-    const payload: VerificationRequest = {
-      produtoId: Number(formValue.produtoId),
-      loteId: Number(formValue.loteId),
-      quantidade: Number(formValue.quantidade),
-      modoCalculo: formValue.modoCalculo,
-      larguraFinalCm: oldResult.larguraFinalCm,
-      comprimentoFinalCm: oldResult.comprimentoFinalCm,
-      larguraBlocoProdutosCm: oldResult.larguraBlocoProdutosCm,
-      comprimentoBlocoProdutosCm: oldResult.comprimentoBlocoProdutosCm
-    };
-
-    const margens = this.buildMargensPayload(formValue);
-    if (margens) {
-      payload.margens = margens;
+    let payload: VerificationRequest;
+    if (formValue.modoCalculo === 'MANUAL') {
+      payload = {
+        produtoId: Number(formValue.produtoId),
+        loteId: Number(formValue.loteId),
+        quantidade: Number(formValue.quantidade),
+        modoCalculo: formValue.modoCalculo,
+        larguraBlocoProdutosCm: Number(formValue.larguraBlocoProdutosCm),
+        comprimentoBlocoProdutosCm: Number(formValue.comprimentoBlocoProdutosCm)
+      };
+    } else {
+      payload = {
+        produtoId: Number(formValue.produtoId),
+        loteId: Number(formValue.loteId),
+        quantidade: Number(formValue.quantidade),
+        modoCalculo: formValue.modoCalculo,
+        larguraBlocoProdutosCm: oldResult.larguraBlocoProdutosCm,
+        comprimentoBlocoProdutosCm: oldResult.comprimentoBlocoProdutosCm
+      };
+      const margens = this.buildMargensPayload(formValue);
+      if (margens) {
+        payload.margens = margens;
+      }
     }
 
     this.isVerifying.set(true);
