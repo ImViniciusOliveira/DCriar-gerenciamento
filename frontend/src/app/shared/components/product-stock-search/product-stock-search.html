@@ -23,20 +23,18 @@
       }
     </mat-autocomplete>
 
-    <mat-icon matSuffix>search</mat-icon>
-  </mat-form-field>
+    <!-- Contêiner do filtro de estoque como sufixo -->
+    <div class="stock-filter-suffix" matSuffix (click)="$event.stopPropagation()">
+      <button mat-icon-button type="button" class="toggle-button" (click)="toggleFilterOperator()"
+              [ngClass]="{
+                'btn-danger-custom': filterOperatorControl.value === 'LTE',
+                'btn-success-custom': filterOperatorControl.value === 'GTE'
+              }">
+        {{ filterOperatorControl.value === 'GTE' ? '≥' : '≤' }}
+      </button>
+      <input matInput class="stock-input" [formControl]="filterValueControl" placeholder="Estoque" (focus)="onStockInputFocus()">
+    </div>
 
-  <!-- Filtro de Estoque com toggle dentro do input (Modernizado) -->
-  <mat-form-field appearance="outline" class="filter-input" subscriptSizing="dynamic">
-    <mat-label>Estoque</mat-label>
-    <button mat-icon-button matPrefix type="button" (click)="toggleFilterOperator()"
-            [ngClass]="{
-              'btn-danger-custom': filterOperatorControl.value === 'LTE',
-              'btn-success-custom': filterOperatorControl.value === 'GTE'
-            }">
-      {{ filterOperatorControl.value === 'GTE' ? '≥' : '≤' }}
-    </button>
-    <input matInput [formControl]="filterValueControl">
   </mat-form-field>
 
 </div>

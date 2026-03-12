@@ -1,74 +1,81 @@
-// Ajuste global do offset do label para compensar o prefixo customizado
-:host ::ng-deep .mat-mdc-form-field-has-icon-prefix .mat-mdc-text-field-wrapper {
-  --mat-mdc-form-field-label-offset-x: 8px !important;
-}
-
 .filters-container {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
+  width: 100%;
 
   .flex-grow {
     flex: 1;
   }
+}
 
-  .filter-input {
-    max-width: 130px; /* Define uma largura máxima para o campo de estoque */
+// Contêiner para o filtro de estoque aninhado no sufixo
+.stock-filter-suffix {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  // Adiciona o divisor visual
+  border-left: 1px solid var(--std-border-color);
+  padding-left: 8px;
 
-    // Centralização e espaçamento do container do prefixo
-    ::ng-deep .mat-mdc-form-field-icon-prefix {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      margin-right: 8px;
-      margin-left: 8px;
-    }
-
-    button[matPrefix] {
-      margin: 0;
-      border: var(--std-border-width) solid var(--std-border-color);
-      border-radius: var(--std-border-radius);
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      line-height: 1;
-      padding-left: 4px;
-      padding-right: 4px;
-      transition: background-color 0.2s, border-color 0.2s;
-    }
-
-    // Botão LTE (Menor ou Igual) - Vermelho Claro
-    .btn-danger-custom {
-      background-color: color-mix(in srgb, var(--danger-color), white 20%) !important;
-      border-color: color-mix(in srgb, var(--danger-color), white 20%) !important;
-      color: white !important;
-
-      &:hover {
-        background-color: var(--danger-color) !important;
-        border-color: var(--danger-color) !important;
-      }
-    }
-
-    // Botão GTE (Maior ou Igual) - Verde Claro
-    .btn-success-custom {
-      background-color: #2ecc71 !important;
-      border-color: #2ecc71 !important;
-      color: white !important;
-
-      &:hover {
-        background-color: #27ae60 !important;
-        border-color: #27ae60 !important;
-      }
-    }
-  }
-
-  .spinner-option {
+  // Botão de toggle (≥/≤)
+  .toggle-button {
+    flex-shrink: 0; // Impede que o botão encolha
+    width: 32px;
+    height: 32px;
     display: flex;
+    align-items: center;
     justify-content: center;
-    padding: 8px;
+    border-radius: var(--std-border-radius);
+    border: none;
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: background-color 0.2s;
   }
+
+  // Input de estoque
+  .stock-input {
+    border: none;
+    background-color: transparent;
+    width: 60px; // Largura fixa para o input de estoque
+    font-size: 1rem;
+    padding: 4px;
+    color: var(--text-color);
+
+    &:focus {
+      outline: none;
+    }
+
+    // Remove as setas de incremento/decremento em inputs do tipo number
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    &[type=number] {
+      -moz-appearance: textfield;
+    }
+  }
+}
+
+// Estilos para os botões de toggle
+.btn-danger-custom {
+  background-color: color-mix(in srgb, var(--danger-color), white 20%) !important;
+  color: white !important;
+  &:hover {
+    background-color: var(--danger-color) !important;
+  }
+}
+
+.btn-success-custom {
+  background-color: #2ecc71 !important;
+  color: white !important;
+  &:hover {
+    background-color: #27ae60 !important;
+  }
+}
+
+// Estilo para o spinner no autocomplete
+.spinner-option {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
 }

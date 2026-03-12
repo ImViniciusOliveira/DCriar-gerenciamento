@@ -1,4 +1,4 @@
-import { Component, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal, Signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal, Signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
@@ -8,8 +8,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { debounceTime, distinctUntilChanged, skip } from 'rxjs/operators';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { debounceTime, distinctUntilChanged, filter, merge, combineLatest, startWith, skip } from 'rxjs';
 import { Product } from '../../../features/products/models/product.model';
 import { ProductService } from '../../../features/products/services/product.service';
 
@@ -42,6 +42,9 @@ export class ProductStockSearch implements OnInit, OnDestroy {
   productType = input<string | null>(null);
   selectionChange = output<MatSelectChange>();
 
+  // --- Referências de Template ---
+  @ViewChild(MatAutocompleteTrigger) autocompleteTrigger!: MatAutocompleteTrigger;
+
   // --- Injeção de Dependências ---
   private readonly productService = inject(ProductService);
   private readonly destroyRef = inject(DestroyRef);
@@ -62,19 +65,7 @@ export class ProductStockSearch implements OnInit, OnDestroy {
 
   constructor() {
     this.isSearching = this.productService.isSearchingByStock;
-
-    // Gatilho para busca ao digitar no campo principal.
-    this.searchControl.valueChanges.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => {
-      this.triggerSearchNow();
-    });
-
-    // Reage a mudanças manuais nos filtros internos para marcar a busca como "suja".
-    this.filterOperatorControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.markFiltersAsDirty());
-    this.filterValueControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.markFiltersAsDirty());
+    this.setupSearchTrigger();
 
     // Reage a mudanças no `productType` (vindo do pai) para disparar uma nova busca.
     effect(() => {
@@ -93,8 +84,37 @@ export class ProductStockSearch implements OnInit, OnDestroy {
   ngOnDestroy(): void {}
 
   /**
+   * Configura os gatilhos reativos para acionar a busca de produtos.
+   * Combina um fluxo "lento" (com debounce para digitação) e um fluxo "rápido" (para cliques)
+   * para criar uma experiência de usuário responsiva e eficiente.
+   */
+  private setupSearchTrigger(): void {
+    const searchControl$ = this.searchControl.valueChanges.pipe(
+      startWith(this.searchControl.value),
+      filter(value => typeof value === 'string')
+    );
+
+    const slow$ = combineLatest([
+      searchControl$,
+      this.filterValueControl.valueChanges.pipe(startWith(this.filterValueControl.value))
+    ]).pipe(
+      debounceTime(300)
+    );
+
+    const fast$ = this.filterOperatorControl.valueChanges;
+
+    merge(slow$, fast$).pipe(
+      distinctUntilChanged(),
+      skip(1),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
+      this.autocompleteTrigger?.openPanel();
+      this.triggerSearchNow();
+    });
+  }
+
+  /**
    * Verifica se o FormControl externo, passado para o componente, é obrigatório.
-   * Isso é usado para exibir o asterisco (*) no mat-form-field interno.
    */
   get isRequired(): boolean {
     return this.control().hasValidator(Validators.required);
@@ -109,6 +129,13 @@ export class ProductStockSearch implements OnInit, OnDestroy {
       this.filtersAreDirty.set(false);
     }
     this.triggerSearchNow();
+  }
+
+  /**
+   * Abre o painel de autocomplete quando o usuário foca no input de estoque.
+   */
+  onStockInputFocus(): void {
+    this.autocompleteTrigger?.openPanel();
   }
 
   /**
