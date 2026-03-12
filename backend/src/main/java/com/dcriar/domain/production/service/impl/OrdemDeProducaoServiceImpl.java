@@ -129,6 +129,14 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             BigDecimal larguraBlocoFinalComMargens = larguraProdutosAgrupados
                     .add(margemEsquerda)
                     .add(margemDireita);
+
+            if (larguraBlocoFinalComMargens.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new MargemInvalidaException(
+                        String.format("As margens aplicadas resultam em uma largura de bloco nula ou negativa (%.2fcm). A largura dos produtos é %.2fcm e as margens somam %.2fcm.",
+                                larguraBlocoFinalComMargens, larguraProdutosAgrupados, margemEsquerda.add(margemDireita))
+                );
+            }
+
             if (larguraBlocoFinalComMargens.compareTo(parametrosBase.larguraTotalLoteCm()) > 0) {
                 throw new MargemInvalidaException(
                         String.format("A soma da largura dos produtos (%.2fcm) e das margens (%.2fcm + %.2fcm) excede a largura do lote (%.2fcm).",
@@ -159,6 +167,13 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                         .add(Optional.ofNullable(requestDTO.getMargens().getSuperior()).orElse(BigDecimal.ZERO))
                         .add(Optional.ofNullable(requestDTO.getMargens().getInferior()).orElse(BigDecimal.ZERO));
             }
+
+            if (comprimentoFinalCm.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new MargemInvalidaException(
+                    String.format("As margens aplicadas resultam em um comprimento final nulo ou negativo (%.2fcm).", comprimentoFinalCm)
+                );
+            }
+
             ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, false);
             cortesRealizadosDTOs = resumo.cortes();
             larguraFinalCm = parametros.larguraTotalLoteCm();
@@ -467,6 +482,14 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             BigDecimal larguraBlocoFinalComMargens = larguraProdutosAgrupados
                     .add(margemEsquerda)
                     .add(margemDireita);
+
+            if (larguraBlocoFinalComMargens.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new MargemInvalidaException(
+                        String.format("As margens aplicadas resultam em uma largura de bloco nula ou negativa (%.2fcm). A largura dos produtos é %.2fcm e as margens somam %.2fcm.",
+                                larguraBlocoFinalComMargens, larguraProdutosAgrupados, margemEsquerda.add(margemDireita))
+                );
+            }
+
             if (larguraBlocoFinalComMargens.compareTo(parametrosBase.larguraTotalLoteCm()) > 0) {
                 throw new MargemInvalidaException(
                         String.format("A soma da largura dos produtos (%.2fcm) e das margens (%.2fcm + %.2fcm) excede a largura do lote (%.2fcm).",
@@ -498,6 +521,12 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 comprimentoFinalCm = comprimentoFinalCm
                         .add(Optional.ofNullable(requestDTO.getMargens().getSuperior()).orElse(BigDecimal.ZERO))
                         .add(Optional.ofNullable(requestDTO.getMargens().getInferior()).orElse(BigDecimal.ZERO));
+            }
+
+            if (comprimentoFinalCm.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new MargemInvalidaException(
+                    String.format("As margens aplicadas resultam em um comprimento final nulo ou negativo (%.2fcm).", comprimentoFinalCm)
+                );
             }
         }
 
