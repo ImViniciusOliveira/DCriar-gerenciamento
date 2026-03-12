@@ -107,7 +107,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     requestDTO.getQuantidadeProduzida(),
                     produto,
                     lotePrincipal,
-                    requestDTO.getLarguraFinalCm()
+                    requestDTO.getLarguraFinalCm(),
+                    requestDTO.getComprimentoFinalCm()
             );
             larguraFinalCm = requestDTO.getLarguraFinalCm();
             comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
@@ -152,8 +153,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
             // Calcula o comprimento final
             long numeroDeLinhas = (long) Math.ceil((double) requestDTO.getQuantidadeProduzida() / parametros.produtosPorLinha());
-            BigDecimal comprimentoBlocoProdutosCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhas));
-            comprimentoFinalCm = comprimentoBlocoProdutosCm;
+            comprimentoFinalCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhas));
             if (requestDTO.getMargens() != null) {
                 comprimentoFinalCm = comprimentoFinalCm
                         .add(Optional.ofNullable(requestDTO.getMargens().getSuperior()).orElse(BigDecimal.ZERO))
@@ -451,7 +451,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             comprimentoBlocoProdutosCm = requestDTO.getComprimentoFinalCm();
             comprimentoFinalCm = comprimentoBlocoProdutosCm;
             parametros = corteCalculatorService.extrairParametrosCorteManual(
-                    requestDTO.getQuantidade(), produto, lote, requestDTO.getLarguraFinalCm()
+                    requestDTO.getQuantidade(), produto, lote, requestDTO.getLarguraFinalCm(), requestDTO.getComprimentoFinalCm()
             );
         } else { // MODO AUTOMÁTICO - LÓGICA CORRIGIDA
             // ETAPA 1: Calcular layout físico com margens zero para validar a capacidade.

@@ -83,13 +83,18 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
     ) {
         ContextoBaseCorte contextoBase = extrairContextoBaseCorte(produto, lotePrincipal);
 
+        // 1. Obter dimensões e margens
         BigDecimal larguraTotalLoteCm = contextoBase.larguraTotalLoteCm();
         Optional<BigDecimal> comprimentoTotalLoteCm = contextoBase.comprimentoTotalLoteCm();
         BigDecimal larguraProduto = contextoBase.larguraProduto();
         BigDecimal comprimentoProduto = contextoBase.comprimentoProduto();
         BigDecimal margemEsquerda = Optional.ofNullable(margensRequest != null ? margensRequest.getEsquerda() : null).orElse(BigDecimal.ZERO);
         BigDecimal margemDireita = Optional.ofNullable(margensRequest != null ? margensRequest.getDireita() : null).orElse(BigDecimal.ZERO);
+        BigDecimal margemSuperior = Optional.ofNullable(margensRequest != null ? margensRequest.getSuperior() : null).orElse(BigDecimal.ZERO);
+        BigDecimal margemInferior = Optional.ofNullable(margensRequest != null ? margensRequest.getInferior() : null).orElse(BigDecimal.ZERO);
+        BigDecimal margensVerticais = margemSuperior.add(margemInferior);
 
+        // 2. Determinar orientação ótima (considerando apenas a largura disponível para produtos, sem margens)
         BigDecimal larguraDisponivelParaProdutos = larguraTotalLoteCm.subtract(margemEsquerda).subtract(margemDireita);
         if (larguraDisponivelParaProdutos.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ProdutoNaoCabeNoLoteException("A soma das margens laterais é maior ou igual à largura do lote.");
@@ -104,14 +109,15 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
 
         int linhasNormal = calcularLinhas(quantidade, produtosPorLinhaNormal);
         BigDecimal comprimentoTotalNormal = (produtosPorLinhaNormal > 0)
-                ? comprimentoProduto.multiply(new BigDecimal(linhasNormal))
+                ? comprimentoProduto.multiply(new BigDecimal(linhasNormal)).add(margensVerticais)
                 : BigDecimal.valueOf(Long.MAX_VALUE);
 
         int linhasRotacionado = calcularLinhas(quantidade, produtosPorLinhaRotacionado);
         BigDecimal comprimentoTotalRotacionado = (produtosPorLinhaRotacionado > 0)
-                ? larguraProduto.multiply(new BigDecimal(linhasRotacionado))
+                ? larguraProduto.multiply(new BigDecimal(linhasRotacionado)).add(margensVerticais)
                 : BigDecimal.valueOf(Long.MAX_VALUE);
 
+        // Validar contra o comprimento do lote, se existir
         if (comprimentoTotalLoteCm.isPresent() && comprimentoTotalNormal.compareTo(comprimentoTotalLoteCm.get()) > 0) {
             comprimentoTotalNormal = BigDecimal.valueOf(Long.MAX_VALUE);
         }
@@ -141,6 +147,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         BigDecimal larguraProdutoNaOrientacaoOtima = orientacaoOtimaEhRotacionado ? comprimentoProduto : larguraProduto;
         BigDecimal comprimentoProdutoNaOrientacaoOtima = orientacaoOtimaEhRotacionado ? larguraProduto : comprimentoProduto;
 
+        // 3. Calcular a largura real do bloco de produtos e o retalho lateral
         int produtosNaLinha = Math.min(quantidade, produtosPorLinhaOtima);
         BigDecimal larguraBlocoProdutosFinal = larguraProdutoNaOrientacaoOtima.multiply(new BigDecimal(produtosNaLinha))
                 .add(margemEsquerda).add(margemDireita);
@@ -154,6 +161,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
             larguraRetalhoLateralFinal = BigDecimal.ZERO;
         }
 
+        // 4. Retornar os parâmetros finais
         return new ParametrosCorte(
                 larguraTotalLoteCm,
                 larguraProdutoNaOrientacaoOtima,
@@ -168,21 +176,25 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         );
     }
 
-    @Override
     public ParametrosCorte extrairParametrosCorteManual(
             int quantidade,
             Produto produto,
             LoteMateriaPrima lotePrincipal,
-            BigDecimal larguraCorteManualCm
+            BigDecimal larguraCorteManualCm,
+            BigDecimal comprimentoCorteManualCm
     ) {
         ContextoBaseCorte contextoBase = extrairContextoBaseCorte(produto, lotePrincipal);
 
         BigDecimal larguraTotalLoteCm = contextoBase.larguraTotalLoteCm();
         BigDecimal larguraProduto = contextoBase.larguraProduto();
         BigDecimal comprimentoProduto = contextoBase.comprimentoProduto();
+        Optional<BigDecimal> comprimentoTotalLoteCm = contextoBase.comprimentoTotalLoteCm();
 
         if (larguraCorteManualCm.compareTo(larguraTotalLoteCm) > 0) {
             throw new DimensoesManuaisInvalidasException(larguraCorteManualCm, larguraTotalLoteCm);
+        }
+        if (comprimentoTotalLoteCm.isPresent() && comprimentoCorteManualCm.compareTo(comprimentoTotalLoteCm.get()) > 0) {
+            throw new DimensoesManuaisInvalidasException(comprimentoCorteManualCm, comprimentoTotalLoteCm.get());
         }
 
         int produtosPorLinha = larguraCorteManualCm.divide(larguraProduto, 0, RoundingMode.FLOOR).intValue();

@@ -43,13 +43,15 @@ public interface CorteCalculatorService {
      * @param produto O produto a ser cortado.
      * @param lotePrincipal O lote de matéria-prima a ser utilizado.
      * @param larguraCorteManualCm A largura do corte definida manualmente pelo usuário.
+     * @param comprimentoCorteManualCm O comprimento do corte definido manualmente pelo usuário.
      * @return um objeto {@link ParametrosCorte} contendo os dados para o corte manual.
      */
     ParametrosCorte extrairParametrosCorteManual(
             int quantidade,
             Produto produto,
             LoteMateriaPrima lotePrincipal,
-            BigDecimal larguraCorteManualCm
+            BigDecimal larguraCorteManualCm,
+            BigDecimal comprimentoCorteManualCm
     );
 
     /**
