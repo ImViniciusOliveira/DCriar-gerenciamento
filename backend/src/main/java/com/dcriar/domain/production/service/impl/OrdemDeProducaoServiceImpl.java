@@ -456,18 +456,14 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         if (isModoManual) {
             // Validação de comprimento para modo manual
             Optional<BigDecimal> comprimentoLoteCmOpt = getComprimentoOpcionalEmCm(lote.getAtributos());
-            if (comprimentoLoteCmOpt.isPresent() && requestDTO.getComprimentoFinalCm().compareTo(comprimentoLoteCmOpt.get()) > 0) {
-                throw new DimensoesManuaisInvalidasException(
-                        String.format("O comprimento do corte manual (%.2f cm) não pode ser maior que o comprimento do lote (%.2f cm).",
-                                requestDTO.getComprimentoFinalCm(), comprimentoLoteCmOpt.get())
-                );
-            }
-
-            comprimentoBlocoProdutosCm = requestDTO.getComprimentoBlocoProdutosCm() != null ? requestDTO.getComprimentoBlocoProdutosCm() : requestDTO.getComprimentoFinalCm();
-            larguraBlocoProdutosCm = requestDTO.getLarguraBlocoProdutosCm() != null ? requestDTO.getLarguraBlocoProdutosCm() : requestDTO.getLarguraFinalCm();
-            comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
+            // Usar apenas o bloco de produtos para cálculo, não o final
+            comprimentoBlocoProdutosCm = requestDTO.getComprimentoBlocoProdutosCm();
+            larguraBlocoProdutosCm = requestDTO.getLarguraBlocoProdutosCm();
+            // O comprimento final do corte é igual ao comprimento do bloco de produtos
+            comprimentoFinalCm = comprimentoBlocoProdutosCm;
+            // O corte final (largura) é sempre igual à largura do lote
             parametros = corteCalculatorService.extrairParametrosCorteManual(
-                    requestDTO.getQuantidade(), produto, lote, requestDTO.getLarguraFinalCm(), requestDTO.getComprimentoFinalCm()
+                requestDTO.getQuantidade(), produto, lote, larguraBlocoProdutosCm, comprimentoBlocoProdutosCm
             );
         } else { // MODO AUTOMÁTICO
             // ETAPA 1: Calcular layout físico com margens zero para validar a capacidade.

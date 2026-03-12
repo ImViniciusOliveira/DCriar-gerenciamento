@@ -19,13 +19,13 @@ public class VerificacaoCorteRequestValidator extends BaseValidator<ValidVerific
         addViolationIf(dto.getModoCalculo() == null, "O modo de cálculo é obrigatório.", "modoCalculo");
 
         if (dto.getModoCalculo() == ModoCalculo.MANUAL) {
-            addViolationIf(dto.getLarguraFinalCm() == null, "Para o modo MANUAL, a largura final é obrigatória.", "larguraFinalCm");
-            addViolationIf(dto.getComprimentoFinalCm() == null, "Para o modo MANUAL, o comprimento final é obrigatório.", "comprimentoFinalCm");
-            if (dto.getLarguraFinalCm() != null) {
-                addViolationIf(dto.getLarguraFinalCm().compareTo(BigDecimal.ZERO) <= 0, "A largura final deve ser positiva.", "larguraFinalCm");
+            addViolationIf(dto.getLarguraBlocoProdutosCm() == null, "Para o modo MANUAL, a largura do bloco de produtos é obrigatória.", "larguraBlocoProdutosCm");
+            addViolationIf(dto.getComprimentoBlocoProdutosCm() == null, "Para o modo MANUAL, o comprimento do bloco de produtos é obrigatório.", "comprimentoBlocoProdutosCm");
+            if (dto.getLarguraBlocoProdutosCm() != null) {
+                addViolationIf(dto.getLarguraBlocoProdutosCm().compareTo(BigDecimal.ZERO) <= 0, "A largura do bloco de produtos deve ser positiva.", "larguraBlocoProdutosCm");
             }
-            if (dto.getComprimentoFinalCm() != null) {
-                addViolationIf(dto.getComprimentoFinalCm().compareTo(BigDecimal.ZERO) <= 0, "O comprimento final deve ser positivo.", "comprimentoFinalCm");
+            if (dto.getComprimentoBlocoProdutosCm() != null) {
+                addViolationIf(dto.getComprimentoBlocoProdutosCm().compareTo(BigDecimal.ZERO) <= 0, "O comprimento do bloco de produtos deve ser positivo.", "comprimentoBlocoProdutosCm");
             }
         }
     }
