@@ -83,7 +83,6 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
     ) {
         ContextoBaseCorte contextoBase = extrairContextoBaseCorte(produto, lotePrincipal);
 
-        // 1. Obter dimensões e margens
         BigDecimal larguraTotalLoteCm = contextoBase.larguraTotalLoteCm();
         Optional<BigDecimal> comprimentoTotalLoteCm = contextoBase.comprimentoTotalLoteCm();
         BigDecimal larguraProduto = contextoBase.larguraProduto();
@@ -91,7 +90,6 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         BigDecimal margemEsquerda = Optional.ofNullable(margensRequest != null ? margensRequest.getEsquerda() : null).orElse(BigDecimal.ZERO);
         BigDecimal margemDireita = Optional.ofNullable(margensRequest != null ? margensRequest.getDireita() : null).orElse(BigDecimal.ZERO);
 
-        // 2. Determinar orientação ótima (considerando apenas a largura disponível para produtos, sem margens)
         BigDecimal larguraDisponivelParaProdutos = larguraTotalLoteCm.subtract(margemEsquerda).subtract(margemDireita);
         if (larguraDisponivelParaProdutos.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ProdutoNaoCabeNoLoteException("A soma das margens laterais é maior ou igual à largura do lote.");
@@ -114,7 +112,6 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
                 ? larguraProduto.multiply(new BigDecimal(linhasRotacionado))
                 : BigDecimal.valueOf(Long.MAX_VALUE);
 
-        // Validar contra o comprimento do lote, se existir
         if (comprimentoTotalLoteCm.isPresent() && comprimentoTotalNormal.compareTo(comprimentoTotalLoteCm.get()) > 0) {
             comprimentoTotalNormal = BigDecimal.valueOf(Long.MAX_VALUE);
         }
@@ -126,13 +123,24 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
             throw new QuantidadeExcedeCapacidadeLoteException("A quantidade solicitada excede a capacidade do lote em ambas as orientações.");
         }
 
-        boolean orientacaoOtimaEhRotacionado = comprimentoTotalRotacionado.compareTo(comprimentoTotalNormal) < 0;
+        // --- Lógica: prioriza menor comprimento, depois maior retalho lateral ---
+        BigDecimal larguraBlocoProdutosNormal = larguraProduto.multiply(new BigDecimal(Math.min(quantidade, produtosPorLinhaNormal)));
+        BigDecimal larguraBlocoProdutosRotacionado = comprimentoProduto.multiply(new BigDecimal(Math.min(quantidade, produtosPorLinhaRotacionado)));
+
+        boolean orientacaoOtimaEhRotacionado;
+        if (comprimentoTotalRotacionado.compareTo(comprimentoTotalNormal) < 0) {
+            orientacaoOtimaEhRotacionado = true;
+        } else if (comprimentoTotalRotacionado.compareTo(comprimentoTotalNormal) > 0) {
+            orientacaoOtimaEhRotacionado = false;
+        } else {
+            // Comprimento igual: prioriza maior retalho lateral (menor larguraBlocoProdutos)
+            orientacaoOtimaEhRotacionado = larguraBlocoProdutosRotacionado.compareTo(larguraBlocoProdutosNormal) < 0;
+        }
 
         int produtosPorLinhaOtima = orientacaoOtimaEhRotacionado ? produtosPorLinhaRotacionado : produtosPorLinhaNormal;
         BigDecimal larguraProdutoNaOrientacaoOtima = orientacaoOtimaEhRotacionado ? comprimentoProduto : larguraProduto;
         BigDecimal comprimentoProdutoNaOrientacaoOtima = orientacaoOtimaEhRotacionado ? larguraProduto : comprimentoProduto;
 
-        // 3. Calcular a largura real do bloco de produtos e o retalho lateral
         int produtosNaLinha = Math.min(quantidade, produtosPorLinhaOtima);
         BigDecimal larguraBlocoProdutosFinal = larguraProdutoNaOrientacaoOtima.multiply(new BigDecimal(produtosNaLinha))
                 .add(margemEsquerda).add(margemDireita);
@@ -146,7 +154,6 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
             larguraRetalhoLateralFinal = BigDecimal.ZERO;
         }
 
-        // 4. Retornar os parâmetros finais
         return new ParametrosCorte(
                 larguraTotalLoteCm,
                 larguraProdutoNaOrientacaoOtima,
