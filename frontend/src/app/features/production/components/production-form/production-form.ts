@@ -862,7 +862,7 @@ export class ProductionForm implements OnInit {
     if (simulation.tipoSimulacao === 'CORTE') {
       const payload: CreateCutOrderRequest = {
         produtoId: Number(formValue.produtoId),
-        lotePrincipalId: Number(formValue.loteId),
+        loteId: Number(formValue.loteId),
         quantidadeProduzida: Number(formValue.quantidade),
         modoCalculo: formValue.modoCalculo,
         larguraFinalCm: Number(formValue.larguraBlocoProdutosCm),

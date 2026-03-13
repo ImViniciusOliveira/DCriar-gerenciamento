@@ -42,7 +42,7 @@ export interface VerificationRequest {
  */
 export interface CreateCutOrderRequest {
   produtoId: number;
-  lotePrincipalId: number;
+  loteId: number;
   quantidadeProduzida: number;
   modoCalculo: string;
   larguraFinalCm: number;
