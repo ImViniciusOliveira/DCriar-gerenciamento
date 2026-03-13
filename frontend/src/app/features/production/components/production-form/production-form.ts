@@ -434,7 +434,7 @@ export class ProductionForm implements OnInit {
     }
 
     // Adiciona ou remove o validador 'required' para loteId com base no tipo de produto
-    if (produto.tipoProduto === 'CORTE') {
+    if (produto.tipoProduto === 'CORTE' || produto.tipoProduto === 'CONSUMO_DIRETO') {
       this.loteIdControl.addValidators(Validators.required);
     } else {
       this.loteIdControl.removeValidators(Validators.required);
@@ -748,7 +748,7 @@ export class ProductionForm implements OnInit {
       }
     }
 
-    let message = '';
+    let message: string;
     if (oldModo === 'AUTOMATICO' && newModo === 'MANUAL') {
       message = `As alterações mudaram o plano de produção:\n\n` +
                 [infoLine, dimensaoLine, sobrasLine, consumoLine, 'modo automatico → modo manual']

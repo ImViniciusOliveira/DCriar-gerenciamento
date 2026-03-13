@@ -261,43 +261,31 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw new TipoProducaoIncompativelException("Este produto não é para consumo direto.");
         }
 
-        List<LoteMateriaPrima> lotesConsumidos = loteMateriaPrimaRepository.findAllById(requestDTO.getLotesConsumidosIds());
-        if (lotesConsumidos.size() != requestDTO.getLotesConsumidosIds().size()) {
-            Set<Long> foundIds = lotesConsumidos.stream().map(LoteMateriaPrima::getId).collect(Collectors.toSet());
-            Set<Long> missingIds = new HashSet<>(requestDTO.getLotesConsumidosIds());
-            missingIds.removeAll(foundIds);
-            throw new LotesMateriaPrimaNaoEncontradosException(missingIds);
-        }
+        LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());
 
-        // 2. Valida se o saldo total dos lotes é suficiente.
+        // 2. Valida se o saldo do lote é suficiente.
         BigDecimal consumoTotalNecessario = new BigDecimal(produto.getUnidadesPorProduto() * requestDTO.getQuantidadeProduzida());
-        BigDecimal saldoTotalDisponivel = lotesConsumidos.stream()
-                .map(movimentacaoEstoqueLoteRepository::findSaldoByLote)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal saldoDisponivel = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteConsumido);
 
-        if (saldoTotalDisponivel.compareTo(consumoTotalNecessario) < 0) {
-            throw new SaldoMateriaPrimaInsuficienteException(consumoTotalNecessario, saldoTotalDisponivel);
+        if (saldoDisponivel.compareTo(consumoTotalNecessario) < 0) {
+            throw new SaldoMateriaPrimaInsuficienteException(consumoTotalNecessario, saldoDisponivel);
         }
 
         // 3. Cria e persiste a Ordem de Produção.
         OrdemDeProducaoRequestDTO ordemRequestDTO = OrdemDeProducaoRequestDTO.builder()
                 .produtoId(produto.getId())
-                .lotesConsumidosIds(new HashSet<>(requestDTO.getLotesConsumidosIds()))
-                .canalVendaDestinoId(requestDTO.getCanalVendaDestinoId() != null ? requestDTO.getCanalVendaDestinoId() : null)
+                .lotesConsumidosIds(Set.of(loteConsumido.getId())) // Mantém a estrutura da entidade
+                .canalVendaDestinoId(requestDTO.getCanalVendaDestinoId())
                 .quantidadeProduzida(requestDTO.getQuantidadeProduzida())
-                .modoCalculo(ModoCalculo.MANUAL.name())
                 .motivo(requestDTO.getMotivo())
+                // Não seta modoCalculo, dimensões, etc., pois não se aplicam
                 .build();
 
-        OrdemDeProducao ordem = OrdemDeProducao.from(ordemRequestDTO, produto, new HashSet<>(lotesConsumidos), null);
+        OrdemDeProducao ordem = OrdemDeProducao.from(ordemRequestDTO, produto, Set.of(loteConsumido), null);
         OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordem);
 
         // 4. Orquestra as movimentações de estoque.
-        PlanoDeConsumo plano = consumoCalculatorService.calcularPlanoDeConsumo(lotesConsumidos, consumoTotalNecessario);
-        plano.itens().forEach(item ->
-                registrarSaidaLote(item.lote(), item.quantidadeAConsumir(), "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem)
-        );
-
+        registrarSaidaLote(loteConsumido, consumoTotalNecessario, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
         registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
         distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
 
@@ -625,21 +613,16 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw new TipoProducaoIncompativelException("Este produto utiliza uma matéria-prima geométrica. Utilize o simulador de corte.");
         }
 
-        List<LoteMateriaPrima> lotesConsumidos = loteMateriaPrimaRepository.findAllById(requestDTO.getLotesConsumidosIds());
-        if (lotesConsumidos.size() != requestDTO.getLotesConsumidosIds().size()) {
-            throw new LotesMateriaPrimaNaoEncontradosException(new HashSet<>(requestDTO.getLotesConsumidosIds()));
-        }
+        LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());
 
         BigDecimal consumoTotalNecessario = new BigDecimal(produto.getUnidadesPorProduto() * requestDTO.getQuantidade());
-        BigDecimal saldoTotalDisponivel = lotesConsumidos.stream()
-                .map(movimentacaoEstoqueLoteRepository::findSaldoByLote)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal saldoTotalDisponivel = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteConsumido);
 
         if (saldoTotalDisponivel.compareTo(consumoTotalNecessario) < 0) {
             throw new SaldoMateriaPrimaInsuficienteException(consumoTotalNecessario, saldoTotalDisponivel);
         }
 
-        PlanoDeConsumo plano = consumoCalculatorService.calcularPlanoDeConsumo(lotesConsumidos, consumoTotalNecessario);
+        PlanoDeConsumo plano = consumoCalculatorService.calcularPlanoDeConsumo(loteConsumido, consumoTotalNecessario);
 
         return SimulacaoConsumoDiretoResponseDTO.builder()
                 .consumoTotalEstimado(consumoTotalNecessario)

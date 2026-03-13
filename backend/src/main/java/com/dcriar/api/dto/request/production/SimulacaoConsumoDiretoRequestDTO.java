@@ -8,8 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.List;
-
 /**
  * Data Transfer Object (DTO) para solicitar a simulação de consumo de matéria-prima.
  * <p>
@@ -38,8 +36,8 @@ public class SimulacaoConsumoDiretoRequestDTO {
     private Integer quantidade;
 
     /**
-     * Lista de IDs dos lotes de matéria-prima a serem considerados na simulação.
+     * O ID do lote de matéria-prima a ser considerado na simulação.
      */
-    @Schema(description = "Lista de IDs dos lotes de matéria-prima a serem considerados na simulação.", example = "[10, 12]")
-    private List<Long> lotesConsumidosIds;
+    @Schema(description = "ID do lote de matéria-prima a ser considerado na simulação.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
+    private Long loteId;
 }

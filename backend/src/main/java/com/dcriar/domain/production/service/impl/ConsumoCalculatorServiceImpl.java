@@ -9,9 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Service
@@ -21,35 +20,18 @@ public class ConsumoCalculatorServiceImpl implements ConsumoCalculatorService {
     private final MovimentacaoEstoqueLoteRepository movimentacaoEstoqueLoteRepository;
 
     @Override
-    public PlanoDeConsumo calcularPlanoDeConsumo(List<LoteMateriaPrima> lotes, BigDecimal consumoNecessario) {
-        List<PlanoDeConsumoItem> itens = new ArrayList<>();
+    public PlanoDeConsumo calcularPlanoDeConsumo(LoteMateriaPrima lote, BigDecimal consumoNecessario) {
+        BigDecimal saldoDoLote = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+        
+        // A validação de saldo suficiente já foi feita no service principal,
+        // mas garantimos que não consumimos mais do que o disponível.
+        BigDecimal consumoNesteLote = saldoDoLote.min(consumoNecessario);
+
+        PlanoDeConsumoItem item = new PlanoDeConsumoItem(lote, consumoNesteLote);
+        
         Map<Long, BigDecimal> saldosRestantes = new HashMap<>();
-        BigDecimal consumoRestante = consumoNecessario;
+        saldosRestantes.put(lote.getId(), saldoDoLote.subtract(consumoNesteLote));
 
-        // Inicializa o mapa de saldos restantes com o saldo atual de todos os lotes envolvidos.
-        for (LoteMateriaPrima lote : lotes) {
-            saldosRestantes.put(lote.getId(), movimentacaoEstoqueLoteRepository.findSaldoByLote(lote));
-        }
-
-        for (LoteMateriaPrima lote : lotes) {
-            if (consumoRestante.compareTo(BigDecimal.ZERO) <= 0) {
-                break;
-            }
-
-            BigDecimal saldoDoLote = saldosRestantes.get(lote.getId());
-            if (saldoDoLote == null || saldoDoLote.compareTo(BigDecimal.ZERO) <= 0) {
-                continue;
-            }
-
-            BigDecimal consumoNesteLote = saldoDoLote.min(consumoRestante);
-
-            if (consumoNesteLote.compareTo(BigDecimal.ZERO) > 0) {
-                itens.add(new PlanoDeConsumoItem(lote, consumoNesteLote));
-                consumoRestante = consumoRestante.subtract(consumoNesteLote);
-                saldosRestantes.put(lote.getId(), saldoDoLote.subtract(consumoNesteLote));
-            }
-        }
-
-        return new PlanoDeConsumo(itens, saldosRestantes);
+        return new PlanoDeConsumo(Collections.singletonList(item), saldosRestantes);
     }
 }

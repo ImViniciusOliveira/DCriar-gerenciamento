@@ -293,15 +293,6 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
 
     // --- Métodos Auxiliares de Layout ---
 
-    private CorteRealizadoResponseDTO criarCorteProduto(BigDecimal larguraProduto, BigDecimal comprimentoProduto, int quantidade) {
-        return CorteRealizadoResponseDTO.builder()
-                .larguraCm(larguraProduto)
-                .comprimentoCm(comprimentoProduto)
-                .quantidade(quantidade)
-                .tipo("PRODUTO")
-                .build();
-    }
-
     private CorteRealizadoResponseDTO criarCorteRetalho(BigDecimal largura, BigDecimal comprimento, String retalhoCategoria) {
         return CorteRealizadoResponseDTO.builder()
                 .larguraCm(largura)

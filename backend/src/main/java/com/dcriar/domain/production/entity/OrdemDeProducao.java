@@ -124,18 +124,33 @@ public class OrdemDeProducao extends AuditableEntity {
      * @return Nova instância de OrdemDeProducao
      */
     public static OrdemDeProducao from(OrdemDeProducaoRequestDTO dto, Produto produto, Set<LoteMateriaPrima> lotesConsumidos, Margens margens) {
-        return OrdemDeProducao.builder()
+        OrdemDeProducaoBuilder builder = OrdemDeProducao.builder()
                 .produto(produto)
                 .lotesConsumidos(lotesConsumidos)
                 .canalVendaDestinoId(dto.getCanalVendaDestinoId())
                 .quantidadeProduzida(dto.getQuantidadeProduzida())
-                .modoCalculo(ModoCalculo.valueOf(dto.getModoCalculo()))
-                .margens(margens)
-                .larguraFinalCm(dto.getLarguraFinalCm())
-                .comprimentoFinalCm(dto.getComprimentoFinalCm())
-                .motivo(dto.getMotivo())
-                .rotacionado(dto.isRotacionado())
-                .build();
+                .motivo(dto.getMotivo());
+
+        // Atribui campos específicos de CORTE apenas se existirem no DTO
+        if (dto.getModoCalculo() != null) {
+            builder.modoCalculo(ModoCalculo.valueOf(dto.getModoCalculo()));
+        }
+        if (margens != null) {
+            builder.margens(margens);
+        }
+        if (dto.getLarguraFinalCm() != null) {
+            builder.larguraFinalCm(dto.getLarguraFinalCm());
+        }
+        if (dto.getComprimentoFinalCm() != null) {
+            builder.comprimentoFinalCm(dto.getComprimentoFinalCm());
+        }
+        // O getter para boolean primitivo é 'isRotacionado', que não pode ser nulo.
+        // Apenas setamos se for explicitamente parte do DTO de corte.
+        if (dto.getModoCalculo() != null) { // Usamos modoCalculo como indicador de que é uma ordem de corte
+            builder.rotacionado(dto.isRotacionado());
+        }
+
+        return builder.build();
     }
 
     /**

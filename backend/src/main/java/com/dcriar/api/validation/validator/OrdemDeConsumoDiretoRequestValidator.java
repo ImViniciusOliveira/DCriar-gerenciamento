@@ -8,7 +8,7 @@ public class OrdemDeConsumoDiretoRequestValidator extends BaseValidator<ValidOrd
     @Override
     protected void validate(OrdemDeConsumoDiretoRequestDTO dto) {
         addViolationIf(dto.getProdutoId() == null, "O ID do produto é obrigatório.", "produtoId");
-        addViolationIf(dto.getLotesConsumidosIds() == null || dto.getLotesConsumidosIds().isEmpty(), "A lista de IDs de lotes consumidos é obrigatória.", "lotesConsumidosIds");
+        addViolationIf(dto.getLoteId() == null, "O ID do lote é obrigatório.", "loteId");
         addViolationIf(dto.getQuantidadeProduzida() == null, "A quantidade produzida é obrigatória.", "quantidadeProduzida");
         if (dto.getQuantidadeProduzida() != null) {
             addViolationIf(dto.getQuantidadeProduzida() <= 0, "A quantidade produzida deve ser um número positivo.", "quantidadeProduzida");

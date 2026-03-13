@@ -37,8 +37,8 @@
         </mat-form-field>
       </div>
 
-      <!-- Linha 2 - Seção para input de CORTE -->
-      @if (showCorteInputs()) {
+      <!-- Linha 2 - Seção para input de Lote (para CORTE e CONSUMO_DIRETO) -->
+      @if (showCorteInputs() || showConsumoInputs()) {
         <div class="form-row">
           <div class="batch-search-field">
             <app-batch-search
@@ -46,18 +46,6 @@
               [tipoMateriaPrimaId]="produto()?.materiaPrima?.id || null"
               (selectionChange)="onLoteChange($event)">
             </app-batch-search>
-          </div>
-        </div>
-      }
-
-      <!-- Linha 2 - Seção para input de CONSUMO DIRETO -->
-      @if (showConsumoInputs()) {
-        <div class="form-row">
-          <div class="consumption-placeholder-field">
-            <mat-form-field appearance="outline">
-              <mat-label>Placeholder para Seleção de Lotes (CONSUMO)</mat-label>
-              <input matInput value="Seleção de Múltiplos Lotes" readonly>
-            </mat-form-field>
           </div>
         </div>
       }
@@ -412,4 +400,3 @@
     </button>
   </mat-dialog-actions>
 </form>
-

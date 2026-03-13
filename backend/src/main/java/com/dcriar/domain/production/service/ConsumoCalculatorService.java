@@ -4,26 +4,25 @@ import com.dcriar.domain.production.model.PlanoDeConsumo;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 /**
  * Interface responsável por realizar os cálculos de consumo de matéria-prima.
  * <p>
  * Define o contrato para calcular como uma quantidade necessária de matéria-prima
- * será distribuída e consumida a partir de uma lista de lotes disponíveis.
+ * será consumida a partir de um único lote disponível.
  */
 public interface ConsumoCalculatorService {
 
     /**
      * Calcula o plano de consumo detalhado para uma dada necessidade de matéria-prima
-     * a partir de uma lista de lotes.
+     * a partir de um único lote.
      * <p>
-     * O método determina quanto será consumido de cada lote, na ordem fornecida,
-     * e qual será o saldo restante em cada um, sem persistir nenhuma alteração.
+     * O método determina quanto será consumido do lote e qual será o saldo restante,
+     * sem persistir nenhuma alteração.
      *
-     * @param lotes A lista de lotes disponíveis para consumo.
+     * @param lote O lote disponível para consumo.
      * @param consumoNecessario A quantidade total de matéria-prima necessária.
      * @return um objeto {@link PlanoDeConsumo} contendo o plano detalhado.
      */
-    PlanoDeConsumo calcularPlanoDeConsumo(List<LoteMateriaPrima> lotes, BigDecimal consumoNecessario);
+    PlanoDeConsumo calcularPlanoDeConsumo(LoteMateriaPrima lote, BigDecimal consumoNecessario);
 }
