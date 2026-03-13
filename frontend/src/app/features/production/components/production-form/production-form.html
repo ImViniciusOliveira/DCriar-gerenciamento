@@ -312,14 +312,20 @@
                   <p class="feedback-item">Tamanho do Produto (L x C): <strong>{{ produto()?.dimensoes?.larguraCm }}cm x {{ produto()?.dimensoes?.comprimentoCm }}cm</strong></p>
                   <p class="feedback-item">Bloco de Corte Informado (L x C): <strong>{{ result.larguraBlocoProdutosCm }}cm x {{ result.comprimentoBlocoProdutosCm }}cm</strong></p>
                 </div>
-
                 <!-- Coluna Direita -->
                 <div class="feedback-column">
                   <h4 class="feedback-header">Distribuição dos Produtos</h4>
-                  <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }} unidade(s)</strong></p>
+                  <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }}</strong> unidade(s)</p>
 
                   <h4 class="feedback-header">Material Utilizado</h4>
                   <p class="feedback-item">Área Utilizada (L x C): <strong>{{ result.consumoTotal }}</strong></p>
+
+                  <h4 class="feedback-header">Sobras Aproveitáveis</h4>
+                  @if(result.sobraLateral && result.sobraLateral !== '0cm x 0cm') {
+                    <p class="feedback-item">Sobra Lateral (L x C): <strong>{{ result.sobraLateral }}</strong></p>
+                  } @else {
+                    <p class="feedback-item">Nenhuma sobra principal aproveitável.</p>
+                  }
                 </div>
               </div>
             </div>
