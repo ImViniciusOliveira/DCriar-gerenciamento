@@ -230,6 +230,8 @@ export class ProductionForm implements OnInit {
   automaticoDimensoes = signal<{ largura: number | null, comprimento: number | null }>({ largura: null, comprimento: null });
   manualDimensoes = signal<{ largura: number | null, comprimento: number | null }>({ largura: null, comprimento: null });
 
+  private ignoreDimensoesUpdate = false;
+
   constructor() {
     this.form = this.fb.group({
       // ETAPA 1: SELEÇÃO
@@ -269,7 +271,7 @@ export class ProductionForm implements OnInit {
 
     // Atualiza manualDimensoes sempre que o usuário edita os campos no modo MANUAL
     this.larguraBlocoProdutosCmControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(val => {
-      if (this.modoCalculoControl.value === 'MANUAL') {
+      if (this.modoCalculoControl.value === 'MANUAL' && !this.ignoreDimensoesUpdate) {
         this.manualDimensoes.set({
           largura: val !== null ? Number(val) : null,
           comprimento: this.comprimentoBlocoProdutosCmControl.value !== null ? Number(this.comprimentoBlocoProdutosCmControl.value) : null
@@ -277,7 +279,7 @@ export class ProductionForm implements OnInit {
       }
     });
     this.comprimentoBlocoProdutosCmControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(val => {
-      if (this.modoCalculoControl.value === 'MANUAL') {
+      if (this.modoCalculoControl.value === 'MANUAL' && !this.ignoreDimensoesUpdate) {
         this.manualDimensoes.set({
           largura: this.larguraBlocoProdutosCmControl.value !== null ? Number(this.larguraBlocoProdutosCmControl.value) : null,
           comprimento: val !== null ? Number(val) : null
@@ -463,17 +465,27 @@ export class ProductionForm implements OnInit {
     const larguraControl = this.larguraBlocoProdutosCmControl;
     const comprimentoControl = this.comprimentoBlocoProdutosCmControl;
 
+    this.ignoreDimensoesUpdate = true;
     if (modo === 'MANUAL') {
+      // Se manualDimensoes está vazio/null, inicializa com valores do automático
+      const dimensoesManual = this.manualDimensoes();
+      if ((dimensoesManual.largura == null || dimensoesManual.comprimento == null)) {
+        const dimensoesAuto = this.automaticoDimensoes();
+        this.manualDimensoes.set({
+          largura: dimensoesAuto.largura,
+          comprimento: dimensoesAuto.comprimento
+        });
+      }
       // Modo MANUAL: habilita os campos e adiciona validadores
       larguraControl.enable();
       comprimentoControl.enable();
       larguraControl.setValidators([Validators.required, Validators.min(0.1)]);
       comprimentoControl.setValidators([Validators.required, Validators.min(0.1)]);
       // Restaura os valores do manual
-      const dimensoesManual = this.manualDimensoes();
+      const dimensoesManualAtual = this.manualDimensoes();
       this.form.patchValue({
-        larguraBlocoProdutosCm: dimensoesManual.largura,
-        comprimentoBlocoProdutosCm: dimensoesManual.comprimento
+        larguraBlocoProdutosCm: dimensoesManualAtual.largura,
+        comprimentoBlocoProdutosCm: dimensoesManualAtual.comprimento
       }, { emitEvent: false });
     } else {
       // Modo AUTOMATICO: desabilita os campos (remove validadores implicitamente)
@@ -488,9 +500,14 @@ export class ProductionForm implements OnInit {
         comprimentoBlocoProdutosCm: dimensoesAuto.comprimento
       }, { emitEvent: false });
     }
+    this.ignoreDimensoesUpdate = false;
 
     larguraControl.updateValueAndValidity({ emitEvent: false });
     comprimentoControl.updateValueAndValidity({ emitEvent: false });
+
+    // Atualiza needsVerification após alternância de modo
+    this.needsVerification.set(this.checkIfVerificationIsNeeded());
+
     // Scroll automático para o final para garantir visibilidade das margens ou botões
     this.scrollToBottom();
 
