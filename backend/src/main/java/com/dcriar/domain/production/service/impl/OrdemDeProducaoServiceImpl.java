@@ -478,14 +478,28 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         boolean isModoManual = requestDTO.getModoCalculo() == ModoCalculo.MANUAL;
 
         if (isModoManual) {
-            // Validação de comprimento para modo manual
-            Optional<BigDecimal> comprimentoLoteCmOpt = getComprimentoOpcionalEmCm(lote.getAtributos());
-            // Usar apenas o bloco de produtos para cálculo, não o final
+            // Cálculo do comprimento do lote igual ao criarOrdemDeCorte
+            BigDecimal saldoEstoque = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+            BigDecimal larguraLoteCm = new BigDecimal(lote.getAtributos().getOrDefault("larguraMm", 0).toString()).divide(new BigDecimal("10"), 2, java.math.RoundingMode.HALF_UP);
+            BigDecimal comprimentoLoteCm = BigDecimal.ZERO;
+            if (saldoEstoque != null && larguraLoteCm.compareTo(BigDecimal.ZERO) > 0) {
+                comprimentoLoteCm = saldoEstoque.multiply(new BigDecimal("10000")).divide(larguraLoteCm, 2, java.math.RoundingMode.HALF_UP);
+            }
             comprimentoBlocoProdutosCm = requestDTO.getComprimentoBlocoProdutosCm();
             larguraBlocoProdutosCm = requestDTO.getLarguraBlocoProdutosCm();
-            // O comprimento final do corte é igual ao comprimento do bloco de produtos
             comprimentoFinalCm = comprimentoBlocoProdutosCm;
-            // O corte final (largura) é sempre igual à largura do lote
+            if (comprimentoBlocoProdutosCm.compareTo(comprimentoLoteCm) > 0) {
+                throw new ProdutoNaoCabeNoLoteException(
+                    String.format("O comprimento do bloco de corte (%.2fcm) excede o comprimento do lote (%.2fcm).",
+                        comprimentoBlocoProdutosCm, comprimentoLoteCm)
+                );
+            }
+            if (larguraBlocoProdutosCm.compareTo(larguraLoteCm) > 0) {
+                throw new ProdutoNaoCabeNoLoteException(
+                    String.format("A largura do bloco de corte (%.2fcm) excede a largura do lote (%.2fcm).",
+                        larguraBlocoProdutosCm, larguraLoteCm)
+                );
+            }
             parametros = corteCalculatorService.extrairParametrosCorteManual(
                 requestDTO.getQuantidade(), produto, lote, larguraBlocoProdutosCm, comprimentoBlocoProdutosCm
             );
@@ -714,13 +728,5 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         return String.format("%scm x %scm",
                 largura.stripTrailingZeros().toPlainString(),
                 comprimento.stripTrailingZeros().toPlainString());
-    }
-
-    private Optional<BigDecimal> getComprimentoOpcionalEmCm(Map<String, Object> atributos) {
-        Object comprimentoMmObj = atributos.get("comprimentoMm");
-        if (!(comprimentoMmObj instanceof Number)) {
-            return Optional.empty();
-        }
-        return Optional.of(new BigDecimal(comprimentoMmObj.toString()).divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP));
     }
 }
