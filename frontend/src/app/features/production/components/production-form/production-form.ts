@@ -653,39 +653,75 @@ export class ProductionForm implements OnInit {
   private showVerificationDialog(oldR: SimulationCutResult, newR: SimulationCutResult, formValue: any): void {
     const oldQtd = this.formSnapshot?.quantidade || 0;
     const newQtd = formValue.quantidade;
+    const oldModo = this.formSnapshot?.modoCalculo || 'AUTOMATICO';
+    const newModo = formValue.modoCalculo;
 
     // Formatação das linhas de comparação
-    const infoLine = `Informação: ${oldQtd} ${oldQtd === 1 ? 'produto' : 'produtos'} → ${newQtd} ${newQtd === 1 ? 'produto' : 'produtos'}.`;
-
+    const infoLine = oldQtd !== newQtd ? `Informação: ${oldQtd} ${oldQtd === 1 ? 'produto' : 'produtos'} → ${newQtd} ${newQtd === 1 ? 'produto' : 'produtos'}.` : '';
     const oldLayoutStr = this.formatLayoutShortString(oldR, oldQtd);
     const newLayoutStr = this.formatLayoutShortString(newR, newQtd);
-    const layoutLine = `Produtos: ${oldLayoutStr} → ${newLayoutStr}`;
-
+    const layoutLine = oldLayoutStr !== newLayoutStr ? `Produtos: ${oldLayoutStr} → ${newLayoutStr}` : '';
     const oldSobras = this.formatSobrasString(oldR);
     const newSobras = this.formatSobrasString(newR);
-    const sobrasLine = `Sobras: ${oldSobras} → ${newSobras}`;
-
-    const consumoLine = `Consumo total: ${oldR.consumoTotal} → ${newR.consumoTotal}`;
-    const rotacaoLine = `Rotação: ${oldR.rotacionado ? 'Sim' : 'Não'} → ${newR.rotacionado ? 'Sim' : 'Não'}`;
-
-    // Margens com alinhamento profissional
+    const sobrasLine = oldSobras !== newSobras ? `Sobras: ${oldSobras} → ${newSobras}` : '';
+    const consumoLine = oldR.consumoTotal !== newR.consumoTotal ? `Consumo total: ${oldR.consumoTotal} → ${newR.consumoTotal}` : '';
+    const rotacaoLine = oldR.rotacionado !== newR.rotacionado ? `Rotação: ${oldR.rotacionado ? 'Sim' : 'Não'} → ${newR.rotacionado ? 'Sim' : 'Não'}` : '';
     const oldM = this.formSnapshot?.margens;
     const newM = formValue.margens;
-    const labelSup = "Superior:".padEnd(10);
-    const labelInf = "Inferior:".padEnd(10);
-    const labelEsq = "Esquerda:".padEnd(10);
-    const labelDir = "Direita:".padEnd(10);
-    const margensMsg = `Margens: ${labelSup} ${oldM?.superior || 0} → ${newM.superior || 0}  ${labelInf} ${oldM?.inferior || 0} → ${newM.inferior || 0}\n` +
-                       `         ${labelEsq} ${oldM?.esquerda || 0} → ${newM.esquerda || 0}  ${labelDir} ${oldM?.direita || 0} → ${newM.direita || 0}`;
+    // Margens: mostra só as que mudaram, agrupando 2 por linha
+    let margensMsg = '';
+    if (oldM && newM) {
+      const margensDiff: string[] = [];
+      if (oldM.superior !== newM.superior) {
+        margensDiff.push(`Superior:  ${oldM.superior || 0} → ${newM.superior || 0}`);
+      }
+      if (oldM.inferior !== newM.inferior) {
+        margensDiff.push(`Inferior:  ${oldM.inferior || 0} → ${newM.inferior || 0}`);
+      }
+      if (oldM.esquerda !== newM.esquerda) {
+        margensDiff.push(`Esquerda:  ${oldM.esquerda || 0} → ${newM.esquerda || 0}`);
+      }
+      if (oldM.direita !== newM.direita) {
+        margensDiff.push(`Direita:   ${oldM.direita || 0} → ${newM.direita || 0}`);
+      }
+      if (margensDiff.length > 0) {
+        // Agrupa 2 por linha
+        const margensLines: string[] = [];
+        for (let i = 0; i < margensDiff.length; i += 2) {
+          margensLines.push(margensDiff.slice(i, i + 2).join('  '));
+        }
+        margensMsg = `Margens:\n${margensLines.join('\n')}`;
+      }
+    }
 
-    const message = `As alterações mudaram o plano de produção:\n\n` +
-                    `${infoLine}\n` +
-                    `${layoutLine}\n` +
-                    `${sobrasLine}\n` +
-                    `${consumoLine}\n` +
-                    `${rotacaoLine}\n\n` +
-                    `${margensMsg}\n\n` +
-                    `Deseja aplicar estas mudanças?`;
+    let message = '';
+    // Transição de modo
+    if (oldModo === 'AUTOMATICO' && newModo === 'MANUAL') {
+      message = `As alterações mudaram o plano de produção:\n\n` +
+                [infoLine, sobrasLine, consumoLine, 'modo automatico → modo manual']
+                  .filter(Boolean)
+                  .join('\n') +
+                `\n\nDeseja aplicar estas mudanças?`;
+    } else if (oldModo === 'MANUAL' && newModo === 'AUTOMATICO') {
+      message = `As alterações mudaram o plano de produção:\n\n` +
+                [infoLine, layoutLine, sobrasLine, consumoLine, rotacaoLine, margensMsg]
+                  .filter(Boolean)
+                  .join('\n') +
+                `\n\nDeseja aplicar estas mudanças?`;
+    } else if (oldModo === newModo && newModo === 'MANUAL') {
+      message = `As alterações mudaram o plano de produção:\n\n` +
+                [infoLine, sobrasLine, consumoLine]
+                  .filter(Boolean)
+                  .join('\n') +
+                `\n\nDeseja aplicar estas mudanças?`;
+    } else {
+      // AUTOMATICO → AUTOMATICO
+      message = `As alterações mudaram o plano de produção:\n\n` +
+                [infoLine, layoutLine, sobrasLine, consumoLine, rotacaoLine, margensMsg]
+                  .filter(Boolean)
+                  .join('\n') +
+                `\n\nDeseja aplicar estas mudanças?`;
+    }
 
     const dialogRef = this.dialog.open(ConfirmDialog, {
       data: { title: 'Confirmar Alterações', message: message },

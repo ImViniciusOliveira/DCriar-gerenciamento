@@ -180,7 +180,7 @@
               <mat-hint align="end">{{ motivoControl.value?.length || 0 }}/255</mat-hint>
             </mat-form-field>
 
-            @if (result.tipoSimulacao === 'CORTE') {
+            @if (result.tipoSimulacao === 'CORTE' && modoCalculoControl.value === 'AUTOMATICO') {
               <fieldset class="rotated-fieldset">
                 <div class="icon-label">
                   @if (result.rotacionado) {
@@ -234,14 +234,14 @@
 
         <!-- Feedback de Simulação -->
         <div class="simulation-feedback">
-          @if (result.tipoSimulacao === 'CORTE') {
+          @if (result.tipoSimulacao === 'CORTE' && modoCalculoControl.value === 'AUTOMATICO') {
             <div class="feedback-container">
-              <h3 class="feedback-title">Informações da ordem de produção</h3>
+              <h3 class="feedback-title">informações da ordem de produção (modo automático)</h3>
               <div class="feedback-columns-wrapper">
                 <!-- Coluna Esquerda -->
                 <div class="feedback-column">
                   <h4 class="feedback-header">Matéria-Prima</h4>
-                  <p class="feedback-item">Lote: <strong>{{ produto()?.materiaPrima?.nome }}</strong></p>
+                  <p class="feedback-item">Lote: <strong>{{ loteSelecionado()?.nomeTipoMateriaPrima }}</strong></p>
                   @if(loteSelecionado(); as lote) {
                     <p class="feedback-item">
                       Dimensão do Lote (L x C):
@@ -255,7 +255,7 @@
                   }
 
                   <h4 class="feedback-header">Produto</h4>
-                  <p class="feedback-item">Tamanho do Produto (L x C): <strong>{{ result.dimensaoProduto }}</strong></p>
+                  <p class="feedback-item">Tamanho do Produto (L x C): <strong>{{ produto()?.dimensoes?.larguraCm }}cm x {{ produto()?.dimensoes?.comprimentoCm }}cm</strong></p>
                   @if (result.rotacionado) {
                     <p class="feedback-item">Tamanho no Corte (L x C): <strong>{{ rotatedDimensionString() }}</strong> (rotacionado)</p>
                   } @else {
@@ -266,7 +266,7 @@
                 <!-- Coluna Direita -->
                 <div class="feedback-column">
                   <h4 class="feedback-header">Distribuição dos Produtos</h4>
-                  <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }} unidades</strong></p>
+                  <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }} unidade(s)</strong></p>
                   <p class="feedback-item">Produtos por Linha: <strong>{{ result.produtosPorLinha }}</strong></p>
                   @if (result.numeroLinhasCompletas > 0) {
                     <p class="feedback-item">Linhas Completas: <strong>{{ result.numeroLinhasCompletas }}</strong></p>
@@ -292,11 +292,41 @@
                 </div>
               </div>
             </div>
-          } @else {
-            <!-- Placeholder para outros tipos de simulação, como CONSUMO_DIRETO -->
+          }
+          @if (result.tipoSimulacao === 'CORTE' && modoCalculoControl.value === 'MANUAL') {
             <div class="feedback-container">
-              <h3 class="feedback-title">Informações da ordem de produção</h3>
-              <p>Feedback para este tipo de simulação ainda não implementado.</p>
+              <h3 class="feedback-title">informações da ordem de produção (modo manual)</h3>
+              <div class="feedback-columns-wrapper">
+                <!-- Coluna Esquerda -->
+                <div class="feedback-column">
+                  <h4 class="feedback-header">Matéria-Prima</h4>
+                  <p class="feedback-item">Lote: <strong>{{ loteSelecionado()?.nomeTipoMateriaPrima }}</strong></p>
+                  @if(loteSelecionado(); as lote) {
+                    <p class="feedback-item">
+                      Dimensão do Lote (L x C):
+                      <strong>
+                        {{ (lote.atributos?.['larguraMm'] || 0) / 10 }}cm x {{ lote.saldoEstoque }}{{ lote.unidadeSimbolo }}
+                        @if (lote.unidadeSimbolo === 'm²' && typeof lote.saldoEstoque === 'number') {
+                          <span>({{ (lote.saldoEstoque * 10000) | number:'1.0-0' }}cm²)</span>
+                        }
+                      </strong>
+                    </p>
+                  }
+
+                  <h4 class="feedback-header">Produto</h4>
+                  <p class="feedback-item">Tamanho do Produto (L x C): <strong>{{ produto()?.dimensoes?.larguraCm }}cm x {{ produto()?.dimensoes?.comprimentoCm }}cm</strong></p>
+                  <p class="feedback-item">Bloco de Corte Informado (L x C): <strong>{{ result.larguraBlocoProdutosCm }}cm x {{ result.comprimentoBlocoProdutosCm }}cm</strong></p>
+                </div>
+
+                <!-- Coluna Direita -->
+                <div class="feedback-column">
+                  <h4 class="feedback-header">Distribuição dos Produtos</h4>
+                  <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }} unidade(s)</strong></p>
+
+                  <h4 class="feedback-header">Material Utilizado</h4>
+                  <p class="feedback-item">Área Utilizada (L x C): <strong>{{ result.consumoTotal }}</strong></p>
+                </div>
+              </div>
             </div>
           }
         </div>
@@ -381,3 +411,4 @@
     </button>
   </mat-dialog-actions>
 </form>
+
