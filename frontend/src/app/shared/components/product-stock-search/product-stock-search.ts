@@ -52,7 +52,7 @@ export class ProductStockSearch implements OnInit, OnDestroy {
   // --- Controles de Formulário Internos ---
   searchControl = new FormControl<string | Product | null>('');
   filterOperatorControl = new FormControl<'GTE' | 'LTE'>('GTE');
-  filterValueControl = new FormControl<number | null>(1);
+  filterValueControl = new FormControl<number | null>(null);
 
   // --- Estado Interno ---
   products = toSignal(this.productService.getProductsByStock(), { initialValue: [] });
