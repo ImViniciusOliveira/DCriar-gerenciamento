@@ -165,7 +165,8 @@ export class ProductStockSearch implements OnInit, OnDestroy {
    * Formata como o nome do produto é exibido no input após a seleção.
    */
   displayFn(product: Product): string {
-    return product?.nome ? `${product.nome} (Estoque: ${product.estoqueFisicoTotal || 0})` : '';
+    if (!product) return '';
+    return product.nome ? `${product.nome} (Estoque: ${product.estoqueFisicoTotal || 0})` : '';
   }
 
   /**
