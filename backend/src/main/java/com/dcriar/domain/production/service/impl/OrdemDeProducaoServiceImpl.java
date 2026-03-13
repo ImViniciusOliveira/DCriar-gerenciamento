@@ -411,12 +411,36 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
 
         ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(
-                requestDTO.getQuantidade(), produto, loteParaSimulacao, null
+            requestDTO.getQuantidade(), produto, loteParaSimulacao, null
         );
-
+        BigDecimal larguraFinalCm = parametros.larguraTotalLoteCm();
         long numeroDeLinhasTotal = (long) Math.ceil((double) requestDTO.getQuantidade() / parametros.produtosPorLinha());
         BigDecimal comprimentoBlocoProdutosCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhasTotal));
-        BigDecimal larguraFinalCm = parametros.larguraTotalLoteCm();
+        // Validação de dimensões do bloco de corte
+        BigDecimal saldoEstoque = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteParaSimulacao);
+        BigDecimal larguraMm = new BigDecimal(loteParaSimulacao.getAtributos().getOrDefault("larguraMm", 0).toString());
+        BigDecimal comprimentoLoteCm = BigDecimal.ZERO;
+        if (saldoEstoque != null && larguraMm.compareTo(BigDecimal.ZERO) > 0) {
+            comprimentoLoteCm = saldoEstoque.multiply(new BigDecimal("10000")).divide(larguraMm.divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP), 2, RoundingMode.HALF_UP);
+        }
+        BigDecimal larguraLoteCm = larguraMm.divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
+        if (comprimentoBlocoProdutosCm.compareTo(comprimentoLoteCm) > 0) {
+            throw new ProdutoNaoCabeNoLoteException(
+                String.format("O comprimento do bloco de corte (%.2fcm) excede o comprimento do lote (%.2fcm).",
+                    comprimentoBlocoProdutosCm, comprimentoLoteCm)
+            );
+        }
+        if (larguraFinalCm.compareTo(larguraLoteCm) > 0) {
+            throw new ProdutoNaoCabeNoLoteException(
+                String.format("A largura do bloco de corte (%.2fcm) excede a largura do lote (%.2fcm).",
+                    larguraFinalCm, larguraLoteCm)
+            );
+        }
+        // Validação de saldo de matéria-prima
+        BigDecimal consumoTotalMetros = larguraFinalCm.multiply(comprimentoBlocoProdutosCm).divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
+        if (consumoTotalMetros.compareTo(saldoEstoque) > 0) {
+            throw new SaldoMateriaPrimaInsuficienteException(consumoTotalMetros, saldoEstoque);
+        }
 
         ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoBlocoProdutosCm, false);
 

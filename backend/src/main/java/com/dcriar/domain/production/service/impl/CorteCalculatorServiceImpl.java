@@ -104,7 +104,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         int produtosPorLinhaRotacionado = calcularProdutosPorLinhaSemMargem(larguraDisponivelParaProdutos, comprimentoProduto);
 
         if (produtosPorLinhaNormal == 0 && produtosPorLinhaRotacionado == 0) {
-            throw new ProdutoNaoCabeNoLoteException("O produto não cabe na largura do lote em nenhuma orientação, mesmo após descontar as margens.");
+            throw new ProdutoNaoCabeNoLoteException("O produto não cabe na largura do lote em nenhuma orientação.");
         }
 
         int linhasNormal = calcularLinhas(quantidade, produtosPorLinhaNormal);

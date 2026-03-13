@@ -177,3 +177,4 @@ INSERT INTO movimentacoes_estoque_lote (lote_id, ordem_producao_id, data, tipo, 
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), NOW() - INTERVAL '1 hour', 'SAIDA_PRODUCAO', -25, 'Consumo para Ordem #5'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Retalho da Ordem #5'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), NOW() - INTERVAL '1 hour', 'ENTRADA_SOBRA', 5, 'Retalho gerado pela Ordem #5'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Retalho da Ordem #5'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Consumidora'), NOW() - INTERVAL '30 minute', 'SAIDA_PRODUCAO', -1, 'Consumo do retalho da Ordem #5');
+

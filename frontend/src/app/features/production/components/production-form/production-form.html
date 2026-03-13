@@ -244,12 +244,10 @@
                   <p class="feedback-item">Lote: <strong>{{ loteSelecionado()?.nomeTipoMateriaPrima }}</strong></p>
                   @if(loteSelecionado(); as lote) {
                     <p class="feedback-item">
-                      Dimensão do Lote (L x C):
+                      Saldo:
                       <strong>
-                        {{ (lote.atributos?.['larguraMm'] || 0) / 10 }}cm x {{ lote.saldoEstoque }}{{ lote.unidadeSimbolo }}
-                        @if (lote.unidadeSimbolo === 'm²' && typeof lote.saldoEstoque === 'number') {
-                          <span>({{ (lote.saldoEstoque * 10000) | number:'1.0-0' }}cm²)</span>
-                        }
+                        Largura: {{ +lote.atributos?.['larguraMm'] | number:'1.0-0' }}mm ({{ +(lote.atributos?.['larguraMm'] || 0) / 10 | number:'1.0-0' }}cm) |
+                        Comprimento: {{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / +lote.atributos?.['larguraMm'] | number:'1.0-0') : '0' }}mm ({{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / +lote.atributos?.['larguraMm'] / 10 | number:'1.0-0') : '0' }}cm)
                       </strong>
                     </p>
                   }
@@ -303,12 +301,9 @@
                   <p class="feedback-item">Lote: <strong>{{ loteSelecionado()?.nomeTipoMateriaPrima }}</strong></p>
                   @if(loteSelecionado(); as lote) {
                     <p class="feedback-item">
-                      Dimensão do Lote (L x C):
                       <strong>
-                        {{ (lote.atributos?.['larguraMm'] || 0) / 10 }}cm x {{ lote.saldoEstoque }}{{ lote.unidadeSimbolo }}
-                        @if (lote.unidadeSimbolo === 'm²' && typeof lote.saldoEstoque === 'number') {
-                          <span>({{ (lote.saldoEstoque * 10000) | number:'1.0-0' }}cm²)</span>
-                        }
+                        Largura: {{ lote.atributos?.['larguraMm'] | number:'1.0-0' }}mm ({{ (lote.atributos?.['larguraMm'] || 0) / 10 | number:'1.0-0' }}cm) |
+                        Comprimento: {{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / lote.atributos?.['larguraMm'] | number:'1.0-0') : '0' }}mm ({{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / lote.atributos?.['larguraMm'] / 10 | number:'1.0-0') : '0' }}cm)
                       </strong>
                     </p>
                   }
