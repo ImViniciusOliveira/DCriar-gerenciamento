@@ -58,6 +58,17 @@ export interface CreateCutOrderRequest {
 }
 
 /**
+ * Representa o payload para criar uma ordem de produção por consumo direto.
+ */
+export interface CreateConsumptionOrderRequest {
+  produtoId: number;
+  loteId: number;
+  quantidadeProduzida: number;
+  canalVendaDestinoId?: number | null;
+  motivo?: string | null;
+}
+
+/**
  * Serviço para gerenciamento de Ordens de Produção.
  *
  * Implementa uma arquitetura reativa com Signals para gerenciar o estado da busca
@@ -166,6 +177,28 @@ export class ProductionService {
     return this.http.post<any>(url, payload).pipe(
       tap(() => this.refreshTrigger.set(undefined))
     );
+  }
+
+  /**
+   * Cria uma nova ordem de produção por consumo direto.
+   * @param url A URL completa para o endpoint de criação (descoberta via HATEOAS).
+   * @param payload Os dados da ordem de produção.
+   * @returns Um Observable com a resposta da criação.
+   */
+  createConsumptionOrder(url: string, payload: CreateConsumptionOrderRequest): Observable<any> {
+    return this.http.post<any>(url, payload).pipe(
+      tap(() => this.refreshTrigger.set(undefined))
+    );
+  }
+
+  /**
+   * Executa a simulação de produção por consumo direto no backend.
+   * @param url A URL completa para o endpoint de simulação (descoberta via HATEOAS).
+   * @param payload Os dados para a simulação.
+   * @returns Um Observable com a resposta da simulação.
+   */
+  simulateConsumption(url: string, payload: SimulationRequest): Observable<SimulationResult> {
+    return this.http.post<SimulationResult>(url, payload);
   }
 
   /**

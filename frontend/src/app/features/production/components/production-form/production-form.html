@@ -62,335 +62,283 @@
 
     <!-- ETAPA 3: FORMULÁRIO REAL -->
     @if (simulationResult(); as result) {
-      <div class="filter-group-container">
-        <div class="form-row">
+      @if (result.tipoSimulacao === 'CORTE') {
+        <div class="filter-group-container">
+          <div class="form-row">
+            <!-- LADO ESQUERDO: Dimensões + Margens + Motivo -->
+            <div class="form-left">
+              <!-- LINHA 1: Dimensões (lado a lado) -->
+              <div class="dimensoes-inline">
+                @if (modoCalculoControl.value === 'AUTOMATICO') {
+                  <mat-form-field appearance="outline" class="dimensao-input">
+                    <mat-label>Largura</mat-label>
+                    <input matInput type="text" formControlName="larguraBlocoProdutosCm" readonly>
+                  </mat-form-field>
+                  <span class="dimensao-separator">×</span>
+                  <mat-form-field appearance="outline" class="dimensao-input">
+                    <mat-label>Comprimento</mat-label>
+                    <input matInput type="text" formControlName="comprimentoBlocoProdutosCm" readonly>
+                  </mat-form-field>
+                  <span class="dimensao-unit">cm</span>
+                } @else {
+                  <mat-form-field appearance="outline" class="dimensao-input">
+                    <mat-label>Largura</mat-label>
+                    <input matInput type="text" formControlName="larguraBlocoProdutosCm" required>
+                  </mat-form-field>
+                  <span class="dimensao-separator">×</span>
+                  <mat-form-field appearance="outline" class="dimensao-input">
+                    <mat-label>Comprimento</mat-label>
+                    <input matInput type="text" formControlName="comprimentoBlocoProdutosCm" required>
+                  </mat-form-field>
+                  <span class="dimensao-unit">cm</span>
+                }
+              </div>
 
-          <!-- LADO ESQUERDO: Dimensões + Margens + Motivo -->
-          <div class="form-left">
-
-            <!-- LINHA 1: Dimensões (lado a lado) -->
-            <div class="dimensoes-inline">
+              <!-- LINHA 2-4: Margens (APENAS AUTOMATICO) -->
               @if (modoCalculoControl.value === 'AUTOMATICO') {
-                <mat-form-field appearance="outline" class="dimensao-input">
-                  <mat-label>Largura</mat-label>
-                  <input
-                    matInput
-                    type="text"
-                    formControlName="larguraBlocoProdutosCm"
-                    readonly>
-                </mat-form-field>
-
-                <span class="dimensao-separator">×</span>
-
-                <mat-form-field appearance="outline" class="dimensao-input">
-                  <mat-label>Comprimento</mat-label>
-                  <input
-                    matInput
-                    type="text"
-                    formControlName="comprimentoBlocoProdutosCm"
-                    readonly>
-                </mat-form-field>
-
-                <span class="dimensao-unit">cm</span>
+                <div class="margens-container" formGroupName="margens">
+                  <div>
+                    <mat-form-field appearance="outline" class="numeric-input">
+                      <mat-label>Margem Superior</mat-label>
+                      <input matInput type="text" formControlName="superior">
+                    </mat-form-field>
+                  </div>
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="numeric-input">
+                      <mat-label>Margem Esquerda</mat-label>
+                      <input matInput type="text" formControlName="esquerda">
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" class="numeric-input">
+                      <mat-label>Margem Direita</mat-label>
+                      <input matInput type="text" formControlName="direita">
+                    </mat-form-field>
+                  </div>
+                  <div>
+                    <mat-form-field appearance="outline" class="numeric-input">
+                      <mat-label>Margem Inferior</mat-label>
+                      <input matInput type="text" formControlName="inferior">
+                    </mat-form-field>
+                  </div>
+                </div>
               }
 
-              @if (modoCalculoControl.value === 'MANUAL') {
-                <mat-form-field appearance="outline" class="dimensao-input">
-                  <mat-label>Largura</mat-label>
-                  <input
-                    matInput
-                    type="text"
-                    formControlName="larguraBlocoProdutosCm"
-                    required>
-                </mat-form-field>
+              <!-- LINHA 5: Motivo -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Motivo/Referência</mat-label>
+                <textarea matInput formControlName="motivo" rows="3" maxlength="255" placeholder="Ex: Pedido Cliente #456"></textarea>
+                <mat-hint align="end">{{ motivoControl.value?.length || 0 }}/255</mat-hint>
+              </mat-form-field>
 
-                <span class="dimensao-separator">×</span>
-
-                <mat-form-field appearance="outline" class="dimensao-input">
-                  <mat-label>Comprimento</mat-label>
-                  <input
-                    matInput
-                    type="text"
-                    formControlName="comprimentoBlocoProdutosCm"
-                    required>
-                </mat-form-field>
-
-                <span class="dimensao-unit">cm</span>
-              }
-            </div>
-
-            <!-- LINHA 2-4: Margens em layout diamante (APENAS AUTOMATICO) -->
-            @if (modoCalculoControl.value === 'AUTOMATICO') {
-              <div class="margens-container" formGroupName="margens">
-
-                <!-- Superior (centralizado) -->
-                <div>
-                  <mat-form-field appearance="outline" class="numeric-input">
-                    <mat-label>Comprimento (Superior)</mat-label>
-                    <input matInput type="text" formControlName="superior">
-                  </mat-form-field>
-                </div>
-
-                <!-- Esquerda + Direita (lado a lado) -->
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="numeric-input">
-                    <mat-label>Largura (Esquerdo)</mat-label>
-                    <input matInput type="text" formControlName="esquerda">
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="numeric-input">
-                    <mat-label>Largura (Direito)</mat-label>
-                    <input matInput type="text" formControlName="direita">
-                  </mat-form-field>
-                </div>
-
-                <!-- Inferior (centralizado) -->
-                <div>
-                  <mat-form-field appearance="outline" class="numeric-input">
-                    <mat-label>Comprimento (Inferior)</mat-label>
-                    <input matInput type="text" formControlName="inferior">
-                  </mat-form-field>
-                </div>
-
-              </div>
-            }
-
-            <!-- LINHA 5: Motivo (ocupar 100% da esquerda) -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Motivo/Referência</mat-label>
-              <textarea
-                matInput
-                formControlName="motivo"
-                rows="3"
-                maxlength="255"
-                placeholder="Ex: Pedido Cliente #456">
-              </textarea>
-              <mat-hint align="end">{{ motivoControl.value?.length || 0 }}/255</mat-hint>
-            </mat-form-field>
-
-            @if (result.tipoSimulacao === 'CORTE' && modoCalculoControl.value === 'AUTOMATICO') {
-              <fieldset class="rotated-fieldset">
-                <div class="icon-label">
-                  @if (result.rotacionado) {
+              @if (result.rotacionado) {
+                <fieldset class="rotated-fieldset">
+                  <div class="icon-label">
                     <mat-icon class="rotated-active">toggle_on</mat-icon>
-                  } @else {
-                    <mat-icon>toggle_off</mat-icon>
-                  }
-                  <span>Rotacionado</span>
-                </div>
-              </fieldset>
-            }
-          </div>
-
-          <!-- LADO DIREITO: Canal + Modo -->
-          <div class="form-right">
-            <div class="form-right-row">
-              <!-- Canal de Venda (primeiro) -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Canal de Venda</mat-label>
-                <mat-select formControlName="canalVendaId">
-                  <mat-select-trigger>
-                    @switch (canalVendaIdControl.value) {
-                      @case ('') { Nenhum }
-                      @default { {{ selectedChannelName() }} }
-                    }
-                  </mat-select-trigger>
-                  <mat-option value="">Nenhum</mat-option>
-                  @for (channel of channels(); track channel.id) {
-                    <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-
-              <!-- Modo de Cálculo (segundo) -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Modo de Cálculo</mat-label>
-                <mat-select formControlName="modoCalculo" (selectionChange)="onModoCalculoChange()" required>
-                  <mat-select-trigger>
-                    @switch (modoCalculoControl.value) {
-                      @case ('AUTOMATICO') { AUTOMATICO }
-                      @case ('MANUAL') { MANUAL }
-                    }
-                  </mat-select-trigger>
-                  <mat-option value="AUTOMATICO">AUTOMATICO</mat-option>
-                  <mat-option value="MANUAL">MANUAL</mat-option>
-                </mat-select>
-              </mat-form-field>
+                    <span>Rotacionado</span>
+                  </div>
+                </fieldset>
+              }
             </div>
-          </div>
-        </div>
 
-        <!-- Feedback de Simulação -->
-        <div class="simulation-feedback">
-          @if (result.tipoSimulacao === 'CORTE' && modoCalculoControl.value === 'AUTOMATICO') {
-            <div class="feedback-container">
-              <h3 class="feedback-title">informações da ordem de produção (modo automático)</h3>
-              <div class="feedback-columns-wrapper">
-                <!-- Coluna Esquerda -->
-                <div class="feedback-column">
-                  <h4 class="feedback-header">Matéria-Prima</h4>
-                  <p class="feedback-item">Lote: <strong>{{ loteSelecionado()?.nomeTipoMateriaPrima }}</strong></p>
-                  @if(loteSelecionado(); as lote) {
-                    <p class="feedback-item">
-                      Saldo:
-                      <strong>
-                        Largura: {{ +lote.atributos?.['larguraMm'] | number:'1.0-0' }}mm ({{ +(lote.atributos?.['larguraMm'] || 0) / 10 | number:'1.0-0' }}cm) |
-                        Comprimento: {{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / +lote.atributos?.['larguraMm'] | number:'1.0-0') : '0' }}mm ({{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / +lote.atributos?.['larguraMm'] / 10 | number:'1.0-0') : '0' }}cm)
-                      </strong>
-                    </p>
-                  }
-
-                  <h4 class="feedback-header">Produto</h4>
-                  <p class="feedback-item">Tamanho do Produto (L x C): <strong>{{ produto()?.dimensoes?.larguraCm }}cm x {{ produto()?.dimensoes?.comprimentoCm }}cm</strong></p>
-                  @if (result.rotacionado) {
-                    <p class="feedback-item">Tamanho no Corte (L x C): <strong>{{ rotatedDimensionString() }}</strong> (rotacionado)</p>
-                  } @else {
-                    <p class="feedback-item">Tamanho no Corte (L x C): <strong>{{ result.dimensaoProduto }}</strong></p>
-                  }
-                </div>
-
-                <!-- Coluna Direita -->
-                <div class="feedback-column">
-                  <h4 class="feedback-header">Distribuição dos Produtos</h4>
-                  <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }} unidade(s)</strong></p>
-                  <p class="feedback-item">Produtos por Linha: <strong>{{ result.produtosPorLinha }}</strong></p>
-                  @if (result.numeroLinhasCompletas > 0) {
-                    <p class="feedback-item">Linhas Completas: <strong>{{ result.numeroLinhasCompletas }}</strong></p>
-                  }
-                  @if (result.produtosNaUltimaLinha > 0) {
-                    <p class="feedback-item">Produtos na Última Linha: <strong>{{ result.produtosNaUltimaLinha }}</strong></p>
-                  }
-
-                  <h4 class="feedback-header">Material Utilizado</h4>
-                  <p class="feedback-item">Área Utilizada (L x C): <strong>{{ result.consumoTotal }}</strong></p>
-
-                  <h4 class="feedback-header">Sobras Aproveitáveis</h4>
-                  @if (result.sobraLateral || result.sobraInferior) {
-                    @if (result.sobraLateral) {
-                      <p class="feedback-item">Sobra Lateral (L x C): <strong>{{ result.sobraLateral }}</strong></p>
+            <!-- LADO DIREITO: Canal + Modo -->
+            <div class="form-right">
+              <div class="form-right-row">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Canal de Venda</mat-label>
+                  <mat-select formControlName="canalVendaId">
+                    <mat-select-trigger>{{ selectedChannelName() || 'Nenhum' }}</mat-select-trigger>
+                    <mat-option value="">Nenhum</mat-option>
+                    @for (channel of channels(); track channel.id) {
+                      <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
                     }
-                    @if (result.sobraInferior) {
-                      <p class="feedback-item">Sobra Final (L x C): <strong>{{ result.sobraInferior }}</strong></p>
-                    }
-                  } @else {
-                    <p class="feedback-item">Nenhuma sobra principal aproveitável.</p>
-                  }
-                </div>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Modo de Cálculo</mat-label>
+                  <mat-select formControlName="modoCalculo" (selectionChange)="onModoCalculoChange()" required>
+                    <mat-select-trigger>{{ modoCalculoControl.value }}</mat-select-trigger>
+                    <mat-option value="AUTOMATICO">AUTOMATICO</mat-option>
+                    <mat-option value="MANUAL">MANUAL</mat-option>
+                  </mat-select>
+                </mat-form-field>
               </div>
             </div>
-          }
-          @if (result.tipoSimulacao === 'CORTE' && modoCalculoControl.value === 'MANUAL') {
-            <div class="feedback-container">
-              <h3 class="feedback-title">informações da ordem de produção (modo manual)</h3>
-              <div class="feedback-columns-wrapper">
-                <!-- Coluna Esquerda -->
-                <div class="feedback-column">
-                  <h4 class="feedback-header">Matéria-Prima</h4>
-                  <p class="feedback-item">Lote: <strong>{{ loteSelecionado()?.nomeTipoMateriaPrima }}</strong></p>
-                  @if(loteSelecionado(); as lote) {
-                    <p class="feedback-item">
-                      <strong>
-                        Largura: {{ lote.atributos?.['larguraMm'] | number:'1.0-0' }}mm ({{ (lote.atributos?.['larguraMm'] || 0) / 10 | number:'1.0-0' }}cm) |
-                        Comprimento: {{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / lote.atributos?.['larguraMm'] | number:'1.0-0') : '0' }}mm ({{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / lote.atributos?.['larguraMm'] / 10 | number:'1.0-0') : '0' }}cm)
-                      </strong>
-                    </p>
-                  }
+          </div>
 
-                  <h4 class="feedback-header">Produto</h4>
-                  <p class="feedback-item">Tamanho do Produto (L x C): <strong>{{ produto()?.dimensoes?.larguraCm }}cm x {{ produto()?.dimensoes?.comprimentoCm }}cm</strong></p>
-                  <p class="feedback-item">Bloco de Corte Informado (L x C): <strong>{{ result.larguraBlocoProdutosCm }}cm x {{ result.comprimentoBlocoProdutosCm }}cm</strong></p>
-                </div>
-                <!-- Coluna Direita -->
-                <div class="feedback-column">
-                  <h4 class="feedback-header">Distribuição dos Produtos</h4>
-                  <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }}</strong> unidade(s)</p>
-
-                  <h4 class="feedback-header">Material Utilizado</h4>
-                  <p class="feedback-item">Área Utilizada (L x C): <strong>{{ result.consumoTotal }}</strong></p>
-
-                  <h4 class="feedback-header">Sobras Aproveitáveis</h4>
-                  @if(result.sobraLateral && result.sobraLateral !== '0cm x 0cm') {
-                    <p class="feedback-item">Sobra Lateral (L x C): <strong>{{ result.sobraLateral }}</strong></p>
-                  } @else {
-                    <p class="feedback-item">Nenhuma sobra principal aproveitável.</p>
-                  }
-                </div>
-              </div>
-            </div>
-          }
-        </div>
-
-        <!-- Botão de Verificação -->
-        <div class="verification-actions">
-          <button mat-stroked-button color="accent" type="button" (click)="onVerify()" [disabled]="!needsVerification() || isVerifying()">
-            <mat-icon>check_circle</mat-icon>
-            Verificar
-          </button>
-
-          <button mat-stroked-button color="accent" type="button" (click)="toggleRetalhoPreview()">
-            <mat-icon>{{ showRetalhoPreview() ? 'visibility_off' : 'visibility' }}</mat-icon>
-            {{ showRetalhoPreview() ? 'Esconder' : 'Mostrar' }}
-          </button>
-
-          @if (showRetalhoPreview()) {
-            <span class="retalho-row-total">{{ totalLinhasPreview() }} linha(s)</span>
-            <div class="retalho-icon-preview">
-              <div
-                class="retalho-clickable-area"
-                [class.retalho-ocultas-expandido]="linhasOcultasExpandido()"
-                (click)="linhasOcultasExpandido() ? toggleLinhasOcultas() : null">
-
-                @let previewRows = retalhoPreviewRowsVisiveis();
-                @let totalRows = retalhoPreviewRows().length;
-                @let penultimaIndex = penultimaIndexPreview();
-
-                <!-- Renderiza as linhas visíveis -->
-                @for (row of previewRows; track $index) {
-                  <div class="retalho-row-simulation">
-                    @for (item of row.items; track $index) {
-                      <app-retalho-badge [value]="item"></app-retalho-badge>
+          <!-- Feedback de Simulação para CORTE -->
+          <div class="simulation-feedback">
+            @if (result.tipoSimulacao === 'CORTE' && modoCalculoControl.value === 'AUTOMATICO') {
+              <div class="feedback-container">
+                <h3 class="feedback-title">informações da ordem de produção (modo automático)</h3>
+                <div class="feedback-columns-wrapper">
+                  <!-- Coluna Esquerda -->
+                  <div class="feedback-column">
+                    <h4 class="feedback-header">Matéria-Prima</h4>
+                    <p class="feedback-item">Lote: <strong>{{ loteSelecionado()?.nomeTipoMateriaPrima }}</strong></p>
+                    @if(loteSelecionado(); as lote) {
+                      <p class="feedback-item">
+                        Saldo:
+                        <strong>
+                          Largura: {{ +lote.atributos?.['larguraMm'] | number:'1.0-0' }}mm ({{ +(lote.atributos?.['larguraMm'] || 0) / 10 | number:'1.0-0' }}cm) |
+                          Comprimento: {{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / +lote.atributos?.['larguraMm'] | number:'1.0-0') : '0' }}mm ({{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / +lote.atributos?.['larguraMm'] / 10 | number:'1.0-0') : '0' }}cm)
+                        </strong>
+                      </p>
                     }
-                    <span class="retalho-row-total">= {{ row.total }}</span>
-                    @if (
-                      linhasOcultasPreview() > 0 &&
-                      !linhasOcultasExpandido() &&
-                      $index === penultimaIndex - 1
-                    ) {
-                      <button
-                        type="button"
-                        class="retalho-more-btn retalho-row-total"
-                        [attr.aria-label]="'Mostrar linhas ocultas: +' + linhasOcultasPreview() + ' linha(s)'"
-                        (click)="toggleLinhasOcultas(); $event.stopPropagation()"
-                      >
-                        (+{{ linhasOcultasPreview() }} linha(s))
-                      </button>
+
+                    <h4 class="feedback-header">Produto</h4>
+                    <p class="feedback-item">Tamanho do Produto (L x C): <strong>{{ produto()?.dimensoes?.larguraCm }}cm x {{ produto()?.dimensoes?.comprimentoCm }}cm</strong></p>
+                    @if (result.rotacionado) {
+                      <p class="feedback-item">Tamanho no Corte (L x C): <strong>{{ rotatedDimensionString() }}</strong> (rotacionado)</p>
+                    } @else {
+                      <p class="feedback-item">Tamanho no Corte (L x C): <strong>{{ result.dimensaoProduto }}</strong></p>
                     }
                   </div>
-                }
-                <!-- Linhas ocultas, logo abaixo do botão -->
-                @if (linhasOcultasExpandido()) {
-                  @for (rowOculta of retalhoPreviewRows().slice(previewRows.length, totalRows); track $index) {
+
+                  <!-- Coluna Direita -->
+                  <div class="feedback-column">
+                    <h4 class="feedback-header">Distribuição dos Produtos</h4>
+                    <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }} unidade(s)</strong></p>
+                    <p class="feedback-item">Produtos por Linha: <strong>{{ result.produtosPorLinha }}</strong></p>
+                    @if (result.numeroLinhasCompletas > 0) {
+                      <p class="feedback-item">Linhas Completas: <strong>{{ result.numeroLinhasCompletas }}</strong></p>
+                    }
+                    @if (result.produtosNaUltimaLinha > 0) {
+                      <p class="feedback-item">Produtos na Última Linha: <strong>{{ result.produtosNaUltimaLinha }}</strong></p>
+                    }
+
+                    <h4 class="feedback-header">Material Utilizado</h4>
+                    <p class="feedback-item">Área Utilizada (L x C): <strong>{{ result.consumoTotal }}</strong></p>
+
+                    <h4 class="feedback-header">Sobras Aproveitáveis</h4>
+                    @if (result.sobraLateral || result.sobraInferior) {
+                      @if (result.sobraLateral) {
+                        <p class="feedback-item">Sobra Lateral (L x C): <strong>{{ result.sobraLateral }}</strong></p>
+                      }
+                      @if (result.sobraInferior) {
+                        <p class="feedback-item">Sobra Final (L x C): <strong>{{ result.sobraInferior }}</strong></p>
+                      }
+                    } @else {
+                      <p class="feedback-item">Nenhuma sobra principal aproveitável.</p>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+            @if (result.tipoSimulacao === 'CORTE' && modoCalculoControl.value === 'MANUAL') {
+              <div class="feedback-container">
+                <h3 class="feedback-title">informações da ordem de produção (modo manual)</h3>
+                <div class="feedback-columns-wrapper">
+                  <!-- Coluna Esquerda -->
+                  <div class="feedback-column">
+                    <h4 class="feedback-header">Matéria-Prima</h4>
+                    <p class="feedback-item">Lote: <strong>{{ loteSelecionado()?.nomeTipoMateriaPrima }}</strong></p>
+                    @if(loteSelecionado(); as lote) {
+                      <p class="feedback-item">
+                        <strong>
+                          Largura: {{ lote.atributos?.['larguraMm'] | number:'1.0-0' }}mm ({{ (lote.atributos?.['larguraMm'] || 0) / 10 | number:'1.0-0' }}cm) |
+                          Comprimento: {{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / lote.atributos?.['larguraMm'] | number:'1.0-0') : '0' }}mm ({{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / lote.atributos?.['larguraMm'] / 10 | number:'1.0-0') : '0' }}cm)
+                        </strong>
+                      </p>
+                    }
+
+                    <h4 class="feedback-header">Produto</h4>
+                    <p class="feedback-item">Tamanho do Produto (L x C): <strong>{{ produto()?.dimensoes?.larguraCm }}cm x {{ produto()?.dimensoes?.comprimentoCm }}cm</strong></p>
+                    <p class="feedback-item">Bloco de Corte Informado (L x C): <strong>{{ result.larguraBlocoProdutosCm }}cm x {{ result.comprimentoBlocoProdutosCm }}cm</strong></p>
+                  </div>
+                  <!-- Coluna Direita -->
+                  <div class="feedback-column">
+                    <h4 class="feedback-header">Distribuição dos Produtos</h4>
+                    <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }}</strong> unidade(s)</p>
+
+                    <h4 class="feedback-header">Material Utilizado</h4>
+                    <p class="feedback-item">Área Utilizada (L x C): <strong>{{ result.consumoTotal }}</strong></p>
+
+                    <h4 class="feedback-header">Sobras Aproveitáveis</h4>
+                    @if(result.sobraLateral && result.sobraLateral !== '0cm x 0cm') {
+                      <p class="feedback-item">Sobra Lateral (L x C): <strong>{{ result.sobraLateral }}</strong></p>
+                    } @else {
+                      <p class="feedback-item">Nenhuma sobra principal aproveitável.</p>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Botão de Verificação para CORTE -->
+          <div class="verification-actions">
+            <button mat-stroked-button color="accent" type="button" (click)="onVerify()" [disabled]="!needsVerification() || isVerifying()">
+              <mat-icon>check_circle</mat-icon>
+              Verificar
+            </button>
+
+            <button mat-stroked-button color="accent" type="button" (click)="toggleRetalhoPreview()">
+              <mat-icon>{{ showRetalhoPreview() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              {{ showRetalhoPreview() ? 'Esconder' : 'Mostrar' }}
+            </button>
+
+            @if (showRetalhoPreview()) {
+              <span class="retalho-row-total">{{ totalLinhasPreview() }} linha(s)</span>
+              <div class="retalho-icon-preview">
+                <div
+                  class="retalho-clickable-area"
+                  [class.retalho-ocultas-expandido]="linhasOcultasExpandido()"
+                  (click)="linhasOcultasExpandido() ? toggleLinhasOcultas() : null">
+
+                  @let previewRows = retalhoPreviewRowsVisiveis();
+                  @let totalRows = retalhoPreviewRows().length;
+                  @let penultimaIndex = penultimaIndexPreview();
+
+                  <!-- Renderiza as linhas visíveis -->
+                  @for (row of previewRows; track $index) {
                     <div class="retalho-row-simulation">
-                      @for (item of rowOculta.items; track $index) {
+                      @for (item of row.items; track $index) {
                         <app-retalho-badge [value]="item"></app-retalho-badge>
                       }
-                      <span class="retalho-row-total">= {{ rowOculta.total }}</span>
+                      <span class="retalho-row-total">= {{ row.total }}</span>
+                      @if (
+                        linhasOcultasPreview() > 0 &&
+                        !linhasOcultasExpandido() &&
+                        $index === penultimaIndex - 1
+                      ) {
+                        <button
+                          type="button"
+                          class="retalho-more-btn retalho-row-total"
+                          [attr.aria-label]="'Mostrar linhas ocultas: +' + linhasOcultasPreview() + ' linha(s)'"
+                          (click)="toggleLinhasOcultas(); $event.stopPropagation()"
+                        >
+                          (+{{ linhasOcultasPreview() }} linha(s))
+                        </button>
+                      }
                     </div>
                   }
-                }
+                  <!-- Linhas ocultas, logo abaixo do botão -->
+                  @if (linhasOcultasExpandido()) {
+                    @for (rowOculta of retalhoPreviewRows().slice(previewRows.length, totalRows); track $index) {
+                      <div class="retalho-row-simulation">
+                        @for (item of rowOculta.items; track $index) {
+                          <app-retalho-badge [value]="item"></app-retalho-badge>
+                        }
+                        <span class="retalho-row-total">= {{ rowOculta.total }}</span>
+                      </div>
+                    }
+                  }
+                </div>
               </div>
-            </div>
-          }
+            }
+          </div>
         </div>
-
-      </div>
+      } @else if (result.tipoSimulacao === 'CONSUMO_DIRETO') {
+        <!-- Formulário para CONSUMO DIRETO -->
+        <div class="filter-group-container">
+          <div>Consumo Direto</div>
+        </div>
+      }
     }
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
-    <button mat-button type="button" (click)="onCancel()">
-      Cancelar
-    </button>
+    <button mat-button type="button" (click)="onCancel()">Cancelar</button>
     <button mat-raised-button color="primary" type="submit" [disabled]="!simulationResult() || form.invalid || isSaving() || needsVerification()">
       @if (isSaving()) {
         <mat-spinner diameter="20"></mat-spinner>

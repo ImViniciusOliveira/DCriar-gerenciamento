@@ -15,8 +15,8 @@ import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProductionOrder } from '../../models/production.model';
 import { Product } from '../../../products/models/product.model';
 import { ProductStockSearch } from '../../../../shared/components/product-stock-search/product-stock-search';
-import { CreateCutOrderRequest, ProductionService, SimulationRequest, VerificationRequest } from '../../services/production.service';
-import { SimulationResult, SimulationCutResult } from '../../models/simulation.model';
+import { CreateCutOrderRequest, CreateConsumptionOrderRequest, ProductionService, SimulationRequest, VerificationRequest } from '../../services/production.service';
+import { SimulationResult, SimulationCutResult, SimulationConsumptionResult } from '../../models/simulation.model';
 import { BatchSearch } from '../../../../shared/components/batch-search/batch-search';
 import {Batch} from '../../../stock/models/batch.model';
 import { ChannelService } from '../../../stock/services/channel.service';
@@ -518,72 +518,79 @@ export class ProductionForm implements OnInit {
    * Executa a simulação de produção inicial.
    */
   onSimulate(): void {
-    if (!this.produto() || !this.form.value.quantidade) {
+    if (!this.produto() || this.form.get('quantidade')?.invalid || this.form.get('loteId')?.invalid) {
       return;
     }
 
     const url = this.produto()?._links?.["simulate"]?.href;
     if (!url) {
+      console.error('URL de simulação não encontrada para o produto.');
       return;
     }
 
-    let payload: SimulationRequest = {
-      produtoId: this.produto()!.id,
-      quantidade: Number(this.form.value.quantidade)
-    };
-
-    // Adiciona loteId ao payload se for um produto de CORTE
-    if (this.produto()?.tipoProduto === 'CORTE' && this.loteSelecionado()) {
-      payload = { ...payload, loteId: Number(this.loteSelecionado()!.id) };
-    }
-    // TODO: Adicionar lotesConsumidosIds para CONSUMO_DIRETO
-
-    // --- DEBUG INÍCIO ---
-    console.log('%c[DEBUG] Payload ENVIADO para Simulação:', 'color: blue; font-weight: bold;', payload);
-    // --- DEBUG FIM ---
+    const produto = this.produto()!;
+    const quantidade = Number(this.form.value.quantidade);
+    const loteId = Number(this.form.value.loteId);
 
     this.isSimulating.set(true);
-    this.needsVerification.set(false); // Reseta o estado de verificação ao iniciar nova simulação
+    this.needsVerification.set(false);
+    this.simulationResult.set(null);
 
-    this.productionService.simulateProduction(url, payload)
-      .pipe(take(1))
-      .subscribe({
-        next: (response) => {
-          // --- DEBUG INÍCIO ---
-          console.log('%c[DEBUG] Resposta RECEBIDA da Simulação:', 'color: green; font-weight: bold;', response);
-          // --- DEBUG FIM ---
+    const payload: SimulationRequest = {
+      produtoId: produto.id,
+      quantidade: quantidade,
+      loteId: loteId
+    };
 
-          this.simulationResult.set(response as SimulationResult);
-          this.isSimulating.set(false);
-          this.needsVerification.set(false);
-
-          // Popula os campos do formulário com os dados da simulação
-          if (response.tipoSimulacao === 'CORTE') {
-            this.form.patchValue({
-              larguraBlocoProdutosCm: response.larguraBlocoProdutosCm,
-              comprimentoBlocoProdutosCm: response.comprimentoBlocoProdutosCm
-            }, { emitEvent: false });
-            this.automaticoDimensoes.set({
-              largura: response.larguraBlocoProdutosCm ?? null,
-              comprimento: response.comprimentoBlocoProdutosCm ?? null
-            });
+    if (produto.tipoProduto === 'CORTE') {
+      console.log('%c[DEBUG] Payload ENVIADO para Simulação (CORTE):', 'color: blue; font-weight: bold;', payload);
+      this.productionService.simulateProduction(url, payload)
+        .pipe(take(1))
+        .subscribe({
+          next: (response) => {
+            console.log('%c[DEBUG] Resposta RECEBIDA da Simulação (CORTE):', 'color: green; font-weight: bold;', response);
+            this.simulationResult.set(response as SimulationResult);
+            if (response.tipoSimulacao === 'CORTE') {
+              this.form.patchValue({
+                larguraBlocoProdutosCm: response.larguraBlocoProdutosCm,
+                comprimentoBlocoProdutosCm: response.comprimentoBlocoProdutosCm
+              }, { emitEvent: false });
+              this.automaticoDimensoes.set({
+                largura: response.larguraBlocoProdutosCm ?? null,
+                comprimento: response.comprimentoBlocoProdutosCm ?? null
+              });
+            }
+            this.formSnapshot = this.form.getRawValue();
+            this.isSimulating.set(false);
+            this.scrollToBottom();
+          },
+          error: (err) => {
+            console.error('%c[DEBUG] Erro na Simulação (CORTE):', 'color: red; font-weight: bold;', err);
+            this.simulationResult.set(null);
+            this.isSimulating.set(false);
           }
-
-          // Salva o estado atual do formulário para restauração futura
-          this.formSnapshot = this.form.getRawValue();
-
-          // Scroll automático para o final do diálogo para focar no feedback
-          this.scrollToBottom();
-        },
-        error: (_err) => {
-          // --- DEBUG INÍCIO ---
-          console.error('%c[DEBUG] Erro na Simulação:', 'color: red; font-weight: bold;', _err);
-          // --- DEBUG FIM ---
-          this.simulationResult.set(null);
-          this.isSimulating.set(false);
-          // TODO: Mostrar uma notificação de erro para o usuário.
-        }
-      });
+        });
+    } else if (produto.tipoProduto === 'CONSUMO_DIRETO') {
+      console.log('%c[DEBUG] Payload ENVIADO para Simulação (CONSUMO_DIRETO):', 'color: purple; font-weight: bold;', payload);
+      this.productionService.simulateConsumption(url, payload)
+        .pipe(take(1))
+        .subscribe({
+          next: (response) => {
+            console.log('%c[DEBUG] Resposta RECEBIDA da Simulação (CONSUMO_DIRETO):', 'color: green; font-weight: bold;', response);
+            this.simulationResult.set(response as SimulationResult);
+            this.formSnapshot = this.form.getRawValue();
+            this.isSimulating.set(false);
+            this.scrollToBottom();
+          },
+          error: (err) => {
+            console.error('%c[DEBUG] Erro na Simulação (CONSUMO_DIRETO):', 'color: red; font-weight: bold;', err);
+            this.simulationResult.set(null);
+            this.isSimulating.set(false);
+          }
+        });
+    } else {
+      this.isSimulating.set(false);
+    }
   }
 
   /**
