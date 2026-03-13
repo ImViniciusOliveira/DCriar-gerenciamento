@@ -574,6 +574,23 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     String.format("As margens aplicadas resultam em um comprimento final nulo ou negativo (%.2fcm).", comprimentoFinalCm)
                 );
             }
+            // Se o comprimento final for maior que o comprimento físico do lote,
+            // calcular o consumo necessário e validar o saldo do lote da mesma forma
+            // que é feita durante a criação da ordem (lançando SaldoMateriaPrimaInsuficienteException).
+            BigDecimal saldoEstoque = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+            BigDecimal larguraMm = new BigDecimal(lote.getAtributos().getOrDefault("larguraMm", 0).toString());
+            BigDecimal comprimentoLoteCm = BigDecimal.ZERO;
+            if (saldoEstoque != null && larguraMm.compareTo(BigDecimal.ZERO) > 0) {
+                comprimentoLoteCm = saldoEstoque
+                        .multiply(new BigDecimal("10000"))
+                        .divide(larguraMm.divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP), 2, RoundingMode.HALF_UP);
+            }
+            if (comprimentoFinalCm.compareTo(comprimentoLoteCm) > 0) {
+                BigDecimal consumoNecessario = parametros.larguraTotalLoteCm()
+                        .multiply(comprimentoFinalCm)
+                        .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
+                validarSaldoLoteCorte(lote, consumoNecessario);
+            }
         }
 
         ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, isModoManual);

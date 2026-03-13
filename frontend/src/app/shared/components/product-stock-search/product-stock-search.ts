@@ -153,10 +153,13 @@ export class ProductStockSearch implements OnInit, OnDestroy {
   private triggerSearchNow(): void {
     const searchTerm = typeof this.searchControl.value === 'string' ? this.searchControl.value : '';
 
+    // Se o valor do filtro for null, busca produtos com estoque >= 0
+    const estoqueValor = this.filterValueControl.value == null ? 0 : this.filterValueControl.value;
+
     this.productService.updateProductByStockSearchParams({
       nome: searchTerm,
       tipoProduto: this.productType(),
-      estoqueValor: this.filterValueControl.value ?? 1,
+      estoqueValor,
       estoqueOperador: this.filterOperatorControl.value ?? 'GTE',
     });
   }
