@@ -38,8 +38,8 @@ public class OrdemDeCorteRequestDTO {
     /**
      * O ID do lote de matéria-prima principal a ser consumido.
      */
-    @Schema(description = "ID do lote de matéria-prima principal a ser consumido.", example = "2", requiredMode = Schema.RequiredMode.REQUIRED)
-    private Long lotePrincipalId;
+    @Schema(description = "ID do lote de matéria-prima a ser consumido.", example = "2", requiredMode = Schema.RequiredMode.REQUIRED)
+    private Long loteId;
 
     /**
      * O ID do canal de venda de destino do estoque (opcional). Se fornecido, o estoque produzido será alocado neste canal.

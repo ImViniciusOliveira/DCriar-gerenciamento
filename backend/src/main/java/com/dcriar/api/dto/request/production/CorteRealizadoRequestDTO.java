@@ -54,4 +54,10 @@ public class CorteRealizadoRequestDTO {
      */
     @Schema(description = "Categoria do retalho quando o tipo é \"RETALHO\". Valores sugeridos: \"LATERAL\", \"FINAL\". Nulo para produtos.", example = "LATERAL")
     private String retalhoCategoria;
+
+    /**
+     * Quantidade de repetições deste corte (para agrupamento de linhas iguais).
+     */
+    @Schema(description = "Quantidade de repetições deste corte (para agrupamento de linhas iguais).", example = "41")
+    private Integer repeticoes;
 }

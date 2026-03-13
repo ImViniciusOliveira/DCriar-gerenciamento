@@ -45,11 +45,14 @@ public class CorteRealizadoResponseDTO {
      */
     private String tipo;
 
-    // --- Campo adicional solicitado ---
-
     /**
      * Categoria do retalho quando {@code tipo == "RETALHO"}.
      * Valores sugeridos: "LATERAL", "FINAL". Nulo para produtos.
      */
     private String retalhoCategoria;
+
+    /**
+     * Quantidade de repetições deste corte (para agrupamento de linhas iguais).
+     */
+    private Integer repeticoes;
 }

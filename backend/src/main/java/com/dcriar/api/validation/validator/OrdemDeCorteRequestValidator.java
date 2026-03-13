@@ -11,7 +11,7 @@ public class OrdemDeCorteRequestValidator extends BaseValidator<ValidOrdemDeCort
     @Override
     protected void validate(OrdemDeCorteRequestDTO dto) {
         addViolationIf(dto.getProdutoId() == null, "O ID do produto é obrigatório.", "produtoId");
-        addViolationIf(dto.getLotePrincipalId() == null, "O ID do lote de matéria-prima principal é obrigatório.", "lotePrincipalId");
+        addViolationIf(dto.getLoteId() == null, "O ID do lote de matéria-prima é obrigatório.", "loteId");
         addViolationIf(dto.getQuantidadeProduzida() == null, "A quantidade de unidades do produto a serem produzidas é obrigatória.", "quantidadeProduzida");
         if (dto.getQuantidadeProduzida() != null) {
             addViolationIf(dto.getQuantidadeProduzida() <= 0, "A quantidade produzida deve ser um número positivo.", "quantidadeProduzida");

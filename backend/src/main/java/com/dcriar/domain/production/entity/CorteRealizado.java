@@ -68,6 +68,12 @@ public class CorteRealizado {
     private String retalhoCategoria;
 
     /**
+     * Quantidade de repetições deste corte (para agrupamento de linhas iguais).
+     */
+    @Column()
+    private Integer repeticoes;
+
+    /**
      * Cria uma instância de CorteRealizado a partir do DTO de request.
      * <p>
      * Centraliza regras de negócio de criação.
@@ -84,6 +90,7 @@ public class CorteRealizado {
                 .quantidade(dto.getQuantidade())
                 .tipo(dto.getTipo())
                 .retalhoCategoria(dto.getRetalhoCategoria())
+                .repeticoes(dto.getRepeticoes())
                 .build();
     }
 
@@ -102,5 +109,6 @@ public class CorteRealizado {
         this.quantidade = dto.getQuantidade();
         this.tipo = dto.getTipo();
         this.retalhoCategoria = dto.getRetalhoCategoria();
+        this.repeticoes = dto.getRepeticoes();
     }
 }

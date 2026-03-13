@@ -218,7 +218,6 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
     public ResumoLayoutCorte calcularLayoutDetalhado(ParametrosCorte parametros, BigDecimal ordemComprimentoFinalCm, boolean isModoManual) {
         List<CorteRealizadoResponseDTO> cortesRealizados = new ArrayList<>();
 
-        // --- ETAPA 1: Validação de Segurança (Guard Clause) ---
         int produtosPorLinha = parametros.produtosPorLinha();
         if (produtosPorLinha <= 0) {
             return ResumoLayoutCorte.builder()
@@ -232,21 +231,30 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
                     .build();
         }
 
-        // --- ETAPA 2: Calcular contagem de linhas e produtos ---
         int numeroLinhasCompletas = parametros.quantidade() / produtosPorLinha;
         int produtosNaUltimaLinha = parametros.quantidade() % produtosPorLinha;
         if (produtosNaUltimaLinha == 0 && parametros.quantidade() > 0) {
             numeroLinhasCompletas = parametros.quantidade() / produtosPorLinha;
         }
 
-        // --- ETAPA 3: Aplicar margens de comprimento ao bloco principal ---
-
-        // --- ETAPA 4: Gerar cortes de PRODUTO ---
-        int produtosRestantes = parametros.quantidade();
-        while (produtosRestantes > 0) {
-            int produtosNestaLinha = Math.min(produtosPorLinha, produtosRestantes);
-            cortesRealizados.add(criarCorteProduto(parametros.larguraProduto(), parametros.comprimentoProduto(), produtosNestaLinha));
-            produtosRestantes -= produtosNestaLinha;
+        // --- Agrupamento de cortes realizados ---
+        if (numeroLinhasCompletas > 0) {
+            cortesRealizados.add(CorteRealizadoResponseDTO.builder()
+                .larguraCm(parametros.larguraProduto())
+                .comprimentoCm(parametros.comprimentoProduto())
+                .quantidade(produtosPorLinha)
+                .tipo("PRODUTO")
+                .repeticoes(numeroLinhasCompletas)
+                .build());
+        }
+        if (produtosNaUltimaLinha > 0) {
+            cortesRealizados.add(CorteRealizadoResponseDTO.builder()
+                .larguraCm(parametros.larguraProduto())
+                .comprimentoCm(parametros.comprimentoProduto())
+                .quantidade(produtosNaUltimaLinha)
+                .tipo("PRODUTO")
+                .repeticoes(1)
+                .build());
         }
 
         // --- ETAPA 5: Gerar cortes de RETALHO ---
@@ -272,7 +280,6 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
 
         String saldoRoloStr = "";
 
-        // --- ETAPA 6: Construir o resumo final ---
         return ResumoLayoutCorte.builder()
                 .cortes(cortesRealizados)
                 .produtosPorLinha(produtosPorLinha)

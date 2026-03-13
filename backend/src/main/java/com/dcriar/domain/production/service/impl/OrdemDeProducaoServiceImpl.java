@@ -89,10 +89,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw new TipoProducaoIncompativelException("Este produto não pode ser produzido por corte. Utilize o endpoint de consumo direto.");
         }
 
-        if (requestDTO.getLotePrincipalId() == null) {
+        if (requestDTO.getLoteId() == null) {
             throw new LotePrincipalNaoEspecificadoException("A produção por corte exige a especificação de um 'lotePrincipalId'.");
         }
-        LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLotePrincipalId());
+        LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLoteId());
 
         BigDecimal consumoTotalMetros;
         BigDecimal comprimentoFinalCm;
@@ -206,8 +206,21 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         OrdemDeProducao ordem = OrdemDeProducao.from(ordemRequestDTO, produto, Set.of(lotePrincipal), margensEntity);
 
-
+        // Agrupa cortes realizados por largura, comprimento, tipo e categoria
+        Map<String, CorteRealizadoResponseDTO> agrupados = new LinkedHashMap<>();
         for (CorteRealizadoResponseDTO dto : cortesRealizadosDTOs) {
+            String chave = dto.getLarguraCm() + ":" + dto.getComprimentoCm() + ":" + dto.getTipo() + ":" + dto.getRetalhoCategoria();
+            if (agrupados.containsKey(chave)) {
+                CorteRealizadoResponseDTO existente = agrupados.get(chave);
+                existente.setRepeticoes(existente.getRepeticoes() == null ? 2 : existente.getRepeticoes() + 1);
+                existente.setQuantidade(existente.getQuantidade() + dto.getQuantidade());
+            } else {
+                dto.setRepeticoes(1);
+                agrupados.put(chave, dto);
+            }
+        }
+        List<CorteRealizadoResponseDTO> cortesAgrupados = new ArrayList<>(agrupados.values());
+        for (CorteRealizadoResponseDTO dto : cortesAgrupados) {
             ordem.addCorteRealizado(CorteRealizado.from(
                     CorteRealizadoRequestDTO.builder()
                             .larguraCm(dto.getLarguraCm())
@@ -215,6 +228,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                             .quantidade(dto.getQuantidade())
                             .tipo(dto.getTipo())
                             .retalhoCategoria(dto.getRetalhoCategoria())
+                            .repeticoes(dto.getRepeticoes())
                             .ordemDeProducaoId(ordem.getId())
                             .build(),
                     ordem
