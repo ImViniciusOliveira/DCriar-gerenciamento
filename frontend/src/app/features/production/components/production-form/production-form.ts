@@ -226,6 +226,10 @@ export class ProductionForm implements OnInit {
   selectedChannelName;
 
 
+  // Signals para guardar os valores originais dos modos
+  automaticoDimensoes = signal<{ largura: number | null, comprimento: number | null }>({ largura: null, comprimento: null });
+  manualDimensoes = signal<{ largura: number | null, comprimento: number | null }>({ largura: null, comprimento: null });
+
   constructor() {
     this.form = this.fb.group({
       // ETAPA 1: SELEÇÃO
@@ -262,6 +266,24 @@ export class ProductionForm implements OnInit {
 
     // Monitora mudanças nos campos críticos para exigir nova verificação
     this.setupVerificationTriggers();
+
+    // Atualiza manualDimensoes sempre que o usuário edita os campos no modo MANUAL
+    this.larguraBlocoProdutosCmControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(val => {
+      if (this.modoCalculoControl.value === 'MANUAL') {
+        this.manualDimensoes.set({
+          largura: val !== null ? Number(val) : null,
+          comprimento: this.comprimentoBlocoProdutosCmControl.value !== null ? Number(this.comprimentoBlocoProdutosCmControl.value) : null
+        });
+      }
+    });
+    this.comprimentoBlocoProdutosCmControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(val => {
+      if (this.modoCalculoControl.value === 'MANUAL') {
+        this.manualDimensoes.set({
+          largura: this.larguraBlocoProdutosCmControl.value !== null ? Number(this.larguraBlocoProdutosCmControl.value) : null,
+          comprimento: val !== null ? Number(val) : null
+        });
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -447,29 +469,28 @@ export class ProductionForm implements OnInit {
       comprimentoControl.enable();
       larguraControl.setValidators([Validators.required, Validators.min(0.1)]);
       comprimentoControl.setValidators([Validators.required, Validators.min(0.1)]);
+      // Restaura os valores do manual
+      const dimensoesManual = this.manualDimensoes();
+      this.form.patchValue({
+        larguraBlocoProdutosCm: dimensoesManual.largura,
+        comprimentoBlocoProdutosCm: dimensoesManual.comprimento
+      }, { emitEvent: false });
     } else {
       // Modo AUTOMATICO: desabilita os campos (remove validadores implicitamente)
       larguraControl.disable();
       comprimentoControl.disable();
       larguraControl.clearValidators();
       comprimentoControl.clearValidators();
-
-      // Restaura os valores originais da simulação se disponíveis
-      const result = this.simulationResult();
-      if (result && result.tipoSimulacao === 'CORTE') {
-        this.form.patchValue({
-          larguraBlocoProdutosCm: result.larguraBlocoProdutosCm,
-          comprimentoBlocoProdutosCm: result.comprimentoBlocoProdutosCm
-        }, { emitEvent: false });
-      }
+      // Restaura os valores do automático
+      const dimensoesAuto = this.automaticoDimensoes();
+      this.form.patchValue({
+        larguraBlocoProdutosCm: dimensoesAuto.largura,
+        comprimentoBlocoProdutosCm: dimensoesAuto.comprimento
+      }, { emitEvent: false });
     }
-
-    // Verificação Inteligente: avalia se o novo estado exige verificação
-    this.needsVerification.set(this.checkIfVerificationIsNeeded());
 
     larguraControl.updateValueAndValidity({ emitEvent: false });
     comprimentoControl.updateValueAndValidity({ emitEvent: false });
-
     // Scroll automático para o final para garantir visibilidade das margens ou botões
     this.scrollToBottom();
 
@@ -525,6 +546,10 @@ export class ProductionForm implements OnInit {
               larguraBlocoProdutosCm: response.larguraBlocoProdutosCm,
               comprimentoBlocoProdutosCm: response.comprimentoBlocoProdutosCm
             }, { emitEvent: false });
+            this.automaticoDimensoes.set({
+              largura: response.larguraBlocoProdutosCm ?? null,
+              comprimento: response.comprimentoBlocoProdutosCm ?? null
+            });
           }
 
           // Salva o estado atual do formulário para restauração futura
@@ -656,6 +681,18 @@ export class ProductionForm implements OnInit {
     const oldModo = this.formSnapshot?.modoCalculo || 'AUTOMATICO';
     const newModo = formValue.modoCalculo;
 
+    // Comparação de dimensões no modo MANUAL
+    let dimensaoLine = '';
+    if (newModo === 'MANUAL') {
+      const oldLargura = this.formSnapshot?.larguraBlocoProdutosCm || '';
+      const oldComprimento = this.formSnapshot?.comprimentoBlocoProdutosCm || '';
+      const newLargura = formValue.larguraBlocoProdutosCm || '';
+      const newComprimento = formValue.comprimentoBlocoProdutosCm || '';
+      if (oldLargura !== newLargura || oldComprimento !== newComprimento) {
+        dimensaoLine = `Dimensões: ${oldLargura} x ${oldComprimento} → ${newLargura} x ${newComprimento}`;
+      }
+    }
+
     // Formatação das linhas de comparação
     const infoLine = oldQtd !== newQtd ? `Informação: ${oldQtd} ${oldQtd === 1 ? 'produto' : 'produtos'} → ${newQtd} ${newQtd === 1 ? 'produto' : 'produtos'}.` : '';
     const oldLayoutStr = this.formatLayoutShortString(oldR, oldQtd);
@@ -695,22 +732,21 @@ export class ProductionForm implements OnInit {
     }
 
     let message = '';
-    // Transição de modo
     if (oldModo === 'AUTOMATICO' && newModo === 'MANUAL') {
       message = `As alterações mudaram o plano de produção:\n\n` +
-                [infoLine, sobrasLine, consumoLine, 'modo automatico → modo manual']
+                [infoLine, dimensaoLine, sobrasLine, consumoLine, 'modo automatico → modo manual']
                   .filter(Boolean)
                   .join('\n') +
                 `\n\nDeseja aplicar estas mudanças?`;
     } else if (oldModo === 'MANUAL' && newModo === 'AUTOMATICO') {
       message = `As alterações mudaram o plano de produção:\n\n` +
-                [infoLine, layoutLine, sobrasLine, consumoLine, rotacaoLine, margensMsg]
+                [infoLine, dimensaoLine, layoutLine, sobrasLine, consumoLine, rotacaoLine, margensMsg]
                   .filter(Boolean)
                   .join('\n') +
                 `\n\nDeseja aplicar estas mudanças?`;
     } else if (oldModo === newModo && newModo === 'MANUAL') {
       message = `As alterações mudaram o plano de produção:\n\n` +
-                [infoLine, sobrasLine, consumoLine]
+                [infoLine, dimensaoLine, sobrasLine, consumoLine]
                   .filter(Boolean)
                   .join('\n') +
                 `\n\nDeseja aplicar estas mudanças?`;
