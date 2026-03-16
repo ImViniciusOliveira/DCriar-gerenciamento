@@ -17,7 +17,7 @@ import java.math.BigDecimal;
  * <p>
  * Utilizado para produtos cuja matéria-prima é medida e cortada geometricamente (ex: metros, cm²).
  * Suporta dois modos de operação: AUTOMATICO, onde o sistema otimiza o corte, e MANUAL,
- * onde o usuário informa as dimensões exatas do material consumido.
+ * onde o usuário informa apenas as dimensões do bloco de produtos.
  * A validação das regras de negócio é garantida pela anotação {@link ValidOrdemDeCorteRequest}.
  */
 @Getter
@@ -66,16 +66,16 @@ public class OrdemDeCorteRequestDTO {
     private MargensRequestDTO margens;
 
     /**
-     * A largura final do corte em cm (obrigatório no modo MANUAL).
+     * A largura do bloco de produtos informada pelo usuário no modo MANUAL.
      */
-    @Schema(description = "Largura final do corte em cm (obrigatório no modo MANUAL).", example = "80.0")
-    private BigDecimal larguraFinalCm;
+    @Schema(description = "Largura do bloco de produtos em cm (obrigatório no modo MANUAL).", example = "80.0")
+    private BigDecimal larguraBlocoProdutosCm;
 
     /**
-     * O comprimento final do corte em cm (obrigatório no modo MANUAL).
+     * O comprimento do bloco de produtos informado pelo usuário no modo MANUAL.
      */
-    @Schema(description = "Comprimento final do corte em cm (obrigatório no modo MANUAL).", example = "120.0")
-    private BigDecimal comprimentoFinalCm;
+    @Schema(description = "Comprimento do bloco de produtos em cm (obrigatório no modo MANUAL).", example = "120.0")
+    private BigDecimal comprimentoBlocoProdutosCm;
 
     /**
      * Um motivo ou referência para a ordem.

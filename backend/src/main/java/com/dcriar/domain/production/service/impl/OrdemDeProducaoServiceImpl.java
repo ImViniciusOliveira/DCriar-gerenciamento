@@ -107,11 +107,11 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     requestDTO.getQuantidadeProduzida(),
                     produto,
                     lotePrincipal,
-                    requestDTO.getLarguraFinalCm(),
-                    requestDTO.getComprimentoFinalCm()
+                    requestDTO.getLarguraBlocoProdutosCm(),
+                    requestDTO.getComprimentoBlocoProdutosCm()
             );
-            larguraFinalCm = requestDTO.getLarguraFinalCm();
-            comprimentoFinalCm = requestDTO.getComprimentoFinalCm();
+            larguraFinalCm = parametros.larguraTotalLoteCm();
+            comprimentoFinalCm = requestDTO.getComprimentoBlocoProdutosCm();
             ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, true);
             cortesRealizadosDTOs = resumo.cortes();
 
@@ -206,21 +206,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         OrdemDeProducao ordem = OrdemDeProducao.from(ordemRequestDTO, produto, Set.of(lotePrincipal), margensEntity);
 
-        // Agrupa cortes realizados por largura, comprimento, tipo e categoria
-        Map<String, CorteRealizadoResponseDTO> agrupados = new LinkedHashMap<>();
         for (CorteRealizadoResponseDTO dto : cortesRealizadosDTOs) {
-            String chave = dto.getLarguraCm() + ":" + dto.getComprimentoCm() + ":" + dto.getTipo() + ":" + dto.getRetalhoCategoria();
-            if (agrupados.containsKey(chave)) {
-                CorteRealizadoResponseDTO existente = agrupados.get(chave);
-                existente.setRepeticoes(existente.getRepeticoes() == null ? 2 : existente.getRepeticoes() + 1);
-                existente.setQuantidade(existente.getQuantidade() + dto.getQuantidade());
-            } else {
-                dto.setRepeticoes(1);
-                agrupados.put(chave, dto);
-            }
-        }
-        List<CorteRealizadoResponseDTO> cortesAgrupados = new ArrayList<>(agrupados.values());
-        for (CorteRealizadoResponseDTO dto : cortesAgrupados) {
             ordem.addCorteRealizado(CorteRealizado.from(
                     CorteRealizadoRequestDTO.builder()
                             .larguraCm(dto.getLarguraCm())
@@ -228,7 +214,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                             .quantidade(dto.getQuantidade())
                             .tipo(dto.getTipo())
                             .retalhoCategoria(dto.getRetalhoCategoria())
-                            .repeticoes(dto.getRepeticoes())
+                            .repeticoes(resolveRepeticoes(dto))
                             .ordemDeProducaoId(ordem.getId())
                             .build(),
                     ordem
@@ -725,6 +711,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         if (consumoEmMetros.compareTo(saldoAtual) > 0) {
             throw new SaldoMateriaPrimaInsuficienteException(consumoEmMetros, saldoAtual);
         }
+    }
+
+    private Integer resolveRepeticoes(CorteRealizadoResponseDTO dto) {
+        return dto.getRepeticoes() != null && dto.getRepeticoes() > 0 ? dto.getRepeticoes() : 1;
     }
 
 

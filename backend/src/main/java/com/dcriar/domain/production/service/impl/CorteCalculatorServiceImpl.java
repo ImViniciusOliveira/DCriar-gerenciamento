@@ -194,10 +194,15 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
             throw new DimensoesManuaisInvalidasException(larguraCorteManualCm, larguraTotalLoteCm);
         }
         if (comprimentoTotalLoteCm.isPresent() && comprimentoCorteManualCm.compareTo(comprimentoTotalLoteCm.get()) > 0) {
-            throw new DimensoesManuaisInvalidasException(comprimentoCorteManualCm, comprimentoTotalLoteCm.get());
+            throw new DimensoesManuaisInvalidasException(
+                    String.format(
+                            "O comprimento do corte manual (%.2f cm) não pode ser maior que o comprimento do lote (%.2f cm).",
+                            comprimentoCorteManualCm,
+                            comprimentoTotalLoteCm.get()
+                    )
+            );
         }
 
-        int produtosPorLinha = larguraCorteManualCm.divide(larguraProduto, 0, RoundingMode.FLOOR).intValue();
         BigDecimal larguraRetalhoLateralFinal = larguraTotalLoteCm.subtract(larguraCorteManualCm);
 
         return new ParametrosCorte(
@@ -207,7 +212,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
                 quantidade,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
-                produtosPorLinha,
+                quantidade,
                 false,
                 larguraCorteManualCm,
                 larguraRetalhoLateralFinal
@@ -217,6 +222,10 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
     @Override
     public ResumoLayoutCorte calcularLayoutDetalhado(ParametrosCorte parametros, BigDecimal ordemComprimentoFinalCm, boolean isModoManual) {
         List<CorteRealizadoResponseDTO> cortesRealizados = new ArrayList<>();
+
+        if (isModoManual) {
+            return calcularLayoutManual(parametros, ordemComprimentoFinalCm, cortesRealizados);
+        }
 
         int produtosPorLinha = parametros.produtosPorLinha();
         if (produtosPorLinha <= 0) {
@@ -288,6 +297,38 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
                 .sobraLateral(sobraLateralStr)
                 .sobraInferior(sobraInferiorStr)
                 .saldoRolo(saldoRoloStr)
+                .build();
+    }
+
+    private ResumoLayoutCorte calcularLayoutManual(
+            ParametrosCorte parametros,
+            BigDecimal ordemComprimentoFinalCm,
+            List<CorteRealizadoResponseDTO> cortesRealizados
+    ) {
+        if (parametros.quantidade() > 0) {
+            cortesRealizados.add(CorteRealizadoResponseDTO.builder()
+                    .larguraCm(parametros.larguraProduto())
+                    .comprimentoCm(parametros.comprimentoProduto())
+                    .quantidade(parametros.quantidade())
+                    .tipo("PRODUTO")
+                    .repeticoes(1)
+                    .build());
+        }
+
+        String sobraLateralStr = "";
+        if (parametros.larguraRetalhoLateralCm().compareTo(BigDecimal.ZERO) > 0) {
+            cortesRealizados.add(criarCorteRetalho(parametros.larguraRetalhoLateralCm(), ordemComprimentoFinalCm, "LATERAL"));
+            sobraLateralStr = formatarDimensao(parametros.larguraRetalhoLateralCm(), ordemComprimentoFinalCm);
+        }
+
+        return ResumoLayoutCorte.builder()
+                .cortes(cortesRealizados)
+                .produtosPorLinha(parametros.quantidade())
+                .numeroLinhasCompletas(parametros.quantidade() > 0 ? 1 : 0)
+                .produtosNaUltimaLinha(0)
+                .sobraLateral(sobraLateralStr)
+                .sobraInferior("")
+                .saldoRolo("")
                 .build();
     }
 
