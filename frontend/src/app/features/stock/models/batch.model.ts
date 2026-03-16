@@ -9,6 +9,7 @@ export interface Batch {
   tipoMateriaPrimaId: number;
   nomeTipoMateriaPrima: string;
   unidadeDeEstoque?: string;
+  unidadeDescricao?: string;
   unidadeSimbolo?: string;
   saldoEstoque?: number;
   custoTotalLote?: number;

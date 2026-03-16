@@ -1,16 +1,17 @@
-import { Component, DestroyRef, effect, inject, input, output } from '@angular/core';
+import { Component, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 
+import { EnumService } from '../../../core/services/enum.service';
 import { ApiResponseBatches, Batch } from '../../../features/stock/models/batch.model';
 import { BatchService } from '../../../features/stock/services/batch.service';
 
@@ -43,6 +44,7 @@ export class BatchSearch {
 
   // --- Injeção de Dependências ---
   private readonly batchService = inject(BatchService);
+  private readonly enumService = inject(EnumService);
   private readonly destroyRef = inject(DestroyRef);
 
   // --- Controles de Formulário Internos ---
@@ -57,15 +59,34 @@ export class BatchSearch {
     } as ApiResponseBatches
   });
   readonly isSearching = this.batchService.isSearching;
+  private readonly unitsUrl = signal<string | null>(null);
 
   // Subject para controlar quando disparar a busca
   private readonly searchTrigger$ = new Subject<void>();
+
+  readonly measurementUnitOptions = toSignal(
+    toObservable(this.unitsUrl).pipe(
+      distinctUntilChanged(),
+      filter((url): url is string => !!url),
+      switchMap(url => this.enumService.getEnumOptions(url, 'unidadesDeMedida'))
+    ),
+    { initialValue: [] }
+  );
 
   constructor() {
     // Reage a mudanças no `tipoMateriaPrimaId` (vindo do pai) para disparar uma nova busca.
     effect(() => {
       this.tipoMateriaPrimaId();
       this.searchTrigger$.next();
+    });
+
+    effect(() => {
+      const batches = this.foundBatches()._embedded['lotes-materia-prima'];
+      const url = batches[0]?._links?.['unidades-de-medida']?.href ?? null;
+
+      if (url && this.unitsUrl() !== url) {
+        this.unitsUrl.set(url);
+      }
     });
 
     // Gatilho para busca ao digitar no campo principal.
@@ -111,8 +132,11 @@ export class BatchSearch {
   /**
    * Formata como o lote é exibido no input e nas opções do autocomplete.
    */
-  displayFn(batch: Batch): string {
-    if (!batch) return '';
+  displayFn = (value: Batch | string | null): string => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+
+    const batch = value;
 
     // SE for uma unidade de medida de CORTE, usa a formatação original
     if (batch.unidadeDeEstoque === 'METRO_QUADRADO' || batch.unidadeDeEstoque === 'METRO_LINEAR') {
@@ -140,9 +164,9 @@ export class BatchSearch {
       // PARA TODAS AS OUTRAS UNIDADES (LITRO, UNIDADE, etc.)
       const nf = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
       const saldo = nf.format(batch.saldoEstoque || 0);
-      return `Saldo: ${saldo} ${batch.unidadeDeEstoque}`;
+      return `Saldo: ${saldo} ${this.getDisplayUnit(batch)}`;
     }
-  }
+  };
 
   /**
    * Chamado quando uma opção é selecionada no autocomplete.
@@ -160,5 +184,18 @@ export class BatchSearch {
   public reset(): void {
     this.searchControl.setValue('', { emitEvent: false });
     this.control().setValue(null);
+  }
+
+  private getDisplayUnit(batch: Batch): string {
+    const matchedUnit = this.measurementUnitOptions().find(unit => unit.value === batch.unidadeDeEstoque);
+    if (matchedUnit?.viewValue) {
+      return matchedUnit.viewValue.toLowerCase();
+    }
+
+    if (batch.unidadeSimbolo) {
+      return batch.unidadeSimbolo;
+    }
+
+    return (batch.unidadeDeEstoque ?? '').toLowerCase().replace(/_/g, ' ');
   }
 }
