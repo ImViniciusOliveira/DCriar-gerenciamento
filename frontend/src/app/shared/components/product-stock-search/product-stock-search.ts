@@ -1,7 +1,7 @@
 import { Component, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal, Signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,9 +9,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
-import { debounceTime, distinctUntilChanged, filter, merge, combineLatest, startWith, skip } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, merge, mergeMap, combineLatest, startWith, skip } from 'rxjs';
 import { Product } from '../../../features/products/models/product.model';
 import { ProductService } from '../../../features/products/services/product.service';
+import { EnumService, EnumOption } from '../../../core/services/enum.service';
 
 /**
  * Componente genérico para busca e seleção de Produtos com Estoque Disponível.
@@ -47,6 +48,7 @@ export class ProductStockSearch implements OnInit, OnDestroy {
 
   // --- Injeção de Dependências ---
   private readonly productService = inject(ProductService);
+  private readonly enumService = inject(EnumService);
   private readonly destroyRef = inject(DestroyRef);
 
   // --- Controles de Formulário Internos ---
@@ -62,6 +64,15 @@ export class ProductStockSearch implements OnInit, OnDestroy {
    * para decidir se o campo de busca deve ser limpo no próximo clique.
    */
   private filtersAreDirty = signal(false);
+  private readonly unitsUrl = signal<string | null>(null);
+  readonly consumptionUnitsMap: Signal<Map<string, EnumOption>> = toSignal(
+    toObservable(this.unitsUrl).pipe(
+      distinctUntilChanged(),
+      filter((url): url is string => !!url),
+      mergeMap(url => this.enumService.getConsumptionUnitsMap(url))
+    ),
+    { initialValue: new Map<string, EnumOption>() }
+  );
 
   constructor() {
     this.isSearching = this.productService.isSearchingByStock;
@@ -71,6 +82,15 @@ export class ProductStockSearch implements OnInit, OnDestroy {
     effect(() => {
       this.productType();
       this.triggerSearchNow();
+    });
+
+    effect(() => {
+      const firstProduct = this.products()[0];
+      const url = firstProduct?._links?.['unidades-de-medida']?.href ?? null;
+
+      if (url && this.unitsUrl() !== url) {
+        this.unitsUrl.set(url);
+      }
     });
   }
 
@@ -167,9 +187,74 @@ export class ProductStockSearch implements OnInit, OnDestroy {
   /**
    * Formata como o nome do produto é exibido no input após a seleção.
    */
-  displayFn(product: Product): string {
+  displayFn = (product: Partial<Product> | null): string => {
     if (!product) return '';
-    return product.nome ? `${product.nome} (Estoque: ${product.estoqueFisicoTotal || 0})` : '';
+    return this.buildProductLabel(product);
+  };
+
+  buildProductLabel(product: Partial<Product>): string {
+    const nome = product.nome?.trim();
+    if (!nome) return '';
+
+    const detalhe = this.getProductDetail(product);
+    const estoque = product.estoqueFisicoTotal || 0;
+
+    return detalhe
+      ? `${nome} (${detalhe}) (Estoque: ${estoque})`
+      : `${nome} (Estoque: ${estoque})`;
+  }
+
+  private getProductDetail(product: Partial<Product>): string | null {
+    if (product.dimensoes?.larguraCm != null && product.dimensoes?.comprimentoCm != null) {
+      return `${this.formatNumber(product.dimensoes.larguraCm)}x${this.formatNumber(product.dimensoes.comprimentoCm)}cm`;
+    }
+
+    if (product.tipoProduto === 'CONSUMO' && product.unidadesPorProduto != null && product.materiaPrima?.unidadeDeConsumo) {
+      return this.formatConsumptionAmount(product.unidadesPorProduto, product.materiaPrima.unidadeDeConsumo);
+    }
+
+    return null;
+  }
+
+  private formatConsumptionAmount(amount: number, unit: string): string {
+    const normalizedUnit = unit.toUpperCase();
+    const unitMeta = this.consumptionUnitsMap().get(normalizedUnit);
+    const symbol = unitMeta?.simbolo?.trim();
+    const description = unitMeta?.viewValue?.trim().toLowerCase();
+
+    if (symbol && !this.isCountableUnit(normalizedUnit)) {
+      return `${amount}${symbol}`;
+    }
+
+    if (description) {
+      return `${amount} ${this.pluralizeUnit(normalizedUnit, description, amount)}`;
+    }
+
+    return `${amount} ${unit.toLowerCase()}`;
+  }
+
+  private isCountableUnit(unit: string): boolean {
+    return unit === 'UNIDADE' || unit === 'FOLHA';
+  }
+
+  private pluralizeUnit(unit: string, description: string, amount: number): string {
+    if (amount === 1) {
+      return description;
+    }
+
+    const pluralMap: Record<string, string> = {
+      UNIDADE: 'unidades',
+      FOLHA: 'folhas'
+    };
+
+    return pluralMap[unit] ?? description;
+  }
+
+  private formatNumber(value: number): string {
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3
+    }).format(value);
   }
 
   /**

@@ -12,11 +12,7 @@
     <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="onOptionSelected($event)" (opened)="onAutocompleteOpened()">
       @for (product of products(); track product.id) {
         <mat-option [value]="product">
-          @if (product.dimensoes && product.dimensoes.larguraCm != null && product.dimensoes.comprimentoCm != null) {
-            {{ product.nome }} ({{ product.dimensoes.larguraCm | number:'1.0-3':'pt-BR' }}x{{ product.dimensoes.comprimentoCm | number:'1.0-3':'pt-BR' }}cm) (Estoque: {{ product.estoqueFisicoTotal || 0 }})
-          } @else {
-            {{ product.nome }} (Estoque: {{ product.estoqueFisicoTotal || 0 }})
-          }
+          {{ buildProductLabel(product) }}
         </mat-option>
       }
 

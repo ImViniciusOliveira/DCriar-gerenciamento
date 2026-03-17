@@ -188,8 +188,12 @@ export class BatchSearch {
 
   private getDisplayUnit(batch: Batch): string {
     const matchedUnit = this.measurementUnitOptions().find(unit => unit.value === batch.unidadeDeEstoque);
-    if (matchedUnit?.viewValue) {
-      return matchedUnit.viewValue.toLowerCase();
+
+    if (matchedUnit) {
+      const formattedUnit = this.formatBatchUnit(batch.saldoEstoque || 0, matchedUnit);
+      if (formattedUnit) {
+        return formattedUnit;
+      }
     }
 
     if (batch.unidadeSimbolo) {
@@ -197,5 +201,38 @@ export class BatchSearch {
     }
 
     return (batch.unidadeDeEstoque ?? '').toLowerCase().replace(/_/g, ' ');
+  }
+
+  private formatBatchUnit(amount: number, unit: { value: string; viewValue: string; simbolo?: string }): string | null {
+    const normalizedUnit = unit.value.toUpperCase();
+    const symbol = unit.simbolo?.trim();
+    const description = unit.viewValue?.trim().toLowerCase();
+
+    if (symbol && !this.isCountableUnit(normalizedUnit)) {
+      return symbol;
+    }
+
+    if (description) {
+      return this.pluralizeUnit(normalizedUnit, description, amount);
+    }
+
+    return null;
+  }
+
+  private isCountableUnit(unit: string): boolean {
+    return unit === 'UNIDADE' || unit === 'FOLHA';
+  }
+
+  private pluralizeUnit(unit: string, description: string, amount: number): string {
+    if (amount === 1) {
+      return description;
+    }
+
+    const pluralMap: Record<string, string> = {
+      UNIDADE: 'unidades',
+      FOLHA: 'folhas'
+    };
+
+    return pluralMap[unit] ?? description;
   }
 }
