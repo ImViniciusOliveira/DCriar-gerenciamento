@@ -77,6 +77,8 @@ export class ProductionForm implements OnInit {
 
   // Signal com tipo forte para armazenar o resultado da simulação.
   simulationResult = signal<SimulationResult | null>(null);
+  simulationFormSnapshot = signal<any | null>(null);
+  consumptionSimulationSnapshot = signal<{ quantidade: number; unidadesPorProduto: number } | null>(null);
 
   // Signal para controlar se a verificação é necessária (dados alterados após simulação)
   needsVerification = signal(false);
@@ -420,6 +422,8 @@ export class ProductionForm implements OnInit {
     const produto = event.value as Product;
     this.produto.set(produto);
     this.simulationResult.set(null);
+    this.simulationFormSnapshot.set(null);
+    this.consumptionSimulationSnapshot.set(null);
     this.loteSelecionado.set(null);
 
     // Atualiza o formulário com o ID e também sincroniza o dropdown de tipo de produção.
@@ -452,6 +456,8 @@ export class ProductionForm implements OnInit {
     this.loteSelecionado.set(lote);
     this.loteIdControl.setValue(lote.id);
     this.simulationResult.set(null);
+    this.simulationFormSnapshot.set(null);
+    this.consumptionSimulationSnapshot.set(null);
   }
 
   /**
@@ -535,6 +541,8 @@ export class ProductionForm implements OnInit {
     this.isSimulating.set(true);
     this.needsVerification.set(false);
     this.simulationResult.set(null);
+    this.simulationFormSnapshot.set(null);
+    this.consumptionSimulationSnapshot.set(null);
 
     const payload: SimulationRequest = {
       produtoId: produto.id,
@@ -561,12 +569,14 @@ export class ProductionForm implements OnInit {
               });
             }
             this.formSnapshot = this.form.getRawValue();
+            this.simulationFormSnapshot.set(this.formSnapshot);
             this.isSimulating.set(false);
             this.scrollToBottom();
           },
           error: (err) => {
             console.error('%c[DEBUG] Erro na Simulação (CORTE):', 'color: red; font-weight: bold;', err);
             this.simulationResult.set(null);
+            this.simulationFormSnapshot.set(null);
             this.isSimulating.set(false);
           }
         });
@@ -578,13 +588,20 @@ export class ProductionForm implements OnInit {
           next: (response) => {
             console.log('%c[DEBUG] Resposta RECEBIDA da Simulação (CONSUMO_DIRETO):', 'color: green; font-weight: bold;', response);
             this.simulationResult.set(response as SimulationResult);
+            this.consumptionSimulationSnapshot.set({
+              quantidade,
+              unidadesPorProduto: Number(produto.unidadesPorProduto || 1)
+            });
             this.formSnapshot = this.form.getRawValue();
+            this.simulationFormSnapshot.set(this.formSnapshot);
             this.isSimulating.set(false);
             this.scrollToBottom();
           },
           error: (err) => {
             console.error('%c[DEBUG] Erro na Simulação (CONSUMO_DIRETO):', 'color: red; font-weight: bold;', err);
             this.simulationResult.set(null);
+            this.simulationFormSnapshot.set(null);
+            this.consumptionSimulationSnapshot.set(null);
             this.isSimulating.set(false);
           }
         });
@@ -793,6 +810,7 @@ export class ProductionForm implements OnInit {
         // ACEITAR: Atualiza o estado estável
         this.simulationResult.set(newR);
         this.formSnapshot = this.form.getRawValue();
+        this.simulationFormSnapshot.set(this.formSnapshot);
         this.needsVerification.set(false);
 
         // Se for automático, atualiza os campos de dimensão com os novos valores calculados

@@ -197,7 +197,7 @@
                   <!-- Coluna Direita -->
                   <div class="feedback-column">
                     <h4 class="feedback-header">Distribuição dos Produtos</h4>
-                    <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }} unidade(s)</strong></p>
+                    <p class="feedback-item">Quantidade Solicitada: <strong>{{ simulationFormSnapshot()?.quantidade ?? 0 }} unidade(s)</strong></p>
                     <p class="feedback-item">Produtos por Linha: <strong>{{ result.produtosPorLinha }}</strong></p>
                     @if (result.numeroLinhasCompletas > 0) {
                       <p class="feedback-item">Linhas Completas: <strong>{{ result.numeroLinhasCompletas }}</strong></p>
@@ -248,7 +248,7 @@
                   <!-- Coluna Direita -->
                   <div class="feedback-column">
                     <h4 class="feedback-header">Distribuição dos Produtos</h4>
-                    <p class="feedback-item">Quantidade Solicitada: <strong>{{ form.get('quantidade')?.value }}</strong> unidade(s)</p>
+                    <p class="feedback-item">Quantidade Solicitada: <strong>{{ simulationFormSnapshot()?.quantidade ?? 0 }}</strong> unidade(s)</p>
 
                     <h4 class="feedback-header">Material Utilizado</h4>
                     <p class="feedback-item">Área Utilizada (L x C): <strong>{{ result.consumoTotal }}</strong></p>
@@ -331,7 +331,70 @@
       } @else if (result.tipoSimulacao === 'CONSUMO_DIRETO') {
         <!-- Formulário para CONSUMO DIRETO -->
         <div class="filter-group-container">
-          <div>Consumo Direto</div>
+          <div class="form-row">
+            <div class="form-left">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Motivo/Referência</mat-label>
+                <textarea matInput formControlName="motivo" rows="3" maxlength="255" placeholder="Ex: Pedido Cliente #456"></textarea>
+                <mat-hint align="end">{{ motivoControl.value?.length || 0 }}/255</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-right">
+              <div class="form-right-row">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Canal de Venda</mat-label>
+                  <mat-select formControlName="canalVendaId">
+                    <mat-select-trigger>{{ selectedChannelName() || 'Nenhum' }}</mat-select-trigger>
+                    <mat-option value="">Nenhum</mat-option>
+                    @for (channel of channels(); track channel.id) {
+                      <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            </div>
+          </div>
+
+          <div class="simulation-feedback">
+            @if (consumptionSimulationSnapshot(); as snapshot) {
+              <div class="feedback-container">
+                <h3 class="feedback-title">informações da ordem de produção (Consumo)</h3>
+                <div class="feedback-columns-wrapper">
+                  <div class="feedback-column">
+                    <h4 class="feedback-header">Produto</h4>
+                    <p class="feedback-item">
+                      Quantidade por produto:
+                      <strong>{{ snapshot.unidadesPorProduto }} {{ result.unidadeDeConsumo.toLowerCase() }} cada</strong>
+                    </p>
+                    <p class="feedback-item">
+                      Total de produto:
+                      <strong>
+                        {{ snapshot.quantidade }} produto
+                        @if (snapshot.quantidade > 1) { s }
+                        ({{ snapshot.quantidade * snapshot.unidadesPorProduto }} {{ result.unidadeDeConsumo.toLowerCase() }} no total)
+                      </strong>
+                    </p>
+                  </div>
+
+                  <div class="feedback-column">
+                    <h4 class="feedback-header">Consumo de Matéria-Prima por Lote</h4>
+                    @for (item of result.planoDeConsumo; track item.loteId) {
+                      <p class="feedback-item">Lote <strong>#{{ item.loteId }}</strong></p>
+                      <p class="feedback-item">
+                        Consumir deste lote:
+                        <strong>{{ item.quantidadeAConsumir }} {{ result.unidadeDeConsumo.toLowerCase() }}</strong>
+                      </p>
+                      <p class="feedback-item">
+                        Saldo após a produção:
+                        <strong>{{ result.saldoRestante[item.loteId] ?? 0 }} {{ result.unidadeDeConsumo.toLowerCase() }}</strong>
+                      </p>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
         </div>
       }
     }
