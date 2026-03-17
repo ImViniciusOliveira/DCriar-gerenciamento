@@ -19,6 +19,6 @@ public class CanalVendaRequestDTO {
     /**
      * O nome único do canal de venda (ex: "SHOPEE", "MERCADO_LIVRE", "LOJA_FISICA").
      */
-    @Schema(description = "O nome único do canal de venda.", example = "SHOPEE", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "O nome único do canal de venda.", example = "Instagram Shop", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nome;
 }

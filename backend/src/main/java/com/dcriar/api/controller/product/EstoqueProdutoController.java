@@ -99,8 +99,8 @@ public class EstoqueProdutoController {
     @GetMapping("/consulta") // Alterado de @GetMapping raiz para evitar conflito com getRoot
     @Operation(summary = "Consultar o estoque de um produto em um canal específico")
     public ResponseEntity<EstoqueProdutoModel> consultarEstoque(
-            @RequestParam Long produtoId,
-            @RequestParam Long canalVendaId) {
+            @Parameter(description = "ID do produto.", example = "1") @RequestParam Long produtoId,
+            @Parameter(description = "ID do canal de venda.", example = "1") @RequestParam Long canalVendaId) {
         EstoqueResponseDTO estoqueDTO = estoqueProdutoService.consultarEstoque(produtoId, canalVendaId);
         return estoqueProdutoModelAssembler.toOkResponseEntity(estoqueDTO);
     }
@@ -111,9 +111,9 @@ public class EstoqueProdutoController {
             @Parameter(name = "sort", description = "Critério de ordenação.", example = "produto.nome,asc")
     })
     public ResponseEntity<PagedModel<EntityModel<EstoqueProdutoResumoDTO>>> buscarEstoqueResumido(
-            @RequestParam Long canalId,
-            @RequestParam(required = false) String nomeProduto,
-            @RequestParam(defaultValue = "true") boolean apenasComSaldo,
+            @Parameter(description = "ID do canal de venda.", example = "1") @RequestParam Long canalId,
+            @Parameter(description = "Filtrar por parte do nome do produto.", example = "Cartão") @RequestParam(required = false) String nomeProduto,
+            @Parameter(description = "Quando true, retorna apenas produtos com saldo no canal.", example = "true") @RequestParam(defaultValue = "true") boolean apenasComSaldo,
             @ParameterObject @PageableDefault(sort = "produto.nome", direction = Sort.Direction.ASC) Pageable pageable,
             PagedResourcesAssembler<EstoqueProdutoResumoDTO> pagedResourcesAssembler) {
 
@@ -133,7 +133,7 @@ public class EstoqueProdutoController {
 
     @GetMapping("/por-produto/{produtoId}/canais")
     @Operation(summary = "Listar o estoque de um produto, agrupado por canal de venda")
-    public ResponseEntity<ProdutoEstoqueResponseDTO> listarEstoquesPorProduto(@PathVariable Long produtoId) {
+    public ResponseEntity<ProdutoEstoqueResponseDTO> listarEstoquesPorProduto(@Parameter(description = "ID do produto.", example = "1") @PathVariable Long produtoId) {
         // Reutiliza o serviço que busca todos os estoques e filtra pelo produtoId desejado.
         // Isso evita a criação de uma nova consulta no banco de dados para um caso de uso específico.
         return estoqueProdutoService.listarEstoqueDeTodosOsProdutosPorCanal().stream()
@@ -146,7 +146,7 @@ public class EstoqueProdutoController {
     @GetMapping("/por-lista-produtos")
     @Operation(summary = "Listar estoques de múltiplos produtos (Otimizado)")
     public ResponseEntity<CollectionModel<ProdutoEstoqueResponseDTO>> listarEstoquesPorListaDeProdutos(
-            @RequestParam(required = false) List<Long> produtoIds) {
+            @Parameter(description = "Lista de IDs de produtos para consulta em lote.", example = "1,3,11") @RequestParam(required = false) List<Long> produtoIds) {
 
         List<ProdutoEstoqueResponseDTO> estoques = estoqueProdutoService.listarEstoquePorListaDeProdutos(produtoIds);
 
@@ -166,7 +166,7 @@ public class EstoqueProdutoController {
             @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso."),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado.", content = @Content)
     })
-    public ResponseEntity<CollectionModel<MovimentacaoProdutoModel>> listarMovimentacoesPorProduto(@PathVariable Long produtoId) {
+    public ResponseEntity<CollectionModel<MovimentacaoProdutoModel>> listarMovimentacoesPorProduto(@Parameter(description = "ID do produto.", example = "1") @PathVariable Long produtoId) {
         List<MovimentacaoProdutoResponseDTO> historicoDTO = estoqueProdutoService.listarMovimentacoesPorProduto(produtoId);
         return movimentacaoProdutoModelAssembler.toOkResponseEntity(historicoDTO, produtoId);
     }

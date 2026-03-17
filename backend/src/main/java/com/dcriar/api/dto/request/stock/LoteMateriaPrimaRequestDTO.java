@@ -26,25 +26,25 @@ public class LoteMateriaPrimaRequestDTO {
     /**
      * O ID do Tipo de Matéria-Prima ao qual este lote pertence.
      */
-    @Schema(description = "ID do Tipo de Matéria-Prima ao qual este lote pertence. No seed padrão, use 6 para 'Tinta Eco-Solvente Preta'.", example = "6", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do Tipo de Matéria-Prima ao qual este lote pertence.", example = "6", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long tipoMateriaPrimaId;
 
     /**
      * A unidade de medida em que este lote é armazenado e medido fisicamente.
      */
-    @Schema(description = "Unidade de medida em que este lote é armazenado e medido fisicamente. No seed padrão, o tipo 6 usa LITRO.", example = "LITRO", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Unidade de medida em que este lote é armazenado e medido fisicamente.", example = "MILILITRO", requiredMode = Schema.RequiredMode.REQUIRED)
     private UnidadeDeMedida unidadeDeEstoque;
 
     /**
      * A quantidade inicial de material que está dando entrada no estoque (ex: 50 metros, 100 kg).
      */
-    @Schema(description = "A quantidade inicial de material que está dando entrada no estoque. No seed padrão, um novo lote de tinta pode entrar com 5 litros.", example = "5.00", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade inicial de material que está entrando no estoque.", example = "5000.00", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal quantidadeInicial;
 
     /**
      * O valor total pago por este lote, usado para calcular o custo médio do material.
      */
-    @Schema(description = "O valor total pago por este lote (usado para calcular o custo médio).", example = "300.00", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Valor total pago por este lote, usado para calcular o custo médio.", example = "300.00", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal custoTotalLote;
 
     /**
@@ -59,6 +59,6 @@ public class LoteMateriaPrimaRequestDTO {
     /**
      * Um motivo opcional para a movimentação de entrada (ex: Compra regular, Devolução de cliente).
      */
-    @Schema(description = "Motivo opcional para a movimentação de entrada (ex: Compra regular, Devolução de cliente).", example = "Compra regular - NF-2026-1500")
+    @Schema(description = "Motivo da entrada do lote.", example = "Compra regular - NF-2026-1500")
     private String motivo;
 }

@@ -22,12 +22,12 @@ public class ItemVendaRequestDTO {
     /**
      * O ID do produto que está sendo vendido.
      */
-    @Schema(description = "O ID do produto que está sendo vendido. No seed padrão, use 11 para 'Kit de Resina Epóxi'.", example = "11", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "O ID do produto que está sendo vendido.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
      * A quantidade de unidades do produto vendidas.
      */
-    @Schema(description = "A quantidade de unidades do produto vendidas. No seed padrão, 1 unidade do produto 11 é um caso feliz na Loja Física.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "A quantidade de unidades do produto vendidas.", example = "100", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 }

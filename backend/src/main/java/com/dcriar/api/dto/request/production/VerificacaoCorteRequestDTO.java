@@ -26,13 +26,13 @@ import java.math.BigDecimal;
 @ValidVerificacaoCorteRequest
 public class VerificacaoCorteRequestDTO {
 
-    @Schema(description = "ID do produto. No seed padrão, use 3 para 'Adesivo Redondo 5cm'.", example = "3", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do produto.", example = "3", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
-    @Schema(description = "ID do lote de matéria-prima. No seed padrão, use 3 para 'Compra NF-1003'.", example = "3", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do lote de matéria-prima.", example = "3", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long loteId;
 
-    @Schema(description = "Quantidade de unidades desejada. No seed padrão, 10 unidades geram um layout válido para o produto 3 no lote 3.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade de unidades desejada.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 
     @Schema(description = "Modo de cálculo (AUTOMATICO ou MANUAL).", example = "AUTOMATICO", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -41,9 +41,9 @@ public class VerificacaoCorteRequestDTO {
     @Schema(description = "Margens de segurança (relevante no modo AUTOMATICO).")
     private MargensRequestDTO margens;
 
-    @Schema(description = "Largura do bloco de produtos no corte (em cm). Para o seed padrão com produto 3, use 20.0 para acomodar 4 itens por linha.", example = "20.0")
+    @Schema(description = "Largura do bloco de produtos no corte (em cm).", example = "20.0")
     private BigDecimal larguraBlocoProdutosCm;
 
-    @Schema(description = "Comprimento do bloco de produtos no corte (em cm). Para o seed padrão com produto 3, use 15.0 para acomodar 3 linhas de 5 cm.", example = "15.0")
+    @Schema(description = "Comprimento do bloco de produtos no corte (em cm).", example = "15.0")
     private BigDecimal comprimentoBlocoProdutosCm;
 }

@@ -73,7 +73,10 @@ public class VendaController {
             @ApiResponse(responseCode = "200", description = "Venda atualizada com sucesso."),
             @ApiResponse(responseCode = "404", description = "Venda não encontrada.", content = @Content)
     })
-    public ResponseEntity<VendaModel> atualizarVenda(@PathVariable Long id, @RequestBody @Valid VendaRequestDTO requestDTO) {
+    public ResponseEntity<VendaModel> atualizarVenda(
+            @Parameter(description = "ID da venda a ser atualizada.", example = "1")
+            @PathVariable Long id,
+            @RequestBody @Valid VendaRequestDTO requestDTO) {
         VendaResponseDTO vendaAtualizada = vendaService.atualizarVenda(id, requestDTO);
         return ResponseEntity.ok(vendaModelAssembler.toModel(vendaAtualizada));
     }
@@ -92,7 +95,9 @@ public class VendaController {
             @ApiResponse(responseCode = "204", description = "Venda removida com sucesso."),
             @ApiResponse(responseCode = "404", description = "Venda não encontrada.", content = @Content)
     })
-    public ResponseEntity<Void> deletarVenda(@PathVariable Long id) {
+    public ResponseEntity<Void> deletarVenda(
+            @Parameter(description = "ID da venda a ser removida.", example = "1")
+            @PathVariable Long id) {
         vendaService.deletarVenda(id);
         return ResponseEntity.noContent().build();
     }
@@ -145,7 +150,9 @@ public class VendaController {
             @ApiResponse(responseCode = "200", description = "Venda encontrada com sucesso."),
             @ApiResponse(responseCode = "404", description = "Venda não encontrada.", content = @Content)
     })
-    public ResponseEntity<VendaModel> findById(@PathVariable Long id) {
+    public ResponseEntity<VendaModel> findById(
+            @Parameter(description = "ID da venda.", example = "1")
+            @PathVariable Long id) {
         VendaResponseDTO venda = vendaService.findById(id);
         return ResponseEntity.ok(vendaModelAssembler.toModel(venda));
     }

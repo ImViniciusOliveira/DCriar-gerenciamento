@@ -22,13 +22,13 @@ public class AjusteEstoqueRequestDTO {
     /**
      * O ID do produto cujo estoque será ajustado.
      */
-    @Schema(description = "O ID do produto cujo estoque será ajustado. No seed padrão, use 11 para 'Kit de Resina Epóxi'.", example = "11", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do produto cujo estoque no canal será ajustado.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
      * O ID do canal de venda onde o estoque será ajustado.
      */
-    @Schema(description = "O ID do canal de venda onde o estoque será ajustado. No seed padrão, use 1 para 'Loja Física'.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do canal de venda onde o estoque será ajustado.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long canalVendaId;
 
     /**
@@ -37,6 +37,6 @@ public class AjusteEstoqueRequestDTO {
      * Use um valor positivo para adicionar estoque ao canal (alocar) e um valor
      * negativo para remover estoque do canal (desalocar).
      */
-    @Schema(description = "A quantidade a ser ajustada. Use um valor positivo para adicionar e um valor negativo para remover estoque. No seed padrão, -1 é um ajuste seguro para o produto 11 no canal 1.", example = "-1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade a ser ajustada. Use valor positivo para alocar e negativo para desalocar estoque.", example = "-1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 }

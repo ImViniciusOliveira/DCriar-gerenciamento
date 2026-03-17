@@ -39,6 +39,7 @@ public class UploadController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Fazer upload de um arquivo")
     public ResponseEntity<UploadResponseDTO> uploadFile(
+            @Parameter(description = "Arquivo enviado no campo multipart 'file'.")
             @RequestParam("file") MultipartFile file) {
 
         // Log minimal: sucesso ou falha
@@ -61,7 +62,7 @@ public class UploadController {
     @GetMapping("/{fileName:.+}")
     @Operation(summary = "Baixar um arquivo")
     public ResponseEntity<Resource> downloadFile(
-            @Parameter(description = "Nome do arquivo a ser baixado (ex: 123e4567-e89b-12d3-a456-426614174000_minha_imagem.jpg)", example = "123e4567-e89b-12d3-a456-426614174000_exemplo.png")
+            @Parameter(description = "Nome do arquivo a ser baixado.", example = "exemplo.png")
             @PathVariable String fileName, HttpServletRequest request) {
 
         String decodedName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);

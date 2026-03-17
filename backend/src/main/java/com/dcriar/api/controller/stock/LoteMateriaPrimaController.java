@@ -64,9 +64,9 @@ public class LoteMateriaPrimaController {
             @Parameter(name = "sort", description = "Critério de ordenação no formato: propriedade,asc|desc.", example = "id,asc")
     })
     public ResponseEntity<PagedModel<LoteMateriaPrimaModel>> searchAll(
-            @Parameter(description = "Filtrar por ID do tipo de matéria-prima")
+            @Parameter(description = "Filtrar pelo ID do tipo de matéria-prima.", example = "6")
             @RequestParam(required = false) Long tipoMateriaPrimaId,
-            @Parameter(description = "Filtrar apenas por lotes principais (se aplicável)")
+            @Parameter(description = "Filtrar apenas por lotes principais.", example = "true")
             @RequestParam(required = false) Boolean apenasLotesPrincipais,
             @ParameterObject @PageableDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable,
             PagedResourcesAssembler<LoteMateriaPrimaResponseDTO> pagedResourcesAssembler) {
@@ -88,7 +88,7 @@ public class LoteMateriaPrimaController {
             @ApiResponse(responseCode = "200", description = "Lote encontrado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
     })
-    public ResponseEntity<LoteMateriaPrimaModel> findById(@PathVariable Long id) {
+    public ResponseEntity<LoteMateriaPrimaModel> findById(@Parameter(description = "ID do lote.", example = "6") @PathVariable Long id) {
         LoteMateriaPrimaResponseDTO lote = loteMateriaPrimaService.findById(id);
         return loteMateriaPrimaModelAssembler.toOkResponseEntity(lote);
     }
@@ -100,7 +100,7 @@ public class LoteMateriaPrimaController {
             @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos", content = @Content),
             @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
     })
-    public ResponseEntity<LoteMateriaPrimaModel> update(@PathVariable Long id, @RequestBody @Valid LoteMateriaPrimaRequestDTO requestDTO) {
+    public ResponseEntity<LoteMateriaPrimaModel> update(@Parameter(description = "ID do lote a ser atualizado.", example = "6") @PathVariable Long id, @RequestBody @Valid LoteMateriaPrimaRequestDTO requestDTO) {
         LoteMateriaPrimaResponseDTO loteAtualizado = loteMateriaPrimaService.update(id, requestDTO);
         return loteMateriaPrimaModelAssembler.toOkResponseEntity(loteAtualizado);
     }
@@ -111,7 +111,7 @@ public class LoteMateriaPrimaController {
             @ApiResponse(responseCode = "204", description = "Lote excluído com sucesso"),
             @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
     })
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@Parameter(description = "ID do lote a ser excluído.", example = "6") @PathVariable Long id) {
         loteMateriaPrimaService.delete(id);
         return ResponseEntity.noContent().build();
     }
@@ -124,7 +124,7 @@ public class LoteMateriaPrimaController {
             @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
     })
     public ResponseEntity<MovimentacaoLoteModel> registrarMovimentacao(
-            @PathVariable Long loteId,
+            @Parameter(description = "ID do lote que receberá a movimentação.", example = "6") @PathVariable Long loteId,
             @RequestBody @Valid MovimentacaoRequestDTO requestDTO) {
         MovimentacaoResponseDTO movimentacao = loteMateriaPrimaService.registrarMovimentacao(loteId, requestDTO);
         return movimentacaoLoteModelAssembler.toCreatedResponseEntity(movimentacao, loteId);
@@ -136,7 +136,7 @@ public class LoteMateriaPrimaController {
             @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
     })
-    public ResponseEntity<CollectionModel<MovimentacaoLoteModel>> listarMovimentacoes(@PathVariable Long loteId) {
+    public ResponseEntity<CollectionModel<MovimentacaoLoteModel>> listarMovimentacoes(@Parameter(description = "ID do lote.", example = "6") @PathVariable Long loteId) {
         List<MovimentacaoResponseDTO> movimentacoes = loteMateriaPrimaService.listarMovimentacoesPorLote(loteId);
         return ResponseEntity.ok(movimentacaoLoteModelAssembler.toCollectionModel(movimentacoes, loteId));
     }

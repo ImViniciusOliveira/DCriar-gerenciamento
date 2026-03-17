@@ -15,6 +15,7 @@ import com.dcriar.api.hateoas.production.model.SimulacaoConsumoModel;
 import com.dcriar.api.hateoas.production.model.SimulacaoCorteModel;
 import com.dcriar.domain.production.service.OrdemDeProducaoService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -84,7 +85,9 @@ public class OrdemDeProducaoController {
             @ApiResponse(responseCode = "200", description = "Ordem de produção encontrada com sucesso."),
             @ApiResponse(responseCode = "404", description = "Ordem de produção não encontrada.", content = @Content)
     })
-    public ResponseEntity<OrdemDeProducaoModel> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<OrdemDeProducaoModel> buscarPorId(
+            @Parameter(description = "ID da ordem de produção.", example = "1")
+            @PathVariable Long id) {
         OrdemDeProducaoResponseDTO responseDTO = ordemDeProducaoService.buscarPorId(id);
         OrdemDeProducaoModel model = ordemDeProducaoModelAssembler.toModel(responseDTO);
         return ResponseEntity.ok(model);
@@ -107,7 +110,9 @@ public class OrdemDeProducaoController {
             @ApiResponse(responseCode = "204", description = "Ordem de produção excluída com sucesso."),
             @ApiResponse(responseCode = "404", description = "Ordem de produção não encontrada.", content = @Content)
     })
-    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+    public ResponseEntity<Void> excluir(
+            @Parameter(description = "ID da ordem de produção a ser excluída.", example = "1")
+            @PathVariable Long id) {
         ordemDeProducaoService.excluir(id);
         return ResponseEntity.noContent().build();
     }

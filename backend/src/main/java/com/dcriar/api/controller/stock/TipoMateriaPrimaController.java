@@ -45,9 +45,9 @@ public class TipoMateriaPrimaController {
             @Parameter(name = "sort", description = "Critério de ordenação no formato: propriedade,asc|desc.", example = "nome,asc")
     })
     public ResponseEntity<PagedModel<TipoMateriaPrimaModel>> findAll(
-            @Parameter(description = "Filtrar por parte do nome (case-insensitive)")
+            @Parameter(description = "Filtrar por parte do nome, sem diferenciar maiúsculas e minúsculas.", example = "Tinta")
             @RequestParam(required = false) String nome,
-            @Parameter(description = "Filtrar por unidade de consumo")
+            @Parameter(description = "Filtrar pela unidade de consumo.", example = "LITRO")
             @RequestParam(required = false) UnidadeDeMedida unidadeDeConsumo,
             @ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
             PagedResourcesAssembler<TipoMateriaPrimaResponseDTO> pagedResourcesAssembler) {

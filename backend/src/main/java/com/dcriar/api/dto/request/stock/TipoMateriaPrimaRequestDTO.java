@@ -21,14 +21,14 @@ import lombok.*;
 public class TipoMateriaPrimaRequestDTO {
 
     /**
-     * O nome único do tipo de matéria-prima (ex: "Adesivo Vinil Branco Brilho").
+     * O nome único do tipo de matéria-prima.
      */
-    @Schema(description = "Nome único do tipo de matéria-prima.", example = "Tinta Eco-Solvente Ciano", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Nome único do tipo de matéria-prima.", example = "Tinta Eco-Solvente Magenta", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nome;
 
     /**
      * A unidade de medida padrão em que a "receita" de um produto consome este material.
      */
-    @Schema(description = "Unidade em que a 'receita' de um produto consome este material.", example = "LITRO", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Unidade de consumo padrão da matéria-prima.", example = "LITRO", requiredMode = Schema.RequiredMode.REQUIRED)
     private UnidadeDeMedida unidadeDeConsumo;
 }

@@ -48,7 +48,7 @@ public class ProdutoController {
     @Operation(summary = "Listar todos os produtos de forma paginada")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
     public ResponseEntity<PagedModel<ProdutoModel>> findAll(
-            @Parameter(description = "Filtrar por nome ou SKU (case-insensitive)")
+            @Parameter(description = "Filtrar por nome ou SKU, sem diferenciar maiúsculas e minúsculas.", example = "Cartão")
             @RequestParam(required = false) String nome,
             @ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
             PagedResourcesAssembler<ProdutoResponseDTO> pagedResourcesAssembler
@@ -80,13 +80,13 @@ public class ProdutoController {
     @Operation(summary = "Listar produtos por tipo e estoque")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
     public ResponseEntity<?> findByTipoAndEstoque(
-            @Parameter(description = "Tipo de produto: 'CORTE' ou 'CONSUMO' (Opcional)")
+            @Parameter(description = "Tipo de produto: 'CORTE' ou 'CONSUMO'.", example = "CONSUMO")
             @RequestParam(required = false) String tipoProduto,
-            @Parameter(description = "Valor de estoque para comparação")
+            @Parameter(description = "Valor de estoque para comparação.", example = "1")
             @RequestParam(defaultValue = "0") Integer estoqueValor,
-            @Parameter(description = "Operador de comparação: 'GTE' (≥) ou 'LTE' (≤)")
+            @Parameter(description = "Operador de comparação: 'GTE' (≥) ou 'LTE' (≤).", example = "GTE")
             @RequestParam(defaultValue = "GTE") String estoqueOperador,
-            @Parameter(description = "Filtrar por nome ou SKU (case-insensitive)")
+            @Parameter(description = "Filtrar por nome ou SKU, sem diferenciar maiúsculas e minúsculas.", example = "Resina")
             @RequestParam(required = false) String nome,
             @ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
             PagedResourcesAssembler<ProdutoResponseDTO> pagedResourcesAssembler
@@ -140,7 +140,7 @@ public class ProdutoController {
             @ApiResponse(responseCode = "200", description = "Produto encontrado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
     })
-    public ResponseEntity<ProdutoModel> findById(@PathVariable Long id) {
+    public ResponseEntity<ProdutoModel> findById(@Parameter(description = "ID do produto.", example = "1") @PathVariable Long id) {
         ProdutoResponseDTO produto = produtoService.findById(id);
         return produtoModelAssembler.toOkResponseEntity(produto);
     }
@@ -164,7 +164,7 @@ public class ProdutoController {
             @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos", content = @Content),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
     })
-    public ResponseEntity<ProdutoModel> update(@PathVariable Long id, @RequestBody @Valid ProdutoRequestDTO requestDTO) {
+    public ResponseEntity<ProdutoModel> update(@Parameter(description = "ID do produto a ser atualizado.", example = "1") @PathVariable Long id, @RequestBody @Valid ProdutoRequestDTO requestDTO) {
         ProdutoResponseDTO produtoAtualizado = produtoService.update(id, requestDTO);
         return produtoModelAssembler.toOkResponseEntity(produtoAtualizado);
     }
@@ -176,7 +176,7 @@ public class ProdutoController {
             @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos", content = @Content),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
     })
-    public ResponseEntity<ProdutoModel> patch(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
+    public ResponseEntity<ProdutoModel> patch(@Parameter(description = "ID do produto a ser atualizado parcialmente.", example = "1") @PathVariable Long id, @RequestBody Map<String, Object> fields) {
         ProdutoResponseDTO produtoAtualizado = produtoService.patch(id, fields);
         return produtoModelAssembler.toOkResponseEntity(produtoAtualizado);
     }
@@ -187,7 +187,7 @@ public class ProdutoController {
             @ApiResponse(responseCode = "204", description = "Produto deletado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
     })
-    public ResponseEntity<Void> deleteById(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteById(@Parameter(description = "ID do produto a ser excluído.", example = "1") @PathVariable Long id) {
         produtoService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
@@ -199,7 +199,7 @@ public class ProdutoController {
             @ApiResponse(responseCode = "400", description = "Nenhum arquivo enviado ou arquivo inválido", content = @Content),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado", content = @Content)
     })
-    public ResponseEntity<ProdutoModel> uploadFoto(@PathVariable Long id,
+    public ResponseEntity<ProdutoModel> uploadFoto(@Parameter(description = "ID do produto que receberá a foto.", example = "1") @PathVariable Long id,
                                                    @RequestParam("file") MultipartFile file) {
         ProdutoResponseDTO produtoAtualizado = produtoService.uploadFoto(id, file);
         return produtoModelAssembler.toOkResponseEntity(produtoAtualizado);

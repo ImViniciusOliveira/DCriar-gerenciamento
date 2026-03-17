@@ -6,6 +6,7 @@ import com.dcriar.api.hateoas.product.assembler.CanalVendaModelAssembler;
 import com.dcriar.api.hateoas.enums.model.CanalVendaModel;
 import com.dcriar.domain.product.service.CanalVendaService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -48,7 +49,7 @@ public class CanalVendaController {
     @Operation(summary = "Buscar um canal de venda por ID")
     @ApiResponse(responseCode = "200", description = "Canal de venda encontrado com sucesso.")
     @ApiResponse(responseCode = "404", description = "Canal de venda não encontrado.")
-    public ResponseEntity<CanalVendaModel> findById(@PathVariable Long id) {
+    public ResponseEntity<CanalVendaModel> findById(@Parameter(description = "ID do canal de venda.", example = "1") @PathVariable Long id) {
         CanalVendaResponseDTO responseDTO = canalVendaService.findById(id);
         return ResponseEntity.ok(canalVendaModelAssembler.toModel(responseDTO));
     }
@@ -57,7 +58,7 @@ public class CanalVendaController {
     @Operation(summary = "Atualizar um canal de venda")
     @ApiResponse(responseCode = "200", description = "Canal de venda atualizado com sucesso.")
     @ApiResponse(responseCode = "404", description = "Canal de venda não encontrado.")
-    public ResponseEntity<CanalVendaModel> update(@PathVariable Long id, @RequestBody @Valid CanalVendaRequestDTO requestDTO) {
+    public ResponseEntity<CanalVendaModel> update(@Parameter(description = "ID do canal de venda a ser atualizado.", example = "1") @PathVariable Long id, @RequestBody @Valid CanalVendaRequestDTO requestDTO) {
         CanalVendaResponseDTO responseDTO = canalVendaService.update(id, requestDTO);
         return ResponseEntity.ok(canalVendaModelAssembler.toModel(responseDTO));
     }
@@ -66,7 +67,7 @@ public class CanalVendaController {
     @Operation(summary = "Excluir um canal de venda")
     @ApiResponse(responseCode = "204", description = "Canal de venda excluído com sucesso.")
     @ApiResponse(responseCode = "404", description = "Canal de venda não encontrado.")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@Parameter(description = "ID do canal de venda a ser excluído.", example = "1") @PathVariable Long id) {
         canalVendaService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

@@ -21,7 +21,7 @@ public class MovimentacaoEstoqueProdutoRequestDTO {
     /**
      * ID do produto associado à movimentação.
      */
-    @Schema(description = "ID do produto associado à movimentação. No seed padrão, use 11 para 'Kit de Resina Epóxi'.", example = "11", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do produto associado à movimentação.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
@@ -33,7 +33,7 @@ public class MovimentacaoEstoqueProdutoRequestDTO {
     /**
      * Quantidade movimentada. Positiva para entradas, negativa para saídas.
      */
-    @Schema(description = "Quantidade movimentada. Positiva para entradas, negativa para saídas. No seed padrão, 1 é um exemplo seguro de entrada manual.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade movimentada. Positiva para entradas, negativa para saídas.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 
     /**

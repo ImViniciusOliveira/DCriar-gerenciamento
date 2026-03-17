@@ -24,12 +24,12 @@ public class DimensoesRequestDTO {
     /**
      * A medida da largura do item, em centímetros.
      */
-    @Schema(description = "A medida da largura do item, em centímetros.", example = "20.0", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "A medida da largura do item, em centímetros.", example = "9.0", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal larguraCm;
 
     /**
      * A medida do comprimento do item, em centímetros.
      */
-    @Schema(description = "A medida do comprimento do item, em centímetros.", example = "30.0", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "A medida do comprimento do item, em centímetros.", example = "5.0", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal comprimentoCm;
 }
