@@ -27,17 +27,17 @@
               @switch (tipoProducaoControl.value) {
                 @case ('') { Todos }
                 @case ('CORTE') { Corte }
-                @case ('CONSUMO_DIRETO') { Consumo Direto }
+                @case ('CONSUMO') { Consumo }
               }
             </mat-select-trigger>
             <mat-option value="">Todos</mat-option>
             <mat-option value="CORTE">Corte</mat-option>
-            <mat-option value="CONSUMO_DIRETO">Consumo Direto</mat-option>
+            <mat-option value="CONSUMO">Consumo</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
 
-      <!-- Linha 2 - Seção para input de Lote (para CORTE e CONSUMO_DIRETO) -->
+      <!-- Linha 2 - Seção para input de Lote (para CORTE e CONSUMO) -->
       @if (showCorteInputs() || showConsumoInputs()) {
         <div class="form-row">
           <div class="batch-search-field">
@@ -328,8 +328,8 @@
             }
           </div>
         </div>
-      } @else if (result.tipoSimulacao === 'CONSUMO_DIRETO') {
-        <!-- Formulário para CONSUMO DIRETO -->
+      } @else if (result.tipoSimulacao === 'CONSUMO') {
+        <!-- Formulário para CONSUMO -->
         <div class="filter-group-container">
           <div class="form-row">
             <div class="form-left">

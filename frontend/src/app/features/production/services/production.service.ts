@@ -58,7 +58,7 @@ export interface CreateCutOrderRequest {
 }
 
 /**
- * Representa o payload para criar uma ordem de produção por consumo direto.
+ * Representa o payload para criar uma ordem de produção por consumo.
  */
 export interface CreateConsumptionOrderRequest {
   produtoId: number;
@@ -180,7 +180,7 @@ export class ProductionService {
   }
 
   /**
-   * Cria uma nova ordem de produção por consumo direto.
+   * Cria uma nova ordem de produção por consumo.
    * @param url A URL completa para o endpoint de criação (descoberta via HATEOAS).
    * @param payload Os dados da ordem de produção.
    * @returns Um Observable com a resposta da criação.
@@ -192,7 +192,7 @@ export class ProductionService {
   }
 
   /**
-   * Executa a simulação de produção por consumo direto no backend.
+   * Executa a simulação de produção por consumo no backend.
    * @param url A URL completa para o endpoint de simulação (descoberta via HATEOAS).
    * @param payload Os dados para a simulação.
    * @returns Um Observable com a resposta da simulação.

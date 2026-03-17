@@ -219,7 +219,7 @@ export class ProductionForm implements OnInit {
   // Regra: penúltima (8) por padrão; última (9) só se a última linha for igual à anterior.
 // Propriedades computadas para controlar a visibilidade das seções de input.
   showCorteInputs = computed(() => this.produto()?.tipoProduto === 'CORTE');
-  showConsumoInputs = computed(() => this.produto()?.tipoProduto === 'CONSUMO_DIRETO');
+  showConsumoInputs = computed(() => this.produto()?.tipoProduto === 'CONSUMO');
 
   // Signal reativo para o valor do controle de canal de venda
   canalVendaIdValue;
@@ -438,7 +438,7 @@ export class ProductionForm implements OnInit {
     }
 
     // Adiciona ou remove o validador 'required' para loteId com base no tipo de produto
-    if (produto.tipoProduto === 'CORTE' || produto.tipoProduto === 'CONSUMO_DIRETO') {
+    if (produto.tipoProduto === 'CORTE' || produto.tipoProduto === 'CONSUMO') {
       this.loteIdControl.addValidators(Validators.required);
     } else {
       this.loteIdControl.removeValidators(Validators.required);
@@ -580,13 +580,13 @@ export class ProductionForm implements OnInit {
             this.isSimulating.set(false);
           }
         });
-    } else if (produto.tipoProduto === 'CONSUMO_DIRETO') {
-      console.log('%c[DEBUG] Payload ENVIADO para Simulação (CONSUMO_DIRETO):', 'color: purple; font-weight: bold;', payload);
+    } else if (produto.tipoProduto === 'CONSUMO') {
+      console.log('%c[DEBUG] Payload ENVIADO para Simulação (CONSUMO):', 'color: purple; font-weight: bold;', payload);
       this.productionService.simulateConsumption(url, payload)
         .pipe(take(1))
         .subscribe({
           next: (response) => {
-            console.log('%c[DEBUG] Resposta RECEBIDA da Simulação (CONSUMO_DIRETO):', 'color: green; font-weight: bold;', response);
+            console.log('%c[DEBUG] Resposta RECEBIDA da Simulação (CONSUMO):', 'color: green; font-weight: bold;', response);
             this.simulationResult.set(response as SimulationResult);
             this.consumptionSimulationSnapshot.set({
               quantidade,
@@ -598,7 +598,7 @@ export class ProductionForm implements OnInit {
             this.scrollToBottom();
           },
           error: (err) => {
-            console.error('%c[DEBUG] Erro na Simulação (CONSUMO_DIRETO):', 'color: red; font-weight: bold;', err);
+            console.error('%c[DEBUG] Erro na Simulação (CONSUMO):', 'color: red; font-weight: bold;', err);
             this.simulationResult.set(null);
             this.simulationFormSnapshot.set(null);
             this.consumptionSimulationSnapshot.set(null);
@@ -914,8 +914,36 @@ export class ProductionForm implements OnInit {
             this.cdr.markForCheck();
           }
         });
+      return;
     }
-    // TODO: Implementar a lógica para 'CONSUMO_DIRETO'
+
+    if (simulation.tipoSimulacao === 'CONSUMO') {
+      const payload: CreateConsumptionOrderRequest = {
+        produtoId: Number(formValue.produtoId),
+        loteId: Number(formValue.loteId),
+        quantidadeProduzida: Number(formValue.quantidade),
+        canalVendaDestinoId: formValue.canalVendaId ? Number(formValue.canalVendaId) : null,
+        motivo: formValue.motivo || null
+      };
+
+      console.log('%c[DEBUG] Payload FINAL ENVIADO para Criar Ordem (CONSUMO):', 'color: #bada55; font-weight: bold;', payload);
+
+      this.productionService.createConsumptionOrder(url, payload)
+        .pipe(take(1))
+        .subscribe({
+          next: (response) => {
+            console.log('%c[DEBUG] Ordem de Produção criada com SUCESSO (CONSUMO):', 'color: green; font-weight: bold;', response);
+            this.isSaving.set(false);
+            this.dialogRef.close(true);
+            this.cdr.markForCheck();
+          },
+          error: (err) => {
+            console.error('Erro ao criar ordem de produção por consumo:', err);
+            this.isSaving.set(false);
+            this.cdr.markForCheck();
+          }
+        });
+    }
   }
 
   onCancel(): void {

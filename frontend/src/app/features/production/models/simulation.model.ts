@@ -43,11 +43,11 @@ export interface SimulationCutResult extends RepresentationModel {
 }
 
 /**
- * Representa o resultado de uma simulação de consumo direto.
+ * Representa o resultado de uma simulação de consumo.
  * O campo 'tipoSimulacao' atua como um discriminador para type guards.
  */
 export interface SimulationConsumptionResult extends RepresentationModel {
-  tipoSimulacao: 'CONSUMO_DIRETO';
+  tipoSimulacao: 'CONSUMO';
   consumoTotalEstimado: number;
   unidadeDeConsumo: string;
   planoDeConsumo: Array<{
