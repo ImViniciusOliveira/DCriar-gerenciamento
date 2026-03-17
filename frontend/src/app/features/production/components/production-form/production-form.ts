@@ -21,6 +21,7 @@ import {Batch} from '../../../stock/models/batch.model';
 import { ChannelService } from '../../../stock/services/channel.service';
 import { ConfirmDialog } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { RethalboBadgeComponent, RetalhoValue } from '../retalho-badge/retalho-badge.component';
+import { EnumService } from '../../../../core/services/enum.service';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -56,6 +57,7 @@ export class ProductionForm implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly productionService = inject(ProductionService);
   private readonly channelService = inject(ChannelService);
+  private readonly enumService = inject(EnumService);
   public readonly data: ProductionFormData = inject(MAT_DIALOG_DATA);
 
   @ViewChild(ProductStockSearch) private productStockSearchComponent!: ProductStockSearch;
@@ -293,21 +295,12 @@ export class ProductionForm implements OnInit {
   }
 
   formatConsumptionUnit(result: SimulationConsumptionResult, quantity: number | null | undefined): string {
-    const amount = quantity ?? 0;
-    if (result.unidadeSimbolo && !this.isCountableConsumptionUnit(result.unidadeDeConsumo)) {
-      return `${amount}${result.unidadeSimbolo}`;
-    }
-
-    if (!result.unidadeDescricao) {
-      return '';
-    }
-    const label = amount === 1 ? result.unidadeDescricao : (result.unidadeDescricaoPlural ?? result.unidadeDescricao);
-    return `${amount} ${label}`;
-  }
-
-  private isCountableConsumptionUnit(unit: string | null | undefined): boolean {
-    const normalized = unit?.toUpperCase();
-    return normalized === 'UNIDADE' || normalized === 'FOLHA';
+    return this.enumService.formatQuantityWithUnit(quantity ?? 0, {
+      viewValue: result.unidadeDescricao,
+      pluralViewValue: result.unidadeDescricaoPlural,
+      simbolo: result.unidadeSimbolo,
+      displayQuantityWithSymbol: result.exibirQuantidadeComSimbolo
+    });
   }
 
   ngOnInit(): void {

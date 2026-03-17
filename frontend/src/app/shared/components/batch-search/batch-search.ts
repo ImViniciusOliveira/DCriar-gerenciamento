@@ -160,11 +160,7 @@ export class BatchSearch {
       return `Saldo: ${saldoM2}m² (${saldoCm2}cm²) | Largura: ${larguraMm}mm (${larguraCm}cm) | Comprimento: ${comprimentoMm}mm (${comprimentoCm}cm)`;
     } else {
       // PARA TODAS AS OUTRAS UNIDADES (LITRO, UNIDADE, etc.)
-      const nf = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
-      const saldo = nf.format(batch.saldoEstoque || 0);
-      const unit = this.getDisplayUnit(batch);
-      const separator = this.shouldConcatenateUnit(batch) ? '' : ' ';
-      return `Saldo: ${saldo}${separator}${unit}`;
+      return `Saldo: ${this.getDisplayUnit(batch)}`;
     }
   };
 
@@ -190,43 +186,20 @@ export class BatchSearch {
     const matchedUnit = this.measurementUnitOptions().find(unit => unit.value === batch.unidadeDeEstoque);
 
     if (matchedUnit) {
-      const formattedUnit = this.formatBatchUnit(batch.saldoEstoque || 0, matchedUnit);
-      if (formattedUnit) {
-        return formattedUnit;
-      }
+      return this.enumService.formatQuantityWithUnit(batch.saldoEstoque || 0, matchedUnit);
     }
 
-    if (batch.unidadeSimbolo) {
-      return batch.unidadeSimbolo;
+    const fallbackUnit = this.enumService.buildFallbackUnitOption(
+      batch.unidadeDescricao ?? batch.unidadeDeEstoque ?? '',
+      undefined,
+      batch.unidadeSimbolo,
+      !!batch.unidadeSimbolo && batch.unidadeSimbolo !== 'un' && batch.unidadeSimbolo !== 'fl'
+    );
+    if (fallbackUnit) {
+      return this.enumService.formatQuantityWithUnit(batch.saldoEstoque || 0, fallbackUnit);
     }
 
-    return batch.unidadeDescricao ?? batch.unidadeDeEstoque ?? '';
-  }
-
-  private formatBatchUnit(amount: number, unit: { value: string; viewValue: string; pluralViewValue?: string; simbolo?: string }): string | null {
-    const normalizedUnit = unit.value.toUpperCase();
-    const symbol = unit.simbolo?.trim();
-    const description = unit.viewValue?.trim();
-    const pluralDescription = unit.pluralViewValue?.trim();
-
-    if (symbol && !this.isCountableUnit(normalizedUnit)) {
-      return symbol;
-    }
-
-    if (description) {
-      return amount === 1 ? description : (pluralDescription ?? description);
-    }
-
-    return null;
-  }
-
-  private isCountableUnit(unit: string): boolean {
-    return unit === 'UNIDADE' || unit === 'FOLHA';
-  }
-
-  private shouldConcatenateUnit(batch: Batch): boolean {
-    const unit = (batch.unidadeDeEstoque ?? '').toUpperCase();
-    return !!batch.unidadeSimbolo && !this.isCountableUnit(unit);
+    return this.enumService.formatQuantityWithUnit(batch.saldoEstoque || 0);
   }
 
 }

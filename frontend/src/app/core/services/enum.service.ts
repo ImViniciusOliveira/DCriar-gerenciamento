@@ -11,6 +11,7 @@ export interface EnumOption {
   viewValue: string;
   pluralViewValue?: string;
   simbolo?: string;
+  displayQuantityWithSymbol?: boolean;
   compatibleInputUnit?: string;
   compatibleInputFactor?: number;
 }
@@ -23,6 +24,7 @@ interface EnumResponseItem {
   descricao: string;
   descricaoPlural?: string;
   simbolo: string;
+  exibirQuantidadeComSimbolo?: boolean;
   unidadeCadastroCompativel?: string;
   fatorConversaoCadastroCompativel?: number;
   [key: string]: any; // Permite outras propriedades como 'simbolo' e '_links'.
@@ -95,6 +97,7 @@ export class EnumService {
           viewValue: item.descricao,
           pluralViewValue: item.descricaoPlural,
           simbolo: item.simbolo,
+          displayQuantityWithSymbol: item.exibirQuantidadeComSimbolo,
           compatibleInputUnit: item.unidadeCadastroCompativel,
           compatibleInputFactor: item.fatorConversaoCadastroCompativel
         }));
@@ -105,5 +108,54 @@ export class EnumService {
 
     this.optionsCache.set(cacheKey, request$);
     return request$;
+  }
+
+  formatQuantityWithUnit(
+    amount: number | string | null | undefined,
+    unit?: Pick<EnumOption, 'viewValue' | 'pluralViewValue' | 'simbolo' | 'displayQuantityWithSymbol'> | null
+  ): string {
+    const normalizedAmount = amount ?? 0;
+    const amountLabel = typeof normalizedAmount === 'number' ? this.formatAmount(normalizedAmount) : String(normalizedAmount);
+
+    if (!unit) {
+      return amountLabel;
+    }
+
+    if (unit.displayQuantityWithSymbol && unit.simbolo) {
+      return `${amountLabel}${unit.simbolo}`;
+    }
+
+    if (!unit.viewValue) {
+      return amountLabel;
+    }
+
+    const unitLabel = Number(normalizedAmount) === 1 ? unit.viewValue : (unit.pluralViewValue ?? unit.viewValue);
+    return `${amountLabel} ${unitLabel}`;
+  }
+
+  buildFallbackUnitOption(
+    viewValue?: string | null,
+    pluralViewValue?: string | null,
+    simbolo?: string | null,
+    displayQuantityWithSymbol?: boolean | null
+  ): EnumOption | null {
+    if (!viewValue && !simbolo) {
+      return null;
+    }
+
+    return {
+      value: '',
+      viewValue: viewValue ?? '',
+      pluralViewValue: pluralViewValue ?? undefined,
+      simbolo: simbolo ?? undefined,
+      displayQuantityWithSymbol: displayQuantityWithSymbol ?? false
+    };
+  }
+
+  private formatAmount(value: number): string {
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3
+    }).format(value);
   }
 }

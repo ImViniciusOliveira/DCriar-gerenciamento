@@ -209,25 +209,8 @@ export class ProductStockSearch implements OnInit, OnDestroy {
   }
 
   private formatConsumptionAmount(amount: number, unit: string): string {
-    const normalizedUnit = unit.toUpperCase();
-    const unitMeta = this.consumptionUnitsMap().get(normalizedUnit);
-    const symbol = unitMeta?.simbolo?.trim();
-    const description = unitMeta?.viewValue?.trim();
-    const pluralDescription = unitMeta?.pluralViewValue?.trim();
-
-    if (symbol && !this.isCountableUnit(normalizedUnit)) {
-      return `${amount}${symbol}`;
-    }
-
-    if (description) {
-      return `${amount} ${amount === 1 ? description : (pluralDescription ?? description)}`;
-    }
-
-    return `${amount} ${unit}`;
-  }
-
-  private isCountableUnit(unit: string): boolean {
-    return unit === 'UNIDADE' || unit === 'FOLHA';
+    const unitMeta = this.consumptionUnitsMap().get(unit);
+    return this.enumService.formatQuantityWithUnit(amount, unitMeta);
   }
 
   private formatNumber(value: number): string {

@@ -7,14 +7,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { ErrorStateMatcher } from '@angular/material/core';
-import { HttpClient } from '@angular/common/http';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { startWith } from 'rxjs/operators';
 
 import { MaterialType, MaterialTypeRequest } from '../../models/material-type.model';
 import { MaterialTypeService } from '../../services/material-type.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
-import { ApiRoot } from '../../../../core/services/api-root';
+import { EnumService } from '../../../../core/services/enum.service';
 
 export interface MaterialTypeFormData {
   template: MaterialType;
@@ -67,12 +66,11 @@ export function requireMatch(options: UnitOption[]): ValidatorFn {
 })
 export class MaterialTypeForm implements OnInit {
   private readonly fb = inject(FormBuilder);
-  private readonly http = inject(HttpClient);
   private readonly dialogRef = inject(MatDialogRef<MaterialTypeForm>);
   private readonly materialTypeService = inject(MaterialTypeService);
   private readonly entityDialog = inject(EntityDialogService);
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly apiRoot = inject(ApiRoot);
+  private readonly enumService = inject(EnumService);
   public readonly data: MaterialTypeFormData = inject(MAT_DIALOG_DATA);
 
   private static readonly Texts = {
@@ -125,30 +123,29 @@ export class MaterialTypeForm implements OnInit {
    * Carrega as unidades de medida a partir do link HATEOAS para popular o autocomplete.
    */
   loadMeasurementUnits(): void {
-    const url = this.data.template?._links?.['unidades-de-medida']?.href || this.apiRoot.endpoints()?._links?.['unidades-de-medida']?.href;
+    const url = this.data.template?._links?.['unidades-de-medida']?.href;
 
     if (!url) {
       return;
     }
 
-    this.http.get<any>(url).subscribe({
-      next: (response) => {
-        const embedded = response._embedded;
-        if (embedded && embedded.unidadesDeMedida) {
-          const units: UnitOption[] = embedded.unidadesDeMedida.map((item: any) => ({ name: item.name, descricao: item.descricao }));
+    this.enumService.getEnumOptions(url, 'unidadesDeMedida').subscribe({
+      next: (options) => {
+        const units: UnitOption[] = options.map(option => ({
+          name: option.value,
+          descricao: option.viewValue
+        }));
 
-          this.allUnits.set(units);
+        this.allUnits.set(units);
+        this.form.get('unidadeDeConsumo')?.setValidators([Validators.required, requireMatch(units)]);
 
-          this.form.get('unidadeDeConsumo')?.setValidators([Validators.required, requireMatch(units)]);
-
-          if (this.data.template?.unidadeDeConsumo) {
-            const initialUnit = units.find(u => u.name === this.data.template.unidadeDeConsumo);
-            this.form.get('unidadeDeConsumo')?.setValue(initialUnit);
-          }
-
-          this.form.get('unidadeDeConsumo')?.updateValueAndValidity();
-          this.cdr.markForCheck();
+        if (this.data.template?.unidadeDeConsumo) {
+          const initialUnit = units.find(u => u.name === this.data.template.unidadeDeConsumo);
+          this.form.get('unidadeDeConsumo')?.setValue(initialUnit);
         }
+
+        this.form.get('unidadeDeConsumo')?.updateValueAndValidity();
+        this.cdr.markForCheck();
       }
     });
   }
