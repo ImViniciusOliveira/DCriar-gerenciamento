@@ -291,7 +291,7 @@ export class ProductionForm implements OnInit {
   }
 
   formatProductUnit(quantity: number | null | undefined): string {
-    return quantity === 1 ? 'unidade' : 'unidades';
+    return Number(quantity ?? 0) === 1 ? 'unidade' : 'unidades';
   }
 
   formatConsumptionUnit(result: SimulationConsumptionResult, quantity: number | null | undefined): string {
