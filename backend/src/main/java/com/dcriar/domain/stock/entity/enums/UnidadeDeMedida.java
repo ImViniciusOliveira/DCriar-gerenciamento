@@ -64,6 +64,14 @@ public enum UnidadeDeMedida {
         };
     }
 
+    public BigDecimal getFatorConversaoUnidadeMenorParaPrincipal() {
+        return switch (this) {
+            case LITRO, QUILOGRAMA -> new BigDecimal("1000");
+            case METRO_LINEAR -> new BigDecimal("100");
+            default -> null;
+        };
+    }
+
     public boolean aceitaComoCadastroDeConsumo(UnidadeDeMedida unidadeInformada) {
         if (unidadeInformada == null) {
             return false;

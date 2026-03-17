@@ -33,6 +33,12 @@ public class UnidadeDeMedidaModelAssembler extends RepresentationModelAssemblerS
 
         // 3. Define o nome do enum, que não é copiado automaticamente pelo BeanUtils.
         model.setName(unidadeDeMedida.name());
+        model.setUnidadeCadastroCompativel(
+                unidadeDeMedida.getUnidadeMenorCompativelParaCadastro() != null
+                        ? unidadeDeMedida.getUnidadeMenorCompativelParaCadastro().name()
+                        : null
+        );
+        model.setFatorConversaoCadastroCompativel(unidadeDeMedida.getFatorConversaoUnidadeMenorParaPrincipal());
 
         // 4. Adiciona o link para o próprio recurso (self link).
         String selfUrl = ServletUriComponentsBuilder.fromCurrentContextPath()

@@ -1,5 +1,7 @@
 package com.dcriar.api.hateoas.enums.model;
 
+import java.math.BigDecimal;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,4 +33,14 @@ public class UnidadeDeMedidaModel extends RepresentationModel<UnidadeDeMedidaMod
      * O símbolo da unidade de medida (ex: "m").
      */
     private String simbolo;
+
+    /**
+     * Unidade menor compatível para informar quantidades no cadastro de consumo.
+     */
+    private String unidadeCadastroCompativel;
+
+    /**
+     * Fator de conversão da unidade compatível para a unidade principal.
+     */
+    private BigDecimal fatorConversaoCadastroCompativel;
 }
