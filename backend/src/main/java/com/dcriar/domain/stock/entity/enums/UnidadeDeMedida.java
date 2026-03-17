@@ -17,40 +17,42 @@ import java.math.RoundingMode;
 public enum UnidadeDeMedida {
 
     // Unidades de Comprimento
-    METRO_LINEAR("Metro Linear", "Metros Lineares", "m", true, false),
-    CENTIMETRO_LINEAR("Centímetro Linear", "Centímetros Lineares", "cm", true, false),
+    METRO_LINEAR("Metro Linear", "Metros Lineares", "m", true, false, true),
+    CENTIMETRO_LINEAR("Centímetro Linear", "Centímetros Lineares", "cm", true, false, true),
 
     // Unidades de Área
-    METRO_QUADRADO("Metro Quadrado", "Metros Quadrados", "m²", true, false),
-    CENTIMETRO_QUADRADO("Centímetro Quadrado", "Centímetros Quadrados", "cm²", true, false),
+    METRO_QUADRADO("Metro Quadrado", "Metros Quadrados", "m²", true, false, true),
+    CENTIMETRO_QUADRADO("Centímetro Quadrado", "Centímetros Quadrados", "cm²", true, false, true),
 
     // Unidades de Massa
-    QUILOGRAMA("Quilograma", "Quilogramas", "kg", false, true),
-    GRAMA("Grama", "Gramas", "g", false, true),
+    QUILOGRAMA("Quilograma", "Quilogramas", "kg", false, true, true),
+    GRAMA("Grama", "Gramas", "g", false, true, true),
 
     // Unidades de Volume
-    LITRO("Litro", "Litros", "L", false, true),
-    MILILITRO("Mililitro", "Mililitros", "ml", false, true),
+    LITRO("Litro", "Litros", "L", false, true, true),
+    MILILITRO("Mililitro", "Mililitros", "ml", false, true, true),
 
     // Unidades de Contagem
-    UNIDADE("Unidade", "Unidades", "un", false, true), // Para itens não-dimensionais (parafusos, ilhós)
-    FOLHA("Folha", "Folhas", "fl", false, true),
+    UNIDADE("Unidade", "Unidades", "un", false, true, false), // Para itens não-dimensionais (parafusos, ilhós)
+    FOLHA("Folha", "Folhas", "fl", false, true, false),
 
     // Genérico
-    OUTROS("Outros", "Outros", "N/A", false, false);
+    OUTROS("Outros", "Outros", "N/A", false, false, false);
 
     private final String descricao;
     private final String descricaoPlural;
     private final String simbolo;
     private final boolean permiteCorte;
     private final boolean consumo;
+    private final boolean exibirQuantidadeComSimbolo;
 
-    UnidadeDeMedida(String descricao, String descricaoPlural, String simbolo, boolean permiteCorte, boolean consumo) {
+    UnidadeDeMedida(String descricao, String descricaoPlural, String simbolo, boolean permiteCorte, boolean consumo, boolean exibirQuantidadeComSimbolo) {
         this.descricao = descricao;
         this.descricaoPlural = descricaoPlural;
         this.simbolo = simbolo;
         this.permiteCorte = permiteCorte;
         this.consumo = consumo;
+        this.exibirQuantidadeComSimbolo = exibirQuantidadeComSimbolo;
     }
 
     public boolean isConsumo() {

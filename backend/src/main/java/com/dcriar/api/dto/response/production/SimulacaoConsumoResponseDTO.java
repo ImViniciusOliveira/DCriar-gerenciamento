@@ -43,6 +43,9 @@ public class SimulacaoConsumoResponseDTO {
     @Schema(description = "Símbolo da unidade de medida do consumo estimado.", example = "ml")
     private String unidadeSimbolo;
 
+    @Schema(description = "Indica se a quantidade deve ser exibida com o símbolo da unidade, sem espaço.", example = "true")
+    private Boolean exibirQuantidadeComSimbolo;
+
     @Schema(description = "Plano detalhado de quanto será consumido de cada lote.")
     private List<PlanoDeConsumoItemDTO> planoDeConsumo;
 

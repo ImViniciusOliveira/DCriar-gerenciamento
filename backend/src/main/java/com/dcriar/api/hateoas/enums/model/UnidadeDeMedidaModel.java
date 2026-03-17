@@ -40,6 +40,11 @@ public class UnidadeDeMedidaModel extends RepresentationModel<UnidadeDeMedidaMod
     private String simbolo;
 
     /**
+     * Indica se a quantidade deve ser exibida com o símbolo da unidade, sem espaço.
+     */
+    private boolean exibirQuantidadeComSimbolo;
+
+    /**
      * Unidade menor compatível para informar quantidades no cadastro de consumo.
      */
     private String unidadeCadastroCompativel;
