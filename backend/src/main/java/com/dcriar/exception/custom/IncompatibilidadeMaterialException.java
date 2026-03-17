@@ -5,7 +5,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class IncompatibilidadeMaterialException extends RuntimeException {
-    public IncompatibilidadeMaterialException(String message) {
+    private IncompatibilidadeMaterialException(String message) {
         super(message);
+    }
+
+    public static IncompatibilidadeMaterialException entreProdutoELote(
+            String nomeMateriaPrimaProduto,
+            String nomeMateriaPrimaLote
+    ) {
+        return new IncompatibilidadeMaterialException(
+                "A matéria-prima do produto (" + nomeMateriaPrimaProduto + ") " +
+                        "é diferente da matéria-prima do lote (" + nomeMateriaPrimaLote + ")."
+        );
     }
 }

@@ -160,14 +160,14 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                     try {
                         larguraVal = new BigDecimal((String) larguraMmObj);
                     } catch (NumberFormatException e) {
-                        throw new AtributoLoteInvalidoException(String.format(
-                                "Para lotes em %s, o atributo 'larguraMm' é obrigatório e deve ser um número para o cálculo de custo.",
-                                UnidadeDeMedida.METRO_LINEAR.getDescricao()));
+                        throw AtributoLoteInvalidoException.larguraMmObrigatoriaParaCalculoCusto(
+                                UnidadeDeMedida.METRO_LINEAR.getDescricao()
+                        );
                     }
                 } else {
-                    throw new AtributoLoteInvalidoException(String.format(
-                            "Para lotes em %s, o atributo 'larguraMm' é obrigatório e deve ser um número para o cálculo de custo.",
-                            UnidadeDeMedida.METRO_LINEAR.getDescricao()));
+                    throw AtributoLoteInvalidoException.larguraMmObrigatoriaParaCalculoCusto(
+                            UnidadeDeMedida.METRO_LINEAR.getDescricao()
+                    );
                 }
 
                 BigDecimal larguraCm = larguraVal.divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
@@ -184,7 +184,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         }
 
         if (totalUnidadesBase.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new QuantidadeUnidadesInvalidaException();
+            throw new QuantidadeUnidadesInvalidaException(totalUnidadesBase);
         }
 
         // Divide o custo total pela quantidade total de unidades de consumo.

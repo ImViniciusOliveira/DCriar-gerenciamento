@@ -42,7 +42,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
 
     private ContextoBaseCorte extrairContextoBaseCorte(Produto produto, LoteMateriaPrima lotePrincipal) {
         if (!(produto instanceof ProdutoDeCorte produtoDeCorte)) {
-            throw new TipoProducaoIncompativelException("Cálculo de corte só é aplicável a produtos do tipo 'CORTE'.");
+            throw TipoProducaoIncompativelException.calculoCorteApenasParaProdutoDeCorte(produto.getNome());
         }
 
         BigDecimal larguraTotalLoteCm = getLarguraEmCm(lotePrincipal.getAtributos());
@@ -97,14 +97,14 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         // 2. Determinar orientação ótima (considerando apenas a largura disponível para produtos, sem margens)
         BigDecimal larguraDisponivelParaProdutos = larguraTotalLoteCm.subtract(margemEsquerda).subtract(margemDireita);
         if (larguraDisponivelParaProdutos.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ProdutoNaoCabeNoLoteException("A soma das margens laterais é maior ou igual à largura do lote.");
+            throw ProdutoNaoCabeNoLoteException.margensLateraisExcedemLarguraLote();
         }
 
         int produtosPorLinhaNormal = calcularProdutosPorLinhaSemMargem(larguraDisponivelParaProdutos, larguraProduto);
         int produtosPorLinhaRotacionado = calcularProdutosPorLinhaSemMargem(larguraDisponivelParaProdutos, comprimentoProduto);
 
         if (produtosPorLinhaNormal == 0 && produtosPorLinhaRotacionado == 0) {
-            throw new ProdutoNaoCabeNoLoteException("O produto não cabe na largura do lote em nenhuma orientação.");
+            throw ProdutoNaoCabeNoLoteException.produtoNaoCabeEmNenhumaOrientacao();
         }
 
         int linhasNormal = calcularLinhas(quantidade, produtosPorLinhaNormal);
@@ -116,6 +116,8 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         BigDecimal comprimentoTotalRotacionado = (produtosPorLinhaRotacionado > 0)
                 ? larguraProduto.multiply(new BigDecimal(linhasRotacionado)).add(margensVerticais)
                 : BigDecimal.valueOf(Long.MAX_VALUE);
+        BigDecimal comprimentoTotalNormalCalculado = comprimentoTotalNormal;
+        BigDecimal comprimentoTotalRotacionadoCalculado = comprimentoTotalRotacionado;
 
         // Validar contra o comprimento do lote, se existir
         if (comprimentoTotalLoteCm.isPresent() && comprimentoTotalNormal.compareTo(comprimentoTotalLoteCm.get()) > 0) {
@@ -126,7 +128,12 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         }
 
         if (comprimentoTotalNormal.equals(BigDecimal.valueOf(Long.MAX_VALUE)) && comprimentoTotalRotacionado.equals(BigDecimal.valueOf(Long.MAX_VALUE))) {
-            throw new QuantidadeExcedeCapacidadeLoteException("A quantidade solicitada excede a capacidade do lote em ambas as orientações.");
+            throw QuantidadeExcedeCapacidadeLoteException.ambasOrientacoes(
+                    quantidade,
+                    comprimentoTotalNormalCalculado,
+                    comprimentoTotalRotacionadoCalculado,
+                    comprimentoTotalLoteCm.orElse(BigDecimal.ZERO)
+            );
         }
 
         // --- Lógica: prioriza menor comprimento, depois maior retalho lateral ---
@@ -191,15 +198,12 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         Optional<BigDecimal> comprimentoTotalLoteCm = contextoBase.comprimentoTotalLoteCm();
 
         if (larguraCorteManualCm.compareTo(larguraTotalLoteCm) > 0) {
-            throw new DimensoesManuaisInvalidasException(larguraCorteManualCm, larguraTotalLoteCm);
+            throw DimensoesManuaisInvalidasException.larguraMaiorQueLote(larguraCorteManualCm, larguraTotalLoteCm);
         }
         if (comprimentoTotalLoteCm.isPresent() && comprimentoCorteManualCm.compareTo(comprimentoTotalLoteCm.get()) > 0) {
-            throw new DimensoesManuaisInvalidasException(
-                    String.format(
-                            "O comprimento do corte manual (%.2f cm) não pode ser maior que o comprimento do lote (%.2f cm).",
-                            comprimentoCorteManualCm,
-                            comprimentoTotalLoteCm.get()
-                    )
+            throw DimensoesManuaisInvalidasException.comprimentoMaiorQueLote(
+                    comprimentoCorteManualCm,
+                    comprimentoTotalLoteCm.get()
             );
         }
 
@@ -355,7 +359,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
     private BigDecimal getLarguraEmCm(Map<String, Object> atributos) {
         Object larguraMmObj = atributos.get("larguraMm");
         if (!(larguraMmObj instanceof Number)) {
-            throw new AtributoLoteInvalidoException("O atributo 'larguraMm' do lote é inválido ou não existe.");
+            throw AtributoLoteInvalidoException.larguraMmInvalidaOuAusente();
         }
         return new BigDecimal(larguraMmObj.toString()).divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
     }

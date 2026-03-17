@@ -18,7 +18,7 @@ public class ArquivoStorageException extends RuntimeException {
      *
      * @param message A mensagem detalhando a causa da exceção.
      */
-    public ArquivoStorageException(String message) {
+    private ArquivoStorageException(String message) {
         super(message);
     }
 
@@ -28,7 +28,11 @@ public class ArquivoStorageException extends RuntimeException {
      * @param message A mensagem detalhando a causa da exceção.
      * @param cause A exceção original que causou o erro de armazenamento.
      */
-    public ArquivoStorageException(String message, Throwable cause) {
+    private ArquivoStorageException(String message, Throwable cause) {
         super(message, cause);
+    }
+
+    public static ArquivoStorageException falhaAoArmazenar(String originalName, Throwable cause) {
+        return new ArquivoStorageException("Falha crítica ao armazenar arquivo " + originalName, cause);
     }
 }

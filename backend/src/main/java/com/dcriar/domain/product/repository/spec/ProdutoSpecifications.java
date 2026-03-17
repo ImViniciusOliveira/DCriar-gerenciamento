@@ -33,9 +33,9 @@ public class ProdutoSpecifications {
 
     /**
      * Cria uma Specification que filtra produtos pelo seu tipo (discriminador).
-     * Ignora o filtro se o tipo for nulo ou inválido.
+     * Ignora o filtro apenas se o tipo for nulo ou vazio.
      *
-     * @param tipoProduto A string que representa o tipo ("CORTE" or "CONSUMO_DIRETO").
+     * @param tipoProduto A string que representa o tipo ("CORTE" ou "CONSUMO_DIRETO").
      * @return Uma Specification para o filtro de tipo.
      */
     public static Specification<Produto> comTipo(String tipoProduto) {
@@ -48,7 +48,7 @@ public class ProdutoSpecifications {
             } else if ("CONSUMO_DIRETO".equalsIgnoreCase(tipoProduto)) {
                 return builder.equal(root.type(), ProdutoDeConsumoDireto.class);
             }
-            return null; // Nenhum predicado se o tipo for inválido.
+            return null; // A validação de tipo inválido é feita antes, na service.
         };
     }
 

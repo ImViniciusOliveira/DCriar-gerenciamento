@@ -18,7 +18,7 @@ public class ArquivoNaoEncontradoException extends RuntimeException {
      *
      * @param message A mensagem detalhando o erro.
      */
-    public ArquivoNaoEncontradoException(String message) {
+    private ArquivoNaoEncontradoException(String message) {
         super(message);
     }
 
@@ -30,5 +30,9 @@ public class ArquivoNaoEncontradoException extends RuntimeException {
      */
     public ArquivoNaoEncontradoException(String message, Throwable cause) {
         super(message, cause);
+    }
+
+    public static ArquivoNaoEncontradoException noStorage(String fileName) {
+        return new ArquivoNaoEncontradoException("Arquivo não encontrado no storage: " + fileName);
     }
 }

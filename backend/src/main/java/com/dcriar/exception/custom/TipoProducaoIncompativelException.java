@@ -19,7 +19,7 @@ public class TipoProducaoIncompativelException extends RuntimeException {
      * Construtor para incompatibilidade geral de tipo de produção.
      * @param message A mensagem de erro.
      */
-    public TipoProducaoIncompativelException(String message) {
+    private TipoProducaoIncompativelException(String message) {
         super(message);
         this.nomeProduto = null;
         this.nomeMateriaPrimaProduto = null;
@@ -37,5 +37,44 @@ public class TipoProducaoIncompativelException extends RuntimeException {
         this.nomeMateriaPrimaProduto = nomeMateriaPrimaProduto;
         this.loteId = loteId;
         this.nomeMateriaPrimaLote = nomeMateriaPrimaLote;
+    }
+
+    public static TipoProducaoIncompativelException calculoCorteApenasParaProdutoDeCorte(String nomeProduto) {
+        return new TipoProducaoIncompativelException(
+                String.format(
+                        "O cálculo de corte só é aplicável a produtos do tipo 'CORTE'. Produto recebido: '%s'.",
+                        nomeProduto
+                )
+        );
+    }
+
+    public static TipoProducaoIncompativelException produtoNaoPermiteCorte(String nomeProduto, String unidadeDeConsumo) {
+        return new TipoProducaoIncompativelException(
+                String.format(
+                        "O produto '%s' não pode ser produzido por corte, pois sua unidade de consumo é '%s'. Utilize o endpoint de consumo direto.",
+                        nomeProduto,
+                        unidadeDeConsumo
+                )
+        );
+    }
+
+    public static TipoProducaoIncompativelException produtoNaoEhConsumoDireto(String nomeProduto, String unidadeDeConsumo) {
+        return new TipoProducaoIncompativelException(
+                String.format(
+                        "O produto '%s' não é compatível com produção por consumo direto, pois sua unidade de consumo é '%s'.",
+                        nomeProduto,
+                        unidadeDeConsumo
+                )
+        );
+    }
+
+    public static TipoProducaoIncompativelException produtoUsaMateriaPrimaGeometrica(String nomeProduto, String unidadeDeConsumo) {
+        return new TipoProducaoIncompativelException(
+                String.format(
+                        "O produto '%s' utiliza uma matéria-prima geométrica com unidade de consumo '%s'. Utilize o simulador de corte.",
+                        nomeProduto,
+                        unidadeDeConsumo
+                )
+        );
     }
 }

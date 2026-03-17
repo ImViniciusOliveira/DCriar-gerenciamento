@@ -17,7 +17,28 @@ public class ImpossivelExcluirProducaoException extends RuntimeException {
      *
      * @param mensagem A descrição do erro e o motivo pelo qual a exclusão não é permitida.
      */
-    public ImpossivelExcluirProducaoException(String mensagem) {
+    private ImpossivelExcluirProducaoException(String mensagem) {
         super(mensagem);
+    }
+
+    public static ImpossivelExcluirProducaoException estoqueInsuficienteParaEstorno(
+            int quantidadeProduzida,
+            int saldoAtualProduto
+    ) {
+        return new ImpossivelExcluirProducaoException(String.format(
+                "Estoque insuficiente para estorno. Produzido: %d, Saldo Atual: %d. Produtos já foram vendidos ou consumidos.",
+                quantidadeProduzida,
+                saldoAtualProduto
+        ));
+    }
+
+    public static ImpossivelExcluirProducaoException retalhoJaUtilizado(Long loteId, Long ordemDeProducaoOrigemId) {
+        return new ImpossivelExcluirProducaoException(
+                String.format(
+                        "O retalho gerado (Lote #%d), originado pela Ordem de Produção #%d, já foi utilizado em outra produção.",
+                        loteId,
+                        ordemDeProducaoOrigemId
+                )
+        );
     }
 }

@@ -76,7 +76,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             log.info("[STORAGE] Arquivo salvo com sucesso: {}", uniqueFileName);
             return uniqueFileName;
         } catch (Exception e) {
-            throw new ArquivoStorageException("Falha crítica ao armazenar arquivo " + originalName, e);
+            throw ArquivoStorageException.falhaAoArmazenar(originalName, e);
         }
     }
 
@@ -93,7 +93,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             return new InputStreamResource(stream);
         } catch (Exception e) {
             log.warn("[STORAGE] Arquivo não encontrado: {}", fileName);
-            throw new ArquivoNaoEncontradoException("Arquivo não encontrado no storage: " + fileName);
+            throw ArquivoNaoEncontradoException.noStorage(fileName);
         }
     }
 

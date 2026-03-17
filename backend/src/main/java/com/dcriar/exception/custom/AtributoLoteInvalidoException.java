@@ -14,7 +14,18 @@ public class AtributoLoteInvalidoException extends RuntimeException {
      *
      * @param message A mensagem explicando o problema com o atributo do lote.
      */
-    public AtributoLoteInvalidoException(String message) {
+    private AtributoLoteInvalidoException(String message) {
         super(message);
+    }
+
+    public static AtributoLoteInvalidoException larguraMmObrigatoriaParaCalculoCusto(String unidadeDescricao) {
+        return new AtributoLoteInvalidoException(String.format(
+                "Para lotes em %s, o atributo 'larguraMm' é obrigatório e deve ser um número para o cálculo de custo.",
+                unidadeDescricao
+        ));
+    }
+
+    public static AtributoLoteInvalidoException larguraMmInvalidaOuAusente() {
+        return new AtributoLoteInvalidoException("O atributo 'larguraMm' do lote é inválido ou não existe.");
     }
 }

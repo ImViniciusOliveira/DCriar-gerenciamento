@@ -86,11 +86,14 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         // 1. Validações iniciais e busca de entidades principais.
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
-            throw new TipoProducaoIncompativelException("Este produto não pode ser produzido por corte. Utilize o endpoint de consumo direto.");
+            throw TipoProducaoIncompativelException.produtoNaoPermiteCorte(
+                    produto.getNome(),
+                    produto.getTipoMateriaPrima().getUnidadeDeConsumo().name()
+            );
         }
 
         if (requestDTO.getLoteId() == null) {
-            throw new LotePrincipalNaoEspecificadoException("A produção por corte exige a especificação de um 'lotePrincipalId'.");
+            throw LotePrincipalNaoEspecificadoException.paraProducaoPorCorte();
         }
         LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLoteId());
 
@@ -131,16 +134,19 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     .add(margemDireita);
 
             if (larguraBlocoFinalComMargens.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new MargemInvalidaException(
-                        String.format("As margens aplicadas resultam em uma largura de bloco nula ou negativa (%.2fcm). A largura dos produtos é %.2fcm e as margens somam %.2fcm.",
-                                larguraBlocoFinalComMargens, larguraProdutosAgrupados, margemEsquerda.add(margemDireita))
+                throw MargemInvalidaException.larguraFinalNaoPositiva(
+                        larguraBlocoFinalComMargens,
+                        larguraProdutosAgrupados,
+                        margemEsquerda.add(margemDireita)
                 );
             }
 
             if (larguraBlocoFinalComMargens.compareTo(parametrosBase.larguraTotalLoteCm()) > 0) {
-                throw new MargemInvalidaException(
-                        String.format("A soma da largura dos produtos (%.2fcm) e das margens (%.2fcm + %.2fcm) excede a largura do lote (%.2fcm).",
-                                larguraProdutosAgrupados, margemEsquerda, margemDireita, parametrosBase.larguraTotalLoteCm())
+                throw MargemInvalidaException.larguraComMargensExcedeLote(
+                        larguraProdutosAgrupados,
+                        margemEsquerda,
+                        margemDireita,
+                        parametrosBase.larguraTotalLoteCm()
                 );
             }
             BigDecimal larguraRetalhoFinal = parametrosBase.larguraTotalLoteCm().subtract(larguraBlocoFinalComMargens);
@@ -168,9 +174,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                         .add(Optional.ofNullable(requestDTO.getMargens().getInferior()).orElse(BigDecimal.ZERO));
             }
             if (comprimentoFinalCm.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new MargemInvalidaException(
-                    String.format("As margens aplicadas resultam em um comprimento final nulo ou negativo (%.2fcm).", comprimentoFinalCm)
-                );
+                throw MargemInvalidaException.comprimentoFinalNaoPositivo(comprimentoFinalCm);
             }
 
             ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, false);
@@ -244,7 +248,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         // 1. Validações iniciais e busca de entidades.
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumoDireto()) {
-            throw new TipoProducaoIncompativelException("Este produto não é para consumo direto.");
+            throw TipoProducaoIncompativelException.produtoNaoEhConsumoDireto(
+                    produto.getNome(),
+                    produto.getTipoMateriaPrima().getUnidadeDeConsumo().name()
+            );
         }
 
         LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());
@@ -308,9 +315,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         // 1. Validação: Produto Acabado
         Integer saldoAtualProduto = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(ordem.getProduto());
         if (saldoAtualProduto < ordem.getQuantidadeProduzida()) {
-            throw new ImpossivelExcluirProducaoException(
-                    String.format("Estoque insuficiente para estorno. Produzido: %d, Saldo Atual: %d. Produtos já foram vendidos ou consumidos.",
-                            ordem.getQuantidadeProduzida(), saldoAtualProduto)
+            throw ImpossivelExcluirProducaoException.estoqueInsuficienteParaEstorno(
+                    ordem.getQuantidadeProduzida(),
+                    saldoAtualProduto
             );
         }
 
@@ -321,9 +328,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     .anyMatch(m -> m.getQuantidade().compareTo(BigDecimal.ZERO) < 0);
             
             if (temSaida) {
-                 throw new ImpossivelExcluirProducaoException(
-                    String.format("O retalho gerado (Lote #%d) já foi utilizado em outra produção.", retalho.getId())
-            );
+                 Long ordemOrigemId = retalho.getOrdemDeProducaoOrigem() != null
+                         ? retalho.getOrdemDeProducaoOrigem().getId()
+                         : ordem.getId();
+                 throw ImpossivelExcluirProducaoException.retalhoJaUtilizado(retalho.getId(), ordemOrigemId);
             }
         }
 
@@ -348,7 +356,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     .motivo("Estorno da Ordem de Produção #" + ordem.getId())
                     .build();
             MovimentacaoEstoqueLote estornoMP = MovimentacaoEstoqueLote.from(estornoMPDTO, baixa.getLote());
-            estornoMP.setOrdemDeProducao(ordem);
             movimentacaoEstoqueLoteRepository.save(estornoMP);
         }
 
@@ -392,9 +399,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         LoteMateriaPrima loteParaSimulacao = findLoteById(requestDTO.getLoteId());
 
         if (!produto.getTipoMateriaPrima().equals(loteParaSimulacao.getTipoMateriaPrima())) {
-            throw new IncompatibilidadeMaterialException(
-                    "A matéria-prima do produto (" + produto.getTipoMateriaPrima().getNome() + ") " +
-                            "é diferente da matéria-prima do lote (" + loteParaSimulacao.getTipoMateriaPrima().getNome() + ")."
+            throw IncompatibilidadeMaterialException.entreProdutoELote(
+                    produto.getTipoMateriaPrima().getNome(),
+                    loteParaSimulacao.getTipoMateriaPrima().getNome()
             );
         }
 
@@ -413,15 +420,15 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
         BigDecimal larguraLoteCm = larguraMm.divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
         if (comprimentoBlocoProdutosCm.compareTo(comprimentoLoteCm) > 0) {
-            throw new ProdutoNaoCabeNoLoteException(
-                String.format("O comprimento do bloco de corte (%.2fcm) excede o comprimento do lote (%.2fcm).",
-                    comprimentoBlocoProdutosCm, comprimentoLoteCm)
+            throw ProdutoNaoCabeNoLoteException.comprimentoBlocoExcedeComprimentoLote(
+                    comprimentoBlocoProdutosCm,
+                    comprimentoLoteCm
             );
         }
         if (larguraFinalCm.compareTo(larguraLoteCm) > 0) {
-            throw new ProdutoNaoCabeNoLoteException(
-                String.format("A largura do bloco de corte (%.2fcm) excede a largura do lote (%.2fcm).",
-                    larguraFinalCm, larguraLoteCm)
+            throw ProdutoNaoCabeNoLoteException.larguraBlocoExcedeLarguraLote(
+                    larguraFinalCm,
+                    larguraLoteCm
             );
         }
         // Validação de saldo de matéria-prima
@@ -477,15 +484,15 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             larguraBlocoProdutosCm = requestDTO.getLarguraBlocoProdutosCm();
             comprimentoFinalCm = comprimentoBlocoProdutosCm;
             if (comprimentoBlocoProdutosCm.compareTo(comprimentoLoteCm) > 0) {
-                throw new ProdutoNaoCabeNoLoteException(
-                    String.format("O comprimento do bloco de corte (%.2fcm) excede o comprimento do lote (%.2fcm).",
-                        comprimentoBlocoProdutosCm, comprimentoLoteCm)
+                throw ProdutoNaoCabeNoLoteException.comprimentoBlocoExcedeComprimentoLote(
+                        comprimentoBlocoProdutosCm,
+                        comprimentoLoteCm
                 );
             }
             if (larguraBlocoProdutosCm.compareTo(larguraLoteCm) > 0) {
-                throw new ProdutoNaoCabeNoLoteException(
-                    String.format("A largura do bloco de corte (%.2fcm) excede a largura do lote (%.2fcm).",
-                        larguraBlocoProdutosCm, larguraLoteCm)
+                throw ProdutoNaoCabeNoLoteException.larguraBlocoExcedeLarguraLote(
+                        larguraBlocoProdutosCm,
+                        larguraLoteCm
                 );
             }
             parametros = corteCalculatorService.extrairParametrosCorteManual(
@@ -507,16 +514,19 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             BigDecimal larguraBlocoFinalComMargens = larguraBlocoProdutosCm.add(margemEsquerda).add(margemDireita);
 
             if (larguraBlocoFinalComMargens.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new MargemInvalidaException(
-                        String.format("As margens aplicadas resultam em uma largura de bloco nula ou negativa (%.2fcm). A largura dos produtos é %.2fcm e as margens somam %.2fcm.",
-                                larguraBlocoFinalComMargens, larguraBlocoProdutosCm, margemEsquerda.add(margemDireita))
+                throw MargemInvalidaException.larguraFinalNaoPositiva(
+                        larguraBlocoFinalComMargens,
+                        larguraBlocoProdutosCm,
+                        margemEsquerda.add(margemDireita)
                 );
             }
 
             if (larguraBlocoFinalComMargens.compareTo(parametrosBase.larguraTotalLoteCm()) > 0) {
-                throw new MargemInvalidaException(
-                        String.format("A soma da largura dos produtos (%.2fcm) e das margens (%.2fcm + %.2fcm) excede a largura do lote (%.2fcm).",
-                                larguraBlocoProdutosCm, margemEsquerda, margemDireita, parametrosBase.larguraTotalLoteCm())
+                throw MargemInvalidaException.larguraComMargensExcedeLote(
+                        larguraBlocoProdutosCm,
+                        margemEsquerda,
+                        margemDireita,
+                        parametrosBase.larguraTotalLoteCm()
                 );
             }
 
@@ -544,9 +554,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                         .add(Optional.ofNullable(requestDTO.getMargens().getInferior()).orElse(BigDecimal.ZERO));
             }
             if (comprimentoFinalCm.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new MargemInvalidaException(
-                    String.format("As margens aplicadas resultam em um comprimento final nulo ou negativo (%.2fcm).", comprimentoFinalCm)
-                );
+                throw MargemInvalidaException.comprimentoFinalNaoPositivo(comprimentoFinalCm);
             }
             // Se o comprimento final for maior que o comprimento físico do lote,
             // calcular o consumo necessário e validar o saldo do lote da mesma forma
@@ -596,7 +604,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     public SimulacaoConsumoDiretoResponseDTO simularConsumoDireto(SimulacaoConsumoDiretoRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumoDireto()) {
-            throw new TipoProducaoIncompativelException("Este produto utiliza uma matéria-prima geométrica. Utilize o simulador de corte.");
+            throw TipoProducaoIncompativelException.produtoUsaMateriaPrimaGeometrica(
+                    produto.getNome(),
+                    produto.getTipoMateriaPrima().getUnidadeDeConsumo().name()
+            );
         }
 
         LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());

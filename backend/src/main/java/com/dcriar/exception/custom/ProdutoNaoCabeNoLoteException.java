@@ -15,7 +15,7 @@ public class ProdutoNaoCabeNoLoteException extends RuntimeException {
      * Construtor genérico para mensagens de erro simples.
      * @param message A mensagem explicando por que o produto não cabe no lote.
      */
-    public ProdutoNaoCabeNoLoteException(String message) {
+    private ProdutoNaoCabeNoLoteException(String message) {
         super(message);
     }
 
@@ -41,6 +41,36 @@ public class ProdutoNaoCabeNoLoteException extends RuntimeException {
         super(String.format(
                 "Produto com margens não cabe no lote. Largura necessária (%.2f cm) e Comprimento necessário (%.2f cm) excedem a largura do lote (%.2f cm).",
                 larguraProdutoComMargens, comprimentoProdutoComMargens, larguraLote
+        ));
+    }
+
+    public static ProdutoNaoCabeNoLoteException margensLateraisExcedemLarguraLote() {
+        return new ProdutoNaoCabeNoLoteException("A soma das margens laterais é maior ou igual à largura do lote.");
+    }
+
+    public static ProdutoNaoCabeNoLoteException produtoNaoCabeEmNenhumaOrientacao() {
+        return new ProdutoNaoCabeNoLoteException("O produto não cabe na largura do lote em nenhuma orientação.");
+    }
+
+    public static ProdutoNaoCabeNoLoteException comprimentoBlocoExcedeComprimentoLote(
+            BigDecimal comprimentoBloco,
+            BigDecimal comprimentoLote
+    ) {
+        return new ProdutoNaoCabeNoLoteException(String.format(
+                "O comprimento do bloco de corte (%.2fcm) excede o comprimento do lote (%.2fcm).",
+                comprimentoBloco,
+                comprimentoLote
+        ));
+    }
+
+    public static ProdutoNaoCabeNoLoteException larguraBlocoExcedeLarguraLote(
+            BigDecimal larguraBloco,
+            BigDecimal larguraLote
+    ) {
+        return new ProdutoNaoCabeNoLoteException(String.format(
+                "A largura do bloco de corte (%.2fcm) excede a largura do lote (%.2fcm).",
+                larguraBloco,
+                larguraLote
         ));
     }
 }

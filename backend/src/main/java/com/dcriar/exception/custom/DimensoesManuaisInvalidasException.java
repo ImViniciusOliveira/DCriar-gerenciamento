@@ -12,7 +12,7 @@ public class DimensoesManuaisInvalidasException extends RuntimeException {
      * Construtor genérico para mensagens de erro simples.
      * @param message A mensagem de erro.
      */
-    public DimensoesManuaisInvalidasException(String message) {
+    private DimensoesManuaisInvalidasException(String message) {
         super(message);
     }
 
@@ -21,22 +21,26 @@ public class DimensoesManuaisInvalidasException extends RuntimeException {
      * @param larguraCorteManual A largura informada pelo usuário.
      * @param larguraLote A largura máxima do lote.
      */
-    public DimensoesManuaisInvalidasException(BigDecimal larguraCorteManual, BigDecimal larguraLote) {
-        super(String.format(
+    public static DimensoesManuaisInvalidasException larguraMaiorQueLote(
+            BigDecimal larguraCorteManual,
+            BigDecimal larguraLote
+    ) {
+        return new DimensoesManuaisInvalidasException(String.format(
                 "A largura do corte manual (%.2f cm) não pode ser maior que a largura do lote (%.2f cm).",
-                larguraCorteManual, larguraLote
+                larguraCorteManual,
+                larguraLote
         ));
     }
 
-    /**
-     * Construtor para o erro onde o comprimento final não é suficiente para a quantidade de produtos.
-     * @param comprimentoFinal O comprimento informado pelo usuário.
-     * @param comprimentoMinimo O comprimento mínimo calculado para a produção.
-     */
-    public DimensoesManuaisInvalidasException(BigDecimal comprimentoFinal, BigDecimal comprimentoMinimo, String message) {
-        super(String.format(
-                "O comprimento final (%.2f cm) não é suficiente para produzir a quantidade solicitada. Mínimo necessário: %.2f cm.",
-                comprimentoFinal, comprimentoMinimo
+    public static DimensoesManuaisInvalidasException comprimentoMaiorQueLote(
+            BigDecimal comprimentoCorteManual,
+            BigDecimal comprimentoLote
+    ) {
+        return new DimensoesManuaisInvalidasException(String.format(
+                "O comprimento do corte manual (%.2f cm) não pode ser maior que o comprimento do lote (%.2f cm).",
+                comprimentoCorteManual,
+                comprimentoLote
         ));
     }
+
 }

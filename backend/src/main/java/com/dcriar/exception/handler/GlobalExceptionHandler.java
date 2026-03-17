@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    //region Exceções de Domínio e Negócio
+    //region Exceções de Domínio
 
     @ExceptionHandler(ValorNumericoExcedeLimiteException.class)
     public ResponseEntity<ErrorResponseDTO> handleValorNumericoExcedeLimite(ValorNumericoExcedeLimiteException ex) {
@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
         details.put("valorCalculado", ex.getValorEnviado());
         details.put("limite", ex.getLimiteMaximo());
 
-        log.warn("Exceção de Valor Numérico Excede Limite: {}", ex.getMessage());
+        log.warn("{}: {}", ex.getClass().getSimpleName(), ex.getMessage());
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
 
@@ -71,7 +71,7 @@ public class GlobalExceptionHandler {
         else if (ex instanceof CanalVendaNaoEncontradoException e) { details.put("canalVendaId", String.valueOf(e.getId())); }
         else if (ex instanceof LoteMateriaPrimaNaoEncontradoException e) { details.put("loteId", String.valueOf(e.getId())); }
         else if (ex instanceof TipoMateriaPrimaNaoEncontradoException e) { details.put("materiaPrimaId", String.valueOf(e.getMateriaPrimaId())); }
-        else if (ex instanceof VendaNaoEncontradaException e) { details.put("vendaId", String.valueOf(e.getMessage())); }
+        else if (ex instanceof VendaNaoEncontradaException e) { details.put("vendaId", String.valueOf(e.getVendaId())); }
         else if (ex instanceof ArquivoNaoEncontradoException) { details.put("info", ex.getMessage()); }
         else if (ex instanceof CorteRealizadoNaoEncontradoException e) { details.put("corteRealizadoId", String.valueOf(e.getId())); }
         else if (ex instanceof MovimentacaoEstoqueProdutoNaoEncontradoException e) { details.put("movimentacaoId", String.valueOf(e.getId())); }
@@ -79,13 +79,13 @@ public class GlobalExceptionHandler {
         else if (ex instanceof PrecoNaoEncontradoException e) { details.put("precoId", String.valueOf(e.getId())); }
         else if (ex instanceof EstoqueNaoEncontradoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("canalVendaId", String.valueOf(e.getCanalVendaId())); }
 
-        log.warn("Exceção de Recurso Não Encontrado: {}. Detalhes: {}", ex.getMessage(), details);
+        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
         return buildErrorResponse(ex, HttpStatus.NOT_FOUND, details);
     }
 
     /**
-     * Trata exceções de violação de regras de negócio (HTTP 400 Bad Request).
-     * Intercepta {@link PrecoVarejoNaoDefinidoException}, {@link LoteInvalidoException},
+     * Trata exceções de domínio com resposta HTTP 400 (Bad Request).
+     * Intercepta {@link PrecoVarejoNaoDefinidoException},
      * {@link AtributoLoteInvalidoException}, {@link CalculoCustoIncompativelException},
      * {@link DimensoesManuaisInvalidasException}, {@link MargemInvalidaException},
      * {@link LotePrincipalNaoEspecificadoException},
@@ -93,11 +93,11 @@ public class GlobalExceptionHandler {
      * {@link TipoProducaoIncompativelException}, {@link ImpossivelExcluirProducaoException},
      * {@link TipoProdutoInvalidoException}, {@link OperadorEstoqueInvalidoException}.
      *
-     * @param ex A exceção de regra de negócio ou parâmetro inválido lançada.
+     * @param ex A exceção de domínio ou parâmetro inválido lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
      */
     @ExceptionHandler({
-            PrecoVarejoNaoDefinidoException.class, LoteInvalidoException.class,
+            PrecoVarejoNaoDefinidoException.class,
             AtributoLoteInvalidoException.class, CalculoCustoIncompativelException.class, DimensoesManuaisInvalidasException.class,
             MargemInvalidaException.class, LotePrincipalNaoEspecificadoException.class,
             ProdutoNaoCabeNoLoteException.class, QuantidadeUnidadesInvalidaException.class, TipoProducaoIncompativelException.class,
@@ -119,7 +119,7 @@ public class GlobalExceptionHandler {
             details.put("info", ex.getMessage());
         }
 
-        log.warn("Exceção de Regra de Negócio: {}", ex.getMessage());
+        log.warn("{}: {}", ex.getClass().getSimpleName(), ex.getMessage());
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
 
@@ -146,7 +146,7 @@ public class GlobalExceptionHandler {
         else if (ex instanceof ProdutoSkuDuplicadoException e) { details.put("sku", e.getSku()); }
         else if (ex instanceof ExclusaoLoteBloqueadaException e) { details.put("info", e.getMessage()); }
 
-        log.warn("Exceção de Conflito: {}. Detalhes: {}", ex.getMessage(), details);
+        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);
     }
 
@@ -159,7 +159,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ProdutoInvalidoException.class)
     public ResponseEntity<ErrorResponseDTO> handleMultiFieldValidation(ProdutoInvalidoException ex) {
-        log.warn("Exceção de Produto Inválido: {}. Detalhes: {}", ex.getMessage(), ex.getErrors());
+        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), ex.getErrors());
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, ex.getErrors());
     }
 
@@ -194,7 +194,7 @@ public class GlobalExceptionHandler {
             details.put("quantidadeRequisitada", String.valueOf(e.getQuantidadeRequisitada()));
             details.put("saldoDisponivel", String.valueOf(e.getSaldoDisponivel()));
         }
-        log.warn("Exceção de Estoque Insuficiente: {}. Detalhes: {}", ex.getMessage(), details);
+        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
 

@@ -12,7 +12,7 @@ import java.math.BigDecimal;
  * gera um valor maior do que o sistema pode suportar.
  */
 @Getter
-public class ValorNumericoExcedeLimiteException extends RegraNegocioException {
+public class ValorNumericoExcedeLimiteException extends RuntimeException {
 
     private final String nomeDoCampo;
     private final String valorEnviado;

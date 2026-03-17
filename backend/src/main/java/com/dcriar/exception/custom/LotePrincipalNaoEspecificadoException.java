@@ -5,7 +5,13 @@ package com.dcriar.exception.custom;
  */
 public class LotePrincipalNaoEspecificadoException extends RuntimeException {
 
-    public LotePrincipalNaoEspecificadoException(String message) {
+    private LotePrincipalNaoEspecificadoException(String message) {
         super(message);
+    }
+
+    public static LotePrincipalNaoEspecificadoException paraProducaoPorCorte() {
+        return new LotePrincipalNaoEspecificadoException(
+                "A produção por corte exige a especificação de um 'loteId'."
+        );
     }
 }

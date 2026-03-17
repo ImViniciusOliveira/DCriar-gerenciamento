@@ -69,6 +69,12 @@ public class ProdutoServiceImpl implements ProdutoService {
         if (estoqueOperador != null && (!estoqueOperador.equalsIgnoreCase("GTE") && !estoqueOperador.equalsIgnoreCase("LTE"))) {
             throw new OperadorEstoqueInvalidoException(estoqueOperador);
         }
+        if (tipoProduto != null
+                && !tipoProduto.isBlank()
+                && !tipoProduto.equalsIgnoreCase("CORTE")
+                && !tipoProduto.equalsIgnoreCase("CONSUMO_DIRETO")) {
+            throw new TipoProdutoInvalidoException(tipoProduto);
+        }
 
         Specification<Produto> spec = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
 
@@ -112,7 +118,7 @@ public class ProdutoServiceImpl implements ProdutoService {
             produto = createProdutoDeConsumoDireto(requestDTO, tipoMateriaPrima);
             produto = produtoDeConsumoDiretoRepository.save((ProdutoDeConsumoDireto) produto);
         } else {
-            throw new RegraNegocioException("Tipo de produto inválido: " + requestDTO.getTipoProduto());
+            throw new TipoProdutoInvalidoException(requestDTO.getTipoProduto());
         }
 
         if (produto.getFotoPrincipalUrl() != null && !produto.getFotoPrincipalUrl().isBlank()) {
