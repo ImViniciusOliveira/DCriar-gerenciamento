@@ -20,25 +20,25 @@ public class CorteRealizadoRequestDTO {
     /**
      * ID da ordem de produção à qual o corte está associado.
      */
-    @Schema(description = "ID da ordem de produção à qual o corte está associado.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID da ordem de produção à qual o corte está associado. No seed padrão, a ordem 1 corresponde ao motivo 'PEDIDO-SHP-101'.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long ordemDeProducaoId;
 
     /**
      * Largura do corte em centímetros.
      */
-    @Schema(description = "Largura do corte em centímetros.", example = "10.5", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Largura do corte em centímetros.", example = "5.0", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal larguraCm;
 
     /**
      * Comprimento do corte em centímetros.
      */
-    @Schema(description = "Comprimento do corte em centímetros.", example = "15.0", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Comprimento do corte em centímetros.", example = "5.0", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal comprimentoCm;
 
     /**
      * Quantidade de peças produzidas com este corte.
      */
-    @Schema(description = "Quantidade de peças produzidas com este corte.", example = "50", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade de peças produzidas com este corte. No seed padrão, a ordem 1 registra 100 unidades.", example = "100", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 
     /**
@@ -57,6 +57,6 @@ public class CorteRealizadoRequestDTO {
     /**
      * Quantidade de repetições deste corte (para agrupamento de linhas iguais).
      */
-    @Schema(description = "Quantidade de repetições deste corte (para agrupamento de linhas iguais).", example = "41")
+    @Schema(description = "Quantidade de repetições deste corte (para agrupamento de linhas iguais).", example = "20")
     private Integer repeticoes;
 }

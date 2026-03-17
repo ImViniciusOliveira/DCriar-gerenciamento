@@ -25,7 +25,7 @@ public class VendaRequestDTO {
     /**
      * O ID do canal de venda onde a transação ocorreu.
      */
-    @Schema(description = "O ID do canal de venda onde a transação ocorreu.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "O ID do canal de venda onde a transação ocorreu. No seed padrão, use 1 para 'Loja Física'.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long canalVendaId;
 
     /**
@@ -33,6 +33,6 @@ public class VendaRequestDTO {
      * <p>
      * A anotação {@code @Valid} garante que cada item da lista seja validado individualmente.
      */
-    @Schema(description = "A lista de itens que compõem a venda.", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "A lista de itens que compõem a venda. No seed padrão, um caso feliz é vender 1 unidade do produto 11 na Loja Física.", example = "[{\"produtoId\":11,\"quantidade\":1}]", requiredMode = Schema.RequiredMode.REQUIRED)
     private List<@Valid ItemVendaRequestDTO> itens;
 }

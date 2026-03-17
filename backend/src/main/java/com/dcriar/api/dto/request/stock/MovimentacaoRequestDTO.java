@@ -33,7 +33,7 @@ public class MovimentacaoRequestDTO {
      * <p>
      * Use um valor positivo para entradas e um valor negativo para saídas.
      */
-    @Schema(description = "A quantidade a ser movimentada. Use um valor positivo para entradas e um valor negativo para saídas.", example = "-1.50", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "A quantidade a ser movimentada. Use um valor positivo para entradas e um valor negativo para saídas. No seed padrão, o lote 6 suporta uma saída de 1 litro sem erro.", example = "-1.00", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal quantidade;
 
     /**

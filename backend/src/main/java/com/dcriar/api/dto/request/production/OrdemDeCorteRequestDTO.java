@@ -50,7 +50,7 @@ public class OrdemDeCorteRequestDTO {
     /**
      * A quantidade de unidades do produto a serem produzidas.
      */
-    @Schema(description = "Quantidade de unidades do produto a serem produzidas.", example = "1000", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade de unidades do produto a serem produzidas. No seed padrão, 10 unidades do produto 3 geram um caso feliz no lote 3.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidadeProduzida;
 
     /**
@@ -68,13 +68,13 @@ public class OrdemDeCorteRequestDTO {
     /**
      * A largura do bloco de produtos informada pelo usuário no modo MANUAL.
      */
-    @Schema(description = "Largura do bloco de produtos em cm (obrigatório no modo MANUAL). Para o seed padrão com produto 3, use 120.0 para 24 itens por linha.", example = "120.0")
+    @Schema(description = "Largura do bloco de produtos em cm (obrigatório no modo MANUAL). Para o seed padrão com produto 3, use 20.0 para 4 itens por linha.", example = "20.0")
     private BigDecimal larguraBlocoProdutosCm;
 
     /**
      * O comprimento do bloco de produtos informado pelo usuário no modo MANUAL.
      */
-    @Schema(description = "Comprimento do bloco de produtos em cm (obrigatório no modo MANUAL). Para o seed padrão com produto 3, use 10.0 para 25 itens.", example = "10.0")
+    @Schema(description = "Comprimento do bloco de produtos em cm (obrigatório no modo MANUAL). Para o seed padrão com produto 3, use 15.0 para 3 linhas.", example = "15.0")
     private BigDecimal comprimentoBlocoProdutosCm;
 
     /**

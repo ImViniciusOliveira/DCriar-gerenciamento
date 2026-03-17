@@ -32,7 +32,7 @@ public class SimulacaoCorteRequestDTO {
     /**
      * A quantidade de unidades do produto que se deseja produzir.
      */
-    @Schema(description = "Quantidade de unidades a serem produzidas na simulação.", example = "1000", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade de unidades a serem produzidas na simulação. No seed padrão, 10 unidades do produto 3 cabem confortavelmente no lote 3.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
     /**
      * O ID do lote de matéria-prima a ser utilizado na simulação.

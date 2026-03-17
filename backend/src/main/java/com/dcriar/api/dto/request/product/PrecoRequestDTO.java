@@ -22,7 +22,7 @@ public class PrecoRequestDTO {
      * ID do produto ao qual o preço está associado.
      * <p>Obrigatório para vincular o preço ao produto correto.</p>
      */
-    @Schema(description = "ID do produto ao qual o preço está associado.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do produto ao qual o preço está associado. No seed padrão, use 11 para 'Kit de Resina Epóxi'.", example = "11", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
@@ -36,14 +36,14 @@ public class PrecoRequestDTO {
      * Valor base do preço do produto.
      * <p>Deve ser maior ou igual a zero.</p>
      */
-    @Schema(description = "Valor base do preço do produto.", example = "25.50", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Valor base do preço do produto. No seed padrão, o produto 11 usa 189.90 no varejo.", example = "189.90", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal valor;
 
     /**
      * Valor promocional do produto, se houver promoção ativa.
      * <p>Deve ser maior ou igual a zero.</p>
      */
-    @Schema(description = "Valor promocional do produto, se houver promoção ativa.", example = "19.90")
+    @Schema(description = "Valor promocional do produto, se houver promoção ativa.", example = "179.90")
     private BigDecimal valorPromocional;
 
     /**

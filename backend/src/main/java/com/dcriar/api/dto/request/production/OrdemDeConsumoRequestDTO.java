@@ -35,6 +35,6 @@ public class OrdemDeConsumoRequestDTO {
     @Schema(description = "Quantidade de unidades do produto a serem produzidas. No seed padrão, 10 pacotes consomem exatamente 1000 unidades do lote 8.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidadeProduzida;
 
-    @Schema(description = "Motivo ou referência para a ordem.", example = "Reposição de estoque de ilhós")
+    @Schema(description = "Motivo ou referência para a ordem.", example = "Reposição de estoque de ilhós para Loja Física")
     private String motivo;
 }

@@ -23,7 +23,7 @@ public class AjusteEstoqueProdutoRequestDTO {
     /**
      * O ID do produto cujo estoque físico (mestre) será ajustado.
      */
-    @Schema(description = "O ID do produto cujo estoque físico (mestre) será ajustado.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "O ID do produto cujo estoque físico (mestre) será ajustado. No seed padrão, use 11 para 'Kit de Resina Epóxi'.", example = "11", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
@@ -31,7 +31,7 @@ public class AjusteEstoqueProdutoRequestDTO {
      * <p>
      * Use um valor positivo para adicionar (entrada) e um valor negativo para remover (saída).
      */
-    @Schema(description = "A quantidade a ser ajustada. Use um valor positivo para adicionar (entrada) e um valor negativo para remover (saída).", example = "-5", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "A quantidade a ser ajustada. Use um valor positivo para adicionar (entrada) e um valor negativo para remover (saída). No seed padrão, -1 é um ajuste seguro para o produto 11.", example = "-1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 
     /**

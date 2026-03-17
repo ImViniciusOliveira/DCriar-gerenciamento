@@ -21,18 +21,18 @@ public class EstoqueRequestDTO {
     /**
      * ID do produto associado ao estoque.
      */
-    @Schema(description = "ID do produto associado ao estoque.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do produto associado ao estoque. No seed padrão, use 11 para 'Kit de Resina Epóxi'.", example = "11", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
      * ID do canal de venda onde o estoque está alocado.
      */
-    @Schema(description = "ID do canal de venda onde o estoque está alocado.", example = "2", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do canal de venda onde o estoque está alocado. No seed padrão, use 1 para 'Loja Física'.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long canalVendaId;
 
     /**
      * Quantidade de unidades disponíveis.
      */
-    @Schema(description = "Quantidade de unidades disponíveis.", example = "100", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade de unidades disponíveis. No seed padrão, o produto 11 está com 8 unidades no canal 1.", example = "8", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 }

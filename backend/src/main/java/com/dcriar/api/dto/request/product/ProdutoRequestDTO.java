@@ -27,13 +27,13 @@ public class ProdutoRequestDTO {
     @Schema(description = "Tipo do produto. 'CORTE' para produtos com dimensões, 'CONSUMO' para outros.", example = "CONSUMO", requiredMode = Schema.RequiredMode.REQUIRED)
     private String tipoProduto;
 
-    @Schema(description = "Nome descritivo e único do produto.", example = "Refil de Tinta Eco-Solvente Ciano", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Nome descritivo e único do produto.", example = "Refil de Tinta Eco-Solvente Ciano 1500ml", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nome;
 
     @Schema(description = "Código único de produto (Stock Keeping Unit).", example = "TIN-CYA-ES-1500ML", requiredMode = Schema.RequiredMode.REQUIRED)
     private String sku;
 
-    @Schema(description = "Descrição detalhada sobre o produto, seu material e uso.", example = "Refil de tinta ciano para impressoras eco-solvente, com 1,5 litro por unidade.")
+    @Schema(description = "Descrição detalhada sobre o produto, seu material e uso.", example = "Refil de tinta ciano para impressoras eco-solvente, com 1500 ml por unidade.")
     private String descricao;
 
     @Schema(description = "Quantidade consumida por unidade do produto. Para consumo, aceita decimal e pode ser informada na unidade principal ou na unidade menor compatível.", example = "1500", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -63,6 +63,6 @@ public class ProdutoRequestDTO {
     @Schema(description = "Unidade usada para informar 'unidadesPorProduto' no cadastro de consumo. Se não for enviada, o backend assume a unidade principal da matéria-prima. Exemplos compatíveis: LITRO/MILILITRO, QUILOGRAMA/GRAMA.", example = "MILILITRO")
     private UnidadeDeMedida unidadeCadastroConsumo;
 
-    @Schema(description = "Mapa flexível para especificações técnicas (apenas para produtos de consumo).", example = "{\"tipo_tinta\": \"Eco-Solvente\", \"volume_ml\": 1500}")
+    @Schema(description = "Mapa flexível para especificações técnicas (apenas para produtos de consumo).", example = "{\"tipo_tinta\": \"Eco-Solvente\", \"cor_pantone\": \"Cyan\", \"volume_ml\": 1500}")
     private Map<String, String> especificacoes;
 }
