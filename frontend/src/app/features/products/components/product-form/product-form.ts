@@ -21,8 +21,7 @@ import { ErrorStateMatcher } from '@angular/material/core';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
 import { filter, switchMap } from 'rxjs/operators';
 import { startWith } from 'rxjs/operators';
-import { ApiRoot } from '../../../../core/services/api-root';
-import { map, of } from 'rxjs';
+import { map } from 'rxjs';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -63,7 +62,6 @@ export class ProductFormComponent implements OnInit {
   private readonly productService = inject(ProductService);
   private readonly materialTypeService = inject(MaterialTypeService);
   private readonly enumService = inject(EnumService);
-  private readonly apiRoot = inject(ApiRoot);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
@@ -73,11 +71,16 @@ export class ProductFormComponent implements OnInit {
   readonly product = signal<Product>(this.data.product);
   readonly isEditMode = signal<boolean>(this.data.isEditMode);
   private lastMaterialTypeId: number | null = this.data.product.materiaPrima?.id ?? null;
+  private readonly selectedMaterialType = signal<MaterialType | null>(this.data.product.materiaPrima ?? null);
+  private readonly unitsUrl = computed(() =>
+    this.selectedMaterialType()?._links?.['unidades-de-medida']?.href?.split('{')[0]
+    ?? this.product()?._links?.['unidades-de-medida']?.href?.split('{')[0]
+    ?? null
+  );
   matcher = new ImmediateErrorStateMatcher();
   readonly consumptionUnitOptions = signal<EnumOption[]>([]);
   readonly availableUnitsMap = toSignal(
-    toObservable(this.apiRoot.endpoints).pipe(
-      map(endpoints => endpoints._links?.['unidades-de-medida']?.href?.split('{')[0] ?? null),
+    toObservable(this.unitsUrl).pipe(
       filter((url): url is string => !!url),
       switchMap(url => this.enumService.getConsumptionUnitsMap(url))
     ),
@@ -149,6 +152,7 @@ export class ProductFormComponent implements OnInit {
       .subscribe(materialType => {
         const selectedMaterialType = materialType as MaterialType | null;
         const selectedMaterialId = selectedMaterialType?.id ?? null;
+        this.selectedMaterialType.set(selectedMaterialType);
         this.refreshConsumptionUnitOptions();
 
         if (selectedMaterialId !== this.lastMaterialTypeId) {
@@ -213,6 +217,7 @@ export class ProductFormComponent implements OnInit {
 
           if (fullProduct.materiaPrima) {
             this.productForm.get('materiaPrima')?.patchValue(fullProduct.materiaPrima);
+            this.selectedMaterialType.set(fullProduct.materiaPrima);
           }
 
           this.setupFormControlsBasedOnProductType(fullProduct.tipoProduto || 'CORTE', false);

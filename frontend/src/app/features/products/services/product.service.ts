@@ -80,7 +80,8 @@ export class ProductService {
     const endpoints$ = toObservable(this.apiRoot.endpoints).pipe(shareReplay(1));
 
     this.products$ = endpoints$.pipe(
-      switchMap(endpoints => this.createProductsObservable(endpoints))
+      switchMap(endpoints => this.createProductsObservable(endpoints)),
+      shareReplay(1)
     );
 
     this.productsByStock$ = endpoints$.pipe(

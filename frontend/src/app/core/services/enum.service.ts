@@ -42,18 +42,27 @@ interface EmbeddedEnumResponse {
 })
 export class EnumService {
   private readonly http = inject(HttpClient);
+  private readonly optionsCache = new Map<string, Observable<EnumOption[]>>();
+  private readonly unitsMapCache = new Map<string, Observable<Map<string, EnumOption>>>();
 
   /**
    * Retorna um Observable com um mapa de unidades de consumo.
    * A requisição é cacheada por URL para evitar chamadas repetidas.
    */
   getConsumptionUnitsMap(url: string): Observable<Map<string, EnumOption>> {
-    // O `shareReplay(1)` já garante que a requisição HTTP será feita apenas uma vez
-    // e o resultado será compartilhado entre múltiplos assinantes.
-    return this.getEnumOptions(url, 'unidadesDeMedida').pipe(
+    const cacheKey = `${url}::unidadesDeMedida::map`;
+    const cached = this.unitsMapCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.getEnumOptions(url, 'unidadesDeMedida').pipe(
       map(options => new Map(options.map(opt => [opt.value, opt]))),
       shareReplay(1)
     );
+
+    this.unitsMapCache.set(cacheKey, request$);
+    return request$;
   }
 
   /**
@@ -64,9 +73,13 @@ export class EnumService {
    * @returns Um Observable que emite um array de `EnumOption`.
    */
   getEnumOptions(url: string, embeddedKey: string): Observable<EnumOption[]> {
-    // O `shareReplay(1)` já garante que a requisição HTTP será feita apenas uma vez
-    // e o resultado será compartilhado entre múltiplos assinantes.
-    return this.http.get<EmbeddedEnumResponse>(url).pipe(
+    const cacheKey = `${url}::${embeddedKey}`;
+    const cached = this.optionsCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http.get<EmbeddedEnumResponse>(url).pipe(
       map(response => {
         const embedded = response?._embedded;
         if (!embedded) {
@@ -86,5 +99,8 @@ export class EnumService {
       shareReplay(1),
       catchError(() => of([]))
     );
+
+    this.optionsCache.set(cacheKey, request$);
+    return request$;
   }
 }

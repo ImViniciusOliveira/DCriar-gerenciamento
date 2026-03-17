@@ -76,12 +76,6 @@ export class ProductStockSearch implements OnInit, OnDestroy {
     this.isSearching = this.productService.isSearchingByStock;
     this.setupSearchTrigger();
 
-    // Reage a mudanças no `productType` (vindo do pai) para disparar uma nova busca.
-    effect(() => {
-      this.productType();
-      this.triggerSearchNow();
-    });
-
     effect(() => {
       const firstProduct = this.products()[0];
       const url = firstProduct?._links?.['unidades-de-medida']?.href ?? null;
