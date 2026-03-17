@@ -64,17 +64,6 @@
             }
           </mat-form-field>
 
-          @if (productForm.get('unidadeCadastroConsumo')?.enabled) {
-            <mat-form-field class="type-field" appearance="outline">
-              <mat-label>Unidade Informada</mat-label>
-              <mat-select formControlName="unidadeCadastroConsumo">
-                @for (unit of getConsumptionUnitOptions(); track unit) {
-                  <mat-option [value]="unit">{{ getConsumptionUnitLabel(unit) }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          }
-
           <!-- Checkbox Ativo dentro de um Fieldset para ter a borda padrão -->
           <fieldset class="active-fieldset">
             <mat-checkbox formControlName="ativo">Ativo</mat-checkbox>
@@ -129,6 +118,16 @@
         [control]="materialTypeControl"
         [isEditMode]="isEditMode()"
         (selectionChange)="onMaterialTypeChange($event)">
+        @if (productForm.get('unidadeCadastroConsumo')?.enabled && getConsumptionUnitOptions().length > 0) {
+          <mat-form-field after-unit-field appearance="outline" class="unit-filter">
+            <mat-label>Unidade do Produto</mat-label>
+            <mat-select formControlName="unidadeCadastroConsumo">
+              @for (unit of getConsumptionUnitOptions(); track unit) {
+                <mat-option [value]="unit">{{ getConsumptionUnitLabel(unit) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
       </app-material-type-search>
 
       @if (productForm.get('dimensoes')?.enabled) {

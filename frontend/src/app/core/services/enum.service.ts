@@ -10,6 +10,8 @@ export interface EnumOption {
   value: string;
   viewValue: string;
   simbolo?: string;
+  compatibleInputUnit?: string;
+  compatibleInputFactor?: number;
 }
 
 /**
@@ -19,6 +21,8 @@ interface EnumResponseItem {
   name: string;
   descricao: string;
   simbolo: string;
+  unidadeCadastroCompativel?: string;
+  fatorConversaoCadastroCompativel?: number;
   [key: string]: any; // Permite outras propriedades como 'simbolo' e '_links'.
 }
 
@@ -74,7 +78,9 @@ export class EnumService {
         return items.map(item => ({
           value: item.name,
           viewValue: item.descricao,
-          simbolo: item.simbolo
+          simbolo: item.simbolo,
+          compatibleInputUnit: item.unidadeCadastroCompativel,
+          compatibleInputFactor: item.fatorConversaoCadastroCompativel
         }));
       }),
       shareReplay(1),

@@ -26,7 +26,7 @@
   </mat-form-field>
 
   <mat-form-field appearance="outline" class="unit-filter">
-    <mat-label>Unidade</mat-label>
+    <mat-label>Unidade da Matéria-Prima</mat-label>
     <mat-select [formControl]="unitControl">
       <mat-option value="">Todas</mat-option>
       @for (unit of consumptionUnits(); track unit.value) {
@@ -34,5 +34,7 @@
       }
     </mat-select>
   </mat-form-field>
+
+  <ng-content select="[after-unit-field]"></ng-content>
 
 </div>

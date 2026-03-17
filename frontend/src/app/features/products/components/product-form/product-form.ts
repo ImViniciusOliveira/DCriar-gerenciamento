@@ -19,6 +19,9 @@ import { MaterialTypeSearch } from '../../../../shared/components/material-type-
 import { MaterialType } from '../../../stock/models/material-type.model';
 import { MaterialTypeService } from '../../../stock/services/material-type.service';
 import { ErrorStateMatcher } from '@angular/material/core';
+import { EnumOption, EnumService } from '../../../../core/services/enum.service';
+import { filter, switchMap } from 'rxjs/operators';
+import { startWith } from 'rxjs/operators';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -58,6 +61,7 @@ export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
 export class ProductFormComponent implements OnInit {
   private readonly productService = inject(ProductService);
   private readonly materialTypeService = inject(MaterialTypeService);
+  private readonly enumService = inject(EnumService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
@@ -67,11 +71,7 @@ export class ProductFormComponent implements OnInit {
   readonly product = signal<Product>(this.data.product);
   readonly isEditMode = signal<boolean>(this.data.isEditMode);
   matcher = new ImmediateErrorStateMatcher();
-  private readonly compatibleConsumptionUnits: Record<string, string[]> = {
-    LITRO: ['LITRO', 'MILILITRO'],
-    QUILOGRAMA: ['QUILOGRAMA', 'GRAMA'],
-    METRO_LINEAR: ['METRO_LINEAR', 'CENTIMETRO_LINEAR']
-  };
+  readonly consumptionUnitOptions = signal<EnumOption[]>([]);
 
   /** URL segura para exibição da imagem, priorizando o preview local. */
   readonly safeImageSrc: Signal<string | null>;
@@ -136,6 +136,28 @@ export class ProductFormComponent implements OnInit {
     this.productForm.get('materiaPrima')?.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.syncConsumptionUnitWithSelectedMaterial());
+
+    this.productForm.get('materiaPrima')?.valueChanges.pipe(
+      takeUntilDestroyed(),
+      startWith(this.materialTypeControl.value),
+      filter((value): value is MaterialType => !!value?._links?.['unidades-de-medida']?.href),
+      switchMap(materialType =>
+        this.enumService.getConsumptionUnitsMap(materialType._links!['unidades-de-medida']!.href)
+      )
+    ).subscribe(unitsMap => {
+      const materialType = this.materialTypeControl.value as MaterialType | null;
+      const baseUnit = materialType?.unidadeDeConsumo;
+      if (!baseUnit) {
+        this.consumptionUnitOptions.set([]);
+        return;
+      }
+
+      const baseOption = unitsMap.get(baseUnit);
+      const compatibleOption = baseOption?.compatibleInputUnit ? unitsMap.get(baseOption.compatibleInputUnit) : undefined;
+      const options = [baseOption, compatibleOption].filter((option): option is EnumOption => !!option);
+      this.consumptionUnitOptions.set(options);
+      this.syncConsumptionUnitWithSelectedMaterial();
+    });
   }
 
   ngOnInit(): void {
@@ -509,26 +531,15 @@ export class ProductFormComponent implements OnInit {
   }
 
   getConsumptionUnitOptions(): string[] {
-    const materialType = this.materialTypeControl.value as MaterialType | null;
-    const baseUnit = materialType?.unidadeDeConsumo;
-    if (!baseUnit) {
-      return [];
-    }
-    return this.compatibleConsumptionUnits[baseUnit] ?? [baseUnit];
+    return this.consumptionUnitOptions().map(option => option.value);
   }
 
   getConsumptionUnitLabel(unit: string): string {
-    return ({
-      LITRO: 'Litro (L)',
-      MILILITRO: 'Mililitro (ml)',
-      QUILOGRAMA: 'Quilograma (kg)',
-      GRAMA: 'Grama (g)',
-      METRO_LINEAR: 'Metro Linear (m)',
-      CENTIMETRO_LINEAR: 'Centímetro Linear (cm)',
-      UNIDADE: 'Unidade (un)',
-      FOLHA: 'Folha (fl)',
-      OUTROS: 'Outros'
-    } as Record<string, string>)[unit] ?? unit;
+    const option = this.consumptionUnitOptions().find(item => item.value === unit);
+    if (!option) {
+      return unit;
+    }
+    return option.simbolo ? `${option.viewValue} (${option.simbolo})` : option.viewValue;
   }
 
   private syncConsumptionUnitWithSelectedMaterial(): void {
