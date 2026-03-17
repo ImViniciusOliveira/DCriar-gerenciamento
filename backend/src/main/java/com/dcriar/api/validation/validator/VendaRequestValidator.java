@@ -12,7 +12,7 @@ import java.util.List;
  * Este validador verifica se os campos essenciais da requisição de venda estão presentes:
  * <ul>
  *     <li>O {@code canalVendaId} não pode ser nulo.</li>
- *     <li>A lista de {@code items} não pode ser nula nem vazia.</li>
+ *     <li>A lista de {@code itens} não pode ser nula nem vazia.</li>
  * </ul>
  * A validação de cada item individual na lista é delegada para suas respectivas anotações.
  */
@@ -22,7 +22,7 @@ public class VendaRequestValidator extends BaseValidator<ValidVendaRequest, Vend
     protected void validate(VendaRequestDTO dto) {
         addViolationIf(dto.getCanalVendaId() == null, "O ID do canal de venda é obrigatório.", "canalVendaId");
 
-        List<ItemVendaRequestDTO> items = dto.getItens();
-        addViolationIf(items == null || items.isEmpty(), "A lista de itens não pode estar vazia.", "items");
+        List<ItemVendaRequestDTO> itens = dto.getItens();
+        addViolationIf(itens == null || itens.isEmpty(), "A lista de itens não pode estar vazia.", "itens");
     }
 }

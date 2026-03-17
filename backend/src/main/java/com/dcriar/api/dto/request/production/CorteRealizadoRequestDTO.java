@@ -1,6 +1,5 @@
 package com.dcriar.api.dto.request.production;
 
-import com.dcriar.api.validation.annotation.ValidCorteRealizadoRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import java.math.BigDecimal;
@@ -9,14 +8,14 @@ import java.math.BigDecimal;
  * DTO para entrada de dados de CorteRealizado.
  * <p>
  * Utilizado para criação e atualização de cortes realizados em uma ordem de produção.
- * Todos os campos possuem validação e documentação para uso seguro na API.
+ * Este DTO não usa validador personalizado próprio porque é usado internamente no fluxo de montagem da ordem,
+ * e não como request HTTP validado com {@code @Valid}.
  */
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ValidCorteRealizadoRequest
 public class CorteRealizadoRequestDTO {
     /**
      * ID da ordem de produção à qual o corte está associado.

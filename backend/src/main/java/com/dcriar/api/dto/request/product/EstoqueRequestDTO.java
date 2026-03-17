@@ -1,6 +1,5 @@
 package com.dcriar.api.dto.request.product;
 
-import com.dcriar.api.validation.annotation.ValidEstoqueRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -8,13 +7,15 @@ import lombok.*;
  * DTO para requisições de criação/atualização de estoque de produto em canal de venda.
  * <p>
  * Centraliza os dados necessários para manipulação de estoque.
+ * <p>
+ * Este DTO não usa validador personalizado próprio porque é usado internamente entre service e entidade,
+ * e não como payload HTTP validado com {@code @Valid}.
  */
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ValidEstoqueRequest
 public class EstoqueRequestDTO {
 
     /**

@@ -1,6 +1,5 @@
 package com.dcriar.api.dto.request.production;
 
-import com.dcriar.api.validation.annotation.ValidOrdemDeProducaoRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import java.math.BigDecimal;
@@ -8,14 +7,15 @@ import java.util.Set;
 
 /**
  * DTO para requisições de criação/atualização de OrdemDeProducao.
- * Centraliza validações e documentação dos campos necessários.
+ * <p>
+ * Este DTO não usa validador personalizado próprio porque é interno ao backend
+ * e serve como ponte para montar a entidade de ordem já calculada.
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ValidOrdemDeProducaoRequest
 public class OrdemDeProducaoRequestDTO {
     /**
      * ID do produto final a ser fabricado.

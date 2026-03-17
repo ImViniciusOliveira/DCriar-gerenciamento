@@ -41,12 +41,6 @@ public class VerificacaoCorteRequestDTO {
     @Schema(description = "Margens de segurança (relevante no modo AUTOMATICO).")
     private MargensRequestDTO margens;
 
-    @Schema(description = "Largura final informada (obrigatório no modo MANUAL).", example = "80.0")
-    private BigDecimal larguraFinalCm;
-
-    @Schema(description = "Comprimento final informado (obrigatório no modo MANUAL).", example = "120.0")
-    private BigDecimal comprimentoFinalCm;
-
     @Schema(description = "Largura do bloco de produtos no corte (em cm).", example = "75.0")
     private BigDecimal larguraBlocoProdutosCm;
 

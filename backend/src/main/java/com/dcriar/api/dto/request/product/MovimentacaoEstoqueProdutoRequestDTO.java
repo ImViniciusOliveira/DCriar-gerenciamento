@@ -1,6 +1,5 @@
 package com.dcriar.api.dto.request.product;
 
-import com.dcriar.api.validation.annotation.ValidMovimentacaoEstoqueProdutoRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -8,13 +7,15 @@ import lombok.*;
  * DTO para requisições de criação/atualização de movimentação de estoque de produto acabado.
  * <p>
  * Centraliza os dados necessários para registrar uma movimentação no livro-razão do estoque.
+ * <p>
+ * Este DTO não usa validador personalizado próprio porque é montado internamente pelo backend,
+ * e não entra diretamente em endpoints com {@code @Valid}.
  */
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ValidMovimentacaoEstoqueProdutoRequest
 public class MovimentacaoEstoqueProdutoRequestDTO {
 
     /**
