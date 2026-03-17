@@ -1,8 +1,9 @@
 package com.dcriar.domain.production.service;
 
 import com.dcriar.api.dto.request.production.*;
+import com.dcriar.api.dto.response.production.OrdemDeConsumoResponseDTO;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
-import com.dcriar.api.dto.response.production.SimulacaoConsumoDiretoResponseDTO;
+import com.dcriar.api.dto.response.production.SimulacaoConsumoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,7 +12,7 @@ import org.springframework.data.domain.Pageable;
  * Interface que define o contrato para a lógica de negócio de Ordens de Produção.
  * <p>
  * Abstrai os processos de fabrico, que podem ser de diferentes tipos, como
- * corte geométrico ou consumo direto de insumos.
+ * corte geométrico ou consumo de insumos.
  */
 public interface OrdemDeProducaoService {
 
@@ -24,12 +25,12 @@ public interface OrdemDeProducaoService {
     OrdemDeProducaoResponseDTO criarOrdemDeCorte(OrdemDeCorteRequestDTO requestDTO);
 
     /**
-     * Cria e processa uma nova ordem de produção do tipo CONSUMO DIRETO.
+     * Cria e processa uma nova ordem de produção do tipo CONSUMO.
      *
      * @param requestDTO O DTO com os detalhes da ordem de consumo.
      * @return Um DTO com os dados da ordem de produção criada.
      */
-    OrdemDeProducaoResponseDTO criarOrdemDeConsumoDireto(OrdemDeConsumoDiretoRequestDTO requestDTO);
+    OrdemDeConsumoResponseDTO criarOrdemDeConsumo(OrdemDeConsumoRequestDTO requestDTO);
 
     /**
      * Exclui uma ordem de produção pelo seu ID.
@@ -72,11 +73,11 @@ public interface OrdemDeProducaoService {
     SimulacaoCorteResponseDTO verificarCorte(VerificacaoCorteRequestDTO requestDTO);
 
     /**
-     * Simula uma produção baseada em consumo direto (ex: líquidos, pós, unidades),
+     * Simula uma produção baseada em consumo (ex: líquidos, pós, unidades),
      * calculando o consumo total estimado de matéria-prima.
      *
      * @param requestDTO O DTO com o ID do produto e a quantidade a ser simulada.
      * @return Um DTO com os resultados da simulação de consumo.
      */
-    SimulacaoConsumoDiretoResponseDTO simularConsumoDireto(SimulacaoConsumoDiretoRequestDTO requestDTO);
+    SimulacaoConsumoResponseDTO simularConsumo(SimulacaoConsumoRequestDTO requestDTO);
 }

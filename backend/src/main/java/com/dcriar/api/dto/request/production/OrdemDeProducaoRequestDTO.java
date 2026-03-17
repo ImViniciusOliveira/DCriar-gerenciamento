@@ -44,7 +44,7 @@ public class OrdemDeProducaoRequestDTO {
     /**
      * Modo de cálculo utilizado.
      */
-    @Schema(description = "Modo de cálculo utilizado na produção (ex: AUTOMATICO, MANUAL, CONSUMO_DIRETO).", example = "AUTOMATICO", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Modo de cálculo utilizado na produção (ex: AUTOMATICO, MANUAL, CONSUMO).", example = "AUTOMATICO", requiredMode = Schema.RequiredMode.REQUIRED)
     private String modoCalculo;
 
     /**

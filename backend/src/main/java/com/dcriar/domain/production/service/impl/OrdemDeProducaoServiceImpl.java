@@ -5,8 +5,9 @@ import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.production.*;
 import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
 import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
+import com.dcriar.api.dto.response.production.OrdemDeConsumoResponseDTO;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
-import com.dcriar.api.dto.response.production.SimulacaoConsumoDiretoResponseDTO;
+import com.dcriar.api.dto.response.production.SimulacaoConsumoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
 import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
 import com.dcriar.api.mapper.production.PlanoDeConsumoMapper;
@@ -51,7 +52,7 @@ import java.util.stream.Collectors;
  * Implementação do serviço para gerir Ordens de Produção.
  * <p>
  * Esta classe orquestra a criação de ordens por corte (com otimização de layout)
- * e por consumo direto, gerenciando a movimentação de estoque de matéria-prima e produtos acabados.
+ * e por consumo, gerenciando a movimentação de estoque de matéria-prima e produtos acabados.
  * <p>
  * <b>Responsabilidades Principais:</b>
  * <ul>
@@ -244,11 +245,11 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     @Override
     @Transactional
-    public OrdemDeProducaoResponseDTO criarOrdemDeConsumoDireto(OrdemDeConsumoDiretoRequestDTO requestDTO) {
+    public OrdemDeConsumoResponseDTO criarOrdemDeConsumo(OrdemDeConsumoRequestDTO requestDTO) {
         // 1. Validações iniciais e busca de entidades.
         Produto produto = findProdutoById(requestDTO.getProdutoId());
-        if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumoDireto()) {
-            throw TipoProducaoIncompativelException.produtoNaoEhConsumoDireto(
+        if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumo()) {
+            throw TipoProducaoIncompativelException.produtoNaoEhConsumo(
                     produto.getNome(),
                     produto.getTipoMateriaPrima().getUnidadeDeConsumo().name()
             );
@@ -282,7 +283,16 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
         distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
 
-        return ordemDeProducaoMapper.toDto(savedOrdem);
+        return OrdemDeConsumoResponseDTO.builder()
+                .id(savedOrdem.getId())
+                .produtoId(savedOrdem.getProduto().getId())
+                .nomeProduto(savedOrdem.getProduto().getNome())
+                .lotesConsumidosIds(savedOrdem.getLotesConsumidos().stream().map(LoteMateriaPrima::getId).toList())
+                .quantidadeProduzida(savedOrdem.getQuantidadeProduzida())
+                .dataCriacao(savedOrdem.getDataCriacao())
+                .dataAtualizacao(savedOrdem.getDataAtualizacao())
+                .motivo(savedOrdem.getMotivo())
+                .build();
     }
 
     /**
@@ -601,9 +611,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     @Override
-    public SimulacaoConsumoDiretoResponseDTO simularConsumoDireto(SimulacaoConsumoDiretoRequestDTO requestDTO) {
+    public SimulacaoConsumoResponseDTO simularConsumo(SimulacaoConsumoRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
-        if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumoDireto()) {
+        if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumo()) {
             throw TipoProducaoIncompativelException.produtoUsaMateriaPrimaGeometrica(
                     produto.getNome(),
                     produto.getTipoMateriaPrima().getUnidadeDeConsumo().name()
@@ -621,7 +631,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         PlanoDeConsumo plano = consumoCalculatorService.calcularPlanoDeConsumo(loteConsumido, consumoTotalNecessario);
 
-        return SimulacaoConsumoDiretoResponseDTO.builder()
+        return SimulacaoConsumoResponseDTO.builder()
                 .consumoTotalEstimado(consumoTotalNecessario)
                 .unidadeDeConsumo(produto.getTipoMateriaPrima().getUnidadeDeConsumo())
                 .planoDeConsumo(plano.itens().stream().map(planoDeConsumoMapper::toDto).collect(Collectors.toList()))

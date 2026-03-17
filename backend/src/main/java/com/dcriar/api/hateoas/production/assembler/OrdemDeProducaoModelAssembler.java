@@ -78,20 +78,20 @@ public class OrdemDeProducaoModelAssembler extends RepresentationModelAssemblerS
                     .toUriString();
             model.add(Link.of(simularCorteUrl, "simular-corte"));
 
-            String simularConsumoDiretoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/v1/ordens-de-producao/simular/consumo-direto")
+            String simularConsumoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/ordens-de-producao/simular/consumo")
                     .toUriString();
-            model.add(Link.of(simularConsumoDiretoUrl, "simular-consumo-direto"));
+            model.add(Link.of(simularConsumoUrl, "simular-consumo"));
 
             String criarOrdemCorteUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/api/v1/ordens-de-producao/corte")
                     .toUriString();
             model.add(Link.of(criarOrdemCorteUrl, "criar-ordem-corte"));
 
-            String criarOrdemConsumoDiretoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/v1/ordens-de-producao/consumo-direto")
+            String criarOrdemConsumoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/ordens-de-producao/consumo")
                     .toUriString();
-            model.add(Link.of(criarOrdemConsumoDiretoUrl, "criar-ordem-consumo-direto"));
+            model.add(Link.of(criarOrdemConsumoUrl, "criar-ordem-consumo"));
         }
         
         // Adiciona link para a coleção de ordens de produção

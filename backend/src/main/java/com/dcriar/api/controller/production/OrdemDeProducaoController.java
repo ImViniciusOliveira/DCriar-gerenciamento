@@ -1,14 +1,17 @@
 package com.dcriar.api.controller.production;
 
 import com.dcriar.api.dto.request.production.*;
+import com.dcriar.api.dto.response.production.OrdemDeConsumoResponseDTO;
 import com.dcriar.api.dto.response.production.OrdemDeProducaoResponseDTO;
-import com.dcriar.api.dto.response.production.SimulacaoConsumoDiretoResponseDTO;
+import com.dcriar.api.dto.response.production.SimulacaoConsumoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
+import com.dcriar.api.hateoas.production.assembler.OrdemDeConsumoModelAssembler;
 import com.dcriar.api.hateoas.production.assembler.OrdemDeProducaoModelAssembler;
-import com.dcriar.api.hateoas.production.assembler.SimulacaoConsumoDiretoModelAssembler;
+import com.dcriar.api.hateoas.production.assembler.SimulacaoConsumoModelAssembler;
 import com.dcriar.api.hateoas.production.assembler.SimulacaoCorteModelAssembler;
+import com.dcriar.api.hateoas.production.model.OrdemDeConsumoModel;
 import com.dcriar.api.hateoas.production.model.OrdemDeProducaoModel;
-import com.dcriar.api.hateoas.production.model.SimulacaoConsumoDiretoModel;
+import com.dcriar.api.hateoas.production.model.SimulacaoConsumoModel;
 import com.dcriar.api.hateoas.production.model.SimulacaoCorteModel;
 import com.dcriar.domain.production.service.OrdemDeProducaoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,8 +43,9 @@ public class OrdemDeProducaoController {
 
     private final OrdemDeProducaoService ordemDeProducaoService;
     private final OrdemDeProducaoModelAssembler ordemDeProducaoModelAssembler;
+    private final OrdemDeConsumoModelAssembler ordemDeConsumoModelAssembler;
     private final SimulacaoCorteModelAssembler simulacaoCorteModelAssembler;
-    private final SimulacaoConsumoDiretoModelAssembler simulacaoConsumoDiretoModelAssembler;
+    private final SimulacaoConsumoModelAssembler simulacaoConsumoModelAssembler;
 
     @GetMapping("/new")
     @Operation(summary = "Obter um modelo 'esqueleto' para criação de uma nova ordem de produção")
@@ -62,16 +66,16 @@ public class OrdemDeProducaoController {
         return ordemDeProducaoModelAssembler.toCreatedResponseEntity(responseDTO);
     }
 
-    @PostMapping("/consumo-direto")
-    @Operation(summary = "Criar uma nova ordem de produção do tipo CONSUMO DIRETO")
+    @PostMapping("/consumo")
+    @Operation(summary = "Criar uma nova ordem de produção do tipo CONSUMO")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Ordem de produção criada com sucesso.",
                     headers = @Header(name = "Location", description = "URL do novo recurso")),
             @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos.", content = @Content)
     })
-    public ResponseEntity<OrdemDeProducaoModel> criarOrdemDeConsumoDireto(@RequestBody @Valid OrdemDeConsumoDiretoRequestDTO requestDTO) {
-        OrdemDeProducaoResponseDTO responseDTO = ordemDeProducaoService.criarOrdemDeConsumoDireto(requestDTO);
-        return ordemDeProducaoModelAssembler.toCreatedResponseEntity(responseDTO);
+    public ResponseEntity<OrdemDeConsumoModel> criarOrdemDeConsumo(@RequestBody @Valid OrdemDeConsumoRequestDTO requestDTO) {
+        OrdemDeConsumoResponseDTO responseDTO = ordemDeProducaoService.criarOrdemDeConsumo(requestDTO);
+        return ordemDeConsumoModelAssembler.toCreatedResponseEntity(responseDTO);
     }
 
     @GetMapping("/{id}")
@@ -127,11 +131,11 @@ public class OrdemDeProducaoController {
         return ResponseEntity.ok(simulacaoCorteModelAssembler.toModel(response));
     }
 
-    @PostMapping("/simular/consumo-direto")
-    @Operation(summary = "Simular uma produção baseada em consumo direto (líquidos, pós, etc.)")
+    @PostMapping("/simular/consumo")
+    @Operation(summary = "Simular uma produção baseada em consumo (líquidos, pós, etc.)")
     @ApiResponse(responseCode = "200", description = "Simulação realizada com sucesso.")
-    public ResponseEntity<SimulacaoConsumoDiretoModel> simularConsumoDireto(@RequestBody @Valid SimulacaoConsumoDiretoRequestDTO requestDTO) {
-        SimulacaoConsumoDiretoResponseDTO response = ordemDeProducaoService.simularConsumoDireto(requestDTO);
-        return ResponseEntity.ok(simulacaoConsumoDiretoModelAssembler.toModel(response));
+    public ResponseEntity<SimulacaoConsumoModel> simularConsumo(@RequestBody @Valid SimulacaoConsumoRequestDTO requestDTO) {
+        SimulacaoConsumoResponseDTO response = ordemDeProducaoService.simularConsumo(requestDTO);
+        return ResponseEntity.ok(simulacaoConsumoModelAssembler.toModel(response));
     }
 }

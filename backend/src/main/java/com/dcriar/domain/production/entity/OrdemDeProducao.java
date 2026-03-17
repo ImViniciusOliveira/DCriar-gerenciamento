@@ -18,7 +18,7 @@ import java.util.Set;
  * Representa uma Ordem de Produção no sistema, detalhando a fabricação de um produto.
  * <p>
  * Esta entidade é genérica e pode representar diferentes tipos de produção,
- * desde cortes geométricos de materiais até o consumo direto de insumos como líquidos ou pós.
+ * desde cortes geométricos de materiais até o consumo de insumos como líquidos ou pós.
  * Ela registra qual produto foi produzido, os lotes de matéria-prima consumidos e a quantidade produzida.
  */
 @Entity

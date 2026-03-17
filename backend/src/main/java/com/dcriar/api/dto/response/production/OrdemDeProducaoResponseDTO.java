@@ -17,7 +17,7 @@ import java.util.List;
  * DTO para a resposta de uma Ordem de Produção.
  * <p>
  * Fornece uma visão detalhada de uma ordem de produção, seja ela de corte
- * ou de consumo direto, incluindo os lotes consumidos e os produtos gerados.
+ * ou de consumo, incluindo os lotes consumidos e os produtos gerados.
  */
 @Getter
 @Setter
