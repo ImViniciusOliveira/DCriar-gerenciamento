@@ -37,6 +37,12 @@ public class SimulacaoConsumoResponseDTO {
     @Schema(description = "Descrição amigável da unidade de medida do consumo estimado.", example = "Litro")
     private String unidadeDescricao;
 
+    @Schema(description = "Descrição plural amigável da unidade de medida do consumo estimado.", example = "Litros")
+    private String unidadeDescricaoPlural;
+
+    @Schema(description = "Símbolo da unidade de medida do consumo estimado.", example = "ml")
+    private String unidadeSimbolo;
+
     @Schema(description = "Plano detalhado de quanto será consumido de cada lote.")
     private List<PlanoDeConsumoItemDTO> planoDeConsumo;
 

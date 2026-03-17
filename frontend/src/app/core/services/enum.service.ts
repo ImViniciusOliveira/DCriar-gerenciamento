@@ -9,6 +9,7 @@ import {catchError, shareReplay} from 'rxjs/operators';
 export interface EnumOption {
   value: string;
   viewValue: string;
+  pluralViewValue?: string;
   simbolo?: string;
   compatibleInputUnit?: string;
   compatibleInputFactor?: number;
@@ -20,6 +21,7 @@ export interface EnumOption {
 interface EnumResponseItem {
   name: string;
   descricao: string;
+  descricaoPlural?: string;
   simbolo: string;
   unidadeCadastroCompativel?: string;
   fatorConversaoCadastroCompativel?: number;
@@ -91,6 +93,7 @@ export class EnumService {
         return items.map(item => ({
           value: item.name,
           viewValue: item.descricao,
+          pluralViewValue: item.descricaoPlural,
           simbolo: item.simbolo,
           compatibleInputUnit: item.unidadeCadastroCompativel,
           compatibleInputFactor: item.fatorConversaoCadastroCompativel

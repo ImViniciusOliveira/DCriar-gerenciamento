@@ -292,21 +292,22 @@ export class ProductionForm implements OnInit {
     return quantity === 1 ? 'unidade' : 'unidades';
   }
 
-  formatConsumptionUnit(quantity: number | null | undefined, unitDescription: string | null | undefined): string {
-    if (!unitDescription) {
+  formatConsumptionUnit(result: SimulationConsumptionResult, quantity: number | null | undefined): string {
+    const amount = quantity ?? 0;
+    if (result.unidadeSimbolo && !this.isCountableConsumptionUnit(result.unidadeDeConsumo)) {
+      return `${amount}${result.unidadeSimbolo}`;
+    }
+
+    if (!result.unidadeDescricao) {
       return '';
     }
+    const label = amount === 1 ? result.unidadeDescricao : (result.unidadeDescricaoPlural ?? result.unidadeDescricao);
+    return `${amount} ${label}`;
+  }
 
-    if (quantity === 1) {
-      return unitDescription;
-    }
-
-    switch (unitDescription) {
-      case 'Folha':
-        return 'Folhas';
-      default:
-        return `${unitDescription}s`;
-    }
+  private isCountableConsumptionUnit(unit: string | null | undefined): boolean {
+    const normalized = unit?.toUpperCase();
+    return normalized === 'UNIDADE' || normalized === 'FOLHA';
   }
 
   ngOnInit(): void {

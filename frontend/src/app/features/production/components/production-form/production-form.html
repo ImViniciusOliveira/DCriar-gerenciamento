@@ -365,14 +365,14 @@
                     <h4 class="feedback-header">Produto</h4>
                     <p class="feedback-item">
                       Quantidade por produto:
-                      <strong>{{ snapshot.unidadesPorProduto }} {{ formatConsumptionUnit(snapshot.unidadesPorProduto, result.unidadeDescricao) }} cada</strong>
+                      <strong>{{ formatConsumptionUnit(result, snapshot.unidadesPorProduto) }} cada</strong>
                     </p>
                     <p class="feedback-item">
                       Total de produto:
                       <strong>
                         {{ snapshot.quantidade }} produto
                         @if (snapshot.quantidade > 1) { s }
-                        ({{ snapshot.quantidade * snapshot.unidadesPorProduto }} {{ formatConsumptionUnit(snapshot.quantidade * snapshot.unidadesPorProduto, result.unidadeDescricao) }} no total)
+                        ({{ formatConsumptionUnit(result, snapshot.quantidade * snapshot.unidadesPorProduto) }} no total)
                       </strong>
                     </p>
                   </div>
@@ -383,11 +383,11 @@
                       <p class="feedback-item">Lote <strong>#{{ item.loteId }}</strong></p>
                       <p class="feedback-item">
                         Consumir deste lote:
-                        <strong>{{ item.quantidadeAConsumir }} {{ formatConsumptionUnit(item.quantidadeAConsumir, result.unidadeDescricao) }}</strong>
+                        <strong>{{ formatConsumptionUnit(result, item.quantidadeAConsumir) }}</strong>
                       </p>
                       <p class="feedback-item">
                         Saldo após a produção:
-                        <strong>{{ result.saldoRestante[item.loteId] }} {{ formatConsumptionUnit(result.saldoRestante[item.loteId], result.unidadeDescricao) }}</strong>
+                        <strong>{{ formatConsumptionUnit(result, result.saldoRestante[item.loteId]) }}</strong>
                       </p>
                     }
                   </div>

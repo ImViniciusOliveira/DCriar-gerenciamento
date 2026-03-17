@@ -212,34 +212,22 @@ export class ProductStockSearch implements OnInit, OnDestroy {
     const normalizedUnit = unit.toUpperCase();
     const unitMeta = this.consumptionUnitsMap().get(normalizedUnit);
     const symbol = unitMeta?.simbolo?.trim();
-    const description = unitMeta?.viewValue?.trim().toLowerCase();
+    const description = unitMeta?.viewValue?.trim();
+    const pluralDescription = unitMeta?.pluralViewValue?.trim();
 
     if (symbol && !this.isCountableUnit(normalizedUnit)) {
       return `${amount}${symbol}`;
     }
 
     if (description) {
-      return `${amount} ${this.pluralizeUnit(normalizedUnit, description, amount)}`;
+      return `${amount} ${amount === 1 ? description : (pluralDescription ?? description)}`;
     }
 
-    return `${amount} ${unit.toLowerCase()}`;
+    return `${amount} ${unit}`;
   }
 
   private isCountableUnit(unit: string): boolean {
     return unit === 'UNIDADE' || unit === 'FOLHA';
-  }
-
-  private pluralizeUnit(unit: string, description: string, amount: number): string {
-    if (amount === 1) {
-      return description;
-    }
-
-    const pluralMap: Record<string, string> = {
-      UNIDADE: 'unidades',
-      FOLHA: 'folhas'
-    };
-
-    return pluralMap[unit] ?? description;
   }
 
   private formatNumber(value: number): string {

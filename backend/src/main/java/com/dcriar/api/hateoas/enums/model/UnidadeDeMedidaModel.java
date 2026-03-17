@@ -30,6 +30,11 @@ public class UnidadeDeMedidaModel extends RepresentationModel<UnidadeDeMedidaMod
     private String descricao;
 
     /**
+     * A descrição textual plural da unidade de medida (ex: "Metros Lineares").
+     */
+    private String descricaoPlural;
+
+    /**
      * O símbolo da unidade de medida (ex: "m").
      */
     private String simbolo;

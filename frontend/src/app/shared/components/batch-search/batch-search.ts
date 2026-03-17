@@ -162,7 +162,9 @@ export class BatchSearch {
       // PARA TODAS AS OUTRAS UNIDADES (LITRO, UNIDADE, etc.)
       const nf = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
       const saldo = nf.format(batch.saldoEstoque || 0);
-      return `Saldo: ${saldo} ${this.getDisplayUnit(batch)}`;
+      const unit = this.getDisplayUnit(batch);
+      const separator = this.shouldConcatenateUnit(batch) ? '' : ' ';
+      return `Saldo: ${saldo}${separator}${unit}`;
     }
   };
 
@@ -198,20 +200,21 @@ export class BatchSearch {
       return batch.unidadeSimbolo;
     }
 
-    return (batch.unidadeDeEstoque ?? '').toLowerCase().replace(/_/g, ' ');
+    return batch.unidadeDescricao ?? batch.unidadeDeEstoque ?? '';
   }
 
-  private formatBatchUnit(amount: number, unit: { value: string; viewValue: string; simbolo?: string }): string | null {
+  private formatBatchUnit(amount: number, unit: { value: string; viewValue: string; pluralViewValue?: string; simbolo?: string }): string | null {
     const normalizedUnit = unit.value.toUpperCase();
     const symbol = unit.simbolo?.trim();
-    const description = unit.viewValue?.trim().toLowerCase();
+    const description = unit.viewValue?.trim();
+    const pluralDescription = unit.pluralViewValue?.trim();
 
     if (symbol && !this.isCountableUnit(normalizedUnit)) {
       return symbol;
     }
 
     if (description) {
-      return this.pluralizeUnit(normalizedUnit, description, amount);
+      return amount === 1 ? description : (pluralDescription ?? description);
     }
 
     return null;
@@ -221,16 +224,9 @@ export class BatchSearch {
     return unit === 'UNIDADE' || unit === 'FOLHA';
   }
 
-  private pluralizeUnit(unit: string, description: string, amount: number): string {
-    if (amount === 1) {
-      return description;
-    }
-
-    const pluralMap: Record<string, string> = {
-      UNIDADE: 'unidades',
-      FOLHA: 'folhas'
-    };
-
-    return pluralMap[unit] ?? description;
+  private shouldConcatenateUnit(batch: Batch): boolean {
+    const unit = (batch.unidadeDeEstoque ?? '').toUpperCase();
+    return !!batch.unidadeSimbolo && !this.isCountableUnit(unit);
   }
+
 }

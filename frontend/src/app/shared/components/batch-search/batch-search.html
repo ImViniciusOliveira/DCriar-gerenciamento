@@ -13,7 +13,7 @@
     @for (batch of foundBatches()._embedded['lotes-materia-prima']; track batch.id) {
       <mat-option [value]="batch">
         <div class="batch-option-content">
-          <span>{{ displayFn(batch) }}</span>
+          <span class="batch-option-text">{{ displayFn(batch) }}</span>
           <button mat-icon-button (click)="$event.stopPropagation()">
             <mat-icon>more_horiz</mat-icon>
           </button>
