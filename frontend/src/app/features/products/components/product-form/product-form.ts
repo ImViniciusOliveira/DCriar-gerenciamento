@@ -67,6 +67,11 @@ export class ProductFormComponent implements OnInit {
   readonly product = signal<Product>(this.data.product);
   readonly isEditMode = signal<boolean>(this.data.isEditMode);
   matcher = new ImmediateErrorStateMatcher();
+  private readonly compatibleConsumptionUnits: Record<string, string[]> = {
+    LITRO: ['LITRO', 'MILILITRO'],
+    QUILOGRAMA: ['QUILOGRAMA', 'GRAMA'],
+    METRO_LINEAR: ['METRO_LINEAR', 'CENTIMETRO_LINEAR']
+  };
 
   /** URL segura para exibição da imagem, priorizando o preview local. */
   readonly safeImageSrc: Signal<string | null>;
@@ -107,6 +112,7 @@ export class ProductFormComponent implements OnInit {
       sku: [currentProduct.sku, [Validators.required, Validators.maxLength(50)]],
       descricao: [currentProduct.descricao, Validators.maxLength(100)],
       unidadesPorProduto: [currentProduct.unidadesPorProduto, [Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]],
+      unidadeCadastroConsumo: [currentProduct.unidadeCadastroConsumo ?? currentProduct.materiaPrima?.unidadeDeConsumo ?? null],
       ativo: [currentProduct.ativo],
       materiaPrima: [currentProduct.materiaPrima, Validators.required],
       cor: [currentProduct.cor, Validators.maxLength(50)],
@@ -126,6 +132,10 @@ export class ProductFormComponent implements OnInit {
       .subscribe(type => {
         this.setupFormControlsBasedOnProductType(type, true);
       });
+
+    this.productForm.get('materiaPrima')?.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.syncConsumptionUnitWithSelectedMaterial());
   }
 
   ngOnInit(): void {
@@ -240,10 +250,12 @@ export class ProductFormComponent implements OnInit {
    */
   private setupFormControlsBasedOnProductType(type: 'CORTE' | 'CONSUMO', resetOppositeControls: boolean): void {
     const corteControls = ['cor', 'dimensoes'];
-    const consumoControls = ['codigoFabricante', 'especificacoes'];
+    const consumoControls = ['codigoFabricante', 'especificacoes', 'unidadeCadastroConsumo'];
     const corControl = this.productForm.get('cor');
+    const unidadesControl = this.productForm.get('unidadesPorProduto');
 
     if (type === 'CORTE') {
+      unidadesControl?.setValidators([Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
       corteControls.forEach(name => {
         this.productForm.get(name)?.enable();
         if (name === 'dimensoes') {
@@ -265,6 +277,7 @@ export class ProductFormComponent implements OnInit {
         }
       });
     } else { // CONSUMO
+      unidadesControl?.setValidators([Validators.required, Validators.min(0.0001), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
       consumoControls.forEach(name => this.productForm.get(name)?.enable());
       corControl?.clearValidators();
 
@@ -279,8 +292,10 @@ export class ProductFormComponent implements OnInit {
           this.productForm.get('dimensoes.comprimentoCm')?.clearValidators();
         }
       });
+      this.syncConsumptionUnitWithSelectedMaterial();
     }
     corControl?.updateValueAndValidity();
+    unidadesControl?.updateValueAndValidity();
     this.productForm.get('dimensoes.larguraCm')?.updateValueAndValidity();
     this.productForm.get('dimensoes.comprimentoCm')?.updateValueAndValidity();
   }
@@ -326,6 +341,7 @@ export class ProductFormComponent implements OnInit {
     if (formValue.tipoProduto === 'CORTE') {
       delete formValue.codigoFabricante;
       delete formValue.especificacoes;
+      delete formValue.unidadeCadastroConsumo;
     } else if (formValue.tipoProduto === 'CONSUMO') {
       delete formValue.cor;
       delete formValue.dimensoes;
@@ -489,6 +505,51 @@ export class ProductFormComponent implements OnInit {
     if (!confirmed) {
       this.productForm.get('materiaPrima')?.setValue(originalSelection);
       this.cdr.markForCheck();
+    }
+  }
+
+  getConsumptionUnitOptions(): string[] {
+    const materialType = this.materialTypeControl.value as MaterialType | null;
+    const baseUnit = materialType?.unidadeDeConsumo;
+    if (!baseUnit) {
+      return [];
+    }
+    return this.compatibleConsumptionUnits[baseUnit] ?? [baseUnit];
+  }
+
+  getConsumptionUnitLabel(unit: string): string {
+    return ({
+      LITRO: 'Litro (L)',
+      MILILITRO: 'Mililitro (ml)',
+      QUILOGRAMA: 'Quilograma (kg)',
+      GRAMA: 'Grama (g)',
+      METRO_LINEAR: 'Metro Linear (m)',
+      CENTIMETRO_LINEAR: 'Centímetro Linear (cm)',
+      UNIDADE: 'Unidade (un)',
+      FOLHA: 'Folha (fl)',
+      OUTROS: 'Outros'
+    } as Record<string, string>)[unit] ?? unit;
+  }
+
+  private syncConsumptionUnitWithSelectedMaterial(): void {
+    if (this.productForm.get('tipoProduto')?.value !== 'CONSUMO') {
+      return;
+    }
+
+    const unitControl = this.productForm.get('unidadeCadastroConsumo');
+    if (!unitControl) {
+      return;
+    }
+
+    const options = this.getConsumptionUnitOptions();
+    if (!options.length) {
+      unitControl.setValue(null, { emitEvent: false });
+      return;
+    }
+
+    const currentValue = unitControl.value;
+    if (!currentValue || !options.includes(currentValue)) {
+      unitControl.setValue(options[0], { emitEvent: false });
     }
   }
 }

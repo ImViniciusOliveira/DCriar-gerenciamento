@@ -26,6 +26,7 @@ export interface Product {
   sku: string;
   descricao: string;
   unidadesPorProduto: number;
+  unidadeCadastroConsumo?: string;
   ativo: boolean;
   estoqueFisicoTotal: number;
   estoqueDistribuidoTotal: number;

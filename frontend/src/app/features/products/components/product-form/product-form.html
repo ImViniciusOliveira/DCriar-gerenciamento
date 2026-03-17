@@ -51,7 +51,7 @@
           }
 
           <mat-form-field class="units-field" appearance="outline">
-            <mat-label>Unidades</mat-label>
+            <mat-label>Quantidade por Produto</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="unidadesPorProduto" [errorStateMatcher]="matcher" required>
             @if (productForm.get('unidadesPorProduto')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
@@ -63,6 +63,17 @@
               <mat-error>Máximo de 10 dígitos.</mat-error>
             }
           </mat-form-field>
+
+          @if (productForm.get('unidadeCadastroConsumo')?.enabled) {
+            <mat-form-field class="type-field" appearance="outline">
+              <mat-label>Unidade Informada</mat-label>
+              <mat-select formControlName="unidadeCadastroConsumo">
+                @for (unit of getConsumptionUnitOptions(); track unit) {
+                  <mat-option [value]="unit">{{ getConsumptionUnitLabel(unit) }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
 
           <!-- Checkbox Ativo dentro de um Fieldset para ter a borda padrão -->
           <fieldset class="active-fieldset">
