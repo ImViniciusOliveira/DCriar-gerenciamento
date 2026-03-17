@@ -7,6 +7,8 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Formula;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "produtos")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
@@ -33,8 +35,8 @@ public abstract class Produto extends AuditableEntity {
     @Column(columnDefinition = "TEXT")
     private String descricao;
 
-    @Column(nullable = false)
-    private Integer unidadesPorProduto;
+    @Column(nullable = false, precision = 14, scale = 4)
+    private BigDecimal unidadesPorProduto;
 
     @Column(nullable = false)
     private boolean ativo;

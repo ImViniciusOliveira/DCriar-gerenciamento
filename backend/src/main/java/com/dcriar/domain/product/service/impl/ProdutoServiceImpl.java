@@ -12,6 +12,7 @@ import com.dcriar.domain.product.repository.spec.ProdutoSpecifications;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.product.service.ProdutoService;
 import com.dcriar.domain.upload.service.FileStorageService;
@@ -154,7 +155,11 @@ public class ProdutoServiceImpl implements ProdutoService {
                 .nome(requestDTO.getNome())
                 .sku(requestDTO.getSku())
                 .descricao(requestDTO.getDescricao())
-                .unidadesPorProduto(requestDTO.getUnidadesPorProduto())
+                .unidadesPorProduto(normalizarUnidadesPorProdutoConsumo(
+                        requestDTO.getUnidadesPorProduto(),
+                        tipoMateriaPrima.getUnidadeDeConsumo(),
+                        requestDTO.getUnidadeCadastroConsumo()
+                ))
                 .fotoPrincipalUrl(requestDTO.getFotoPrincipalUrl())
                 .ativo(requestDTO.getAtivo() != null ? requestDTO.getAtivo() : true)
                 .tipoMateriaPrima(tipoMateriaPrima)
@@ -201,8 +206,8 @@ public class ProdutoServiceImpl implements ProdutoService {
                     produto.setFotoPrincipalUrl(newFoto);
                 }
                 case "unidadesPorProduto" -> {
-                    if (value instanceof Number) {
-                        produto.setUnidadesPorProduto(((Number) value).intValue());
+                    if (value != null) {
+                        produto.setUnidadesPorProduto(new BigDecimal(value.toString()));
                     }
                 }
                 // Campos específicos de ProdutoDeCorte
@@ -257,8 +262,33 @@ public class ProdutoServiceImpl implements ProdutoService {
             produto.setTipoMateriaPrima(tipoMateriaPrima);
         }
 
+        if (produto instanceof ProdutoDeConsumo produtoDeConsumo &&
+                (fields.containsKey("unidadesPorProduto") || fields.containsKey("unidadeCadastroConsumo") || fields.containsKey("tipoMateriaPrimaId"))) {
+            UnidadeDeMedida unidadeInformada = fields.containsKey("unidadeCadastroConsumo")
+                    ? UnidadeDeMedida.valueOf(fields.get("unidadeCadastroConsumo").toString())
+                    : produtoDeConsumo.getTipoMateriaPrima().getUnidadeDeConsumo();
+
+            produtoDeConsumo.setUnidadesPorProduto(normalizarUnidadesPorProdutoConsumo(
+                    produtoDeConsumo.getUnidadesPorProduto(),
+                    produtoDeConsumo.getTipoMateriaPrima().getUnidadeDeConsumo(),
+                    unidadeInformada
+            ));
+        }
+
         Produto produtoAtualizado = produtoRepository.save(produto);
         return mapAndEnrichProduto(produtoAtualizado);
+    }
+
+    private BigDecimal normalizarUnidadesPorProdutoConsumo(
+            BigDecimal quantidadeInformada,
+            UnidadeDeMedida unidadePrincipal,
+            UnidadeDeMedida unidadeInformada
+    ) {
+        UnidadeDeMedida unidadeEfetiva = unidadeInformada != null ? unidadeInformada : unidadePrincipal;
+        if (!unidadePrincipal.aceitaComoCadastroDeConsumo(unidadeEfetiva)) {
+            throw UnidadeCadastroConsumoInvalidaException.unidadeIncompativel(unidadePrincipal, unidadeEfetiva);
+        }
+        return unidadePrincipal.normalizarQuantidadeDeConsumo(quantidadeInformada, unidadeEfetiva);
     }
 
     @Override

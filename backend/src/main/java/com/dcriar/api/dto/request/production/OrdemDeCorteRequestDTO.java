@@ -32,25 +32,25 @@ public class OrdemDeCorteRequestDTO {
     /**
      * O ID do produto a ser fabricado (deve ser um produto de matéria-prima geométrica).
      */
-    @Schema(description = "ID do produto a ser fabricado (deve ser um produto de matéria-prima geométrica).", example = "2", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do produto a ser fabricado (deve ser um produto de matéria-prima geométrica). No seed padrão, use 3 para 'Adesivo Redondo 5cm'.", example = "3", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
      * O ID do lote de matéria-prima principal a ser consumido.
      */
-    @Schema(description = "ID do lote de matéria-prima a ser consumido.", example = "2", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do lote de matéria-prima a ser consumido. No seed padrão, use 3 para 'Compra NF-1003'.", example = "3", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long loteId;
 
     /**
      * O ID do canal de venda de destino do estoque (opcional). Se fornecido, o estoque produzido será alocado neste canal.
      */
-    @Schema(description = "ID do canal de venda de destino do estoque (opcional). Se fornecido, o estoque produzido será alocado neste canal.", example = "5")
+    @Schema(description = "ID do canal de venda de destino do estoque (opcional). Se fornecido, o estoque produzido será alocado neste canal. No seed padrão, use 2 para 'Shopee'.", example = "2")
     private Long canalVendaDestinoId;
 
     /**
      * A quantidade de unidades do produto a serem produzidas.
      */
-    @Schema(description = "Quantidade de unidades do produto a serem produzidas.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade de unidades do produto a serem produzidas.", example = "1000", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidadeProduzida;
 
     /**
@@ -68,18 +68,18 @@ public class OrdemDeCorteRequestDTO {
     /**
      * A largura do bloco de produtos informada pelo usuário no modo MANUAL.
      */
-    @Schema(description = "Largura do bloco de produtos em cm (obrigatório no modo MANUAL).", example = "80.0")
+    @Schema(description = "Largura do bloco de produtos em cm (obrigatório no modo MANUAL). Para o seed padrão com produto 3, use 120.0 para 24 itens por linha.", example = "120.0")
     private BigDecimal larguraBlocoProdutosCm;
 
     /**
      * O comprimento do bloco de produtos informado pelo usuário no modo MANUAL.
      */
-    @Schema(description = "Comprimento do bloco de produtos em cm (obrigatório no modo MANUAL).", example = "120.0")
+    @Schema(description = "Comprimento do bloco de produtos em cm (obrigatório no modo MANUAL). Para o seed padrão com produto 3, use 10.0 para 25 itens.", example = "10.0")
     private BigDecimal comprimentoBlocoProdutosCm;
 
     /**
      * Um motivo ou referência para a ordem.
      */
-    @Schema(description = "Motivo ou referência para a ordem.", example = "Pedido Cliente #456")
+    @Schema(description = "Motivo ou referência para a ordem.", example = "Reposição de adesivos para Shopee")
     private String motivo;
 }

@@ -103,7 +103,8 @@ public class GlobalExceptionHandler {
             ProdutoNaoCabeNoLoteException.class, QuantidadeUnidadesInvalidaException.class, TipoProducaoIncompativelException.class,
             ImpossivelExcluirProducaoException.class,
             TipoProdutoInvalidoException.class, OperadorEstoqueInvalidoException.class,
-            IncompatibilidadeMaterialException.class, QuantidadeExcedeCapacidadeLoteException.class
+            IncompatibilidadeMaterialException.class, QuantidadeExcedeCapacidadeLoteException.class,
+            UnidadeCadastroConsumoInvalidaException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();

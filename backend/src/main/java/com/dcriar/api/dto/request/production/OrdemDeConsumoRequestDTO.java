@@ -23,18 +23,18 @@ import lombok.Setter;
 @ValidOrdemDeConsumoRequest
 public class OrdemDeConsumoRequestDTO {
 
-    @Schema(description = "ID do produto a ser fabricado (deve ser um produto de consumo).", example = "5", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do produto a ser fabricado (deve ser um produto de consumo). No seed padrão, use 10 para 'Pacote de Ilhós Nº 0'.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
-    @Schema(description = "ID do lote de matéria-prima a ser consumido.", example = "4", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do lote de matéria-prima a ser consumido. No seed padrão, use 8 para 'Compra NF-1008'.", example = "8", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long loteId;
 
-    @Schema(description = "ID do canal de venda de destino do estoque (opcional).", example = "1")
+    @Schema(description = "ID do canal de venda de destino do estoque (opcional). No seed padrão, use 1 para 'Loja Física'.", example = "1")
     private Long canalVendaDestinoId;
 
-    @Schema(description = "Quantidade de unidades do produto a serem produzidas.", example = "250", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade de unidades do produto a serem produzidas. No seed padrão, 10 pacotes consomem exatamente 1000 unidades do lote 8.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidadeProduzida;
 
-    @Schema(description = "Motivo ou referência para a ordem.", example = "Reposição de Estoque Interno")
+    @Schema(description = "Motivo ou referência para a ordem.", example = "Reposição de estoque de ilhós")
     private String motivo;
 }

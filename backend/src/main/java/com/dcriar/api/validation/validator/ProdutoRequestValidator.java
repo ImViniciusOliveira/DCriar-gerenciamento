@@ -22,7 +22,7 @@ public class ProdutoRequestValidator extends BaseValidator<ValidProdutoRequest, 
         // Validações comuns a todos os tipos de produto
         addViolationIf(dto.getNome() == null || dto.getNome().isBlank(), "O nome do produto é obrigatório.", "nome");
         addViolationIf(dto.getSku() == null || dto.getSku().isBlank(), "O SKU do produto é obrigatório.", "sku");
-        addViolationIf(dto.getUnidadesPorProduto() == null || dto.getUnidadesPorProduto() <= 0, "A quantidade de unidades por produto deve ser um número positivo.", "unidadesPorProduto");
+        addViolationIf(dto.getUnidadesPorProduto() == null || dto.getUnidadesPorProduto().compareTo(BigDecimal.ZERO) <= 0, "A quantidade de unidades por produto deve ser um número positivo.", "unidadesPorProduto");
         addViolationIf(dto.getTipoMateriaPrimaId() == null, "O ID do tipo de matéria-prima é obrigatório.", "tipoMateriaPrimaId");
 
         String tipoProduto = dto.getTipoProduto();
@@ -34,6 +34,11 @@ public class ProdutoRequestValidator extends BaseValidator<ValidProdutoRequest, 
 
         // Validações condicionais baseadas no tipo do produto
         if ("CORTE".equals(tipoProduto)) {
+            addViolationIf(
+                    dto.getUnidadesPorProduto() != null && dto.getUnidadesPorProduto().stripTrailingZeros().scale() > 0,
+                    "Produtos de corte devem usar uma quantidade inteira em 'unidadesPorProduto'.",
+                    "unidadesPorProduto"
+            );
             addViolationIf(dto.getCor() == null || dto.getCor().isBlank(), "A cor do produto é obrigatória.", "cor");
             addViolationIf(dto.getDimensoes() == null, "As dimensões são obrigatórias.", "dimensoes");
             if (dto.getDimensoes() != null) {

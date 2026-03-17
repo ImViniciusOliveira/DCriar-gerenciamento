@@ -258,7 +258,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());
 
         // 2. Valida se o saldo do lote é suficiente.
-        BigDecimal consumoTotalNecessario = new BigDecimal(produto.getUnidadesPorProduto() * requestDTO.getQuantidadeProduzida());
+        BigDecimal consumoTotalNecessario = produto.getUnidadesPorProduto()
+                .multiply(BigDecimal.valueOf(requestDTO.getQuantidadeProduzida()));
         BigDecimal saldoDisponivel = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteConsumido);
 
         if (saldoDisponivel.compareTo(consumoTotalNecessario) < 0) {
@@ -622,7 +623,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());
 
-        BigDecimal consumoTotalNecessario = new BigDecimal(produto.getUnidadesPorProduto() * requestDTO.getQuantidade());
+        BigDecimal consumoTotalNecessario = produto.getUnidadesPorProduto()
+                .multiply(BigDecimal.valueOf(requestDTO.getQuantidade()));
         BigDecimal saldoTotalDisponivel = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteConsumido);
 
         if (saldoTotalDisponivel.compareTo(consumoTotalNecessario) < 0) {

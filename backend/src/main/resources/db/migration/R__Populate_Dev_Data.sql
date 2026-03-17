@@ -10,7 +10,7 @@ TRUNCATE TABLE
     itens_venda, vendas, estoques, precos, cortes_realizados, ordem_producao_lotes_consumidos,
     movimentacoes_estoque_produto, movimentacoes_estoque_lote, lotes_materia_prima,
     ordens_de_producao, produtos, tipos_materia_prima, canais_venda
-    CASCADE;
+    RESTART IDENTITY CASCADE;
 
 -- ETAPA 2: INSERÇÃO DE DADOS MESTRES (Entidades que não dependem de outras)
 -- Estas são as tabelas base do sistema.

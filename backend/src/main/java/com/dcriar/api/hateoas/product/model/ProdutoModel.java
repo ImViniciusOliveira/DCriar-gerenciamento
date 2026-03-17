@@ -10,6 +10,7 @@ import lombok.*;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -58,8 +59,8 @@ public abstract class ProdutoModel extends RepresentationModel<ProdutoModel> {
     @Schema(description = "Descrição detalhada do produto.", example = "Etiqueta adesiva redonda de papel kraft 5x5cm")
     private String descricao;
 
-    @Schema(description = "Quantidade de unidades por produto vendido.", example = "100")
-    private Integer unidadesPorProduto;
+    @Schema(description = "Quantidade consumida por unidade do produto vendido.", example = "100")
+    private BigDecimal unidadesPorProduto;
 
     @Schema(description = "Indica se o produto está ativo para venda.", example = "true")
     private boolean ativo;

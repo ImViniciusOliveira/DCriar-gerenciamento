@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -42,8 +43,8 @@ public abstract class ProdutoResponseDTO {
     @Schema(description = "Descrição detalhada do produto.", example = "Etiqueta adesiva redonda de papel kraft 5x5cm")
     private String descricao;
 
-    @Schema(description = "Quantidade de unidades por produto vendido.", example = "100")
-    private Integer unidadesPorProduto;
+    @Schema(description = "Quantidade consumida por unidade do produto vendido.", example = "100")
+    private BigDecimal unidadesPorProduto;
 
     @Schema(description = "Indica se o produto está ativo para venda.", example = "true")
     private boolean ativo;

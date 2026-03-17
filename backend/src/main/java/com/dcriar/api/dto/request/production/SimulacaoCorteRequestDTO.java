@@ -26,7 +26,7 @@ public class SimulacaoCorteRequestDTO {
     /**
      * O ID do produto para o qual a simulação de corte será realizada.
      */
-    @Schema(description = "ID do produto a ser simulado.", example = "2", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do produto a ser simulado. No seed padrão, use 3 para 'Adesivo Redondo 5cm'.", example = "3", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
@@ -37,6 +37,6 @@ public class SimulacaoCorteRequestDTO {
     /**
      * O ID do lote de matéria-prima a ser utilizado na simulação.
      */
-    @Schema(description = "ID do lote de matéria-prima a ser utilizado na simulação.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do lote de matéria-prima a ser utilizado na simulação. No seed padrão, use 3 para 'Compra NF-1003'.", example = "3", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long loteId;
 }

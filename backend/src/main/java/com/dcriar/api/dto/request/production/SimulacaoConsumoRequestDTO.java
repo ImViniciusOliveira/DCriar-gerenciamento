@@ -26,18 +26,18 @@ public class SimulacaoConsumoRequestDTO {
     /**
      * O ID do produto para o qual a simulação será realizada.
      */
-    @Schema(description = "ID do produto a ser simulado.", example = "5", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do produto a ser simulado. No seed padrão, use 10 para 'Pacote de Ilhós Nº 0'.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
     /**
      * A quantidade de unidades do produto que se deseja produzir.
      */
-    @Schema(description = "Quantidade de unidades a serem produzidas na simulação.", example = "200", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade de unidades a serem produzidas na simulação. No seed padrão, 10 pacotes consomem exatamente 1000 unidades do lote 8.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 
     /**
      * O ID do lote de matéria-prima a ser considerado na simulação.
      */
-    @Schema(description = "ID do lote de matéria-prima a ser considerado na simulação.", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID do lote de matéria-prima a ser considerado na simulação. No seed padrão, use 8 para 'Compra NF-1008'.", example = "8", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long loteId;
 }
