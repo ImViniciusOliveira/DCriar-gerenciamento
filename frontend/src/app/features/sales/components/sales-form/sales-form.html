@@ -78,11 +78,7 @@
     <mat-dialog-actions align="end">
       <button mat-button type="button" (click)="onCancel()">Cancelar</button>
       <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || isSaving() || itemsControls.length === 0">
-        @if (isSaving()) {
-          <mat-spinner diameter="20"></mat-spinner>
-        } @else {
-          Finalizar Venda
-        }
+        {{ isSaving() ? 'Salvando...' : 'Finalizar Venda' }}
       </button>
     </mat-dialog-actions>
   </form>

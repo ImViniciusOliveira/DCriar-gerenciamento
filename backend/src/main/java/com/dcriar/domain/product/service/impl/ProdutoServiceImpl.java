@@ -151,6 +151,10 @@ public class ProdutoServiceImpl implements ProdutoService {
     }
 
     private ProdutoDeConsumo createProdutoDeConsumo(ProdutoRequestDTO requestDTO, TipoMateriaPrima tipoMateriaPrima) {
+        UnidadeDeMedida unidadeCadastro = resolverUnidadeCadastroConsumo(
+                tipoMateriaPrima.getUnidadeDeConsumo(),
+                requestDTO.getUnidadeCadastroConsumo()
+        );
         return ProdutoDeConsumo.builder()
                 .nome(requestDTO.getNome())
                 .sku(requestDTO.getSku())
@@ -158,12 +162,13 @@ public class ProdutoServiceImpl implements ProdutoService {
                 .unidadesPorProduto(normalizarUnidadesPorProdutoConsumo(
                         requestDTO.getUnidadesPorProduto(),
                         tipoMateriaPrima.getUnidadeDeConsumo(),
-                        requestDTO.getUnidadeCadastroConsumo()
+                        unidadeCadastro
                 ))
                 .fotoPrincipalUrl(requestDTO.getFotoPrincipalUrl())
                 .ativo(requestDTO.getAtivo() != null ? requestDTO.getAtivo() : true)
                 .tipoMateriaPrima(tipoMateriaPrima)
                 .codigoFabricante(requestDTO.getCodigoFabricante())
+                .unidadeCadastroConsumo(unidadeCadastro)
                 .especificacoes(requestDTO.getEspecificacoes())
                 .build();
     }
@@ -234,6 +239,11 @@ public class ProdutoServiceImpl implements ProdutoService {
                 case "codigoFabricante" -> {
                     if (produto instanceof ProdutoDeConsumo p) p.setCodigoFabricante((String) value);
                 }
+                case "unidadeCadastroConsumo" -> {
+                    if (produto instanceof ProdutoDeConsumo p && value != null) {
+                        p.setUnidadeCadastroConsumo(UnidadeDeMedida.valueOf(value.toString()));
+                    }
+                }
                 case "especificacoes" -> {
                     if (produto instanceof ProdutoDeConsumo p && value instanceof Map) {
                         @SuppressWarnings("unchecked")
@@ -266,13 +276,18 @@ public class ProdutoServiceImpl implements ProdutoService {
                 (fields.containsKey("unidadesPorProduto") || fields.containsKey("unidadeCadastroConsumo") || fields.containsKey("tipoMateriaPrimaId"))) {
             UnidadeDeMedida unidadeInformada = fields.containsKey("unidadeCadastroConsumo")
                     ? UnidadeDeMedida.valueOf(fields.get("unidadeCadastroConsumo").toString())
-                    : produtoDeConsumo.getTipoMateriaPrima().getUnidadeDeConsumo();
+                    : produtoDeConsumo.getUnidadeCadastroConsumo();
+            UnidadeDeMedida unidadeCadastro = resolverUnidadeCadastroConsumo(
+                    produtoDeConsumo.getTipoMateriaPrima().getUnidadeDeConsumo(),
+                    unidadeInformada
+            );
 
             produtoDeConsumo.setUnidadesPorProduto(normalizarUnidadesPorProdutoConsumo(
                     produtoDeConsumo.getUnidadesPorProduto(),
                     produtoDeConsumo.getTipoMateriaPrima().getUnidadeDeConsumo(),
-                    unidadeInformada
+                    unidadeCadastro
             ));
+            produtoDeConsumo.setUnidadeCadastroConsumo(unidadeCadastro);
         }
 
         Produto produtoAtualizado = produtoRepository.save(produto);
@@ -284,11 +299,18 @@ public class ProdutoServiceImpl implements ProdutoService {
             UnidadeDeMedida unidadePrincipal,
             UnidadeDeMedida unidadeInformada
     ) {
-        UnidadeDeMedida unidadeEfetiva = unidadeInformada != null ? unidadeInformada : unidadePrincipal;
+        UnidadeDeMedida unidadeEfetiva = resolverUnidadeCadastroConsumo(unidadePrincipal, unidadeInformada);
         if (!unidadePrincipal.aceitaComoCadastroDeConsumo(unidadeEfetiva)) {
             throw UnidadeCadastroConsumoInvalidaException.unidadeIncompativel(unidadePrincipal, unidadeEfetiva);
         }
         return unidadePrincipal.normalizarQuantidadeDeConsumo(quantidadeInformada, unidadeEfetiva);
+    }
+
+    private UnidadeDeMedida resolverUnidadeCadastroConsumo(
+            UnidadeDeMedida unidadePrincipal,
+            UnidadeDeMedida unidadeInformada
+    ) {
+        return unidadeInformada != null ? unidadeInformada : unidadePrincipal;
     }
 
     @Override

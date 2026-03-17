@@ -5,7 +5,6 @@ import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA, MatDialog } from '@angu
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -40,7 +39,6 @@ export interface ProductionFormData {
     MatSelectModule,
     MatInputModule,
     MatButtonModule,
-    MatProgressSpinnerModule,
     ProductStockSearch,
     MatIconModule,
     BatchSearch,
@@ -288,6 +286,27 @@ export class ProductionForm implements OnInit {
         });
       }
     });
+  }
+
+  formatProductUnit(quantity: number | null | undefined): string {
+    return quantity === 1 ? 'unidade' : 'unidades';
+  }
+
+  formatConsumptionUnit(quantity: number | null | undefined, unitDescription: string | null | undefined): string {
+    if (!unitDescription) {
+      return '';
+    }
+
+    if (quantity === 1) {
+      return unitDescription;
+    }
+
+    switch (unitDescription) {
+      case 'Folha':
+        return 'Folhas';
+      default:
+        return `${unitDescription}s`;
+    }
   }
 
   ngOnInit(): void {

@@ -96,11 +96,6 @@
                       <span>Foto ou imagem do produto</span>
                     </div>
                   }
-                  @if (isUploading()) {
-                    <div class="upload-overlay">
-                      <mat-spinner diameter="40"></mat-spinner>
-                    </div>
-                  }
                 </div>
                 <input type="file" id="fotoPrincipal" (change)="onFileSelected($event)" accept="image/png, image/jpeg" hidden #fileInput>
                 <button mat-stroked-button type="button" class="action-button" (click)="fileInput.click()">
@@ -118,12 +113,12 @@
         [control]="materialTypeControl"
         [isEditMode]="isEditMode()"
         (selectionChange)="onMaterialTypeChange($event)">
-        @if (productForm.get('unidadeCadastroConsumo')?.enabled && getConsumptionUnitOptions().length > 0) {
+        @if (productForm.get('unidadeCadastroConsumo')?.enabled && materialTypeControl.value) {
           <mat-form-field after-unit-field appearance="outline" class="unit-filter">
             <mat-label>Unidade do Produto</mat-label>
             <mat-select formControlName="unidadeCadastroConsumo">
-              @for (unit of getConsumptionUnitOptions(); track unit) {
-                <mat-option [value]="unit">{{ getConsumptionUnitLabel(unit) }}</mat-option>
+              @for (unit of consumptionUnitOptions(); track unit.value) {
+                <mat-option [value]="unit.value">{{ getConsumptionUnitLabel(unit.value) }}</mat-option>
               }
             </mat-select>
           </mat-form-field>

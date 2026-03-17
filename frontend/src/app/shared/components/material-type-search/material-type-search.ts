@@ -5,7 +5,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { of } from 'rxjs';
@@ -30,7 +29,6 @@ import { MaterialTypeService } from '../../../features/stock/services/material-t
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
     MatAutocompleteModule
   ],
   templateUrl: './material-type-search.html',
@@ -118,10 +116,22 @@ export class MaterialTypeSearch implements OnInit {
   ngOnInit(): void {
     const ctrl = this.control();
 
+    ctrl.valueChanges.pipe(
+      filter((value): value is MaterialType => !!value),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(selectedMaterialType => {
+      this.searchControl.setValue(selectedMaterialType, { emitEvent: false });
+      this.unitControl.setValue(selectedMaterialType.unidadeDeConsumo ?? '', { emitEvent: false });
+      this.materialTypes.set([selectedMaterialType]);
+      this.performSearch('', selectedMaterialType.unidadeDeConsumo);
+    });
+
     // Sincroniza o valor inicial do pai com o input de busca
     if (ctrl.value) {
       this.searchControl.setValue(ctrl.value);
+      this.unitControl.setValue(ctrl.value.unidadeDeConsumo ?? '', { emitEvent: false });
       this.materialTypes.set([ctrl.value]);
+      this.performSearch('', ctrl.value.unidadeDeConsumo);
     } else if (this.isEditMode()) {
       ctrl.valueChanges.pipe(
         filter(value => !!value),
@@ -129,10 +139,9 @@ export class MaterialTypeSearch implements OnInit {
         takeUntilDestroyed(this.destroyRef)
       ).subscribe((initialValue: MaterialType) => {
         this.searchControl.setValue(initialValue);
-        this.materialTypes.update(currentTypes => {
-            const exists = currentTypes.some(t => t.id === initialValue.id);
-            return exists ? currentTypes : [initialValue, ...currentTypes];
-        });
+        this.unitControl.setValue(initialValue.unidadeDeConsumo ?? '', { emitEvent: false });
+        this.materialTypes.set([initialValue]);
+        this.performSearch('', initialValue.unidadeDeConsumo);
       });
     }
 

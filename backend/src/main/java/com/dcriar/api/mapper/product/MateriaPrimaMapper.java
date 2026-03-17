@@ -3,6 +3,7 @@ package com.dcriar.api.mapper.product;
 import com.dcriar.api.dto.response.product.MateriaPrimaResponseDTO;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 
 /**
@@ -20,5 +21,6 @@ public interface MateriaPrimaMapper {
      * @param tipoMateriaPrima A entidade a ser convertida.
      * @return O DTO de resposta correspondente.
      */
+    @Mapping(source = "unidadeDeConsumo.descricao", target = "unidadeDescricao")
     MateriaPrimaResponseDTO toResponseDTO(TipoMateriaPrima tipoMateriaPrima);
 }

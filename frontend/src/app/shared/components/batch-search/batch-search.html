@@ -20,19 +20,10 @@
         </div>
       </mat-option>
     }
-    @if (isSearching()) {
-      <mat-option disabled>
-        <mat-spinner diameter="20"></mat-spinner>
-        Buscando...
-      </mat-option>
-    }
     @if (!isSearching() && foundBatches()._embedded['lotes-materia-prima'].length === 0) {
       <mat-option disabled>Nenhum lote encontrado.</mat-option>
     }
   </mat-autocomplete>
-  @if (isSearching()) {
-    <mat-spinner matSuffix diameter="20"></mat-spinner>
-  }
   @if (control().invalid && control().touched) {
     <mat-error>
       {{ control().errors | json }}

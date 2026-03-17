@@ -636,6 +636,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         return SimulacaoConsumoResponseDTO.builder()
                 .consumoTotalEstimado(consumoTotalNecessario)
                 .unidadeDeConsumo(produto.getTipoMateriaPrima().getUnidadeDeConsumo())
+                .unidadeDescricao(produto.getTipoMateriaPrima().getUnidadeDeConsumo().getDescricao())
                 .planoDeConsumo(plano.itens().stream().map(planoDeConsumoMapper::toDto).collect(Collectors.toList()))
                 .saldoRestante(plano.saldosRestantes())
                 .build();

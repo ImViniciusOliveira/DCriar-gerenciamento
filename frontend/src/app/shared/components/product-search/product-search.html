@@ -8,11 +8,7 @@
          (focus)="searchControl().updateValueAndValidity({ onlySelf: true, emitEvent: true })">
          <!-- O focus dispara a busca vazia se permitido -->
 
-  @if (isLoading()) {
-    <mat-spinner matSuffix diameter="20"></mat-spinner>
-  } @else {
     <mat-icon matSuffix>search</mat-icon>
-  }
 
   <!-- Exibe o hint com estoque e, se houver, o erro ao lado -->
   @if (customHint()) {

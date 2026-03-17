@@ -15,12 +15,6 @@
           {{ buildProductLabel(product) }}
         </mat-option>
       }
-
-      @if (isSearching()) {
-        <mat-option disabled class="spinner-option">
-          <mat-spinner diameter="20"></mat-spinner>
-        </mat-option>
-      }
     </mat-autocomplete>
 
     <!-- Contêiner do filtro de estoque como sufixo -->

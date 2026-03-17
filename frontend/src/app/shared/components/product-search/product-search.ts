@@ -4,7 +4,6 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { debounceTime, distinctUntilChanged, switchMap, tap, catchError, filter, map } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -27,8 +26,7 @@ import { Product } from '../../../features/products/models/product.model';
     MatAutocompleteModule,
     MatInputModule,
     MatFormFieldModule,
-    MatIconModule,
-    MatProgressSpinnerModule
+    MatIconModule
   ],
   templateUrl: './product-search.html',
   styleUrls: ['./product-search.scss']

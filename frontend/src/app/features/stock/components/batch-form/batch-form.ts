@@ -16,7 +16,6 @@ import { MaterialType } from '../../models/material-type.model';
 import { BatchService } from '../../services/batch.service';
 import { MaterialTypeService } from '../../services/material-type.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MaterialTypeSearch } from '../../../../shared/components/material-type-search/material-type-search';
 import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
@@ -65,7 +64,7 @@ export interface BatchFormData {
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MaterialTypeSearch, MatSelectModule,
+    MatButtonModule, MatIconModule, MaterialTypeSearch, MatSelectModule,
     CurrencyPipe, TitleCasePipe
   ],
   templateUrl: './batch-form.html',

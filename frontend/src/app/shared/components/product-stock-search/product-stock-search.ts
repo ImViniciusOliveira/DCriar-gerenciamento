@@ -6,7 +6,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { debounceTime, distinctUntilChanged, filter, merge, mergeMap, combineLatest, startWith, skip } from 'rxjs';
@@ -30,7 +29,6 @@ import { EnumService, EnumOption } from '../../../core/services/enum.service';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
     MatAutocompleteModule
   ],
   templateUrl: './product-stock-search.html',

@@ -31,4 +31,10 @@ public class MateriaPrimaResponseDTO {
      */
     @Schema(description = "Unidade de consumo da matéria-prima.", example = "FOLHA")
     private UnidadeDeMedida unidadeDeConsumo;
+
+    /**
+     * A descrição amigável da unidade de consumo da matéria-prima.
+     */
+    @Schema(description = "Descrição amigável da unidade de consumo da matéria-prima.", example = "Folha")
+    private String unidadeDescricao;
 }

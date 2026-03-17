@@ -7,7 +7,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 
@@ -30,8 +29,7 @@ import { BatchService } from '../../../features/stock/services/batch.service';
     MatInputModule,
     MatAutocompleteModule,
     MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule
+    MatIconModule
   ],
   templateUrl: './batch-search.html',
   styleUrls: ['./batch-search.scss']

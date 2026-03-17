@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, signal, Signal, computed } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, effect, inject, signal, Signal, computed } from '@angular/core';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Product } from '../../models/product.model';
 import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormGroupDirective, NgForm, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
@@ -13,7 +13,6 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { lastValueFrom } from 'rxjs';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { provideNgxMask } from 'ngx-mask';
 import { MaterialTypeSearch } from '../../../../shared/components/material-type-search/material-type-search';
 import { MaterialType } from '../../../stock/models/material-type.model';
@@ -22,6 +21,8 @@ import { ErrorStateMatcher } from '@angular/material/core';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
 import { filter, switchMap } from 'rxjs/operators';
 import { startWith } from 'rxjs/operators';
+import { ApiRoot } from '../../../../core/services/api-root';
+import { map, of } from 'rxjs';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -52,7 +53,7 @@ export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatProgressSpinnerModule, MaterialTypeSearch],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatButtonModule, MatCheckboxModule, MatIconModule, MaterialTypeSearch],
   providers: [provideNgxMask()],
   templateUrl: './product-form.html',
   styleUrls: ['./product-form.scss'],
@@ -62,6 +63,7 @@ export class ProductFormComponent implements OnInit {
   private readonly productService = inject(ProductService);
   private readonly materialTypeService = inject(MaterialTypeService);
   private readonly enumService = inject(EnumService);
+  private readonly apiRoot = inject(ApiRoot);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
@@ -70,8 +72,17 @@ export class ProductFormComponent implements OnInit {
 
   readonly product = signal<Product>(this.data.product);
   readonly isEditMode = signal<boolean>(this.data.isEditMode);
+  private lastMaterialTypeId: number | null = this.data.product.materiaPrima?.id ?? null;
   matcher = new ImmediateErrorStateMatcher();
   readonly consumptionUnitOptions = signal<EnumOption[]>([]);
+  readonly availableUnitsMap = toSignal(
+    toObservable(this.apiRoot.endpoints).pipe(
+      map(endpoints => endpoints._links?.['unidades-de-medida']?.href?.split('{')[0] ?? null),
+      filter((url): url is string => !!url),
+      switchMap(url => this.enumService.getConsumptionUnitsMap(url))
+    ),
+    { initialValue: new Map<string, EnumOption>() }
+  );
 
   /** URL segura para exibição da imagem, priorizando o preview local. */
   readonly safeImageSrc: Signal<string | null>;
@@ -135,28 +146,29 @@ export class ProductFormComponent implements OnInit {
 
     this.productForm.get('materiaPrima')?.valueChanges
       .pipe(takeUntilDestroyed())
-      .subscribe(() => this.syncConsumptionUnitWithSelectedMaterial());
+      .subscribe(materialType => {
+        const selectedMaterialType = materialType as MaterialType | null;
+        const selectedMaterialId = selectedMaterialType?.id ?? null;
+        this.refreshConsumptionUnitOptions();
+
+        if (selectedMaterialId !== this.lastMaterialTypeId) {
+          this.lastMaterialTypeId = selectedMaterialId;
+          this.syncConsumptionUnitWithSelectedMaterial(true);
+          return;
+        }
+
+        this.syncConsumptionUnitWithSelectedMaterial();
+      });
 
     this.productForm.get('materiaPrima')?.valueChanges.pipe(
       takeUntilDestroyed(),
-      startWith(this.materialTypeControl.value),
-      filter((value): value is MaterialType => !!value?._links?.['unidades-de-medida']?.href),
-      switchMap(materialType =>
-        this.enumService.getConsumptionUnitsMap(materialType._links!['unidades-de-medida']!.href)
-      )
-    ).subscribe(unitsMap => {
-      const materialType = this.materialTypeControl.value as MaterialType | null;
-      const baseUnit = materialType?.unidadeDeConsumo;
-      if (!baseUnit) {
-        this.consumptionUnitOptions.set([]);
-        return;
-      }
+      startWith(this.materialTypeControl.value)
+    ).subscribe(() => this.refreshConsumptionUnitOptions());
 
-      const baseOption = unitsMap.get(baseUnit);
-      const compatibleOption = baseOption?.compatibleInputUnit ? unitsMap.get(baseOption.compatibleInputUnit) : undefined;
-      const options = [baseOption, compatibleOption].filter((option): option is EnumOption => !!option);
-      this.consumptionUnitOptions.set(options);
-      this.syncConsumptionUnitWithSelectedMaterial();
+    effect(() => {
+      this.availableUnitsMap();
+      this.materialTypeControl.value;
+      this.refreshConsumptionUnitOptions();
     });
   }
 
@@ -181,10 +193,31 @@ export class ProductFormComponent implements OnInit {
       .then(fullProduct => {
         if (fullProduct) {
           this.product.set(fullProduct);
+          this.lastMaterialTypeId = fullProduct.materiaPrima?.id ?? null;
+
+          this.productForm.patchValue({
+            tipoProduto: fullProduct.tipoProduto,
+            nome: fullProduct.nome,
+            sku: fullProduct.sku,
+            descricao: fullProduct.descricao,
+            unidadesPorProduto: fullProduct.unidadesPorProduto,
+            unidadeCadastroConsumo: fullProduct.unidadeCadastroConsumo ?? fullProduct.materiaPrima?.unidadeDeConsumo ?? null,
+            ativo: fullProduct.ativo,
+            cor: fullProduct.cor,
+            codigoFabricante: fullProduct.codigoFabricante,
+            dimensoes: {
+              larguraCm: fullProduct.dimensoes?.larguraCm ?? null,
+              comprimentoCm: fullProduct.dimensoes?.comprimentoCm ?? null
+            }
+          }, { emitEvent: false });
 
           if (fullProduct.materiaPrima) {
             this.productForm.get('materiaPrima')?.patchValue(fullProduct.materiaPrima);
           }
+
+          this.setupFormControlsBasedOnProductType(fullProduct.tipoProduto || 'CORTE', false);
+          this.refreshConsumptionUnitOptions();
+          this.syncConsumptionUnitWithSelectedMaterial();
 
           this.specifications.clear();
           const specs = fullProduct.especificacoes;
@@ -542,7 +575,7 @@ export class ProductFormComponent implements OnInit {
     return option.simbolo ? `${option.viewValue} (${option.simbolo})` : option.viewValue;
   }
 
-  private syncConsumptionUnitWithSelectedMaterial(): void {
+  private syncConsumptionUnitWithSelectedMaterial(forceBaseUnit = false): void {
     if (this.productForm.get('tipoProduto')?.value !== 'CONSUMO') {
       return;
     }
@@ -559,9 +592,35 @@ export class ProductFormComponent implements OnInit {
     }
 
     const currentValue = unitControl.value;
-    if (!currentValue || !options.includes(currentValue)) {
+    if (forceBaseUnit || !currentValue || !options.includes(currentValue)) {
       unitControl.setValue(options[0], { emitEvent: false });
     }
+  }
+
+  private refreshConsumptionUnitOptions(): void {
+    const materialType = this.materialTypeControl.value as MaterialType | null;
+    const baseUnit = materialType?.unidadeDeConsumo;
+    if (!baseUnit) {
+      this.consumptionUnitOptions.set([]);
+      return;
+    }
+
+    const unitsMap = this.availableUnitsMap();
+    if (!unitsMap.size) {
+      this.consumptionUnitOptions.set([
+        {
+          value: baseUnit,
+          viewValue: materialType?.unidadeDescricao ?? baseUnit,
+          simbolo: undefined
+        }
+      ]);
+      return;
+    }
+
+    const baseOption = unitsMap.get(baseUnit);
+    const compatibleOption = baseOption?.compatibleInputUnit ? unitsMap.get(baseOption.compatibleInputUnit) : undefined;
+    const options = [baseOption, compatibleOption].filter((option): option is EnumOption => !!option);
+    this.consumptionUnitOptions.set(options);
   }
 }
 

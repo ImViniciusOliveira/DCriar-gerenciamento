@@ -50,6 +50,7 @@ export interface SimulationConsumptionResult extends RepresentationModel {
   tipoSimulacao: 'CONSUMO';
   consumoTotalEstimado: number;
   unidadeDeConsumo: string;
+  unidadeDescricao: string;
   planoDeConsumo: Array<{
     loteId: number;
     motivoLote: string;

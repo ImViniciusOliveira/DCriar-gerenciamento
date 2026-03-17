@@ -8,7 +8,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -122,7 +121,6 @@ function stockAvailabilityValidator(formArray: AbstractControl): ValidationError
     MatIconModule,
     MatSelectModule,
     MatAutocompleteModule,
-    MatProgressSpinnerModule,
     ProductSearch
   ],
   templateUrl: './sales-form.html',
