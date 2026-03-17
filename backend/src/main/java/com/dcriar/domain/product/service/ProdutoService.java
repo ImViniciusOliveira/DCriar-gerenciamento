@@ -69,7 +69,7 @@ public interface ProdutoService {
      * Busca produtos filtrando por tipo e estoque.
      * Utilizado pelo endpoint /by-tipo para Production.
      *
-     * @param tipoProduto Tipo do produto ("CORTE" ou "CONSUMO_DIRETO").
+     * @param tipoProduto Tipo do produto ("CORTE" ou "CONSUMO").
      * @param estoqueValor Valor de estoque para comparação.
      * @param estoqueOperador "GTE" para ≥ ou "LTE" para ≤.
      * @param nome Termo de busca para filtrar por nome ou SKU (opcional).

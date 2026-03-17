@@ -6,7 +6,7 @@ import com.dcriar.api.mapper.product.ProdutoMapper;
 import com.dcriar.domain.product.entity.*;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
-import com.dcriar.domain.product.repository.ProdutoDeConsumoDiretoRepository;
+import com.dcriar.domain.product.repository.ProdutoDeConsumoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.repository.spec.ProdutoSpecifications;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class ProdutoServiceImpl implements ProdutoService {
 
     private final ProdutoRepository produtoRepository;
-    private final ProdutoDeConsumoDiretoRepository produtoDeConsumoDiretoRepository;
+    private final ProdutoDeConsumoRepository produtoDeConsumoRepository;
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
     private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
     private final EstoqueRepository estoqueRepository;
@@ -72,7 +72,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         if (tipoProduto != null
                 && !tipoProduto.isBlank()
                 && !tipoProduto.equalsIgnoreCase("CORTE")
-                && !tipoProduto.equalsIgnoreCase("CONSUMO_DIRETO")) {
+                && !tipoProduto.equalsIgnoreCase("CONSUMO")) {
             throw new TipoProdutoInvalidoException(tipoProduto);
         }
 
@@ -114,9 +114,9 @@ public class ProdutoServiceImpl implements ProdutoService {
         if ("CORTE".equalsIgnoreCase(requestDTO.getTipoProduto())) {
             produto = createProdutoDeCorte(requestDTO, tipoMateriaPrima);
             produto = produtoRepository.save(produto);
-        } else if ("CONSUMO_DIRETO".equalsIgnoreCase(requestDTO.getTipoProduto())) {
-            produto = createProdutoDeConsumoDireto(requestDTO, tipoMateriaPrima);
-            produto = produtoDeConsumoDiretoRepository.save((ProdutoDeConsumoDireto) produto);
+        } else if ("CONSUMO".equalsIgnoreCase(requestDTO.getTipoProduto())) {
+            produto = createProdutoDeConsumo(requestDTO, tipoMateriaPrima);
+            produto = produtoDeConsumoRepository.save((ProdutoDeConsumo) produto);
         } else {
             throw new TipoProdutoInvalidoException(requestDTO.getTipoProduto());
         }
@@ -149,8 +149,8 @@ public class ProdutoServiceImpl implements ProdutoService {
                 .build();
     }
 
-    private ProdutoDeConsumoDireto createProdutoDeConsumoDireto(ProdutoRequestDTO requestDTO, TipoMateriaPrima tipoMateriaPrima) {
-        return ProdutoDeConsumoDireto.builder()
+    private ProdutoDeConsumo createProdutoDeConsumo(ProdutoRequestDTO requestDTO, TipoMateriaPrima tipoMateriaPrima) {
+        return ProdutoDeConsumo.builder()
                 .nome(requestDTO.getNome())
                 .sku(requestDTO.getSku())
                 .descricao(requestDTO.getDescricao())
@@ -225,12 +225,12 @@ public class ProdutoServiceImpl implements ProdutoService {
                         p.setDimensoes(builder.build());
                     }
                 }
-                // Campos específicos de ProdutoDeConsumoDireto
+                // Campos específicos de ProdutoDeConsumo
                 case "codigoFabricante" -> {
-                    if (produto instanceof ProdutoDeConsumoDireto p) p.setCodigoFabricante((String) value);
+                    if (produto instanceof ProdutoDeConsumo p) p.setCodigoFabricante((String) value);
                 }
                 case "especificacoes" -> {
-                    if (produto instanceof ProdutoDeConsumoDireto p && value instanceof Map) {
+                    if (produto instanceof ProdutoDeConsumo p && value instanceof Map) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> incomingSpecs = (Map<String, String>) value;
 

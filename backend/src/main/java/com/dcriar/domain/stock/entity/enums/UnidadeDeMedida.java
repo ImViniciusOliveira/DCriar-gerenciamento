@@ -39,12 +39,16 @@ public enum UnidadeDeMedida {
     private final String descricao;
     private final String simbolo;
     private final boolean permiteCorte;
-    private final boolean consumoDireto;
+    private final boolean consumo;
 
-    UnidadeDeMedida(String descricao, String simbolo, boolean permiteCorte, boolean consumoDireto) {
+    UnidadeDeMedida(String descricao, String simbolo, boolean permiteCorte, boolean consumo) {
         this.descricao = descricao;
         this.simbolo = simbolo;
         this.permiteCorte = permiteCorte;
-        this.consumoDireto = consumoDireto;
+        this.consumo = consumo;
+    }
+
+    public boolean isConsumo() {
+        return consumo;
     }
 }

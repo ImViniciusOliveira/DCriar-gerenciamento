@@ -1,7 +1,7 @@
 package com.dcriar.domain.product.repository.spec;
 
 import com.dcriar.domain.product.entity.Produto;
-import com.dcriar.domain.product.entity.ProdutoDeConsumoDireto;
+import com.dcriar.domain.product.entity.ProdutoDeConsumo;
 import com.dcriar.domain.product.entity.ProdutoDeCorte;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
@@ -35,7 +35,7 @@ public class ProdutoSpecifications {
      * Cria uma Specification que filtra produtos pelo seu tipo (discriminador).
      * Ignora o filtro apenas se o tipo for nulo ou vazio.
      *
-     * @param tipoProduto A string que representa o tipo ("CORTE" ou "CONSUMO_DIRETO").
+     * @param tipoProduto A string que representa o tipo ("CORTE" ou "CONSUMO").
      * @return Uma Specification para o filtro de tipo.
      */
     public static Specification<Produto> comTipo(String tipoProduto) {
@@ -45,8 +45,8 @@ public class ProdutoSpecifications {
         return (root, query, builder) -> {
             if ("CORTE".equalsIgnoreCase(tipoProduto)) {
                 return builder.equal(root.type(), ProdutoDeCorte.class);
-            } else if ("CONSUMO_DIRETO".equalsIgnoreCase(tipoProduto)) {
-                return builder.equal(root.type(), ProdutoDeConsumoDireto.class);
+            } else if ("CONSUMO".equalsIgnoreCase(tipoProduto)) {
+                return builder.equal(root.type(), ProdutoDeConsumo.class);
             }
             return null; // A validação de tipo inválido é feita antes, na service.
         };

@@ -17,7 +17,7 @@ import java.util.Map;
 )
 @JsonSubTypes({
     @JsonSubTypes.Type(value = ProdutoDeCorteResponseDTO.class, name = "CORTE"),
-    @JsonSubTypes.Type(value = ProdutoDeConsumoDiretoResponseDTO.class, name = "CONSUMO_DIRETO")
+    @JsonSubTypes.Type(value = ProdutoDeConsumoResponseDTO.class, name = "CONSUMO")
 })
 @Getter
 @Setter

@@ -152,7 +152,7 @@ export class ProductService {
         return this.http.get<any>(url, { params: httpParams }).pipe(
           map(response => {
             const corte = response._embedded?.produtoDeCorteModelList || [];
-            const consumo = response._embedded?.produtoDeConsumoDiretoModelList || [];
+            const consumo = response._embedded?.produtoDeConsumoModelList || [];
             return [...corte, ...consumo];
           }),
           catchError(() => of([])),
@@ -271,7 +271,7 @@ export class ProductService {
         return this.http.get<any>(baseUrl, { params }).pipe(
           map(response => {
             const corte = response._embedded?.produtoDeCorteModelList || [];
-            const consumo = response._embedded?.produtoDeConsumoDiretoModelList || [];
+            const consumo = response._embedded?.produtoDeConsumoModelList || [];
             return [...corte, ...consumo];
           }),
           switchMap(products => {
@@ -403,7 +403,7 @@ export class ProductService {
   private enrichProductsWithStock(productsApiResponse: any): Observable<ApiResponseProducts> {
     const productsFromApi = [
       ...(productsApiResponse?._embedded?.produtoDeCorteModelList || []),
-      ...(productsApiResponse?._embedded?.produtoDeConsumoDiretoModelList || [])
+      ...(productsApiResponse?._embedded?.produtoDeConsumoModelList || [])
     ];
     const stockUrl = productsApiResponse?._links?.['estoques-por-produtos']?.href;
 

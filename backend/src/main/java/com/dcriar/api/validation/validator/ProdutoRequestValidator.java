@@ -12,7 +12,7 @@ import java.math.BigDecimal;
  * <ul>
  *     <li>Valida campos comuns a todos os tipos (nome, SKU, etc.).</li>
  *     <li>Se o tipo for {@code CORTE}, exige {@code cor} e {@code dimensoes}.</li>
- *     <li>Se o tipo for {@code CONSUMO_DIRETO}, exige {@code codigoFabricante}.</li>
+ *     <li>Se o tipo for {@code CONSUMO}, exige {@code codigoFabricante}.</li>
  * </ul>
  */
 public class ProdutoRequestValidator extends BaseValidator<ValidProdutoRequest, ProdutoRequestDTO> {
@@ -40,10 +40,10 @@ public class ProdutoRequestValidator extends BaseValidator<ValidProdutoRequest, 
                 addViolationIf(dto.getDimensoes().getLarguraCm() == null || dto.getDimensoes().getLarguraCm().compareTo(BigDecimal.ZERO) <= 0, "A largura deve ser um número positivo.", "dimensoes.larguraCm");
                 addViolationIf(dto.getDimensoes().getComprimentoCm() == null || dto.getDimensoes().getComprimentoCm().compareTo(BigDecimal.ZERO) <= 0, "O comprimento deve ser um número positivo.", "dimensoes.comprimentoCm");
             }
-        } else if ("CONSUMO_DIRETO".equals(tipoProduto)) {
+        } else if ("CONSUMO".equals(tipoProduto)) {
             addViolationIf(dto.getCodigoFabricante() == null || dto.getCodigoFabricante().isBlank(), "O código do fabricante é obrigatório.", "codigoFabricante");
         } else {
-            addViolationIf(true, "O tipo de produto fornecido é inválido. Use 'CORTE' ou 'CONSUMO_DIRETO'.", "tipoProduto");
+            addViolationIf(true, "O tipo de produto fornecido é inválido. Use 'CORTE' ou 'CONSUMO'.", "tipoProduto");
         }
     }
 }

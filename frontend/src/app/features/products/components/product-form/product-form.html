@@ -22,7 +22,7 @@
               <mat-label>Tipo de Produto</mat-label>
               <mat-select formControlName="tipoProduto">
                 <mat-option value="CORTE">Produto de Corte</mat-option>
-                <mat-option value="CONSUMO_DIRETO">Produto de Consumo Direto</mat-option>
+                <mat-option value="CONSUMO">Produto de Consumo</mat-option>
               </mat-select>
             </mat-form-field>
           }
@@ -234,7 +234,7 @@
           <p><strong>Cor:</strong> {{ product().cor || 'N/A' }}</p>
           <p><strong>Dimensões:</strong> {{ getFormattedDimensions(product().dimensoes) }}</p>
         }
-        @if (product().tipoProduto === 'CONSUMO_DIRETO') {
+        @if (product().tipoProduto === 'CONSUMO') {
           <p><strong>Cód. Fabricante:</strong> {{ product().codigoFabricante || 'N/A' }}</p>
           @if (product().especificacoes) {
             @for (spec of product().especificacoes | keyvalue; track spec.key) {

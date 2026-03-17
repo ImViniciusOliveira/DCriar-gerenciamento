@@ -12,7 +12,7 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProdutoDeConsumoDiretoModel extends ProdutoModel {
+public class ProdutoDeConsumoModel extends ProdutoModel {
 
     @Schema(description = "Código do produto fornecido pelo fabricante.", example = "INK-BLK-ES-1L")
     private String codigoFabricante;

@@ -30,7 +30,7 @@ import java.time.LocalDateTime;
 )
 @JsonSubTypes({
     @JsonSubTypes.Type(value = ProdutoDeCorteModel.class, name = "CORTE"),
-    @JsonSubTypes.Type(value = ProdutoDeConsumoDiretoModel.class, name = "CONSUMO_DIRETO")
+    @JsonSubTypes.Type(value = ProdutoDeConsumoModel.class, name = "CONSUMO")
 })
 @Getter
 @Setter

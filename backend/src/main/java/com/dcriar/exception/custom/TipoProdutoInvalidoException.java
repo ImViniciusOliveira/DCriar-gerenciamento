@@ -5,7 +5,7 @@ import lombok.Getter;
 /**
  * Exceção lançada quando uma operação recebe um tipo de produto inválido.
  * <p>
- * Os tipos de produto válidos são: 'CORTE' e 'CONSUMO_DIRETO'.
+ * Os tipos de produto válidos são: 'CORTE' e 'CONSUMO'.
  * Qualquer outro valor resulta nesta exceção.
  * <p>
  * É tipicamente capturada por um handler global que retorna uma resposta
@@ -26,10 +26,9 @@ public class TipoProdutoInvalidoException extends RuntimeException {
      */
     public TipoProdutoInvalidoException(String tipoProdutoFornecido) {
         super(String.format(
-                "Tipo de produto inválido: '%s'. Os tipos válidos são: 'CORTE' ou 'CONSUMO_DIRETO'.",
+                "Tipo de produto inválido: '%s'. Os tipos válidos são: 'CORTE' ou 'CONSUMO'.",
                 tipoProdutoFornecido
         ));
         this.tipoProdutoFornecido = tipoProdutoFornecido;
     }
 }
-

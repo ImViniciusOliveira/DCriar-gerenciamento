@@ -43,7 +43,7 @@ export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
 
 /**
  * Formulário para criação e edição de Produtos.
- * Gerencia a lógica complexa para os tipos 'CORTE' e 'CONSUMO_DIRETO',
+ * Gerencia a lógica complexa para os tipos 'CORTE' e 'CONSUMO',
  * incluindo campos condicionais, upload de imagem e especificações dinâmicas.
  */
 @Component({
@@ -238,7 +238,7 @@ export class ProductFormComponent implements OnInit {
    * Habilita/desabilita campos do formulário com base no tipo de produto,
    * garantindo que apenas os campos relevantes sejam validados e preenchidos.
    */
-  private setupFormControlsBasedOnProductType(type: 'CORTE' | 'CONSUMO_DIRETO', resetOppositeControls: boolean): void {
+  private setupFormControlsBasedOnProductType(type: 'CORTE' | 'CONSUMO', resetOppositeControls: boolean): void {
     const corteControls = ['cor', 'dimensoes'];
     const consumoControls = ['codigoFabricante', 'especificacoes'];
     const corControl = this.productForm.get('cor');
@@ -264,7 +264,7 @@ export class ProductFormComponent implements OnInit {
           }
         }
       });
-    } else { // CONSUMO_DIRETO
+    } else { // CONSUMO
       consumoControls.forEach(name => this.productForm.get(name)?.enable());
       corControl?.clearValidators();
 
@@ -326,7 +326,7 @@ export class ProductFormComponent implements OnInit {
     if (formValue.tipoProduto === 'CORTE') {
       delete formValue.codigoFabricante;
       delete formValue.especificacoes;
-    } else if (formValue.tipoProduto === 'CONSUMO_DIRETO') {
+    } else if (formValue.tipoProduto === 'CONSUMO') {
       delete formValue.cor;
       delete formValue.dimensoes;
     }

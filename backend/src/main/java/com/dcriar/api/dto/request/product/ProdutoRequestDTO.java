@@ -22,7 +22,7 @@ import java.util.Map;
 @ValidProdutoRequest
 public class ProdutoRequestDTO {
 
-    @Schema(description = "Tipo do produto. 'CORTE' para produtos com dimensões, 'CONSUMO_DIRETO' para outros.", example = "CORTE", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Tipo do produto. 'CORTE' para produtos com dimensões, 'CONSUMO' para outros.", example = "CORTE", requiredMode = Schema.RequiredMode.REQUIRED)
     private String tipoProduto;
 
     @Schema(description = "Nome descritivo e único do produto.", example = "Etiqueta Adesiva Redonda 5x5cm Kraft", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -54,10 +54,10 @@ public class ProdutoRequestDTO {
     @Schema(description = "As dimensões de uma única unidade do produto (apenas para produtos de corte).")
     private DimensoesRequestDTO dimensoes;
 
-    // --- Campos para ProdutoDeConsumoDireto ---
-    @Schema(description = "Código do produto fornecido pelo fabricante (apenas para produtos de consumo direto).", example = "INK-BLK-ES-1L")
+    // --- Campos para ProdutoDeConsumo ---
+    @Schema(description = "Código do produto fornecido pelo fabricante (apenas para produtos de consumo).", example = "INK-BLK-ES-1L")
     private String codigoFabricante;
 
-    @Schema(description = "Mapa flexível para especificações técnicas (apenas para produtos de consumo direto).", example = "{\"tipo_tinta\": \"Eco-Solvente\", \"volume_ml\": 1000}")
+    @Schema(description = "Mapa flexível para especificações técnicas (apenas para produtos de consumo).", example = "{\"tipo_tinta\": \"Eco-Solvente\", \"volume_ml\": 1000}")
     private Map<String, String> especificacoes;
 }

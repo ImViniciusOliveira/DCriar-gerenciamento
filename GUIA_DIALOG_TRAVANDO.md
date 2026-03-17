@@ -108,7 +108,7 @@ getProductsSimple(): Observable<Partial<Product>[]> {
       return this.http.get<any>(baseUrl, { params }).pipe(
         map(response => {
           const corte = response._embedded?.produtoDeCorteModelList || [];
-          const consumo = response._embedded?.produtoDeConsumoDiretoModelList || [];
+          const consumo = response._embedded?.produtoDeConsumoModelList || [];
           return [...corte, ...consumo];
         }),
         catchError(() => of([]))
@@ -548,7 +548,6 @@ Se você abrir este arquivo amanhã, siga esta ordem:
 **Tempo estimado:** 30 minutos
 
 ---
-
 
 
 

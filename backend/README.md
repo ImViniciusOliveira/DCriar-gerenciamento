@@ -12,9 +12,9 @@ A DCriar API é uma solução robusta para controle de estoque, produção, vend
 ## Principais Funcionalidades
 - **Gestão de Produtos:** Cadastro, consulta, atualização, exclusão, controle de estoque e precificação.
 - **Gestão de Estoque:** Movimentação, ajuste, consulta por canal de venda e estoque físico.
-- **Gestão de Produção:** Ordens de produção, corte geométrico, consumo direto, margens e lotes de matéria-prima.
+- **Gestão de Produção:** Ordens de produção, corte geométrico, consumo, margens e lotes de matéria-prima.
 - **Gestão de Vendas:** Registro de vendas, cálculo de preços, validação de saldo, integração com estoque.
-- **Relatórios e Simulações:** Simulação de corte, consumo direto, histórico de movimentações.
+- **Relatórios e Simulações:** Simulação de corte, consumo, histórico de movimentações.
 - **Padronização Javadoc:** Documentação completa e navegável via Maven.
 
 ---

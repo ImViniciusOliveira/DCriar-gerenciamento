@@ -111,7 +111,7 @@ public class GlobalExceptionHandler {
         // Exceptions de parâmetros de busca
         if (ex instanceof TipoProdutoInvalidoException e) {
             details.put("tipoProdutoFornecido", e.getTipoProdutoFornecido());
-            details.put("tiposValidos", "CORTE, CONSUMO_DIRETO");
+            details.put("tiposValidos", "CORTE, CONSUMO");
         } else if (ex instanceof OperadorEstoqueInvalidoException e) {
             details.put("operadorFornecido", e.getOperadorFornecido());
             details.put("operadoresValidos", "GTE (≥), LTE (≤)");

@@ -17,11 +17,11 @@ export type Specifications = Record<string, string>;
 /**
  * Representa a entidade Produto no sistema.
  * Mapeia a estrutura de dados retornada pela API, unificando as propriedades
- * dos tipos 'CORTE' e 'CONSUMO_DIRETO' e incluindo links HATEOAS.
+ * dos tipos 'CORTE' e 'CONSUMO' e incluindo links HATEOAS.
  */
 export interface Product {
   id: number;
-  tipoProduto: 'CORTE' | 'CONSUMO_DIRETO';
+  tipoProduto: 'CORTE' | 'CONSUMO';
   nome: string;
   sku: string;
   descricao: string;
@@ -38,7 +38,7 @@ export interface Product {
   cor?: string;
   dimensoes?: Dimensions;
 
-  /** Propriedades exclusivas para produtos do tipo CONSUMO_DIRETO. */
+  /** Propriedades exclusivas para produtos do tipo CONSUMO. */
   codigoFabricante?: string;
   especificacoes?: Specifications;
 

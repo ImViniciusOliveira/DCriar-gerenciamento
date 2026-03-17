@@ -80,7 +80,7 @@ public class ProdutoController {
     @Operation(summary = "Listar produtos por tipo e estoque")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
     public ResponseEntity<?> findByTipoAndEstoque(
-            @Parameter(description = "Tipo de produto: 'CORTE' ou 'CONSUMO_DIRETO' (Opcional)")
+            @Parameter(description = "Tipo de produto: 'CORTE' ou 'CONSUMO' (Opcional)")
             @RequestParam(required = false) String tipoProduto,
             @Parameter(description = "Valor de estoque para comparação")
             @RequestParam(defaultValue = "0") Integer estoqueValor,

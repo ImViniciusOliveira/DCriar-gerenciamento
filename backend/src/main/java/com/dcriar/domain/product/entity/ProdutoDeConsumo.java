@@ -14,13 +14,13 @@ import org.hibernate.annotations.Type;
 import java.util.Map;
 
 @Entity
-@DiscriminatorValue("CONSUMO_DIRETO")
+@DiscriminatorValue("CONSUMO")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder(toBuilder = true)
-public class ProdutoDeConsumoDireto extends Produto {
+public class ProdutoDeConsumo extends Produto {
 
     @Column(name = "codigo_fabricante")
     private String codigoFabricante;

@@ -3,7 +3,7 @@ package com.dcriar.exception.custom;
 import lombok.Getter;
 
 /**
- * Exceção lançada quando uma operação de produção (corte ou consumo direto)
+ * Exceção lançada quando uma operação de produção (corte ou consumo)
  * é tentada para um produto que não é compatível com esse tipo de produção,
  * ou quando o lote de matéria-prima selecionado é incompatível com o produto.
  */
@@ -51,17 +51,17 @@ public class TipoProducaoIncompativelException extends RuntimeException {
     public static TipoProducaoIncompativelException produtoNaoPermiteCorte(String nomeProduto, String unidadeDeConsumo) {
         return new TipoProducaoIncompativelException(
                 String.format(
-                        "O produto '%s' não pode ser produzido por corte, pois sua unidade de consumo é '%s'. Utilize o endpoint de consumo direto.",
+                        "O produto '%s' não pode ser produzido por corte, pois sua unidade de consumo é '%s'. Utilize o endpoint de consumo.",
                         nomeProduto,
                         unidadeDeConsumo
                 )
         );
     }
 
-    public static TipoProducaoIncompativelException produtoNaoEhConsumoDireto(String nomeProduto, String unidadeDeConsumo) {
+    public static TipoProducaoIncompativelException produtoNaoEhConsumo(String nomeProduto, String unidadeDeConsumo) {
         return new TipoProducaoIncompativelException(
                 String.format(
-                        "O produto '%s' não é compatível com produção por consumo direto, pois sua unidade de consumo é '%s'.",
+                        "O produto '%s' não é compatível com produção por consumo, pois sua unidade de consumo é '%s'.",
                         nomeProduto,
                         unidadeDeConsumo
                 )

@@ -187,7 +187,7 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
       if (product.cor) {
         details.push({ key: 'Cor', value: product.cor });
       }
-    } else if (product.tipoProduto === 'CONSUMO_DIRETO') {
+    } else if (product.tipoProduto === 'CONSUMO') {
       if (product.codigoFabricante) {
         details.push({ key: 'Cód. Fab.', value: product.codigoFabricante });
       }

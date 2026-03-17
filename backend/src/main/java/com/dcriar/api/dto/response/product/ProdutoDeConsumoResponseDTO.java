@@ -14,7 +14,7 @@ import java.util.Map;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProdutoDeConsumoDiretoResponseDTO extends ProdutoResponseDTO {
+public class ProdutoDeConsumoResponseDTO extends ProdutoResponseDTO {
 
     @Schema(description = "Código do produto fornecido pelo fabricante.", example = "INK-BLK-ES-1L")
     private String codigoFabricante;

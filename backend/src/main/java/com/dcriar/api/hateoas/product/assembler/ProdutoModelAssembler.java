@@ -4,10 +4,10 @@ import com.dcriar.api.controller.enums.StockEnumController;
 import com.dcriar.api.controller.product.EstoqueProdutoController;
 import com.dcriar.api.controller.product.ProdutoController;
 import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
-import com.dcriar.api.dto.response.product.ProdutoDeConsumoDiretoResponseDTO;
+import com.dcriar.api.dto.response.product.ProdutoDeConsumoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoDeCorteResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
-import com.dcriar.api.hateoas.product.model.ProdutoDeConsumoDiretoModel;
+import com.dcriar.api.hateoas.product.model.ProdutoDeConsumoModel;
 import com.dcriar.api.hateoas.product.model.ProdutoDeCorteModel;
 import com.dcriar.api.hateoas.product.model.ProdutoModel;
 import com.dcriar.api.mapper.product.ProdutoMapper;
@@ -84,11 +84,11 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
                         .path("/api/v1/ordens-de-producao/simular/corte")
                         .toUriString();
                 model.add(Link.of(simularCorteUrl, "simulate"));
-            } else if ("CONSUMO_DIRETO".equals(dto.getTipoProduto())) {
-                String simularConsumoDiretoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                        .path("/api/v1/ordens-de-producao/simular/consumo-direto")
+            } else if ("CONSUMO".equals(dto.getTipoProduto())) {
+                String simularConsumoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/api/v1/ordens-de-producao/simular/consumo")
                         .toUriString();
-                model.add(Link.of(simularConsumoDiretoUrl, "simulate"));
+                model.add(Link.of(simularConsumoUrl, "simulate"));
             }
 
             String fileName = dto.getFotoPrincipalUrl();
@@ -110,8 +110,8 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
     private ProdutoModel instantiateCorrectModel(ProdutoResponseDTO dto) {
         if (dto instanceof ProdutoDeCorteResponseDTO) {
             return new ProdutoDeCorteModel();
-        } else if (dto instanceof ProdutoDeConsumoDiretoResponseDTO) {
-            return new ProdutoDeConsumoDiretoModel();
+        } else if (dto instanceof ProdutoDeConsumoResponseDTO) {
+            return new ProdutoDeConsumoModel();
         }
         throw new IllegalArgumentException("Tipo de DTO de produto não suportado pelo Assembler: " + dto.getClass().getName());
     }

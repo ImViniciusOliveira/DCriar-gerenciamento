@@ -1,12 +1,12 @@
 package com.dcriar.api.validation.validator;
 
-import com.dcriar.api.dto.request.production.SimulacaoConsumoDiretoRequestDTO;
-import com.dcriar.api.validation.annotation.ValidSimulacaoConsumoDiretoRequest;
+import com.dcriar.api.dto.request.production.SimulacaoConsumoRequestDTO;
+import com.dcriar.api.validation.annotation.ValidSimulacaoConsumoRequest;
 
-public class SimulacaoConsumoDiretoRequestValidator extends BaseValidator<ValidSimulacaoConsumoDiretoRequest, SimulacaoConsumoDiretoRequestDTO> {
+public class SimulacaoConsumoRequestValidator extends BaseValidator<ValidSimulacaoConsumoRequest, SimulacaoConsumoRequestDTO> {
 
     @Override
-    protected void validate(SimulacaoConsumoDiretoRequestDTO dto) {
+    protected void validate(SimulacaoConsumoRequestDTO dto) {
         addViolationIf(dto.getProdutoId() == null, "O ID do produto é obrigatório.", "produtoId");
         addViolationIf(dto.getQuantidade() == null, "A quantidade é obrigatória.", "quantidade");
         addViolationIf(dto.getLoteId() == null, "O ID do lote é obrigatório.", "loteId");

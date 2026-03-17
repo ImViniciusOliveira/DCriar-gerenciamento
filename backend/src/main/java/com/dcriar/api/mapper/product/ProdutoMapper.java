@@ -1,13 +1,13 @@
 package com.dcriar.api.mapper.product;
 
-import com.dcriar.api.dto.response.product.ProdutoDeConsumoDiretoResponseDTO;
+import com.dcriar.api.dto.response.product.ProdutoDeConsumoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoDeCorteResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
-import com.dcriar.api.hateoas.product.model.ProdutoDeConsumoDiretoModel;
+import com.dcriar.api.hateoas.product.model.ProdutoDeConsumoModel;
 import com.dcriar.api.hateoas.product.model.ProdutoDeCorteModel;
 import com.dcriar.api.hateoas.product.model.ProdutoModel;
 import com.dcriar.domain.product.entity.Produto;
-import com.dcriar.domain.product.entity.ProdutoDeConsumoDireto;
+import com.dcriar.domain.product.entity.ProdutoDeConsumo;
 import com.dcriar.domain.product.entity.ProdutoDeCorte;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -31,13 +31,13 @@ public interface ProdutoMapper {
      * e delegar a conversão para o método de mapeamento específico da subclasse.
      *
      * @param produto A entidade de produto a ser convertida.
-     * @return O DTO de resposta correspondente ({@link ProdutoDeCorteResponseDTO} ou {@link ProdutoDeConsumoDiretoResponseDTO}).
+     * @return O DTO de resposta correspondente ({@link ProdutoDeCorteResponseDTO} ou {@link ProdutoDeConsumoResponseDTO}).
      */
     default ProdutoResponseDTO toResponseDTO(Produto produto) {
         if (produto instanceof ProdutoDeCorte produtoDeCorte) {
             return toCorteResponseDTO(produtoDeCorte);
-        } else if (produto instanceof ProdutoDeConsumoDireto produtoDeConsumoDireto) {
-            return toConsumoDiretoResponseDTO(produtoDeConsumoDireto);
+        } else if (produto instanceof ProdutoDeConsumo produtoDeConsumo) {
+            return toConsumoResponseDTO(produtoDeConsumo);
         }
         throw new IllegalArgumentException("Tipo de produto desconhecido: " + produto.getClass().getName());
     }
@@ -51,8 +51,8 @@ public interface ProdutoMapper {
     @Mapping(target = "estoqueDistribuidoTotal", ignore = true)
     @Mapping(target = "estoqueDisponivelParaAlocar", ignore = true)
     @Mapping(source = "tipoMateriaPrima", target = "materiaPrima")
-    @Mapping(target = "tipoProduto", constant = "CONSUMO_DIRETO")
-    ProdutoDeConsumoDiretoResponseDTO toConsumoDiretoResponseDTO(ProdutoDeConsumoDireto produto);
+    @Mapping(target = "tipoProduto", constant = "CONSUMO")
+    ProdutoDeConsumoResponseDTO toConsumoResponseDTO(ProdutoDeConsumo produto);
 
     /**
      * Atualiza um modelo HATEOAS a partir de um DTO de resposta, lidando com polimorfismo.
@@ -67,7 +67,7 @@ public interface ProdutoMapper {
     default void updateModelFromDto(ProdutoResponseDTO dto, @MappingTarget ProdutoModel model) {
         if (dto instanceof ProdutoDeCorteResponseDTO && model instanceof ProdutoDeCorteModel) {
             BeanUtils.copyProperties(dto, model);
-        } else if (dto instanceof ProdutoDeConsumoDiretoResponseDTO && model instanceof ProdutoDeConsumoDiretoModel) {
+        } else if (dto instanceof ProdutoDeConsumoResponseDTO && model instanceof ProdutoDeConsumoModel) {
             BeanUtils.copyProperties(dto, model);
         } else {
             // Fallback para o caso geral ou se os tipos não corresponderem exatamente

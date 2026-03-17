@@ -1,5 +1,5 @@
 -- RESPONSABILIDADE: Tornar as colunas específicas de "Corte" nulas na tabela de ordens de produção.
--- MOTIVO: Permitir que ordens de "Consumo Direto" sejam criadas sem a necessidade de preencher
+-- MOTIVO: Permitir que ordens de "Consumo" sejam criadas sem a necessidade de preencher
 -- campos que não se aplicam a elas, como modo de cálculo e dimensões finais.
 
 ALTER TABLE ordens_de_producao
