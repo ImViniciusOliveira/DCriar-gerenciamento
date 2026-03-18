@@ -158,8 +158,6 @@ export class BatchForm implements OnInit {
   }
 
   ngOnInit(): void {
-    this.materialTypeService.resetSearchParams();
-
     const url = this.data.template._links?.['unidades-de-medida']?.href;
     if (url) {
       this.unitsUrl.set(url);

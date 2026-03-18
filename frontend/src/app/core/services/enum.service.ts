@@ -14,6 +14,8 @@ export interface EnumOption {
   displayQuantityWithSymbol?: boolean;
   compatibleInputUnit?: string;
   compatibleInputFactor?: number;
+  consumo?: boolean;
+  permiteCorte?: boolean;
 }
 
 /**
@@ -27,6 +29,8 @@ interface EnumResponseItem {
   exibirQuantidadeComSimbolo?: boolean;
   unidadeCadastroCompativel?: string;
   fatorConversaoCadastroCompativel?: number;
+  consumo?: boolean;
+  permiteCorte?: boolean;
   [key: string]: any; // Permite outras propriedades como 'simbolo' e '_links'.
 }
 
@@ -99,7 +103,9 @@ export class EnumService {
           simbolo: item.simbolo,
           displayQuantityWithSymbol: item.exibirQuantidadeComSimbolo,
           compatibleInputUnit: item.unidadeCadastroCompativel,
-          compatibleInputFactor: item.fatorConversaoCadastroCompativel
+          compatibleInputFactor: item.fatorConversaoCadastroCompativel,
+          consumo: item.consumo,
+          permiteCorte: item.permiteCorte
         }));
       }),
       shareReplay(1),
