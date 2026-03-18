@@ -29,6 +29,11 @@ public class LoteMateriaPrimaRequestValidator extends BaseValidator<ValidLoteMat
         UnidadeDeMedida unidadeDeEstoque = dto.getUnidadeDeEstoque();
         addViolationIf(unidadeDeEstoque == null, "A unidade de estoque é obrigatória.", "unidadeDeEstoque");
 
+        UnidadeDeMedida unidadeCadastroEstoque = dto.getUnidadeCadastroEstoque();
+        if (unidadeCadastroEstoque != null) {
+            addViolationIf(unidadeDeEstoque == null, "A unidade de estoque deve ser informada antes da unidade de cadastro.", "unidadeCadastroEstoque");
+        }
+
         validateBigDecimal(dto.getQuantidadeInicial(), "quantidadeInicial", "A quantidade inicial");
         validateBigDecimal(dto.getCustoTotalLote(), "custoTotalLote", "O custo total do lote");
 

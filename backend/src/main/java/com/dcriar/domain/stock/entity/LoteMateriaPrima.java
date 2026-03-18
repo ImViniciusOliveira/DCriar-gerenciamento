@@ -135,7 +135,7 @@ public class LoteMateriaPrima extends AuditableEntity {
         return LoteMateriaPrima.builder()
                 .tipoMateriaPrima(tipoMateriaPrima)
                 .unidadeDeEstoque(dto.getUnidadeDeEstoque())
-                .unidadeCadastroEstoque(dto.getUnidadeDeEstoque())
+                .unidadeCadastroEstoque(dto.getUnidadeCadastroEstoque() != null ? dto.getUnidadeCadastroEstoque() : dto.getUnidadeDeEstoque())
                 .atributos(dto.getAtributos())
                 .custoTotalLote(dto.getCustoTotalLote())
                 .motivo(dto.getMotivo())
@@ -159,7 +159,9 @@ public class LoteMateriaPrima extends AuditableEntity {
         }
         if (dto.getUnidadeDeEstoque() != null) {
             this.unidadeDeEstoque = dto.getUnidadeDeEstoque();
-            this.unidadeCadastroEstoque = dto.getUnidadeDeEstoque();
+            this.unidadeCadastroEstoque = dto.getUnidadeCadastroEstoque() != null ? dto.getUnidadeCadastroEstoque() : dto.getUnidadeDeEstoque();
+        } else if (dto.getUnidadeCadastroEstoque() != null) {
+            this.unidadeCadastroEstoque = dto.getUnidadeCadastroEstoque();
         }
         if (dto.getAtributos() != null) {
             this.atributos = dto.getAtributos();

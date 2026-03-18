@@ -151,4 +151,58 @@ public enum UnidadeDeMedida {
 
         return quantidadeNaUnidadePrincipal.multiply(fatorConversao).setScale(4, RoundingMode.HALF_UP);
     }
+
+    public UnidadeDeMedida getUnidadeInternaDeCalculo() {
+        UnidadeDeMedida unidadeMenor = getUnidadeMenorCompativelParaCadastro();
+        if (unidadeMenor != null && isConsumo() && !isPermiteCorte()) {
+            return unidadeMenor;
+        }
+        return this;
+    }
+
+    public BigDecimal converterQuantidadeParaUnidadeInterna(BigDecimal quantidadeInformada, UnidadeDeMedida unidadeInformada) {
+        if (quantidadeInformada == null) {
+            return null;
+        }
+
+        UnidadeDeMedida unidadeEfetiva = unidadeInformada != null ? unidadeInformada : this;
+        if (rejeitaComoUnidadeDeEstoque(unidadeEfetiva)) {
+            throw new IllegalArgumentException("Unidade incompatível para conversão interna: " + unidadeEfetiva);
+        }
+
+        UnidadeDeMedida unidadeInterna = getUnidadeInternaDeCalculo();
+        if (unidadeInterna == unidadeEfetiva) {
+            return quantidadeInformada;
+        }
+
+        BigDecimal fatorConversao = getFatorConversaoUnidadeMenorParaPrincipal();
+        if (fatorConversao == null) {
+            return quantidadeInformada;
+        }
+
+        return quantidadeInformada.multiply(fatorConversao).setScale(4, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal converterQuantidadeDaUnidadeInternaParaInformada(BigDecimal quantidadeInterna, UnidadeDeMedida unidadeInformada) {
+        if (quantidadeInterna == null) {
+            return null;
+        }
+
+        UnidadeDeMedida unidadeEfetiva = unidadeInformada != null ? unidadeInformada : this;
+        if (rejeitaComoUnidadeDeEstoque(unidadeEfetiva)) {
+            throw new IllegalArgumentException("Unidade incompatível para conversão de saída interna: " + unidadeEfetiva);
+        }
+
+        UnidadeDeMedida unidadeInterna = getUnidadeInternaDeCalculo();
+        if (unidadeEfetiva == unidadeInterna) {
+            return quantidadeInterna;
+        }
+
+        BigDecimal fatorConversao = getFatorConversaoUnidadeMenorParaPrincipal();
+        if (fatorConversao == null) {
+            return quantidadeInterna;
+        }
+
+        return quantidadeInterna.divide(fatorConversao, 4, RoundingMode.HALF_UP);
+    }
 }

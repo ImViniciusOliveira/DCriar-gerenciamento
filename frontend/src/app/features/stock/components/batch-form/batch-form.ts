@@ -330,6 +330,7 @@ export class BatchForm implements OnInit {
     const request: BatchRequest = {
       tipoMateriaPrimaId: materialType.id,
       unidadeDeEstoque: formValue.unidadeDeEstoque,
+      unidadeCadastroEstoque: formValue.unidadeDeEstoque,
       quantidadeInicial: formValue.quantidadeInicial,
       custoTotalLote: formValue.custoTotalLote,
       motivo: formValue.motivo,

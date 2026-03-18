@@ -35,6 +35,9 @@ public class LoteMateriaPrimaRequestDTO {
     @Schema(description = "Unidade de medida em que este lote é armazenado e medido fisicamente.", example = "MILILITRO", requiredMode = Schema.RequiredMode.REQUIRED)
     private UnidadeDeMedida unidadeDeEstoque;
 
+    @Schema(description = "Unidade escolhida pelo usuário para cadastrar a quantidade inicial do lote. Se não for enviada, o backend assume a mesma unidade de estoque.", example = "LITRO")
+    private UnidadeDeMedida unidadeCadastroEstoque;
+
     /**
      * A quantidade inicial de material que está dando entrada no estoque (ex: 50 metros, 100 kg).
      */

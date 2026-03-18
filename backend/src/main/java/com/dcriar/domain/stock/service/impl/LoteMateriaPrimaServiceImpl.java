@@ -73,17 +73,26 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         // 1. Valida e busca o tipo de matéria-prima.
         TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
                 .orElseThrow(() -> new TipoMateriaPrimaNaoEncontradoException(requestDTO.getTipoMateriaPrimaId()));
-        validarCompatibilidadeUnidadeDeEstoque(tipoMateriaPrima, requestDTO.getUnidadeDeEstoque());
+        UnidadeDeMedida unidadeCadastroEstoque = resolverUnidadeCadastroEstoque(requestDTO);
+        UnidadeDeMedida unidadeDeEstoqueInterna = resolverUnidadeInternaEstoque(tipoMateriaPrima, unidadeCadastroEstoque);
+        validarCompatibilidadeUnidadesDoLote(
+                tipoMateriaPrima,
+                unidadeDeEstoqueInterna,
+                unidadeCadastroEstoque
+        );
 
         LoteMateriaPrima novoLote = LoteMateriaPrima.from(requestDTO, tipoMateriaPrima);
+        novoLote.setUnidadeDeEstoque(unidadeDeEstoqueInterna);
+        novoLote.setUnidadeCadastroEstoque(unidadeCadastroEstoque);
+        BigDecimal quantidadeInicialInterna = converterQuantidadeInicialParaUnidadeInterna(requestDTO, tipoMateriaPrima);
 
         // 2. Calcula o custo por unidade de consumo (se aplicável).
-        BigDecimal custoPorUnidadeBase = calcularCustoPorUnidadeBase(requestDTO, tipoMateriaPrima);
+        BigDecimal custoPorUnidadeBase = calcularCustoPorUnidadeBase(quantidadeInicialInterna, requestDTO.getCustoTotalLote());
 
         // 3. Cria a movimentação de entrada inicial associada ao lote.
         MovimentacaoRequestDTO movimentacaoDTO = MovimentacaoRequestDTO.builder()
                 .tipo(TipoMovimentacao.ENTRADA_COMPRA)
-                .quantidade(requestDTO.getQuantidadeInicial())
+                .quantidade(quantidadeInicialInterna)
                 .motivo(requestDTO.getMotivo() != null ? requestDTO.getMotivo() : "Entrada inicial do lote no sistema.")
                 .build();
         MovimentacaoEstoqueLote movimentacaoInicial = MovimentacaoEstoqueLote.from(movimentacaoDTO, novoLote);
@@ -95,7 +104,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
 
         // 5. Enriquece a resposta com o saldo inicial.
         LoteMateriaPrimaResponseDTO responseDTO = loteMateriaPrimaMapper.toResponseDTO(loteSalvo);
-        responseDTO.setSaldoEstoque(requestDTO.getQuantidadeInicial());
+        popularDadosDeApresentacao(responseDTO, loteSalvo, quantidadeInicialInterna);
 
         return responseDTO;
     }
@@ -112,14 +121,20 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         UnidadeDeMedida unidadeDeEstoque = requestDTO.getUnidadeDeEstoque() != null
                 ? requestDTO.getUnidadeDeEstoque()
                 : lote.getUnidadeDeEstoque();
-        validarCompatibilidadeUnidadeDeEstoque(tipoMateriaPrima, unidadeDeEstoque);
+        UnidadeDeMedida unidadeCadastroEstoque = requestDTO.getUnidadeCadastroEstoque() != null
+                ? requestDTO.getUnidadeCadastroEstoque()
+                : lote.getUnidadeCadastroEstoque();
+        UnidadeDeMedida unidadeInternaEstoque = resolverUnidadeInternaEstoque(tipoMateriaPrima, unidadeCadastroEstoque);
+        validarCompatibilidadeUnidadesDoLote(tipoMateriaPrima, unidadeInternaEstoque, unidadeCadastroEstoque);
         lote.updateFrom(requestDTO, tipoMateriaPrima);
+        lote.setUnidadeDeEstoque(unidadeInternaEstoque);
+        lote.setUnidadeCadastroEstoque(unidadeCadastroEstoque);
         LoteMateriaPrima loteAtualizado = loteMateriaPrimaRepository.save(lote);
         
         // Enriquece a resposta com o saldo atualizado.
         BigDecimal saldo = calcularSaldo(loteAtualizado);
         LoteMateriaPrimaResponseDTO responseDTO = loteMateriaPrimaMapper.toResponseDTO(loteAtualizado);
-        responseDTO.setSaldoEstoque(saldo);
+        popularDadosDeApresentacao(responseDTO, loteAtualizado, saldo);
         return responseDTO;
     }
 
@@ -139,23 +154,17 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
      * @return O custo por unidade base como um {@link BigDecimal}, ou nulo se o custo total não for fornecido.
      * @throws QuantidadeUnidadesInvalidaException se a quantidade total de unidades base for zero ou negativa.
      */
-    private BigDecimal calcularCustoPorUnidadeBase(LoteMateriaPrimaRequestDTO dto, TipoMateriaPrima tipo) {
-        if (dto.getCustoTotalLote() == null) {
+    private BigDecimal calcularCustoPorUnidadeBase(BigDecimal quantidadeInicialInterna, BigDecimal custoTotalLote) {
+        if (custoTotalLote == null) {
             return null; // Custo não informado, não há o que calcular.
         }
 
-        UnidadeDeMedida unidadeConsumo = tipo.getUnidadeDeConsumo();
-        BigDecimal totalUnidadesBase = unidadeConsumo.normalizarQuantidadeDeConsumo(
-                dto.getQuantidadeInicial(),
-                dto.getUnidadeDeEstoque()
-        );
-
-        if (totalUnidadesBase.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new QuantidadeUnidadesInvalidaException(totalUnidadesBase);
+        if (quantidadeInicialInterna.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new QuantidadeUnidadesInvalidaException(quantidadeInicialInterna);
         }
 
         // Divide o custo total pela quantidade total de unidades de consumo.
-        BigDecimal custoPorUnidadeBase = dto.getCustoTotalLote().divide(totalUnidadesBase, 8, RoundingMode.HALF_UP);
+        BigDecimal custoPorUnidadeBase = custoTotalLote.divide(quantidadeInicialInterna, 8, RoundingMode.HALF_UP);
 
         // Validação explícita para evitar overflow no banco de dados
         if (custoPorUnidadeBase.precision() - custoPorUnidadeBase.scale() > MAX_INTEGER_DIGITS_SUPPORTED) {
@@ -165,11 +174,44 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return custoPorUnidadeBase;
     }
 
-    private void validarCompatibilidadeUnidadeDeEstoque(TipoMateriaPrima tipoMateriaPrima, UnidadeDeMedida unidadeDeEstoque) {
+    private void validarCompatibilidadeUnidadesDoLote(
+            TipoMateriaPrima tipoMateriaPrima,
+            UnidadeDeMedida unidadeDeEstoque,
+            UnidadeDeMedida unidadeCadastroEstoque
+    ) {
         UnidadeDeMedida unidadePrincipal = tipoMateriaPrima.getUnidadeDeConsumo();
         if (unidadePrincipal.rejeitaComoUnidadeDeEstoque(unidadeDeEstoque)) {
             throw UnidadeEstoqueLoteInvalidaException.unidadeIncompativel(unidadePrincipal, unidadeDeEstoque);
         }
+        if (unidadePrincipal.rejeitaComoUnidadeDeEstoque(unidadeCadastroEstoque)) {
+            throw UnidadeEstoqueLoteInvalidaException.unidadeIncompativel(unidadePrincipal, unidadeCadastroEstoque);
+        }
+    }
+
+    private UnidadeDeMedida resolverUnidadeCadastroEstoque(LoteMateriaPrimaRequestDTO requestDTO) {
+        return requestDTO.getUnidadeCadastroEstoque() != null
+                ? requestDTO.getUnidadeCadastroEstoque()
+                : requestDTO.getUnidadeDeEstoque();
+    }
+
+    private UnidadeDeMedida resolverUnidadeInternaEstoque(TipoMateriaPrima tipoMateriaPrima, UnidadeDeMedida unidadeCadastroEstoque) {
+        UnidadeDeMedida unidadePrincipal = tipoMateriaPrima.getUnidadeDeConsumo();
+        if (unidadePrincipal.isConsumo() && !unidadePrincipal.isPermiteCorte()) {
+            return unidadePrincipal.getUnidadeInternaDeCalculo();
+        }
+        return unidadeCadastroEstoque;
+    }
+
+    private BigDecimal converterQuantidadeInicialParaUnidadeInterna(LoteMateriaPrimaRequestDTO requestDTO, TipoMateriaPrima tipoMateriaPrima) {
+        UnidadeDeMedida unidadePrincipal = tipoMateriaPrima.getUnidadeDeConsumo();
+        UnidadeDeMedida unidadeCadastroEstoque = resolverUnidadeCadastroEstoque(requestDTO);
+        if (unidadePrincipal.isConsumo() && !unidadePrincipal.isPermiteCorte()) {
+            return unidadePrincipal.converterQuantidadeParaUnidadeInterna(
+                    requestDTO.getQuantidadeInicial(),
+                    unidadeCadastroEstoque
+            );
+        }
+        return requestDTO.getQuantidadeInicial();
     }
 
     @Override
@@ -179,7 +221,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         BigDecimal saldo = calcularSaldo(lote);
 
         LoteMateriaPrimaResponseDTO responseDTO = loteMateriaPrimaMapper.toResponseDTO(lote);
-        responseDTO.setSaldoEstoque(saldo);
+        popularDadosDeApresentacao(responseDTO, lote, saldo);
 
         return responseDTO;
     }
@@ -195,7 +237,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         return lotesPage.map(lote -> {
             BigDecimal saldo = calcularSaldo(lote);
             LoteMateriaPrimaResponseDTO dto = loteMateriaPrimaMapper.toResponseDTO(lote);
-            dto.setSaldoEstoque(saldo);
+            popularDadosDeApresentacao(dto, lote, saldo);
             dto.setAtributos(lote.getAtributos());
             return dto;
         });
@@ -268,5 +310,23 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
 
     private BigDecimal calcularSaldo(LoteMateriaPrima lote) {
         return movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+    }
+
+    private void popularDadosDeApresentacao(LoteMateriaPrimaResponseDTO responseDTO, LoteMateriaPrima lote, BigDecimal saldoInterno) {
+        UnidadeDeMedida unidadeCadastro = lote.getUnidadeCadastroEstoque();
+        UnidadeDeMedida unidadePrincipal = lote.getTipoMateriaPrima().getUnidadeDeConsumo();
+        BigDecimal saldoApresentacao = saldoInterno;
+
+        if (unidadePrincipal.isConsumo() && !unidadePrincipal.isPermiteCorte()) {
+            saldoApresentacao = unidadePrincipal.converterQuantidadeDaUnidadeInternaParaInformada(
+                    saldoInterno,
+                    unidadeCadastro
+            );
+        }
+
+        responseDTO.setUnidadeDeEstoque(unidadeCadastro);
+        responseDTO.setUnidadeCadastroEstoque(unidadeCadastro);
+        responseDTO.setUnidadeSimbolo(unidadeCadastro.getSimbolo());
+        responseDTO.setSaldoEstoque(saldoApresentacao);
     }
 }
