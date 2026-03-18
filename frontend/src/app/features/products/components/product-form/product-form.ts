@@ -17,8 +17,8 @@ import { provideNgxMask } from 'ngx-mask';
 import { MaterialTypeSearch } from '../../../../shared/components/material-type-search/material-type-search';
 import { MaterialType } from '../../../stock/models/material-type.model';
 import { ErrorStateMatcher } from '@angular/material/core';
-import { EnumOption } from '../../../../core/services/enum.service';
-import { startWith } from 'rxjs/operators';
+import { EnumOption, EnumService } from '../../../../core/services/enum.service';
+import { startWith, take } from 'rxjs/operators';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -57,6 +57,7 @@ export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
 })
 export class ProductFormComponent implements OnInit {
   private readonly productService = inject(ProductService);
+  private readonly enumService = inject(EnumService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
@@ -71,6 +72,7 @@ export class ProductFormComponent implements OnInit {
   );
   matcher = new ImmediateErrorStateMatcher();
   readonly consumptionUnitOptions = signal<EnumOption[]>([]);
+  readonly availableProductUnits = signal<EnumOption[]>([]);
 
   /** URL segura para exibição da imagem, priorizando o preview local. */
   readonly safeImageSrc: Signal<string | null>;
@@ -133,6 +135,7 @@ export class ProductFormComponent implements OnInit {
     this.productForm.get('tipoProduto')?.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(type => {
+        this.loadAvailableProductUnits(type);
         this.setupFormControlsBasedOnProductType(type, true);
       });
 
@@ -156,6 +159,8 @@ export class ProductFormComponent implements OnInit {
       takeUntilDestroyed(),
       startWith(this.materialTypeControl.value)
     ).subscribe(() => this.refreshConsumptionUnitOptions());
+
+    this.loadAvailableProductUnits(currentProduct.tipoProduto || 'CORTE');
   }
 
   ngOnInit(): void {
@@ -553,7 +558,7 @@ export class ProductFormComponent implements OnInit {
 
   getConsumptionUnitLabel(unit: string): string {
     const option = this.consumptionUnitOptions().find(item => item.value === unit);
-    return option?.viewValue ?? unit;
+    return option?.viewValue ?? '';
   }
 
   private syncConsumptionUnitWithSelectedMaterial(forceBaseUnit = false): void {
@@ -586,33 +591,38 @@ export class ProductFormComponent implements OnInit {
       return;
     }
 
-    const options = [baseUnit, this.getCompatibleInputUnit(baseUnit)]
-      .filter((value): value is string => !!value)
-      .map(value => this.toUnitOption(value));
+    const availableUnits = this.availableProductUnits();
+    const baseUnitOption = availableUnits.find(option => option.value === baseUnit);
+    if (!baseUnitOption) {
+      this.consumptionUnitOptions.set([]);
+      return;
+    }
+
+    const options = [baseUnitOption];
+    if (baseUnitOption.compatibleInputUnit) {
+      const compatibleOption = availableUnits.find(option => option.value === baseUnitOption.compatibleInputUnit);
+      if (compatibleOption) {
+        options.push(compatibleOption);
+      }
+    }
+
     this.consumptionUnitOptions.set(options);
   }
 
-  private getCompatibleInputUnit(baseUnit: string): string | null {
-    const compatibleUnits: Record<string, string> = {
-      METRO_LINEAR: 'CENTIMETRO_LINEAR',
-      METRO_QUADRADO: 'CENTIMETRO_QUADRADO',
-      QUILOGRAMA: 'GRAMA',
-      LITRO: 'MILILITRO'
-    };
+  private loadAvailableProductUnits(tipoProduto: 'CORTE' | 'CONSUMO'): void {
+    const url = this.unitsUrl();
+    if (!url) {
+      this.availableProductUnits.set([]);
+      this.consumptionUnitOptions.set([]);
+      return;
+    }
 
-    return compatibleUnits[baseUnit] ?? null;
-  }
-
-  private toUnitOption(value: string): EnumOption {
-    const baseMaterialType = this.materialTypeControl.value as MaterialType | null;
-    const baseDescription = baseMaterialType?.unidadeDeConsumo === value
-      ? (baseMaterialType.unidadeDescricao ?? value)
-      : value;
-
-    return {
-      value,
-      viewValue: baseDescription
-    };
+    this.enumService.getMeasurementUnitsByProductType(url, tipoProduto).pipe(
+      take(1)
+    ).subscribe(options => {
+      this.availableProductUnits.set(options);
+      this.refreshConsumptionUnitOptions();
+    });
   }
 }
 

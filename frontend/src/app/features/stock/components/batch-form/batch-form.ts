@@ -72,6 +72,13 @@ export interface BatchFormData {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BatchForm implements OnInit {
+  private static readonly GEOMETRIC_UNITS = new Set([
+    'METRO_LINEAR',
+    'CENTIMETRO_LINEAR',
+    'METRO_QUADRADO',
+    'CENTIMETRO_QUADRADO'
+  ]);
+
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<BatchForm>);
   private readonly dialog = inject(MatDialog);
@@ -109,6 +116,10 @@ export class BatchForm implements OnInit {
   constructor() {
     this.isEditMode.set(!!this.data.template.id && !this.data.isViewMode);
     this.isViewMode.set(!!this.data.isViewMode);
+    const initialUnitsUrl = this.data.template?._links?.['unidades-de-medida']?.href?.split('{')[0] ?? null;
+    if (initialUnitsUrl) {
+      this.unitsUrl.set(initialUnitsUrl);
+    }
 
     this.form = this.fb.group({
       materiaPrima: [null, Validators.required],
@@ -121,7 +132,10 @@ export class BatchForm implements OnInit {
     });
 
     const unidadeEstoque$ = this.form.get('unidadeDeEstoque')!.valueChanges;
-    this.requiresWidth = toSignal(unidadeEstoque$.pipe(map(unidade => unidade === 'METRO_LINEAR')), { initialValue: false });
+    this.requiresWidth = toSignal(
+      unidadeEstoque$.pipe(map(unidade => BatchForm.GEOMETRIC_UNITS.has(unidade))),
+      { initialValue: false }
+    );
 
     const unitsUrl$ = toObservable(this.unitsUrl).pipe(filter((url): url is string => !!url));
     this.allMeasurementUnits = toSignal(
@@ -129,18 +143,27 @@ export class BatchForm implements OnInit {
       { initialValue: [] }
     );
 
-    // LÓGICA CORRIGIDA E FINAL
     this.stockUnitOptions = computed(() => {
       const mt = this.materialType();
       const allUnits = this.allMeasurementUnits();
-
-      // Se a matéria-prima selecionada for compatível, retorna todas as unidades.
-      if (mt && mt.unidadeDeConsumo === 'CENTIMETRO_QUADRADO') {
-        return allUnits;
+      if (!mt || allUnits.length === 0) {
+        return [];
       }
 
-      // Caso contrário (nenhuma selecionada ou uma incompatível), sempre remove "Metro Linear".
-      return allUnits.filter(u => u.value !== 'METRO_LINEAR');
+      const mainUnit = allUnits.find(unit => unit.value === mt.unidadeDeConsumo);
+      if (!mainUnit) {
+        return [];
+      }
+
+      const options = [mainUnit];
+      if (mainUnit.compatibleInputUnit) {
+        const compatibleUnit = allUnits.find(unit => unit.value === mainUnit.compatibleInputUnit);
+        if (compatibleUnit) {
+          options.push(compatibleUnit);
+        }
+      }
+
+      return options.filter((option, index, self) => self.findIndex(item => item.value === option.value) === index);
     });
 
     effect(() => {
@@ -158,10 +181,6 @@ export class BatchForm implements OnInit {
   }
 
   ngOnInit(): void {
-    const url = this.data.template._links?.['unidades-de-medida']?.href;
-    if (url) {
-      this.unitsUrl.set(url);
-    }
     this.initializeForm().catch(() => {});
   }
 
@@ -236,8 +255,7 @@ export class BatchForm implements OnInit {
 
   private updateWidthValidation(unidade: string | null): void {
     const widthControl = this.form.get('larguraMm');
-    if (unidade === 'METRO_LINEAR') {
-      // Reduzido maxIntegerDigits para 10 para evitar overflow de Integer no backend
+    if (unidade && BatchForm.GEOMETRIC_UNITS.has(unidade)) {
       widthControl?.setValidators([Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
     } else {
       widthControl?.clearValidators();
