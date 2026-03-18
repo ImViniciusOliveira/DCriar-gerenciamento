@@ -123,6 +123,10 @@ export class ProductFormComponent implements OnInit {
       especificacoes: this.fb.array([])
     });
 
+    if (this.isEditMode()) {
+      this.productForm.get('tipoProduto')?.disable({ emitEvent: false });
+    }
+
     this.setupFormControlsBasedOnProductType(currentProduct.tipoProduto || 'CORTE', false);
 
     // Reage dinamicamente à mudança do tipo de produto para ajustar a UI.

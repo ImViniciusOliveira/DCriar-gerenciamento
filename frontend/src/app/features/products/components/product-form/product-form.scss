@@ -142,6 +142,11 @@ fieldset.photo-fieldset {
   .details-info { flex-grow: 1; }
 }
 
+// Mesmo padrão visual de campos desabilitados usado no formulario de producao.
+::ng-deep .mat-mdc-form-field.mat-form-field-disabled .mat-mdc-text-field-wrapper {
+  background-color: #f5f5f5 !important;
+}
+
 // --- Validação Visual para Campos com Erro ---
 // Aplica feedback visual imediato quando o usuário digita valores inválidos.
 // Quando um campo tem erro (invalid) e foi modificado (dirty),
@@ -159,4 +164,3 @@ fieldset.photo-fieldset {
     }
   }
 }
-

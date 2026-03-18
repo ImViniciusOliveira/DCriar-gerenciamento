@@ -17,15 +17,13 @@
             }
           </mat-form-field>
 
-          @if (data.isCreationMode) {
-            <mat-form-field class="type-field" appearance="outline">
-              <mat-label>Tipo de Produto</mat-label>
-              <mat-select formControlName="tipoProduto">
-                <mat-option value="CORTE">Produto de Corte</mat-option>
-                <mat-option value="CONSUMO">Produto de Consumo</mat-option>
-              </mat-select>
-            </mat-form-field>
-          }
+          <mat-form-field class="type-field" appearance="outline">
+            <mat-label>Tipo de Produto</mat-label>
+            <mat-select formControlName="tipoProduto">
+              <mat-option value="CORTE">Produto de Corte</mat-option>
+              <mat-option value="CONSUMO">Produto de Consumo</mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
 
         <!-- Linha 2: SKU, Cor, Unidades, Ativo -->
