@@ -37,10 +37,7 @@ public enum UnidadeDeMedida {
 
     // Unidades de Contagem
     UNIDADE("Unidade", "Unidades", "un", false, true, false), // Para itens não-dimensionais (parafusos, ilhós)
-    FOLHA("Folha", "Folhas", "fl", false, true, false),
-
-    // Genérico
-    OUTROS("Outros", "Outros", "N/A", false, false, false);
+    FOLHA("Folha", "Folhas", "fl", false, true, false);
 
     private final String descricao;
     private final String descricaoPlural;
@@ -80,7 +77,7 @@ public enum UnidadeDeMedida {
     }
 
     public boolean deveSerExibidaNoFrontend() {
-        return this != OUTROS;
+        return true;
     }
 
     public UnidadeDeMedida getUnidadeMenorCompativelParaCadastro() {
@@ -106,15 +103,11 @@ public enum UnidadeDeMedida {
         return permiteCorte;
     }
 
-    public boolean aceitaComoUnidadeDeEstoque(UnidadeDeMedida unidadeInformada) {
+    public boolean rejeitaComoUnidadeDeEstoque(UnidadeDeMedida unidadeInformada) {
         if (unidadeInformada == null) {
-            return false;
+            return true;
         }
-        return this == unidadeInformada || unidadeInformada == getUnidadeMenorCompativelParaCadastro();
-    }
-
-    public boolean aceitaComoCadastroDeConsumo(UnidadeDeMedida unidadeInformada) {
-        return aceitaComoUnidadeDeEstoque(unidadeInformada);
+        return this != unidadeInformada && unidadeInformada != getUnidadeMenorCompativelParaCadastro();
     }
 
     public BigDecimal normalizarQuantidadeDeConsumo(BigDecimal quantidadeInformada, UnidadeDeMedida unidadeInformada) {
@@ -126,7 +119,7 @@ public enum UnidadeDeMedida {
             return quantidadeInformada;
         }
 
-        if (!aceitaComoCadastroDeConsumo(unidadeInformada)) {
+        if (rejeitaComoUnidadeDeEstoque(unidadeInformada)) {
             throw new IllegalArgumentException("Unidade incompatível para normalização: " + unidadeInformada);
         }
 

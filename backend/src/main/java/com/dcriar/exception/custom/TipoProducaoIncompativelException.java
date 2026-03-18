@@ -27,18 +27,6 @@ public class TipoProducaoIncompativelException extends RuntimeException {
         this.nomeMateriaPrimaLote = null;
     }
 
-    /**
-     * Construtor específico para incompatibilidade entre lote e produto.
-     */
-    public TipoProducaoIncompativelException(String nomeProduto, String nomeMateriaPrimaProduto, Long loteId, String nomeMateriaPrimaLote) {
-        super(String.format("O lote #%d (%s) não é compatível com a matéria-prima do produto '%s' (%s).",
-                loteId, nomeMateriaPrimaLote, nomeProduto, nomeMateriaPrimaProduto));
-        this.nomeProduto = nomeProduto;
-        this.nomeMateriaPrimaProduto = nomeMateriaPrimaProduto;
-        this.loteId = loteId;
-        this.nomeMateriaPrimaLote = nomeMateriaPrimaLote;
-    }
-
     public static TipoProducaoIncompativelException calculoCorteApenasParaProdutoDeCorte(String nomeProduto) {
         return new TipoProducaoIncompativelException(
                 String.format(

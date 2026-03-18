@@ -167,7 +167,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
 
     private void validarCompatibilidadeUnidadeDeEstoque(TipoMateriaPrima tipoMateriaPrima, UnidadeDeMedida unidadeDeEstoque) {
         UnidadeDeMedida unidadePrincipal = tipoMateriaPrima.getUnidadeDeConsumo();
-        if (!unidadePrincipal.aceitaComoUnidadeDeEstoque(unidadeDeEstoque)) {
+        if (unidadePrincipal.rejeitaComoUnidadeDeEstoque(unidadeDeEstoque)) {
             throw UnidadeEstoqueLoteInvalidaException.unidadeIncompativel(unidadePrincipal, unidadeDeEstoque);
         }
     }

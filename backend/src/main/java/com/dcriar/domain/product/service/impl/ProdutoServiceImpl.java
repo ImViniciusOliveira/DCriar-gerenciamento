@@ -302,7 +302,7 @@ public class ProdutoServiceImpl implements ProdutoService {
             UnidadeDeMedida unidadeInformada
     ) {
         UnidadeDeMedida unidadeEfetiva = resolverUnidadeCadastroConsumo(unidadePrincipal, unidadeInformada);
-        if (!unidadePrincipal.aceitaComoCadastroDeConsumo(unidadeEfetiva)) {
+        if (unidadePrincipal.rejeitaComoUnidadeDeEstoque(unidadeEfetiva)) {
             throw UnidadeCadastroConsumoInvalidaException.unidadeIncompativel(unidadePrincipal, unidadeEfetiva);
         }
         return unidadePrincipal.normalizarQuantidadeDeConsumo(quantidadeInformada, unidadeEfetiva);
