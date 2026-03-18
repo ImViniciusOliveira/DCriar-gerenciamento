@@ -135,9 +135,10 @@ export class BatchSearch {
     if (typeof value === 'string') return value;
 
     const batch = value;
+    const unidadeApresentacao = batch.unidadeCadastroEstoque ?? batch.unidadeDeEstoque;
 
     // SE for uma unidade de medida de CORTE, usa a formatação original
-    if (batch.unidadeDeEstoque === 'METRO_QUADRADO' || batch.unidadeDeEstoque === 'METRO_LINEAR') {
+    if (unidadeApresentacao === 'METRO_QUADRADO' || unidadeApresentacao === 'METRO_LINEAR') {
       const nf = new Intl.NumberFormat('pt-BR');
       // Saldo em m²
       const saldoM2 = batch.saldoEstoque !== undefined ? nf.format(batch.saldoEstoque) : '';
@@ -183,14 +184,15 @@ export class BatchSearch {
   }
 
   private getDisplayUnit(batch: Batch): string {
-    const matchedUnit = this.measurementUnitOptions().find(unit => unit.value === batch.unidadeDeEstoque);
+    const unidadeApresentacao = batch.unidadeCadastroEstoque ?? batch.unidadeDeEstoque;
+    const matchedUnit = this.measurementUnitOptions().find(unit => unit.value === unidadeApresentacao);
 
     if (matchedUnit) {
       return this.enumService.formatQuantityWithUnit(batch.saldoEstoque || 0, matchedUnit);
     }
 
     const fallbackUnit = this.enumService.buildFallbackUnitOption(
-      batch.unidadeDescricao ?? batch.unidadeDeEstoque ?? '',
+      batch.unidadeDescricao ?? unidadeApresentacao ?? '',
       undefined,
       batch.unidadeSimbolo,
       !!batch.unidadeSimbolo && batch.unidadeSimbolo !== 'un' && batch.unidadeSimbolo !== 'fl'

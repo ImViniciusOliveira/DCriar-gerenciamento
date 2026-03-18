@@ -197,16 +197,17 @@ export class BatchForm implements OnInit {
         if (fullBatch.tipoMateriaPrimaId) {
           const mt = await lastValueFrom(this.materialTypeService.findById(fullBatch.tipoMateriaPrimaId));
           this.materialType.set(mt);
+          const unidadeApresentacao = fullBatch.unidadeCadastroEstoque ?? fullBatch.unidadeDeEstoque;
           this.form.patchValue({
             materiaPrima: mt,
-            unidadeDeEstoque: fullBatch.unidadeDeEstoque,
+            unidadeDeEstoque: unidadeApresentacao,
             motivo: fullBatch.motivo,
             custoTotalLote: fullBatch.custoTotalLote
           });
         }
 
-        if (fullBatch.unidadeDeEstoque) {
-          this.updateWidthValidation(fullBatch.unidadeDeEstoque);
+        if (fullBatch.unidadeCadastroEstoque ?? fullBatch.unidadeDeEstoque) {
+          this.updateWidthValidation(fullBatch.unidadeCadastroEstoque ?? fullBatch.unidadeDeEstoque ?? null);
         }
 
         if (fullBatch.atributos) {
