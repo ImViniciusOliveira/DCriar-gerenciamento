@@ -85,7 +85,7 @@ public class LoteMateriaPrimaModelAssembler extends RepresentationModelAssembler
         }
         
         // Link para unidades de medida (necessário tanto para criação quanto para edição)
-        model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida()).withRel("unidades-de-medida"));
+        model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida(null)).withRel("unidades-de-medida"));
 
         return model;
     }

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,8 +41,12 @@ public class StockEnumController {
     @GetMapping("/unidades-de-medida")
     @Operation(summary = "Listar todas as Unidades de Medida")
     @ApiResponse(responseCode = "200", description = "Lista de unidades de medida retornada com sucesso")
-    public ResponseEntity<CollectionModel<UnidadeDeMedidaModel>> getUnidadesDeMedida() {
-        return ResponseEntity.ok(unidadeDeMedidaModelAssembler.toCollectionModel(Arrays.asList(UnidadeDeMedida.values())));
+    public ResponseEntity<CollectionModel<UnidadeDeMedidaModel>> getUnidadesDeMedida(
+            @RequestParam(required = false) String tipoProduto
+    ) {
+        return ResponseEntity.ok(
+                unidadeDeMedidaModelAssembler.toCollectionModel(UnidadeDeMedida.listarPorTipoProduto(tipoProduto))
+        );
     }
 
     @GetMapping("/tipos-movimentacao")

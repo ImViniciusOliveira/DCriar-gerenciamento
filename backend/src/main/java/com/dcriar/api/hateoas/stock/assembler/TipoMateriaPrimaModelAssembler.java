@@ -43,7 +43,7 @@ public class TipoMateriaPrimaModelAssembler extends RepresentationModelAssembler
         mapper.updateModelFromDto(dto, model);
 
         // Links que são necessários tanto para criação quanto para edição
-        model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida()).withRel("unidades-de-medida"));
+        model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida(null)).withRel("unidades-de-medida"));
 
         // Se o ID for nulo, estamos montando um template para criação (endpoint /new)
         if (dto.getId() != null) {

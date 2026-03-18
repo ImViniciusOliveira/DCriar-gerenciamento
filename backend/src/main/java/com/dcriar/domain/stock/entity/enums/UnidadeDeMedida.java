@@ -1,9 +1,12 @@
 package com.dcriar.domain.stock.entity.enums;
 
+import com.dcriar.exception.custom.TipoProdutoInvalidoException;
 import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Enum para padronizar as unidades de medida utilizadas no sistema.
@@ -55,8 +58,29 @@ public enum UnidadeDeMedida {
         this.exibirQuantidadeComSimbolo = exibirQuantidadeComSimbolo;
     }
 
-    public boolean isConsumo() {
-        return consumo;
+    public static List<UnidadeDeMedida> listarPorTipoProduto(String tipoProduto) {
+        if (tipoProduto == null || tipoProduto.isBlank()) {
+            return Arrays.stream(UnidadeDeMedida.values())
+                    .filter(UnidadeDeMedida::deveSerExibidaNoFrontend)
+                    .toList();
+        }
+
+        return switch (tipoProduto.toUpperCase()) {
+            case "CORTE" -> Arrays.stream(UnidadeDeMedida.values())
+                    .filter(UnidadeDeMedida::deveSerExibidaNoFrontend)
+                    .filter(UnidadeDeMedida::isPermiteCorte)
+                    .toList();
+            case "CONSUMO" -> Arrays.stream(UnidadeDeMedida.values())
+                    .filter(UnidadeDeMedida::deveSerExibidaNoFrontend)
+                    .filter(UnidadeDeMedida::isConsumo)
+                    .filter(unidade -> !unidade.isPermiteCorte())
+                    .toList();
+            default -> throw new TipoProdutoInvalidoException(tipoProduto);
+        };
+    }
+
+    public boolean deveSerExibidaNoFrontend() {
+        return this != OUTROS;
     }
 
     public UnidadeDeMedida getUnidadeMenorCompativelParaCadastro() {

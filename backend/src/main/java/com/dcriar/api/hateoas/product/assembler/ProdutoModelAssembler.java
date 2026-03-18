@@ -48,7 +48,7 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
         // Links de descoberta para recursos relacionados, necessários para preencher formulários no frontend.
         model.add(linkTo(ProdutoController.class).withRel("produtos"));
         model.add(linkTo(TipoMateriaPrimaController.class).withRel("buscar-tipos-materia-prima"));
-        model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida()).withRel("unidades-de-medida"));
+        model.add(linkTo(methodOn(StockEnumController.class).getUnidadesDeMedida(null)).withRel("unidades-de-medida"));
 
         // Adiciona links específicos do recurso apenas se o produto já existir (tiver um ID)
         if (dto.getId() != null) {
