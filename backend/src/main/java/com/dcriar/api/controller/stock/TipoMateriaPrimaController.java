@@ -49,10 +49,12 @@ public class TipoMateriaPrimaController {
             @RequestParam(required = false) String nome,
             @Parameter(description = "Filtrar pela unidade de consumo.", example = "LITRO")
             @RequestParam(required = false) UnidadeDeMedida unidadeDeConsumo,
+            @Parameter(description = "Filtrar tipos compatíveis com o tipo do produto: 'CORTE' ou 'CONSUMO'.", example = "CORTE")
+            @RequestParam(required = false) String tipoProduto,
             @ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
             PagedResourcesAssembler<TipoMateriaPrimaResponseDTO> pagedResourcesAssembler) {
 
-        Page<TipoMateriaPrimaResponseDTO> dtosPage = tipoMateriaPrimaService.findAll(nome, unidadeDeConsumo, pageable);
+        Page<TipoMateriaPrimaResponseDTO> dtosPage = tipoMateriaPrimaService.findAll(nome, unidadeDeConsumo, tipoProduto, pageable);
 
         PagedModel<TipoMateriaPrimaModel> pagedModel = pagedResourcesAssembler.toModel(dtosPage, tipoMateriaPrimaModelAssembler);
 

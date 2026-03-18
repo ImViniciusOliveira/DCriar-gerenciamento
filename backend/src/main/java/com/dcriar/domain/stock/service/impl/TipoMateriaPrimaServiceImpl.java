@@ -13,6 +13,7 @@ import com.dcriar.domain.stock.service.TipoMateriaPrimaService;
 import com.dcriar.exception.custom.TipoMateriaPrimaJaExisteException;
 import com.dcriar.exception.custom.TipoMateriaPrimaEmUsoException;
 import com.dcriar.exception.custom.TipoMateriaPrimaNaoEncontradoException;
+import com.dcriar.exception.custom.TipoProdutoInvalidoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,10 +44,13 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<TipoMateriaPrimaResponseDTO> findAll(String nome, UnidadeDeMedida unidadeDeConsumo, Pageable pageable) {
+    public Page<TipoMateriaPrimaResponseDTO> findAll(String nome, UnidadeDeMedida unidadeDeConsumo, String tipoProduto, Pageable pageable) {
+        validarTipoProduto(tipoProduto);
+
         Specification<TipoMateriaPrima> spec = Stream.of(
                 TipoMateriaPrimaSpecification.comNomeSemelhante(nome),
-                TipoMateriaPrimaSpecification.comUnidadeDeConsumo(unidadeDeConsumo)
+                TipoMateriaPrimaSpecification.comUnidadeDeConsumo(unidadeDeConsumo),
+                TipoMateriaPrimaSpecification.compativelComTipoProduto(tipoProduto)
         )
         .filter(Objects::nonNull)
         .reduce(Specification::and)
@@ -114,6 +118,16 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     private void validateNomeDisponivel(String nome) {
         if (tipoMateriaPrimaRepository.existsByNome(nome)) {
             throw new TipoMateriaPrimaJaExisteException(nome);
+        }
+    }
+
+    private void validarTipoProduto(String tipoProduto) {
+        if (tipoProduto == null || tipoProduto.isBlank()) {
+            return;
+        }
+
+        if (!"CORTE".equalsIgnoreCase(tipoProduto) && !"CONSUMO".equalsIgnoreCase(tipoProduto)) {
+            throw new TipoProdutoInvalidoException(tipoProduto);
         }
     }
 }

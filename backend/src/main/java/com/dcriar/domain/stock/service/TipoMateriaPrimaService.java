@@ -18,10 +18,11 @@ public interface TipoMateriaPrimaService {
      *
      * @param nome              Filtro para buscar tipos de matéria-prima por nome (busca parcial, case-insensitive).
      * @param unidadeDeConsumo  Filtro para buscar tipos de matéria-prima por unidade de consumo.
+     * @param tipoProduto       Filtro para restringir aos tipos compatíveis com CORTE ou CONSUMO.
      * @param pageable          Informações de paginação e ordenação.
      * @return Uma página ({@link Page}) de {@link TipoMateriaPrimaResponseDTO}.
      */
-    Page<TipoMateriaPrimaResponseDTO> findAll(String nome, UnidadeDeMedida unidadeDeConsumo, Pageable pageable);
+    Page<TipoMateriaPrimaResponseDTO> findAll(String nome, UnidadeDeMedida unidadeDeConsumo, String tipoProduto, Pageable pageable);
 
     /**
      * Busca um tipo de matéria-prima pelo seu ID.
