@@ -110,6 +110,7 @@ public class ProdutoServiceImpl implements ProdutoService {
 
         TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
                 .orElseThrow(() -> new TipoMateriaPrimaNaoEncontradoException(requestDTO.getTipoMateriaPrimaId()));
+        validarCompatibilidadeTipoProdutoComMateriaPrima(requestDTO.getTipoProduto(), tipoMateriaPrima, requestDTO.getNome());
 
         Produto produto;
         if ("CORTE".equalsIgnoreCase(requestDTO.getTipoProduto())) {
@@ -269,6 +270,7 @@ public class ProdutoServiceImpl implements ProdutoService {
             Long tipoMateriaPrimaId = ((Number) fields.get("tipoMateriaPrimaId")).longValue();
             TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(tipoMateriaPrimaId)
                     .orElseThrow(() -> new TipoMateriaPrimaNaoEncontradoException(tipoMateriaPrimaId));
+            validarCompatibilidadeTipoProdutoComMateriaPrima(produto, tipoMateriaPrima);
             produto.setTipoMateriaPrima(tipoMateriaPrima);
         }
 
@@ -366,5 +368,29 @@ public class ProdutoServiceImpl implements ProdutoService {
         if (produtoRepository.existsBySku(requestDTO.getSku())) {
             throw new ProdutoSkuDuplicadoException(requestDTO.getSku());
         }
+    }
+
+    private void validarCompatibilidadeTipoProdutoComMateriaPrima(String tipoProduto, TipoMateriaPrima tipoMateriaPrima, String nomeProduto) {
+        UnidadeDeMedida unidadeDeConsumo = tipoMateriaPrima.getUnidadeDeConsumo();
+        String nomeProdutoParaMensagem = nomeProduto != null && !nomeProduto.isBlank() ? nomeProduto : "Produto";
+
+        if ("CORTE".equalsIgnoreCase(tipoProduto) && !unidadeDeConsumo.isPermiteCorte()) {
+            throw TipoProducaoIncompativelException.produtoNaoPermiteCorte(
+                    nomeProdutoParaMensagem,
+                    unidadeDeConsumo.name()
+            );
+        }
+
+        if ("CONSUMO".equalsIgnoreCase(tipoProduto) && (unidadeDeConsumo.isPermiteCorte() || !unidadeDeConsumo.isConsumo())) {
+            throw TipoProducaoIncompativelException.produtoUsaMateriaPrimaGeometrica(
+                    nomeProdutoParaMensagem,
+                    unidadeDeConsumo.name()
+            );
+        }
+    }
+
+    private void validarCompatibilidadeTipoProdutoComMateriaPrima(Produto produto, TipoMateriaPrima tipoMateriaPrima) {
+        String tipoProduto = produto instanceof ProdutoDeCorte ? "CORTE" : "CONSUMO";
+        validarCompatibilidadeTipoProdutoComMateriaPrima(tipoProduto, tipoMateriaPrima, produto.getNome());
     }
 }
