@@ -129,18 +129,14 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
      * <b>Regras de Cálculo:</b>
      * <ul>
      *     <li>Se {@code custoTotalLote} for nulo, o cálculo é ignorado e o método retorna nulo.</li>
-     *     <li><b>De Metro Linear para CM²:</b> Se a unidade de estoque for {@link UnidadeDeMedida#METRO_LINEAR},
-     *     o sistema espera uma unidade de consumo de {@link UnidadeDeMedida#CENTIMETRO_QUADRADO} e exige o atributo 'larguraMm'
-     *     para calcular a área total (largura x comprimento) e derivar o custo por cm².</li>
-     *     <li><b>De Litro para ML:</b> Se a unidade de estoque for {@link UnidadeDeMedida#LITRO}, o sistema converte a quantidade para mililitros.</li>
-     *     <li>Para outras combinações, assume-se uma conversão 1:1.</li>
+     *     <li>Se a unidade de estoque for a unidade principal da matéria-prima, o cálculo usa a quantidade informada diretamente.</li>
+     *     <li>Se a unidade de estoque for a menor unidade compatível, o sistema normaliza a quantidade para a unidade principal
+     *     antes de derivar o custo por unidade base.</li>
      * </ul>
      *
      * @param dto O DTO de requisição do lote, contendo custo total e quantidade inicial.
      * @param tipo O tipo de matéria-prima associado ao lote.
      * @return O custo por unidade base como um {@link BigDecimal}, ou nulo se o custo total não for fornecido.
-     * @throws CalculoCustoIncompativelException se a combinação de unidades for incompatível.
-     * @throws AtributoLoteInvalidoException se o atributo 'larguraMm' for necessário e inválido.
      * @throws QuantidadeUnidadesInvalidaException se a quantidade total de unidades base for zero ou negativa.
      */
     private BigDecimal calcularCustoPorUnidadeBase(LoteMateriaPrimaRequestDTO dto, TipoMateriaPrima tipo) {
@@ -148,45 +144,11 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
             return null; // Custo não informado, não há o que calcular.
         }
 
-        BigDecimal totalUnidadesBase;
         UnidadeDeMedida unidadeConsumo = tipo.getUnidadeDeConsumo();
-
-        switch (dto.getUnidadeDeEstoque()) {
-            case METRO_LINEAR -> {
-                if (unidadeConsumo != UnidadeDeMedida.CENTIMETRO_QUADRADO) {
-                    throw new CalculoCustoIncompativelException(UnidadeDeMedida.METRO_LINEAR, UnidadeDeMedida.CENTIMETRO_QUADRADO);
-                }
-                Object larguraMmObj = dto.getAtributos().get("larguraMm");
-                BigDecimal larguraVal;
-
-                if (larguraMmObj instanceof Number) {
-                    larguraVal = new BigDecimal(larguraMmObj.toString());
-                } else if (larguraMmObj instanceof String) {
-                    try {
-                        larguraVal = new BigDecimal((String) larguraMmObj);
-                    } catch (NumberFormatException e) {
-                        throw AtributoLoteInvalidoException.larguraMmObrigatoriaParaCalculoCusto(
-                                UnidadeDeMedida.METRO_LINEAR.getDescricao()
-                        );
-                    }
-                } else {
-                    throw AtributoLoteInvalidoException.larguraMmObrigatoriaParaCalculoCusto(
-                            UnidadeDeMedida.METRO_LINEAR.getDescricao()
-                    );
-                }
-
-                BigDecimal larguraCm = larguraVal.divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
-                BigDecimal comprimentoCm = dto.getQuantidadeInicial().multiply(new BigDecimal("100"));
-                totalUnidadesBase = larguraCm.multiply(comprimentoCm);
-            }
-            case LITRO -> {
-                if (unidadeConsumo != UnidadeDeMedida.MILILITRO) {
-                    throw new CalculoCustoIncompativelException(UnidadeDeMedida.LITRO, UnidadeDeMedida.MILILITRO);
-                }
-                totalUnidadesBase = dto.getQuantidadeInicial().multiply(new BigDecimal("1000"));
-            }
-            default -> totalUnidadesBase = dto.getQuantidadeInicial();
-        }
+        BigDecimal totalUnidadesBase = unidadeConsumo.normalizarQuantidadeDeConsumo(
+                dto.getQuantidadeInicial(),
+                dto.getUnidadeDeEstoque()
+        );
 
         if (totalUnidadesBase.compareTo(BigDecimal.ZERO) <= 0) {
             throw new QuantidadeUnidadesInvalidaException(totalUnidadesBase);

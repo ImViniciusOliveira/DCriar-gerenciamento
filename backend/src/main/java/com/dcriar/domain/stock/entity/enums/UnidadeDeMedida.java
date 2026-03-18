@@ -109,6 +109,7 @@ public enum UnidadeDeMedida {
         return switch (this) {
             case LITRO, QUILOGRAMA -> quantidadeInformada.divide(new BigDecimal("1000"), 4, RoundingMode.HALF_UP);
             case METRO_LINEAR -> quantidadeInformada.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+            case METRO_QUADRADO -> quantidadeInformada.divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
             default -> quantidadeInformada;
         };
     }
