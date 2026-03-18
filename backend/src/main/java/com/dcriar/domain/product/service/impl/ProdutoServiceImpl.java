@@ -161,7 +161,7 @@ public class ProdutoServiceImpl implements ProdutoService {
                 .nome(requestDTO.getNome())
                 .sku(requestDTO.getSku())
                 .descricao(requestDTO.getDescricao())
-                .unidadesPorProduto(normalizarUnidadesPorProdutoConsumo(
+                .unidadesPorProduto(converterUnidadesPorProdutoParaUnidadeInterna(
                         requestDTO.getUnidadesPorProduto(),
                         tipoMateriaPrima.getUnidadeDeConsumo(),
                         unidadeCadastro
@@ -285,11 +285,13 @@ public class ProdutoServiceImpl implements ProdutoService {
                     unidadeInformada
             );
 
-            produtoDeConsumo.setUnidadesPorProduto(normalizarUnidadesPorProdutoConsumo(
-                    produtoDeConsumo.getUnidadesPorProduto(),
-                    produtoDeConsumo.getTipoMateriaPrima().getUnidadeDeConsumo(),
-                    unidadeCadastro
-            ));
+            if (fields.containsKey("unidadesPorProduto")) {
+                produtoDeConsumo.setUnidadesPorProduto(converterUnidadesPorProdutoParaUnidadeInterna(
+                        produtoDeConsumo.getUnidadesPorProduto(),
+                        produtoDeConsumo.getTipoMateriaPrima().getUnidadeDeConsumo(),
+                        unidadeCadastro
+                ));
+            }
             produtoDeConsumo.setUnidadeCadastroConsumo(unidadeCadastro);
         }
 
@@ -297,7 +299,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         return mapAndEnrichProduto(produtoAtualizado);
     }
 
-    private BigDecimal normalizarUnidadesPorProdutoConsumo(
+    private BigDecimal converterUnidadesPorProdutoParaUnidadeInterna(
             BigDecimal quantidadeInformada,
             UnidadeDeMedida unidadePrincipal,
             UnidadeDeMedida unidadeInformada
@@ -306,7 +308,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         if (unidadePrincipal.rejeitaComoUnidadeDeEstoque(unidadeEfetiva)) {
             throw UnidadeCadastroConsumoInvalidaException.unidadeIncompativel(unidadePrincipal, unidadeEfetiva);
         }
-        return unidadePrincipal.normalizarQuantidadeDeConsumo(quantidadeInformada, unidadeEfetiva);
+        return unidadePrincipal.converterQuantidadeParaUnidadeInterna(quantidadeInformada, unidadeEfetiva);
     }
 
     private UnidadeDeMedida resolverUnidadeCadastroConsumo(
@@ -351,7 +353,7 @@ public class ProdutoServiceImpl implements ProdutoService {
             UnidadeDeMedida unidadePrincipal = produtoDeConsumo.getTipoMateriaPrima().getUnidadeDeConsumo();
             UnidadeDeMedida unidadeCadastro = produtoDeConsumo.getUnidadeCadastroConsumo();
             consumoResponseDTO.setUnidadesPorProduto(
-                    unidadePrincipal.converterQuantidadeDaPrincipalParaUnidadeInformada(
+                    unidadePrincipal.converterQuantidadeDaUnidadeInternaParaInformada(
                             produtoDeConsumo.getUnidadesPorProduto(),
                             unidadeCadastro
                     )
