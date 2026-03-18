@@ -130,4 +130,25 @@ public enum UnidadeDeMedida {
             default -> quantidadeInformada;
         };
     }
+
+    public BigDecimal converterQuantidadeDaPrincipalParaUnidadeInformada(BigDecimal quantidadeNaUnidadePrincipal, UnidadeDeMedida unidadeInformada) {
+        if (quantidadeNaUnidadePrincipal == null) {
+            return null;
+        }
+
+        if (unidadeInformada == null || unidadeInformada == this) {
+            return quantidadeNaUnidadePrincipal;
+        }
+
+        if (rejeitaComoUnidadeDeEstoque(unidadeInformada)) {
+            throw new IllegalArgumentException("Unidade incompatível para conversão de saída: " + unidadeInformada);
+        }
+
+        BigDecimal fatorConversao = getFatorConversaoUnidadeMenorParaPrincipal();
+        if (fatorConversao == null) {
+            return quantidadeNaUnidadePrincipal;
+        }
+
+        return quantidadeNaUnidadePrincipal.multiply(fatorConversao).setScale(4, RoundingMode.HALF_UP);
+    }
 }

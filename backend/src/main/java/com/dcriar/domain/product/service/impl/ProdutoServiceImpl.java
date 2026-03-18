@@ -1,6 +1,7 @@
 package com.dcriar.domain.product.service.impl;
 
 import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
+import com.dcriar.api.dto.response.product.ProdutoDeConsumoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
 import com.dcriar.domain.product.entity.*;
@@ -346,6 +347,16 @@ public class ProdutoServiceImpl implements ProdutoService {
 
     private ProdutoResponseDTO mapAndEnrichProduto(Produto produto) {
         ProdutoResponseDTO dto = produtoMapper.toResponseDTO(produto);
+        if (produto instanceof ProdutoDeConsumo produtoDeConsumo && dto instanceof ProdutoDeConsumoResponseDTO consumoResponseDTO) {
+            UnidadeDeMedida unidadePrincipal = produtoDeConsumo.getTipoMateriaPrima().getUnidadeDeConsumo();
+            UnidadeDeMedida unidadeCadastro = produtoDeConsumo.getUnidadeCadastroConsumo();
+            consumoResponseDTO.setUnidadesPorProduto(
+                    unidadePrincipal.converterQuantidadeDaPrincipalParaUnidadeInformada(
+                            produtoDeConsumo.getUnidadesPorProduto(),
+                            unidadeCadastro
+                    )
+            );
+        }
         Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
         int estoqueDistribuidoTotal = estoqueRepository.findAllByProduto(produto).stream()
                 .mapToInt(Estoque::getQuantidade)
