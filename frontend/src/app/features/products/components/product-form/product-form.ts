@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, effect, inject, signal, Signal, computed } from '@angular/core';
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, signal, Signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Product } from '../../models/product.model';
 import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormGroupDirective, NgForm, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
@@ -16,12 +16,9 @@ import { lastValueFrom } from 'rxjs';
 import { provideNgxMask } from 'ngx-mask';
 import { MaterialTypeSearch } from '../../../../shared/components/material-type-search/material-type-search';
 import { MaterialType } from '../../../stock/models/material-type.model';
-import { MaterialTypeService } from '../../../stock/services/material-type.service';
 import { ErrorStateMatcher } from '@angular/material/core';
-import { EnumOption, EnumService } from '../../../../core/services/enum.service';
-import { filter, switchMap } from 'rxjs/operators';
+import { EnumOption } from '../../../../core/services/enum.service';
 import { startWith } from 'rxjs/operators';
-import { map } from 'rxjs';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -60,8 +57,6 @@ export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
 })
 export class ProductFormComponent implements OnInit {
   private readonly productService = inject(ProductService);
-  private readonly materialTypeService = inject(MaterialTypeService);
-  private readonly enumService = inject(EnumService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
@@ -71,21 +66,8 @@ export class ProductFormComponent implements OnInit {
   readonly product = signal<Product>(this.data.product);
   readonly isEditMode = signal<boolean>(this.data.isEditMode);
   private lastMaterialTypeId: number | null = this.data.product.materiaPrima?.id ?? null;
-  private readonly selectedMaterialType = signal<MaterialType | null>(this.data.product.materiaPrima ?? null);
-  private readonly unitsUrl = computed(() =>
-    this.selectedMaterialType()?._links?.['unidades-de-medida']?.href?.split('{')[0]
-    ?? this.product()?._links?.['unidades-de-medida']?.href?.split('{')[0]
-    ?? null
-  );
   matcher = new ImmediateErrorStateMatcher();
   readonly consumptionUnitOptions = signal<EnumOption[]>([]);
-  readonly availableUnitsMap = toSignal(
-    toObservable(this.unitsUrl).pipe(
-      filter((url): url is string => !!url),
-      switchMap(url => this.enumService.getConsumptionUnitsMap(url))
-    ),
-    { initialValue: new Map<string, EnumOption>() }
-  );
 
   /** URL segura para exibição da imagem, priorizando o preview local. */
   readonly safeImageSrc: Signal<string | null>;
@@ -152,7 +134,6 @@ export class ProductFormComponent implements OnInit {
       .subscribe(materialType => {
         const selectedMaterialType = materialType as MaterialType | null;
         const selectedMaterialId = selectedMaterialType?.id ?? null;
-        this.selectedMaterialType.set(selectedMaterialType);
         this.refreshConsumptionUnitOptions();
 
         if (selectedMaterialId !== this.lastMaterialTypeId) {
@@ -168,17 +149,9 @@ export class ProductFormComponent implements OnInit {
       takeUntilDestroyed(),
       startWith(this.materialTypeControl.value)
     ).subscribe(() => this.refreshConsumptionUnitOptions());
-
-    effect(() => {
-      this.availableUnitsMap();
-      this.materialTypeControl.value;
-      this.refreshConsumptionUnitOptions();
-    });
   }
 
   ngOnInit(): void {
-    this.materialTypeService.resetSearchParams();
-
     if (this.data.isCreationMode) {
       return;
     }
@@ -217,7 +190,6 @@ export class ProductFormComponent implements OnInit {
 
           if (fullProduct.materiaPrima) {
             this.productForm.get('materiaPrima')?.patchValue(fullProduct.materiaPrima);
-            this.selectedMaterialType.set(fullProduct.materiaPrima);
           }
 
           this.setupFormControlsBasedOnProductType(fullProduct.tipoProduto || 'CORTE', false);
@@ -610,22 +582,43 @@ export class ProductFormComponent implements OnInit {
       return;
     }
 
-    const unitsMap = this.availableUnitsMap();
-    if (!unitsMap.size) {
-      this.consumptionUnitOptions.set([
-        {
-          value: baseUnit,
-          viewValue: materialType?.unidadeDescricao ?? baseUnit,
-          simbolo: undefined
-        }
-      ]);
-      return;
-    }
-
-    const baseOption = unitsMap.get(baseUnit);
-    const compatibleOption = baseOption?.compatibleInputUnit ? unitsMap.get(baseOption.compatibleInputUnit) : undefined;
-    const options = [baseOption, compatibleOption].filter((option): option is EnumOption => !!option);
+    const options = [baseUnit, this.getCompatibleInputUnit(baseUnit)]
+      .filter((value): value is string => !!value)
+      .map(value => this.toUnitOption(value));
     this.consumptionUnitOptions.set(options);
+  }
+
+  private getCompatibleInputUnit(baseUnit: string): string | null {
+    const compatibleUnits: Record<string, string> = {
+      METRO_LINEAR: 'CENTIMETRO_LINEAR',
+      METRO_QUADRADO: 'CENTIMETRO_QUADRADO',
+      QUILOGRAMA: 'GRAMA',
+      LITRO: 'MILILITRO'
+    };
+
+    return compatibleUnits[baseUnit] ?? null;
+  }
+
+  private toUnitOption(value: string): EnumOption {
+    const labels: Record<string, { viewValue: string; simbolo?: string }> = {
+      METRO_LINEAR: { viewValue: 'Metro Linear', simbolo: 'm' },
+      CENTIMETRO_LINEAR: { viewValue: 'Centímetro Linear', simbolo: 'cm' },
+      METRO_QUADRADO: { viewValue: 'Metro Quadrado', simbolo: 'm²' },
+      CENTIMETRO_QUADRADO: { viewValue: 'Centímetro Quadrado', simbolo: 'cm²' },
+      QUILOGRAMA: { viewValue: 'Quilograma', simbolo: 'kg' },
+      GRAMA: { viewValue: 'Grama', simbolo: 'g' },
+      LITRO: { viewValue: 'Litro', simbolo: 'L' },
+      MILILITRO: { viewValue: 'Mililitro', simbolo: 'ml' },
+      UNIDADE: { viewValue: 'Unidade', simbolo: 'un' },
+      FOLHA: { viewValue: 'Folha', simbolo: 'fl' }
+    };
+
+    const label = labels[value];
+    return {
+      value,
+      viewValue: label?.viewValue ?? value,
+      simbolo: label?.simbolo
+    };
   }
 }
 

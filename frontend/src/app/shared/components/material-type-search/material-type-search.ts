@@ -1,18 +1,16 @@
-import { Component, DestroyRef, effect, inject, input, OnInit, output, signal, Signal, WritableSignal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, input, OnInit, output, signal, WritableSignal } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { of } from 'rxjs';
-import { filter, map, switchMap, debounceTime, distinctUntilChanged, catchError, take } from 'rxjs/operators';
-import { ApiRoot } from '../../../core/services/api-root';
-import { EnumOption, EnumService } from '../../../core/services/enum.service';
-import { ApiResponseMaterialTypes, MaterialType } from '../../../features/stock/models/material-type.model';
+import { debounceTime, distinctUntilChanged, take, filter } from 'rxjs/operators';
+import { MaterialType } from '../../../features/stock/models/material-type.model';
 import { MaterialTypeService } from '../../../features/stock/services/material-type.service';
+import { EnumOption } from '../../../core/services/enum.service';
 
 /**
  * Componente genérico para busca e seleção de um Tipo de Matéria-Prima.
@@ -40,108 +38,83 @@ export class MaterialTypeSearch implements OnInit {
   control = input.required<FormControl>();
   /** Flag para indicar se o componente está em modo de edição, para lidar com o valor inicial. */
   isEditMode = input(false);
+  /** Quando informado, fixa o contexto do dropdown em CORTE ou CONSUMO. */
+  fixedProductType = input<'CORTE' | 'CONSUMO' | null>(null);
   /** Emite o evento de seleção para o componente pai. */
   selectionChange = output<MatSelectChange>();
 
   // --- Injeção de Dependências ---
   private readonly materialTypeService = inject(MaterialTypeService);
-  private readonly apiRoot = inject(ApiRoot);
-  private readonly enumService = inject(EnumService);
   private readonly destroyRef = inject(DestroyRef);
+  private hasInitialized = false;
+  private lastAppliedProductType: 'CORTE' | 'CONSUMO' | null = null;
 
   // --- Controles de Formulário Internos ---
   // O searchControl pode conter o texto digitado (string) ou o objeto selecionado (MaterialType)
   searchControl = new FormControl<string | MaterialType | null>('');
-  unitControl = new FormControl<string | null>('');
+  productTypeControl = new FormControl<'CORTE' | 'CONSUMO'>('CORTE', { nonNullable: true });
+  consumptionUnitControl = new FormControl<string | null>(null);
 
   // --- Estado Interno ---
   materialTypes: WritableSignal<MaterialType[]> = signal([]);
-  isSearching = signal(false);
-  totalElements = signal(0);
+  unitOptions: WritableSignal<EnumOption[]> = signal([]);
+  private readonly corteMaterialTypes = signal<MaterialType[]>([]);
+  private readonly consumoMaterialTypes = signal<MaterialType[]>([]);
 
-  // --- Paginação ---
-  private currentPage = 0;
-  private readonly pageSize = 20;
-
-  // --- Sinais Computados e de Suporte ---
-  private readonly unitsUrl = signal<string | null>(null);
-  readonly consumptionUnits: Signal<EnumOption[]>;
+  readonly productTypeOptions = [
+    { value: 'CORTE' as const, label: 'Matérias-primas de Corte' },
+    { value: 'CONSUMO' as const, label: 'Matérias-primas de Consumo' }
+  ];
+  private readonly allUnitsOption: EnumOption = {
+    value: 'TODOS',
+    viewValue: 'Todos'
+  };
 
   constructor() {
-    const getUrl = (link: string) =>
-      this.apiRoot.endpoints()?._links?.[link]?.href?.split('{')[0];
-    const materialTypesSearchUrl = getUrl('tipos-materia-prima') ?? null;
-
     effect(() => {
-       if (!materialTypesSearchUrl) {
-         this.control().disable();
-         this.searchControl.disable();
-       }
-    });
+      const productType = this.getSelectedProductType();
+      const previousProductType = this.lastAppliedProductType;
+      this.lastAppliedProductType = productType;
 
-    // Busca as unidades de consumo.
-    const consumptionUnits$ = toObservable(this.unitsUrl).pipe(
-      filter((url): url is string => !!url),
-      switchMap(url => this.enumService.getConsumptionUnitsMap(url)),
-      map(unitsMap => Array.from(unitsMap.values())),
-    );
-    this.consumptionUnits = toSignal(consumptionUnits$, { initialValue: [] });
+      if (this.fixedProductType()) {
+        this.productTypeControl.setValue(productType, { emitEvent: false });
+      }
 
-    const materialTypesResponse = toSignal(
-      this.materialTypeService.getMaterialTypes().pipe(catchError(() => of(undefined)))
-    );
+      this.syncUnitOptions();
 
-    // Reage à resposta do serviço.
-    effect(() => {
-      this.isSearching.set(false);
-      const response: ApiResponseMaterialTypes | undefined = materialTypesResponse();
-      if (response) {
-        const newItems = response._embedded?.['tipos-materia-prima'] ?? [];
-        if (response.page.number === 0) {
-          this.materialTypes.set(newItems);
-        } else {
-          this.materialTypes.update(current => [...current, ...newItems]);
-        }
-        this.totalElements.set(response.page.totalElements);
-
-        const firstMaterial = newItems[0];
-        const newUnitsUrl = firstMaterial?._links?.['unidades-de-medida']?.href;
-        if (newUnitsUrl && this.unitsUrl() !== newUnitsUrl) {
-          this.unitsUrl.set(newUnitsUrl);
-        }
+      if (this.hasInitialized && previousProductType && previousProductType !== productType) {
+        this.resetSelection();
       }
     });
   }
 
   ngOnInit(): void {
     const ctrl = this.control();
+    this.loadMaterialTypes();
 
     ctrl.valueChanges.pipe(
-      filter((value): value is MaterialType => !!value),
+      filter((value: string | MaterialType | null): value is MaterialType => !!value && typeof value !== 'string'),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(selectedMaterialType => {
       this.searchControl.setValue(selectedMaterialType, { emitEvent: false });
-      this.unitControl.setValue(selectedMaterialType.unidadeDeConsumo ?? '', { emitEvent: false });
       this.materialTypes.set([selectedMaterialType]);
-      this.performSearch('', selectedMaterialType.unidadeDeConsumo);
+      this.syncUnitSelection(selectedMaterialType.unidadeDeConsumo, false);
     });
 
     // Sincroniza o valor inicial do pai com o input de busca
     if (ctrl.value) {
       this.searchControl.setValue(ctrl.value);
-      this.unitControl.setValue(ctrl.value.unidadeDeConsumo ?? '', { emitEvent: false });
       this.materialTypes.set([ctrl.value]);
-      this.performSearch('', ctrl.value.unidadeDeConsumo);
+      this.syncUnitSelection(ctrl.value.unidadeDeConsumo, false);
     } else if (this.isEditMode()) {
       ctrl.valueChanges.pipe(
-        filter(value => !!value),
+        filter((value: string | MaterialType | null): value is MaterialType => !!value && typeof value !== 'string'),
         take(1),
         takeUntilDestroyed(this.destroyRef)
-      ).subscribe((initialValue: MaterialType) => {
+      ).subscribe(initialValue => {
         this.searchControl.setValue(initialValue);
-        this.unitControl.setValue(initialValue.unidadeDeConsumo ?? '', { emitEvent: false });
         this.materialTypes.set([initialValue]);
-        this.performSearch('', initialValue.unidadeDeConsumo);
+        this.syncUnitSelection(initialValue.unidadeDeConsumo, false);
       });
     }
 
@@ -152,30 +125,140 @@ export class MaterialTypeSearch implements OnInit {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(value => {
       if (typeof value === 'string') {
-        this.performSearch(value, this.unitControl.value || undefined);
+        this.applyFilters(value);
       }
     });
 
-    // Busca ao mudar o filtro de unidade
-    this.unitControl.valueChanges.pipe(
+    this.productTypeControl.valueChanges.pipe(
       takeUntilDestroyed(this.destroyRef)
-    ).subscribe(unit => {
-      const searchValue = typeof this.searchControl.value === 'string' ? this.searchControl.value : '';
-      this.performSearch(searchValue, unit || undefined);
+    ).subscribe(tipoProduto => {
+      if (this.fixedProductType() && tipoProduto !== this.fixedProductType()) {
+        this.productTypeControl.setValue(this.fixedProductType()!, { emitEvent: false });
+        return;
+      }
+
+      this.syncUnitOptions();
+      this.resetSelection();
     });
 
+    this.consumptionUnitControl.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(selectedUnit => {
+      const selectedMaterial = this.control().value;
+      if (selectedMaterial && typeof selectedMaterial !== 'string' && selectedMaterial.unidadeDeConsumo !== selectedUnit) {
+        this.control().setValue(null);
+      }
+      this.applyFilters(typeof this.searchControl.value === 'string' ? this.searchControl.value : '');
+    });
+
+    this.hasInitialized = true;
   }
 
-  performSearch(nome?: string, unidadeDeConsumo?: string): void {
-    this.isSearching.set(true);
-    this.currentPage = 0;
-    this.materialTypeService.updateSearchParams({
-      page: this.currentPage,
-      size: this.pageSize,
-      sort: 'nome,asc',
-      nome: nome,
-      unidadeDeConsumo: unidadeDeConsumo
+  private getSelectedProductType(): 'CORTE' | 'CONSUMO' {
+    return this.fixedProductType() ?? this.productTypeControl.value;
+  }
+
+  private loadMaterialTypes(): void {
+    this.materialTypeService.searchByProductType({
+      tipoProduto: 'CORTE',
+      page: 0,
+      size: 200,
+      sort: 'nome,asc'
+    }).pipe(take(1), takeUntilDestroyed(this.destroyRef)).subscribe(response => {
+      this.corteMaterialTypes.set(response._embedded?.['tipos-materia-prima'] ?? []);
+      this.syncUnitOptions();
+      this.applyFilters(typeof this.searchControl.value === 'string' ? this.searchControl.value : '');
     });
+
+    this.materialTypeService.searchByProductType({
+      tipoProduto: 'CONSUMO',
+      page: 0,
+      size: 200,
+      sort: 'nome,asc'
+    }).pipe(take(1), takeUntilDestroyed(this.destroyRef)).subscribe(response => {
+      this.consumoMaterialTypes.set(response._embedded?.['tipos-materia-prima'] ?? []);
+      this.syncUnitOptions();
+      this.applyFilters(typeof this.searchControl.value === 'string' ? this.searchControl.value : '');
+    });
+  }
+
+  private syncUnitOptions(): void {
+    const unitValues = [...new Set(
+      this.getActiveMaterialTypes()
+        .map(item => item.unidadeDeConsumo)
+        .filter((value): value is string => !!value)
+    )];
+
+    const options = [
+      this.allUnitsOption,
+      ...unitValues.map(value => this.toUnitOption(value))
+    ];
+
+    this.unitOptions.set(options);
+
+    const currentUnit = this.consumptionUnitControl.value;
+    const hasCurrentUnit = !!currentUnit && options.some(option => option.value === currentUnit);
+    if (!hasCurrentUnit) {
+      this.consumptionUnitControl.setValue(this.allUnitsOption.value, { emitEvent: false });
+    }
+  }
+
+  private syncUnitSelection(unit: string | null | undefined, emitEvent = false): void {
+    if (!unit) {
+      return;
+    }
+
+    const available = this.unitOptions();
+    if (available.some(option => option.value === unit)) {
+      this.consumptionUnitControl.setValue(unit, { emitEvent });
+    }
+  }
+
+  private getActiveMaterialTypes(): MaterialType[] {
+    return this.getSelectedProductType() === 'CORTE'
+      ? this.corteMaterialTypes()
+      : this.consumoMaterialTypes();
+  }
+
+  private applyFilters(searchTerm = ''): void {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const selectedUnit = this.consumptionUnitControl.value;
+    const filtered = this.getActiveMaterialTypes().filter(item => {
+      const matchesUnit = !selectedUnit || selectedUnit === this.allUnitsOption.value || item.unidadeDeConsumo === selectedUnit;
+      const matchesSearch = !normalizedSearch || item.nome.toLowerCase().includes(normalizedSearch);
+      return matchesUnit && matchesSearch;
+    });
+
+    this.materialTypes.set(filtered);
+  }
+
+  private resetSelection(): void {
+    this.control().setValue(null);
+    this.searchControl.setValue('', { emitEvent: false });
+    this.consumptionUnitControl.setValue(this.allUnitsOption.value, { emitEvent: false });
+    this.applyFilters('');
+  }
+
+  private toUnitOption(value: string): EnumOption {
+    const labels: Record<string, { viewValue: string; simbolo?: string }> = {
+      METRO_LINEAR: { viewValue: 'Metro Linear', simbolo: 'm' },
+      CENTIMETRO_LINEAR: { viewValue: 'Centímetro Linear', simbolo: 'cm' },
+      METRO_QUADRADO: { viewValue: 'Metro Quadrado', simbolo: 'm²' },
+      CENTIMETRO_QUADRADO: { viewValue: 'Centímetro Quadrado', simbolo: 'cm²' },
+      QUILOGRAMA: { viewValue: 'Quilograma', simbolo: 'kg' },
+      GRAMA: { viewValue: 'Grama', simbolo: 'g' },
+      LITRO: { viewValue: 'Litro', simbolo: 'L' },
+      MILILITRO: { viewValue: 'Mililitro', simbolo: 'ml' },
+      UNIDADE: { viewValue: 'Unidade', simbolo: 'un' },
+      FOLHA: { viewValue: 'Folha', simbolo: 'fl' }
+    };
+
+    const label = labels[value];
+    return {
+      value,
+      viewValue: label?.viewValue ?? value,
+      simbolo: label?.simbolo
+    };
   }
 
   displayFn(materialType: MaterialType): string {
@@ -184,6 +267,7 @@ export class MaterialTypeSearch implements OnInit {
 
   onOptionSelected(event: MatAutocompleteSelectedEvent): void {
     const selected = event.option.value as MaterialType;
+    this.syncUnitSelection(selected.unidadeDeConsumo, false);
     this.control().setValue(selected);
     // Emite um evento compatível com MatSelectChange para manter compatibilidade
     this.selectionChange.emit({ source: null as any, value: selected });

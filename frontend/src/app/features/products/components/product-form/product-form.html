@@ -112,6 +112,7 @@
       <app-material-type-search
         [control]="materialTypeControl"
         [isEditMode]="isEditMode()"
+        [fixedProductType]="productForm.get('tipoProduto')?.value"
         (selectionChange)="onMaterialTypeChange($event)">
         @if (productForm.get('unidadeCadastroConsumo')?.enabled && materialTypeControl.value) {
           <mat-form-field after-unit-field appearance="outline" class="unit-filter">

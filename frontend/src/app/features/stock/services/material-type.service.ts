@@ -105,6 +105,37 @@ export class MaterialTypeService {
     return this.materialTypes$;
   }
 
+  searchByProductType(params: {
+    tipoProduto: 'CORTE' | 'CONSUMO';
+    page: number;
+    size: number;
+    sort: string;
+    nome?: string;
+    unidadeDeConsumo?: string;
+  }): Observable<ApiResponseMaterialTypes> {
+    return this.getBaseUrl().pipe(
+      switchMap(baseUrl => {
+        let httpParams = new HttpParams()
+          .set('tipoProduto', params.tipoProduto)
+          .set('page', params.page.toString())
+          .set('size', params.size.toString())
+          .set('sort', params.sort);
+
+        if (params.nome) {
+          httpParams = httpParams.set('nome', params.nome);
+        }
+        if (params.unidadeDeConsumo) {
+          httpParams = httpParams.set('unidadeDeConsumo', params.unidadeDeConsumo);
+        }
+
+        return this.http.get<any>(baseUrl, { params: httpParams }).pipe(
+          map(response => this.normalizeAndSortResponse(response, params)),
+          catchError(() => of(this.createEmptyResponse()))
+        );
+      })
+    );
+  }
+
   /**
    * Atualiza os parâmetros de busca, o que dispara uma nova emissão no `materialTypes$`.
    */

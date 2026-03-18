@@ -1,4 +1,14 @@
 <div class="filters-container">
+  @if (!fixedProductType()) {
+    <mat-form-field appearance="outline" class="unit-filter">
+      <mat-label>Categoria</mat-label>
+      <mat-select [formControl]="productTypeControl">
+        @for (option of productTypeOptions; track option.value) {
+          <mat-option [value]="option.value">{{ option.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  }
 
   <mat-form-field appearance="outline" class="flex-grow">
     <mat-label>Tipo de Matéria Prima</mat-label>
@@ -21,10 +31,11 @@
 
   <mat-form-field appearance="outline" class="unit-filter">
     <mat-label>Unidade da Matéria-Prima</mat-label>
-    <mat-select [formControl]="unitControl">
-      <mat-option value="">Todas</mat-option>
-      @for (unit of consumptionUnits(); track unit.value) {
-        <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
+    <mat-select [formControl]="consumptionUnitControl">
+      @for (unit of unitOptions(); track unit.value) {
+        <mat-option [value]="unit.value">
+          {{ unit.simbolo ? unit.viewValue + ' (' + unit.simbolo + ')' : unit.viewValue }}
+        </mat-option>
       }
     </mat-select>
   </mat-form-field>
