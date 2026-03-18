@@ -36,7 +36,7 @@ public class ProdutoRequestDTO {
     @Schema(description = "Descrição detalhada sobre o produto, seu material e uso.", example = "Refil de tinta preta para impressoras eco-solvente, com 1500 ml por unidade.")
     private String descricao;
 
-    @Schema(description = "Quantidade consumida por unidade do produto. Para consumo, aceita decimal e pode ser informada na unidade principal ou na unidade menor compatível.", example = "1500", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade consumida por unidade do produto. Para consumo, aceita decimal e pode ser informada na unidade da matéria-prima ou em uma subdivisão compatível.", example = "1500", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal unidadesPorProduto;
 
     @Schema(description = "URL da imagem principal do produto para exibição no catálogo.", example = "https://cdn.dcriar.com/images/ETQ-KFT-RD5.jpg")
@@ -60,7 +60,7 @@ public class ProdutoRequestDTO {
     @Schema(description = "Código do produto fornecido pelo fabricante (apenas para produtos de consumo).", example = "INK-BLK-ES-1500ML")
     private String codigoFabricante;
 
-    @Schema(description = "Unidade usada para informar 'unidadesPorProduto' no cadastro de consumo. Se não for enviada, o backend assume a unidade principal da matéria-prima. Exemplos compatíveis: LITRO/MILILITRO, QUILOGRAMA/GRAMA.", example = "MILILITRO")
+    @Schema(description = "Unidade usada para informar 'unidadesPorProduto' no cadastro de consumo. Se não for enviada, o backend assume a unidade da matéria-prima. Exemplos compatíveis: LITRO/MILILITRO, QUILOGRAMA/GRAMA.", example = "MILILITRO")
     private UnidadeDeMedida unidadeCadastroConsumo;
 
     @Schema(description = "Mapa flexível para especificações técnicas (apenas para produtos de consumo).", example = "{\"tipo_tinta\": \"Eco-Solvente\", \"cor_pantone\": \"Black C\", \"volume_ml\": 1500}")

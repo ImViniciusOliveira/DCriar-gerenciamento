@@ -144,13 +144,10 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
      * <b>Regras de Cálculo:</b>
      * <ul>
      *     <li>Se {@code custoTotalLote} for nulo, o cálculo é ignorado e o método retorna nulo.</li>
-     *     <li>Se a unidade de estoque for a unidade principal da matéria-prima, o cálculo usa a quantidade informada diretamente.</li>
-     *     <li>Se a unidade de estoque for a menor unidade compatível, o sistema normaliza a quantidade para a unidade principal
-     *     antes de derivar o custo por unidade base.</li>
+     *     <li>Para materiais de consumo, o cálculo sempre usa a quantidade já convertida para a menor unidade interna compatível do grupo.</li>
+     *     <li>Para os demais materiais, o cálculo usa a quantidade na unidade efetiva do lote.</li>
      * </ul>
      *
-     * @param dto O DTO de requisição do lote, contendo custo total e quantidade inicial.
-     * @param tipo O tipo de matéria-prima associado ao lote.
      * @return O custo por unidade base como um {@link BigDecimal}, ou nulo se o custo total não for fornecido.
      * @throws QuantidadeUnidadesInvalidaException se a quantidade total de unidades base for zero ou negativa.
      */
