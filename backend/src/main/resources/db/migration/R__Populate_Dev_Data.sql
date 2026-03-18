@@ -42,19 +42,19 @@ INSERT INTO canais_venda (nome, data_criacao, data_atualizacao) VALUES
 -- Estas tabelas dependem dos dados mestres inseridos na Etapa 2.
 
 -- Inserção de Lotes de Matéria-Prima (dependem de Tipos de Matérias-Primas)
-INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, custo_total_lote, motivo, atributos, data_criacao, data_atualizacao) VALUES
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Couchê 300g'), 'METRO_QUADRADO', 150.00, 'Compra NF-1001', '{ "larguraMm": 320, "comprimentoMm": 450 }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 'METRO_QUADRADO', 250.00, 'Compra NF-1002', '{ "larguraMm": 1600 }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 'METRO_QUADRADO', 120.00, 'Compra NF-1003', '{ "larguraMm": 1200 }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo BOPP Transparente'), 'METRO_QUADRADO', 80.00, 'Compra NF-1004', '{ "larguraMm": 297, "comprimentoMm": 420 }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Kraft 180g'), 'METRO_QUADRADO', 50.00, 'Compra NF-1005', '{ "larguraMm": 210, "comprimentoMm": 297 }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Tinta Eco-Solvente Preta'), 'LITRO', 300.00, 'Compra NF-1006', '{ "fornecedor": "InkMaster" }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Fita Dupla Face 25mm'), 'METRO_LINEAR', 75.00, 'Compra NF-1007', '{ "larguraMm": 25, "metragem_m": 50 }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Ilhós de Latão #0'), 'UNIDADE', 200.00, 'Compra NF-1008', '{ "quantidade_caixa": 1000 }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Resina Epóxi Transparente'), 'QUILOGRAMA', 1800.00, 'Compra NF-1009', '{ "fornecedor": "Quimicolor", "lote_fabricante": "EPX-2309" }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Pó Adesivo Termocolante'), 'GRAMA', 950.00, 'Compra NF-1010', '{ "fornecedor": "PrintBond", "malha": "fina" }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Verniz UV Brilhante'), 'MILILITRO', 700.00, 'Compra NF-1011', '{ "fornecedor": "UV Coatings", "acabamento": "brilho" }', NOW(), NOW()),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Seda Branco A4'), 'FOLHA', 250.00, 'Compra NF-1012', '{ "gramatura_gm2": 18, "cor": "branco" }', NOW(), NOW());
+INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, unidade_cadastro_estoque, custo_total_lote, motivo, atributos, data_criacao, data_atualizacao) VALUES
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Couchê 300g'), 'METRO_QUADRADO', 'METRO_QUADRADO', 150.00, 'Compra NF-1001', '{ "larguraMm": 320, "comprimentoMm": 450 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 'METRO_QUADRADO', 'METRO_QUADRADO', 250.00, 'Compra NF-1002', '{ "larguraMm": 1600 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 'METRO_QUADRADO', 'METRO_QUADRADO', 120.00, 'Compra NF-1003', '{ "larguraMm": 1200 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo BOPP Transparente'), 'METRO_QUADRADO', 'METRO_QUADRADO', 80.00, 'Compra NF-1004', '{ "larguraMm": 297, "comprimentoMm": 420 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Kraft 180g'), 'METRO_QUADRADO', 'METRO_QUADRADO', 50.00, 'Compra NF-1005', '{ "larguraMm": 210, "comprimentoMm": 297 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Tinta Eco-Solvente Preta'), 'LITRO', 'LITRO', 300.00, 'Compra NF-1006', '{ "fornecedor": "InkMaster" }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Fita Dupla Face 25mm'), 'METRO_LINEAR', 'METRO_LINEAR', 75.00, 'Compra NF-1007', '{ "larguraMm": 25, "metragem_m": 50 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Ilhós de Latão #0'), 'UNIDADE', 'UNIDADE', 200.00, 'Compra NF-1008', '{ "quantidade_caixa": 1000 }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Resina Epóxi Transparente'), 'QUILOGRAMA', 'QUILOGRAMA', 1800.00, 'Compra NF-1009', '{ "fornecedor": "Quimicolor", "lote_fabricante": "EPX-2309" }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Pó Adesivo Termocolante'), 'GRAMA', 'GRAMA', 950.00, 'Compra NF-1010', '{ "fornecedor": "PrintBond", "malha": "fina" }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Verniz UV Brilhante'), 'MILILITRO', 'MILILITRO', 700.00, 'Compra NF-1011', '{ "fornecedor": "UV Coatings", "acabamento": "brilho" }', NOW(), NOW()),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Seda Branco A4'), 'FOLHA', 'FOLHA', 250.00, 'Compra NF-1012', '{ "gramatura_gm2": 18, "cor": "branco" }', NOW(), NOW());
 
 -- Inserção de Produtos Acabados (dependem de Tipos de Matérias-Primas)
 INSERT INTO produtos (tipo_produto, nome, sku, descricao, cor, unidades_por_produto, ativo, foto_principal_url, tipo_materia_prima_id, largura_cm, comprimento_cm, data_criacao, data_atualizacao, codigo_fabricante, unidade_cadastro_consumo, especificacoes) VALUES
@@ -144,9 +144,9 @@ INSERT INTO ordens_de_producao (produto_id, quantidade_produzida, modo_calculo, 
 
 -- Inserção de Lotes de Retalho (dependem de Lotes de Compra e Ordens de Produção)
 -- É crucial que esta etapa venha DEPOIS da criação das Ordens de Produção.
-INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, custo_total_lote, motivo, atributos, lote_de_origem_id, ordem_producao_origem_id, data_criacao, data_atualizacao) VALUES
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 'METRO_QUADRADO', 0.00, 'Retalho da Ordem #3', '{ "larguraMm": 200 }', (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1003'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'), NOW() - INTERVAL '3 hour', NOW() - INTERVAL '3 hour'),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 'METRO_QUADRADO', 0.00, 'Retalho da Ordem #5', '{ "larguraMm": 300 }', (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour');
+INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, unidade_cadastro_estoque, custo_total_lote, motivo, atributos, lote_de_origem_id, ordem_producao_origem_id, data_criacao, data_atualizacao) VALUES
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 'METRO_QUADRADO', 'METRO_QUADRADO', 0.00, 'Retalho da Ordem #3', '{ "larguraMm": 200 }', (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1003'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'), NOW() - INTERVAL '3 hour', NOW() - INTERVAL '3 hour'),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 'METRO_QUADRADO', 'METRO_QUADRADO', 0.00, 'Retalho da Ordem #5', '{ "larguraMm": 300 }', (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour');
 
 -- Inserção de Vendas (dependem de Canais de Venda)
 INSERT INTO vendas (data_criacao, data_atualizacao, canal_venda_id, valor_total) VALUES

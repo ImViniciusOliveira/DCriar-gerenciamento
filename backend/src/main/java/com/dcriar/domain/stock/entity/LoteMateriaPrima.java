@@ -53,6 +53,16 @@ public class LoteMateriaPrima extends AuditableEntity {
     private UnidadeDeMedida unidadeDeEstoque;
 
     /**
+     * A unidade escolhida pelo usuário no cadastro do lote.
+     * <p>
+     * No estado atual ela coincide com {@code unidadeDeEstoque}, mas fica persistida separadamente
+     * para permitir futura normalização interna sem perder a unidade de apresentação escolhida.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "unidade_cadastro_estoque", nullable = false, length = 30)
+    private UnidadeDeMedida unidadeCadastroEstoque;
+
+    /**
      * O custo total do lote no momento da entrada.
      */
     @Column(name = "custo_total_lote", nullable = false, precision = 10, scale = 4)
@@ -125,6 +135,7 @@ public class LoteMateriaPrima extends AuditableEntity {
         return LoteMateriaPrima.builder()
                 .tipoMateriaPrima(tipoMateriaPrima)
                 .unidadeDeEstoque(dto.getUnidadeDeEstoque())
+                .unidadeCadastroEstoque(dto.getUnidadeDeEstoque())
                 .atributos(dto.getAtributos())
                 .custoTotalLote(dto.getCustoTotalLote())
                 .motivo(dto.getMotivo())
@@ -148,6 +159,7 @@ public class LoteMateriaPrima extends AuditableEntity {
         }
         if (dto.getUnidadeDeEstoque() != null) {
             this.unidadeDeEstoque = dto.getUnidadeDeEstoque();
+            this.unidadeCadastroEstoque = dto.getUnidadeDeEstoque();
         }
         if (dto.getAtributos() != null) {
             this.atributos = dto.getAtributos();

@@ -32,6 +32,9 @@ public class LoteMateriaPrimaResponseDTO {
     @Schema(description = "Unidade em que o saldo deste lote é medido.", example = "METRO_LINEAR")
     private UnidadeDeMedida unidadeDeEstoque;
 
+    @Schema(description = "Unidade escolhida pelo usuário no cadastro do lote.", example = "METRO_LINEAR")
+    private UnidadeDeMedida unidadeCadastroEstoque;
+
     @Schema(description = "Símbolo da unidade de medida (ex: m, un, kg).", example = "m")
     private String unidadeSimbolo;
 
