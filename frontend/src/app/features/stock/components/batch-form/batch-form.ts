@@ -91,7 +91,7 @@ export class BatchForm implements OnInit {
   readonly batch = signal<Batch>(this.data.template);
   private readonly allMeasurementUnits: Signal<EnumOption[]>;
   stockUnitOptions: Signal<EnumOption[]>;
-  private readonly unitsUrl = signal<string | null>(null);
+  readonly unitsUrl = signal<string | null>(null);
 
   // Signal público e gravável para a matéria-prima, usado pela lógica e pelo template.
   materialType = signal<MaterialType | null | undefined>(undefined);
