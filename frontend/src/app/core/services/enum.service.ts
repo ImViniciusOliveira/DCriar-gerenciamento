@@ -1,4 +1,4 @@
-import {HttpClient} from '@angular/common/http';
+import {HttpClient, HttpParams} from '@angular/common/http';
 import {inject, Injectable} from '@angular/core';
 import {map, Observable, of} from 'rxjs';
 import {catchError, shareReplay} from 'rxjs/operators';
@@ -14,8 +14,6 @@ export interface EnumOption {
   displayQuantityWithSymbol?: boolean;
   compatibleInputUnit?: string;
   compatibleInputFactor?: number;
-  consumo?: boolean;
-  permiteCorte?: boolean;
 }
 
 /**
@@ -29,8 +27,6 @@ interface EnumResponseItem {
   exibirQuantidadeComSimbolo?: boolean;
   unidadeCadastroCompativel?: string;
   fatorConversaoCadastroCompativel?: number;
-  consumo?: boolean;
-  permiteCorte?: boolean;
   [key: string]: any; // Permite outras propriedades como 'simbolo' e '_links'.
 }
 
@@ -73,6 +69,39 @@ export class EnumService {
     return request$;
   }
 
+  getMeasurementUnitsByProductType(url: string, tipoProduto: 'CORTE' | 'CONSUMO'): Observable<EnumOption[]> {
+    const cacheKey = `${url}::unidadesDeMedida::${tipoProduto}`;
+    const cached = this.optionsCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http.get<EmbeddedEnumResponse>(url, {
+      params: new HttpParams().set('tipoProduto', tipoProduto)
+    }).pipe(
+      map(response => {
+        const embedded = response?._embedded;
+        if (!embedded) {
+          return [];
+        }
+
+        const items = embedded['unidadesDeMedida'] || [];
+
+        return items.map(item => ({
+          value: item.name,
+          viewValue: item.descricao,
+          compatibleInputUnit: item.unidadeCadastroCompativel,
+          compatibleInputFactor: item.fatorConversaoCadastroCompativel
+        }));
+      }),
+      shareReplay(1),
+      catchError(() => of([]))
+    );
+
+    this.optionsCache.set(cacheKey, request$);
+    return request$;
+  }
+
   /**
    * Busca opções de enum de uma URL específica da API.
    * A requisição é cacheada por URL e chave `_embedded` para evitar chamadas repetidas.
@@ -103,9 +132,7 @@ export class EnumService {
           simbolo: item.simbolo,
           displayQuantityWithSymbol: item.exibirQuantidadeComSimbolo,
           compatibleInputUnit: item.unidadeCadastroCompativel,
-          compatibleInputFactor: item.fatorConversaoCadastroCompativel,
-          consumo: item.consumo,
-          permiteCorte: item.permiteCorte
+          compatibleInputFactor: item.fatorConversaoCadastroCompativel
         }));
       }),
       shareReplay(1),

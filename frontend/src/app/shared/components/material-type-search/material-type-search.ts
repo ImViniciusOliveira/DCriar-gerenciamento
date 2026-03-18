@@ -63,7 +63,8 @@ export class MaterialTypeSearch implements OnInit {
   unitOptions: WritableSignal<EnumOption[]> = signal([]);
   private readonly corteMaterialTypes = signal<MaterialType[]>([]);
   private readonly consumoMaterialTypes = signal<MaterialType[]>([]);
-  private readonly backendUnitMap = signal<Map<string, EnumOption>>(new Map());
+  private readonly corteUnitOptions = signal<EnumOption[]>([]);
+  private readonly consumoUnitOptions = signal<EnumOption[]>([]);
 
   readonly productTypeOptions = [
     { value: 'CORTE' as const, label: 'Matérias-primas de Corte' },
@@ -94,7 +95,7 @@ export class MaterialTypeSearch implements OnInit {
 
   ngOnInit(): void {
     const ctrl = this.control();
-    this.loadBackendUnits();
+    this.loadBackendUnitsByProductType();
     this.loadMaterialTypes();
 
     ctrl.valueChanges.pipe(
@@ -187,49 +188,35 @@ export class MaterialTypeSearch implements OnInit {
     });
   }
 
-  private loadBackendUnits(): void {
+  private loadBackendUnitsByProductType(): void {
     const url = this.unitsUrl();
     if (!url) {
       return;
     }
 
-    this.enumService.getConsumptionUnitsMap(url).pipe(
+    this.enumService.getMeasurementUnitsByProductType(url, 'CORTE').pipe(
       take(1),
       takeUntilDestroyed(this.destroyRef)
-    ).subscribe(unitsMap => {
-      this.backendUnitMap.set(unitsMap);
+    ).subscribe(unitOptions => {
+      this.corteUnitOptions.set(unitOptions);
+      this.syncUnitOptions();
+      this.applyFilters(typeof this.searchControl.value === 'string' ? this.searchControl.value : '');
+    });
+
+    this.enumService.getMeasurementUnitsByProductType(url, 'CONSUMO').pipe(
+      take(1),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(unitOptions => {
+      this.consumoUnitOptions.set(unitOptions);
       this.syncUnitOptions();
       this.applyFilters(typeof this.searchControl.value === 'string' ? this.searchControl.value : '');
     });
   }
 
   private syncUnitOptions(): void {
-    const unitOptionsMap = new Map<string, EnumOption>();
-    const backendUnits = this.backendUnitMap();
-
-    this.getActiveMaterialTypes().forEach(item => {
-      if (!item.unidadeDeConsumo || unitOptionsMap.has(item.unidadeDeConsumo)) {
-        return;
-      }
-
-      unitOptionsMap.set(item.unidadeDeConsumo, {
-        value: item.unidadeDeConsumo,
-        viewValue: item.unidadeDescricao ?? item.unidadeDeConsumo
-      });
-
-      const compatibleInputUnit = backendUnits.get(item.unidadeDeConsumo)?.compatibleInputUnit;
-      if (compatibleInputUnit && !unitOptionsMap.has(compatibleInputUnit)) {
-        const compatibleOption = backendUnits.get(compatibleInputUnit);
-        unitOptionsMap.set(compatibleInputUnit, {
-          value: compatibleInputUnit,
-          viewValue: compatibleOption?.viewValue ?? compatibleInputUnit
-        });
-      }
-    });
-
     const options = [
       this.allUnitsOption,
-      ...Array.from(unitOptionsMap.values())
+      ...this.getActiveUnitOptions()
     ];
 
     this.unitOptions.set(options);
@@ -256,6 +243,12 @@ export class MaterialTypeSearch implements OnInit {
     return this.getSelectedProductType() === 'CORTE'
       ? this.corteMaterialTypes()
       : this.consumoMaterialTypes();
+  }
+
+  private getActiveUnitOptions(): EnumOption[] {
+    return this.getSelectedProductType() === 'CORTE'
+      ? this.corteUnitOptions()
+      : this.consumoUnitOptions();
   }
 
   private applyFilters(searchTerm = ''): void {
