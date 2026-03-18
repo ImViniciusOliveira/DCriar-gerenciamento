@@ -10,7 +10,7 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 import { debounceTime, distinctUntilChanged, take, filter } from 'rxjs/operators';
 import { MaterialType } from '../../../features/stock/models/material-type.model';
 import { MaterialTypeService } from '../../../features/stock/services/material-type.service';
-import { EnumOption } from '../../../core/services/enum.service';
+import { EnumOption, EnumService } from '../../../core/services/enum.service';
 
 /**
  * Componente genérico para busca e seleção de um Tipo de Matéria-Prima.
@@ -40,11 +40,14 @@ export class MaterialTypeSearch implements OnInit {
   isEditMode = input(false);
   /** Quando informado, fixa o contexto do dropdown em CORTE ou CONSUMO. */
   fixedProductType = input<'CORTE' | 'CONSUMO' | null>(null);
+  /** URL da coleção de unidades para complementar as opções faltantes. */
+  unitsUrl = input<string | null>(null);
   /** Emite o evento de seleção para o componente pai. */
   selectionChange = output<MatSelectChange>();
 
   // --- Injeção de Dependências ---
   private readonly materialTypeService = inject(MaterialTypeService);
+  private readonly enumService = inject(EnumService);
   private readonly destroyRef = inject(DestroyRef);
   private hasInitialized = false;
   private lastAppliedProductType: 'CORTE' | 'CONSUMO' | null = null;
@@ -60,6 +63,7 @@ export class MaterialTypeSearch implements OnInit {
   unitOptions: WritableSignal<EnumOption[]> = signal([]);
   private readonly corteMaterialTypes = signal<MaterialType[]>([]);
   private readonly consumoMaterialTypes = signal<MaterialType[]>([]);
+  private readonly backendUnitMap = signal<Map<string, EnumOption>>(new Map());
 
   readonly productTypeOptions = [
     { value: 'CORTE' as const, label: 'Matérias-primas de Corte' },
@@ -90,6 +94,7 @@ export class MaterialTypeSearch implements OnInit {
 
   ngOnInit(): void {
     const ctrl = this.control();
+    this.loadBackendUnits();
     this.loadMaterialTypes();
 
     ctrl.valueChanges.pipe(
@@ -182,16 +187,49 @@ export class MaterialTypeSearch implements OnInit {
     });
   }
 
+  private loadBackendUnits(): void {
+    const url = this.unitsUrl();
+    if (!url) {
+      return;
+    }
+
+    this.enumService.getConsumptionUnitsMap(url).pipe(
+      take(1),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(unitsMap => {
+      this.backendUnitMap.set(unitsMap);
+      this.syncUnitOptions();
+      this.applyFilters(typeof this.searchControl.value === 'string' ? this.searchControl.value : '');
+    });
+  }
+
   private syncUnitOptions(): void {
-    const unitValues = [...new Set(
-      this.getActiveMaterialTypes()
-        .map(item => item.unidadeDeConsumo)
-        .filter((value): value is string => !!value)
-    )];
+    const unitOptionsMap = new Map<string, EnumOption>();
+    const backendUnits = this.backendUnitMap();
+
+    this.getActiveMaterialTypes().forEach(item => {
+      if (!item.unidadeDeConsumo || unitOptionsMap.has(item.unidadeDeConsumo)) {
+        return;
+      }
+
+      unitOptionsMap.set(item.unidadeDeConsumo, {
+        value: item.unidadeDeConsumo,
+        viewValue: item.unidadeDescricao ?? item.unidadeDeConsumo
+      });
+
+      const compatibleInputUnit = backendUnits.get(item.unidadeDeConsumo)?.compatibleInputUnit;
+      if (compatibleInputUnit && !unitOptionsMap.has(compatibleInputUnit)) {
+        const compatibleOption = backendUnits.get(compatibleInputUnit);
+        unitOptionsMap.set(compatibleInputUnit, {
+          value: compatibleInputUnit,
+          viewValue: compatibleOption?.viewValue ?? compatibleInputUnit
+        });
+      }
+    });
 
     const options = [
       this.allUnitsOption,
-      ...unitValues.map(value => this.toUnitOption(value))
+      ...Array.from(unitOptionsMap.values())
     ];
 
     this.unitOptions.set(options);
@@ -237,28 +275,6 @@ export class MaterialTypeSearch implements OnInit {
     this.searchControl.setValue('', { emitEvent: false });
     this.consumptionUnitControl.setValue(this.allUnitsOption.value, { emitEvent: false });
     this.applyFilters('');
-  }
-
-  private toUnitOption(value: string): EnumOption {
-    const labels: Record<string, { viewValue: string; simbolo?: string }> = {
-      METRO_LINEAR: { viewValue: 'Metro Linear', simbolo: 'm' },
-      CENTIMETRO_LINEAR: { viewValue: 'Centímetro Linear', simbolo: 'cm' },
-      METRO_QUADRADO: { viewValue: 'Metro Quadrado', simbolo: 'm²' },
-      CENTIMETRO_QUADRADO: { viewValue: 'Centímetro Quadrado', simbolo: 'cm²' },
-      QUILOGRAMA: { viewValue: 'Quilograma', simbolo: 'kg' },
-      GRAMA: { viewValue: 'Grama', simbolo: 'g' },
-      LITRO: { viewValue: 'Litro', simbolo: 'L' },
-      MILILITRO: { viewValue: 'Mililitro', simbolo: 'ml' },
-      UNIDADE: { viewValue: 'Unidade', simbolo: 'un' },
-      FOLHA: { viewValue: 'Folha', simbolo: 'fl' }
-    };
-
-    const label = labels[value];
-    return {
-      value,
-      viewValue: label?.viewValue ?? value,
-      simbolo: label?.simbolo
-    };
   }
 
   displayFn(materialType: MaterialType): string {

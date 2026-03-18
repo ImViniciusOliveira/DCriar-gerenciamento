@@ -33,9 +33,7 @@
     <mat-label>Unidade da Matéria-Prima</mat-label>
     <mat-select [formControl]="consumptionUnitControl">
       @for (unit of unitOptions(); track unit.value) {
-        <mat-option [value]="unit.value">
-          {{ unit.simbolo ? unit.viewValue + ' (' + unit.simbolo + ')' : unit.viewValue }}
-        </mat-option>
+        <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
       }
     </mat-select>
   </mat-form-field>

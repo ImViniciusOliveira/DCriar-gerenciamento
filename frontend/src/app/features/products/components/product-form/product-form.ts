@@ -66,6 +66,9 @@ export class ProductFormComponent implements OnInit {
   readonly product = signal<Product>(this.data.product);
   readonly isEditMode = signal<boolean>(this.data.isEditMode);
   private lastMaterialTypeId: number | null = this.data.product.materiaPrima?.id ?? null;
+  readonly unitsUrl = computed(() =>
+    this.product()?._links?.['unidades-de-medida']?.href?.split('{')[0] ?? null
+  );
   matcher = new ImmediateErrorStateMatcher();
   readonly consumptionUnitOptions = signal<EnumOption[]>([]);
 
@@ -546,10 +549,7 @@ export class ProductFormComponent implements OnInit {
 
   getConsumptionUnitLabel(unit: string): string {
     const option = this.consumptionUnitOptions().find(item => item.value === unit);
-    if (!option) {
-      return unit;
-    }
-    return option.simbolo ? `${option.viewValue} (${option.simbolo})` : option.viewValue;
+    return option?.viewValue ?? unit;
   }
 
   private syncConsumptionUnitWithSelectedMaterial(forceBaseUnit = false): void {
@@ -600,24 +600,14 @@ export class ProductFormComponent implements OnInit {
   }
 
   private toUnitOption(value: string): EnumOption {
-    const labels: Record<string, { viewValue: string; simbolo?: string }> = {
-      METRO_LINEAR: { viewValue: 'Metro Linear', simbolo: 'm' },
-      CENTIMETRO_LINEAR: { viewValue: 'Centímetro Linear', simbolo: 'cm' },
-      METRO_QUADRADO: { viewValue: 'Metro Quadrado', simbolo: 'm²' },
-      CENTIMETRO_QUADRADO: { viewValue: 'Centímetro Quadrado', simbolo: 'cm²' },
-      QUILOGRAMA: { viewValue: 'Quilograma', simbolo: 'kg' },
-      GRAMA: { viewValue: 'Grama', simbolo: 'g' },
-      LITRO: { viewValue: 'Litro', simbolo: 'L' },
-      MILILITRO: { viewValue: 'Mililitro', simbolo: 'ml' },
-      UNIDADE: { viewValue: 'Unidade', simbolo: 'un' },
-      FOLHA: { viewValue: 'Folha', simbolo: 'fl' }
-    };
+    const baseMaterialType = this.materialTypeControl.value as MaterialType | null;
+    const baseDescription = baseMaterialType?.unidadeDeConsumo === value
+      ? (baseMaterialType.unidadeDescricao ?? value)
+      : value;
 
-    const label = labels[value];
     return {
       value,
-      viewValue: label?.viewValue ?? value,
-      simbolo: label?.simbolo
+      viewValue: baseDescription
     };
   }
 }
