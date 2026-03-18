@@ -64,6 +64,7 @@ public enum UnidadeDeMedida {
             case LITRO -> MILILITRO;
             case QUILOGRAMA -> GRAMA;
             case METRO_LINEAR -> CENTIMETRO_LINEAR;
+            case METRO_QUADRADO -> CENTIMETRO_QUADRADO;
             default -> null;
         };
     }
@@ -72,15 +73,24 @@ public enum UnidadeDeMedida {
         return switch (this) {
             case LITRO, QUILOGRAMA -> new BigDecimal("1000");
             case METRO_LINEAR -> new BigDecimal("100");
+            case METRO_QUADRADO -> new BigDecimal("10000");
             default -> null;
         };
     }
 
-    public boolean aceitaComoCadastroDeConsumo(UnidadeDeMedida unidadeInformada) {
+    public boolean exigeLarguraMmNoLote() {
+        return permiteCorte;
+    }
+
+    public boolean aceitaComoUnidadeDeEstoque(UnidadeDeMedida unidadeInformada) {
         if (unidadeInformada == null) {
             return false;
         }
         return this == unidadeInformada || unidadeInformada == getUnidadeMenorCompativelParaCadastro();
+    }
+
+    public boolean aceitaComoCadastroDeConsumo(UnidadeDeMedida unidadeInformada) {
+        return aceitaComoUnidadeDeEstoque(unidadeInformada);
     }
 
     public BigDecimal normalizarQuantidadeDeConsumo(BigDecimal quantidadeInformada, UnidadeDeMedida unidadeInformada) {

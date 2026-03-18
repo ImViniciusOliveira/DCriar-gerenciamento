@@ -9,6 +9,7 @@ import com.dcriar.domain.production.model.ParametrosCorte;
 import com.dcriar.domain.production.model.ResumoLayoutCorte;
 import com.dcriar.domain.production.service.CorteCalculatorService;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -46,7 +47,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         }
 
         BigDecimal larguraTotalLoteCm = getLarguraEmCm(lotePrincipal.getAtributos());
-        Optional<BigDecimal> comprimentoTotalLoteCm = getComprimentoOpcionalEmCm(lotePrincipal.getAtributos());
+        Optional<BigDecimal> comprimentoTotalLoteCm = getComprimentoFisicoDisponivelEmCm(lotePrincipal, larguraTotalLoteCm);
         Dimensoes dimensoesProduto = produtoDeCorte.getDimensoes();
 
         return new ContextoBaseCorte(
@@ -364,12 +365,41 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
         return new BigDecimal(larguraMmObj.toString()).divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
     }
 
-    private Optional<BigDecimal> getComprimentoOpcionalEmCm(Map<String, Object> atributos) {
+    /**
+     * Deriva o comprimento físico disponível do lote em centímetros.
+     * <p>
+     * Este método não faz a baixa do lote nem cria retalhos; ele apenas traduz o saldo atual
+     * do lote para um comprimento utilizável pelo motor de layout, respeitando a unidade real
+     * em que o lote é armazenado.
+     */
+    private Optional<BigDecimal> getComprimentoFisicoDisponivelEmCm(LoteMateriaPrima lote, BigDecimal larguraTotalLoteCm) {
+        Map<String, Object> atributos = lote.getAtributos();
         Object comprimentoMmObj = atributos.get("comprimentoMm");
         if (!(comprimentoMmObj instanceof Number)) {
-            return Optional.empty();
+            return getComprimentoAPartirDoSaldo(lote, larguraTotalLoteCm);
         }
         return Optional.of(new BigDecimal(comprimentoMmObj.toString()).divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP));
+    }
+
+    private Optional<BigDecimal> getComprimentoAPartirDoSaldo(LoteMateriaPrima lote, BigDecimal larguraTotalLoteCm) {
+        BigDecimal saldoAtual = lote.getSaldoCalculado();
+        if (saldoAtual == null || saldoAtual.compareTo(BigDecimal.ZERO) <= 0) {
+            return Optional.empty();
+        }
+
+        UnidadeDeMedida unidadeDeEstoque = lote.getUnidadeDeEstoque();
+        return switch (unidadeDeEstoque) {
+            case METRO_LINEAR -> Optional.of(saldoAtual.multiply(new BigDecimal("100")));
+            case CENTIMETRO_LINEAR -> Optional.of(saldoAtual);
+            case METRO_QUADRADO -> Optional.of(
+                    saldoAtual.multiply(new BigDecimal("10000"))
+                            .divide(larguraTotalLoteCm, 2, RoundingMode.HALF_UP)
+            );
+            case CENTIMETRO_QUADRADO -> Optional.of(
+                    saldoAtual.divide(larguraTotalLoteCm, 2, RoundingMode.HALF_UP)
+            );
+            default -> Optional.empty();
+        };
     }
 
     private int calcularProdutosPorLinhaSemMargem(BigDecimal larguraTotalLoteCm, BigDecimal dimensaoProduto) {

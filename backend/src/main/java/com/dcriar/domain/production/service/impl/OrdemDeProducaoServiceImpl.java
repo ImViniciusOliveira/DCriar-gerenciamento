@@ -97,8 +97,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw LotePrincipalNaoEspecificadoException.paraProducaoPorCorte();
         }
         LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLoteId());
+        validarCompatibilidadeMaterialEntreProdutoELote(produto, lotePrincipal);
+        carregarSaldoAtualNoLote(lotePrincipal);
 
-        BigDecimal consumoTotalMetros;
+        BigDecimal consumoTotalLote;
         BigDecimal comprimentoFinalCm;
         List<CorteRealizadoResponseDTO> cortesRealizadosDTOs;
         BigDecimal larguraFinalCm;
@@ -183,11 +185,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             larguraFinalCm = parametros.larguraTotalLoteCm();
         }
 
-        consumoTotalMetros = parametros.larguraTotalLoteCm().multiply(comprimentoFinalCm)
-                                           .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
+        consumoTotalLote = calcularConsumoCorteNaUnidadeDoLote(lotePrincipal, parametros.larguraTotalLoteCm(), comprimentoFinalCm);
 
         // 3. Valida se o lote principal tem saldo suficiente.
-        validarSaldoLoteCorte(lotePrincipal, consumoTotalMetros);
+        validarSaldoLoteCorte(lotePrincipal, consumoTotalLote);
 
         // 4. Cria e persiste a Ordem de Produção e seus cortes.
         Margens margensEntity = null;
@@ -229,14 +230,14 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordem);
 
         // 5. Orquestra as movimentações de estoque.
-        registrarSaidaLote(lotePrincipal, consumoTotalMetros, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
+        registrarSaidaLote(lotePrincipal, consumoTotalLote, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
         registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
         distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
 
         // 6. Criação de Lotes de Retalho
         for (CorteRealizadoResponseDTO dto : cortesRealizadosDTOs) {
              if ("RETALHO".equals(dto.getTipo())) {
-                 criarLoteDeRetalho(lotePrincipal, dto.getLarguraCm(), dto.getComprimentoCm().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP), savedOrdem);
+                 criarLoteDeRetalho(lotePrincipal, dto.getLarguraCm(), dto.getComprimentoCm(), savedOrdem);
              }
         }
 
@@ -408,13 +409,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     public SimulacaoCorteResponseDTO simularCorte(SimulacaoCorteRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         LoteMateriaPrima loteParaSimulacao = findLoteById(requestDTO.getLoteId());
-
-        if (!produto.getTipoMateriaPrima().equals(loteParaSimulacao.getTipoMateriaPrima())) {
-            throw IncompatibilidadeMaterialException.entreProdutoELote(
-                    produto.getTipoMateriaPrima().getNome(),
-                    loteParaSimulacao.getTipoMateriaPrima().getNome()
-            );
-        }
+        validarCompatibilidadeMaterialEntreProdutoELote(produto, loteParaSimulacao);
+        carregarSaldoAtualNoLote(loteParaSimulacao);
 
         ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(
             requestDTO.getQuantidade(), produto, loteParaSimulacao, null
@@ -422,36 +418,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         BigDecimal larguraFinalCm = parametros.larguraTotalLoteCm();
         long numeroDeLinhasTotal = (long) Math.ceil((double) requestDTO.getQuantidade() / parametros.produtosPorLinha());
         BigDecimal comprimentoBlocoProdutosCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhasTotal));
-        // Validação de dimensões do bloco de corte
-        BigDecimal saldoEstoque = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteParaSimulacao);
-        BigDecimal larguraMm = new BigDecimal(loteParaSimulacao.getAtributos().getOrDefault("larguraMm", 0).toString());
-        BigDecimal comprimentoLoteCm = BigDecimal.ZERO;
-        if (saldoEstoque != null && larguraMm.compareTo(BigDecimal.ZERO) > 0) {
-            comprimentoLoteCm = saldoEstoque.multiply(new BigDecimal("10000")).divide(larguraMm.divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP), 2, RoundingMode.HALF_UP);
-        }
-        BigDecimal larguraLoteCm = larguraMm.divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
-        if (comprimentoBlocoProdutosCm.compareTo(comprimentoLoteCm) > 0) {
-            throw ProdutoNaoCabeNoLoteException.comprimentoBlocoExcedeComprimentoLote(
-                    comprimentoBlocoProdutosCm,
-                    comprimentoLoteCm
-            );
-        }
-        if (larguraFinalCm.compareTo(larguraLoteCm) > 0) {
-            throw ProdutoNaoCabeNoLoteException.larguraBlocoExcedeLarguraLote(
-                    larguraFinalCm,
-                    larguraLoteCm
-            );
-        }
-        // Validação de saldo de matéria-prima
-        BigDecimal consumoTotalMetros = larguraFinalCm.multiply(comprimentoBlocoProdutosCm).divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
-        if (consumoTotalMetros.compareTo(saldoEstoque) > 0) {
-            throw new SaldoMateriaPrimaInsuficienteException(consumoTotalMetros, saldoEstoque);
-        }
+        BigDecimal consumoEstimado = calcularConsumoCorteNaUnidadeDoLote(loteParaSimulacao, larguraFinalCm, comprimentoBlocoProdutosCm);
+        validarSaldoLoteCorte(loteParaSimulacao, consumoEstimado);
 
         ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoBlocoProdutosCm, false);
-
-        BigDecimal consumoEstimado = larguraFinalCm.multiply(comprimentoBlocoProdutosCm)
-                .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
 
         return SimulacaoCorteResponseDTO.builder()
                 .modoCalculo(ModoCalculo.AUTOMATICO)
@@ -476,6 +446,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     public SimulacaoCorteResponseDTO verificarCorte(VerificacaoCorteRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         LoteMateriaPrima lote = findLoteById(requestDTO.getLoteId());
+        validarCompatibilidadeMaterialEntreProdutoELote(produto, lote);
+        carregarSaldoAtualNoLote(lote);
 
         BigDecimal comprimentoBlocoProdutosCm;
         BigDecimal larguraBlocoProdutosCm;
@@ -484,28 +456,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         boolean isModoManual = requestDTO.getModoCalculo() == ModoCalculo.MANUAL;
 
         if (isModoManual) {
-            // Cálculo do comprimento do lote igual ao criarOrdemDeCorte
-            BigDecimal saldoEstoque = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
-            BigDecimal larguraLoteCm = new BigDecimal(lote.getAtributos().getOrDefault("larguraMm", 0).toString()).divide(new BigDecimal("10"), 2, java.math.RoundingMode.HALF_UP);
-            BigDecimal comprimentoLoteCm = BigDecimal.ZERO;
-            if (saldoEstoque != null && larguraLoteCm.compareTo(BigDecimal.ZERO) > 0) {
-                comprimentoLoteCm = saldoEstoque.multiply(new BigDecimal("10000")).divide(larguraLoteCm, 2, java.math.RoundingMode.HALF_UP);
-            }
             comprimentoBlocoProdutosCm = requestDTO.getComprimentoBlocoProdutosCm();
             larguraBlocoProdutosCm = requestDTO.getLarguraBlocoProdutosCm();
             comprimentoFinalCm = comprimentoBlocoProdutosCm;
-            if (comprimentoBlocoProdutosCm.compareTo(comprimentoLoteCm) > 0) {
-                throw ProdutoNaoCabeNoLoteException.comprimentoBlocoExcedeComprimentoLote(
-                        comprimentoBlocoProdutosCm,
-                        comprimentoLoteCm
-                );
-            }
-            if (larguraBlocoProdutosCm.compareTo(larguraLoteCm) > 0) {
-                throw ProdutoNaoCabeNoLoteException.larguraBlocoExcedeLarguraLote(
-                        larguraBlocoProdutosCm,
-                        larguraLoteCm
-                );
-            }
             parametros = corteCalculatorService.extrairParametrosCorteManual(
                 requestDTO.getQuantidade(), produto, lote, larguraBlocoProdutosCm, comprimentoBlocoProdutosCm
             );
@@ -567,30 +520,12 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             if (comprimentoFinalCm.compareTo(BigDecimal.ZERO) <= 0) {
                 throw MargemInvalidaException.comprimentoFinalNaoPositivo(comprimentoFinalCm);
             }
-            // Se o comprimento final for maior que o comprimento físico do lote,
-            // calcular o consumo necessário e validar o saldo do lote da mesma forma
-            // que é feita durante a criação da ordem (lançando SaldoMateriaPrimaInsuficienteException).
-            BigDecimal saldoEstoque = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
-            BigDecimal larguraMm = new BigDecimal(lote.getAtributos().getOrDefault("larguraMm", 0).toString());
-            BigDecimal comprimentoLoteCm = BigDecimal.ZERO;
-            if (saldoEstoque != null && larguraMm.compareTo(BigDecimal.ZERO) > 0) {
-                comprimentoLoteCm = saldoEstoque
-                        .multiply(new BigDecimal("10000"))
-                        .divide(larguraMm.divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP), 2, RoundingMode.HALF_UP);
-            }
-            if (comprimentoFinalCm.compareTo(comprimentoLoteCm) > 0) {
-                BigDecimal consumoNecessario = parametros.larguraTotalLoteCm()
-                        .multiply(comprimentoFinalCm)
-                        .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
-                validarSaldoLoteCorte(lote, consumoNecessario);
-            }
         }
 
         ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, isModoManual);
 
-        BigDecimal larguraParaCalculoConsumo = parametros.larguraTotalLoteCm();
-        BigDecimal consumoEstimado = larguraParaCalculoConsumo.multiply(comprimentoFinalCm)
-                .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
+        BigDecimal consumoEstimado = calcularConsumoCorteNaUnidadeDoLote(lote, parametros.larguraTotalLoteCm(), comprimentoFinalCm);
+        validarSaldoLoteCorte(lote, consumoEstimado);
 
         return SimulacaoCorteResponseDTO.builder()
                 .modoCalculo(requestDTO.getModoCalculo())
@@ -645,18 +580,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .build();
     }
 
-    private void criarLoteDeRetalho(LoteMateriaPrima lotePrincipal, BigDecimal larguraSobraCm, BigDecimal comprimentoMetros, OrdemDeProducao ordemOrigem) {
-        if (larguraSobraCm.compareTo(BigDecimal.ZERO) <= 0 || comprimentoMetros.compareTo(BigDecimal.ZERO) <= 0) return;
+    private void criarLoteDeRetalho(LoteMateriaPrima lotePrincipal, BigDecimal larguraSobraCm, BigDecimal comprimentoRetalhoCm, OrdemDeProducao ordemOrigem) {
+        if (larguraSobraCm.compareTo(BigDecimal.ZERO) <= 0 || comprimentoRetalhoCm.compareTo(BigDecimal.ZERO) <= 0) return;
         
-        BigDecimal quantidadeRealRetalho;
-        if (lotePrincipal.getUnidadeDeEstoque() == UnidadeDeMedida.METRO_QUADRADO) {
-            BigDecimal larguraMetros = larguraSobraCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
-            quantidadeRealRetalho = larguraMetros.multiply(comprimentoMetros);
-        } else if (lotePrincipal.getUnidadeDeEstoque() == UnidadeDeMedida.METRO_LINEAR) {
-            quantidadeRealRetalho = comprimentoMetros;
-        } else {
-            return;
-        }
+        BigDecimal quantidadeRealRetalho = calcularQuantidadeRetalhoNaUnidadeDoLote(lotePrincipal, larguraSobraCm, comprimentoRetalhoCm);
 
         BigDecimal custoUnitario = calcularCustoUnitario(lotePrincipal);
         
@@ -734,7 +661,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private void validarSaldoLoteCorte(LoteMateriaPrima lote, BigDecimal consumoEmMetros) {
-        BigDecimal saldoAtual = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+        BigDecimal saldoAtual = lote.getSaldoCalculado() != null ? lote.getSaldoCalculado() : movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
         if (consumoEmMetros.compareTo(saldoAtual) > 0) {
             throw new SaldoMateriaPrimaInsuficienteException(consumoEmMetros, saldoAtual);
         }
@@ -753,6 +680,51 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private LoteMateriaPrima findLoteById(Long id) {
         return loteMateriaPrimaRepository.findByIdWithTipoMateriaPrima(id)
                 .orElseThrow(() -> new LoteMateriaPrimaNaoEncontradoException(id));
+    }
+
+    private void validarCompatibilidadeMaterialEntreProdutoELote(Produto produto, LoteMateriaPrima lote) {
+        if (!produto.getTipoMateriaPrima().equals(lote.getTipoMateriaPrima())) {
+            throw IncompatibilidadeMaterialException.entreProdutoELote(
+                    produto.getTipoMateriaPrima().getNome(),
+                    lote.getTipoMateriaPrima().getNome()
+            );
+        }
+    }
+
+    private void carregarSaldoAtualNoLote(LoteMateriaPrima lote) {
+        lote.setSaldoCalculado(movimentacaoEstoqueLoteRepository.findSaldoByLote(lote));
+    }
+
+    private BigDecimal calcularConsumoCorteNaUnidadeDoLote(
+            LoteMateriaPrima lote,
+            BigDecimal larguraUtilizadaCm,
+            BigDecimal comprimentoConsumidoCm
+    ) {
+        return switch (lote.getUnidadeDeEstoque()) {
+            case METRO_LINEAR -> comprimentoConsumidoCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+            case CENTIMETRO_LINEAR -> comprimentoConsumidoCm.setScale(4, RoundingMode.HALF_UP);
+            case METRO_QUADRADO -> larguraUtilizadaCm.multiply(comprimentoConsumidoCm)
+                    .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
+            case CENTIMETRO_QUADRADO -> larguraUtilizadaCm.multiply(comprimentoConsumidoCm)
+                    .setScale(4, RoundingMode.HALF_UP);
+            default -> throw UnidadeEstoqueCorteInvalidaException.unidadeNaoSuportada(lote.getUnidadeDeEstoque());
+        };
+    }
+
+    private BigDecimal calcularQuantidadeRetalhoNaUnidadeDoLote(
+            LoteMateriaPrima lotePrincipal,
+            BigDecimal larguraSobraCm,
+            BigDecimal comprimentoRetalhoCm
+    ) {
+        return switch (lotePrincipal.getUnidadeDeEstoque()) {
+            case METRO_LINEAR -> comprimentoRetalhoCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+            case CENTIMETRO_LINEAR -> comprimentoRetalhoCm.setScale(4, RoundingMode.HALF_UP);
+            case METRO_QUADRADO -> larguraSobraCm.multiply(comprimentoRetalhoCm)
+                    .divide(new BigDecimal("10000"), 4, RoundingMode.HALF_UP);
+            case CENTIMETRO_QUADRADO -> larguraSobraCm.multiply(comprimentoRetalhoCm)
+                    .setScale(4, RoundingMode.HALF_UP);
+            default -> throw UnidadeEstoqueCorteInvalidaException.unidadeNaoSuportada(lotePrincipal.getUnidadeDeEstoque());
+        };
     }
 
     private String formatarDimensao(BigDecimal largura, BigDecimal comprimento) {

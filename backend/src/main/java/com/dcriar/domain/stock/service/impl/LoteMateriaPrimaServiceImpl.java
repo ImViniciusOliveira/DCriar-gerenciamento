@@ -73,6 +73,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         // 1. Valida e busca o tipo de matéria-prima.
         TipoMateriaPrima tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
                 .orElseThrow(() -> new TipoMateriaPrimaNaoEncontradoException(requestDTO.getTipoMateriaPrimaId()));
+        validarCompatibilidadeUnidadeDeEstoque(tipoMateriaPrima, requestDTO.getUnidadeDeEstoque());
 
         LoteMateriaPrima novoLote = LoteMateriaPrima.from(requestDTO, tipoMateriaPrima);
 
@@ -103,11 +104,15 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     @Transactional
     public LoteMateriaPrimaResponseDTO update(Long id, LoteMateriaPrimaRequestDTO requestDTO) {
         LoteMateriaPrima lote = findLoteById(id);
-        TipoMateriaPrima tipoMateriaPrima = null;
+        TipoMateriaPrima tipoMateriaPrima = lote.getTipoMateriaPrima();
         if (requestDTO.getTipoMateriaPrimaId() != null) {
             tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
                     .orElseThrow(() -> new TipoMateriaPrimaNaoEncontradoException(requestDTO.getTipoMateriaPrimaId()));
         }
+        UnidadeDeMedida unidadeDeEstoque = requestDTO.getUnidadeDeEstoque() != null
+                ? requestDTO.getUnidadeDeEstoque()
+                : lote.getUnidadeDeEstoque();
+        validarCompatibilidadeUnidadeDeEstoque(tipoMateriaPrima, unidadeDeEstoque);
         lote.updateFrom(requestDTO, tipoMateriaPrima);
         LoteMateriaPrima loteAtualizado = loteMateriaPrimaRepository.save(lote);
         
@@ -196,6 +201,13 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         }
 
         return custoPorUnidadeBase;
+    }
+
+    private void validarCompatibilidadeUnidadeDeEstoque(TipoMateriaPrima tipoMateriaPrima, UnidadeDeMedida unidadeDeEstoque) {
+        UnidadeDeMedida unidadePrincipal = tipoMateriaPrima.getUnidadeDeConsumo();
+        if (!unidadePrincipal.aceitaComoUnidadeDeEstoque(unidadeDeEstoque)) {
+            throw UnidadeEstoqueLoteInvalidaException.unidadeIncompativel(unidadePrincipal, unidadeDeEstoque);
+        }
     }
 
     @Override

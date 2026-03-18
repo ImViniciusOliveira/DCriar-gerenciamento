@@ -32,10 +32,14 @@ public class LoteMateriaPrimaRequestValidator extends BaseValidator<ValidLoteMat
         validateBigDecimal(dto.getQuantidadeInicial(), "quantidadeInicial", "A quantidade inicial");
         validateBigDecimal(dto.getCustoTotalLote(), "custoTotalLote", "O custo total do lote");
 
-        // Validação condicional para METRO_LINEAR
-        if (unidadeDeEstoque == UnidadeDeMedida.METRO_LINEAR) {
+        // Validação condicional para unidades geométricas
+        if (unidadeDeEstoque != null && unidadeDeEstoque.exigeLarguraMmNoLote()) {
             Map<String, Object> atributos = dto.getAtributos();
-            addViolationIf(atributos == null || !atributos.containsKey("larguraMm") || atributos.get("larguraMm") == null, "Para a unidade de estoque METRO_LINEAR, o atributo 'larguraMm' é obrigatório.", "atributos");
+            addViolationIf(
+                    atributos == null || !atributos.containsKey("larguraMm") || atributos.get("larguraMm") == null,
+                    String.format("Para a unidade de estoque %s, o atributo 'larguraMm' é obrigatório.", unidadeDeEstoque.name()),
+                    "atributos"
+            );
 
             if (atributos != null && atributos.containsKey("larguraMm") && atributos.get("larguraMm") != null) {
                 Object larguraValue = atributos.get("larguraMm");
