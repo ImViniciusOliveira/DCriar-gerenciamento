@@ -43,6 +43,10 @@
   </mat-icon>
 </ng-template>
 
+<ng-template #priceTemplate let-product>
+  {{ product.precoMercado != null ? (product.precoMercado | currency:'BRL') : 'N/A' }}
+</ng-template>
+
 <!-- Template para a coluna Estoque, exibindo total e unidades -->
 <ng-template #estoqueTemplate let-product>
   {{ product.estoqueFisicoTotal }} pacotes

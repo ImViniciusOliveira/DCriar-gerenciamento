@@ -30,6 +30,7 @@
 <!-- Templates para células da tabela de lotes -->
 <ng-template #typeTemplate let-lote>{{ lote.nomeTipoMateriaPrima }}</ng-template>
 <ng-template #balanceTemplate let-lote>{{ lote.saldoEstoque }} {{ lote.unidadeSimbolo }}</ng-template>
+<ng-template #costTemplate let-lote>{{ lote.custoTotalLote | currency:'BRL' }}</ng-template>
 <ng-template #attributesTemplate let-lote>
   <app-details-popover [items]="getAttributesAsArray(lote.atributos)" triggerText="Exibir atributos"></app-details-popover>
 </ng-template>

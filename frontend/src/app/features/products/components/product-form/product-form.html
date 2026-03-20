@@ -70,43 +70,6 @@
           </fieldset>
         </div>
 
-        <!-- Linha 3: Descrição e Foto Principal -->
-        <div class="row-group description-photo-row">
-          <mat-form-field class="description-field" appearance="outline">
-            <mat-label>Descrição</mat-label>
-            <textarea matInput formControlName="descricao" [errorStateMatcher]="matcher"></textarea>
-            @if (productForm.get('descricao')?.hasError('maxlength')) {
-              <mat-error>A descrição não pode exceder 100 caracteres.</mat-error>
-            }
-          </mat-form-field>
-
-          @if (isEditMode() || data.isCreationMode) {
-            <div class="image-upload-section">
-              <!-- Fieldset para a foto -->
-              <fieldset class="photo-fieldset">
-                <div class="image-preview-container image-container">
-                  @if (safeImageSrc(); as src) {
-                    <img [src]="src" alt="Pré-visualização da foto" width="200" height="200">
-                    <button type="button" class="delete-photo-btn" (click)="removePhoto()" mat-icon-button color="warn" title="Remover foto">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                  } @else {
-                    <div class="no-image">
-                      <mat-icon>image_not_supported</mat-icon>
-                      <span>Foto ou imagem do produto</span>
-                    </div>
-                  }
-                </div>
-                <input type="file" id="fotoPrincipal" (change)="onFileSelected($event)" accept="image/png, image/jpeg" hidden #fileInput>
-                <button mat-stroked-button type="button" class="action-button" (click)="fileInput.click()">
-                  <mat-icon>attach_file</mat-icon>
-                  Selecionar Arquivo
-                </button>
-              </fieldset>
-            </div>
-          }
-        </div>
-
       </div>
 
       <app-material-type-search
@@ -200,6 +163,43 @@
           Adicionar Especificação
         </button>
       }
+
+      <!-- Linha final: Descrição e Foto Principal -->
+      <div class="row-group description-photo-row">
+        <mat-form-field class="description-field" appearance="outline">
+          <mat-label>Descrição</mat-label>
+          <textarea matInput formControlName="descricao" [errorStateMatcher]="matcher"></textarea>
+          @if (productForm.get('descricao')?.hasError('maxlength')) {
+            <mat-error>A descrição não pode exceder 100 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        @if (isEditMode() || data.isCreationMode) {
+          <div class="image-upload-section">
+            <!-- Fieldset para a foto -->
+            <fieldset class="photo-fieldset">
+              <div class="image-preview-container image-container">
+                @if (safeImageSrc(); as src) {
+                  <img [src]="src" alt="Pré-visualização da foto" width="200" height="200">
+                  <button type="button" class="delete-photo-btn" (click)="removePhoto()" mat-icon-button color="warn" title="Remover foto">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                } @else {
+                  <div class="no-image">
+                    <mat-icon>image_not_supported</mat-icon>
+                    <span>Foto ou imagem do produto</span>
+                  </div>
+                }
+              </div>
+              <input type="file" id="fotoPrincipal" (change)="onFileSelected($event)" accept="image/png, image/jpeg" hidden #fileInput>
+              <button mat-stroked-button type="button" class="action-button" (click)="fileInput.click()">
+                <mat-icon>attach_file</mat-icon>
+                Selecionar Arquivo
+              </button>
+            </fieldset>
+          </div>
+        }
+      </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Cancelar</button>
@@ -224,6 +224,7 @@
         <p><strong>Produto:</strong> {{ product().nome }}</p>
         <p><strong>SKU:</strong> {{ product().sku }}</p>
         <p><strong>Ativo:</strong> {{ product().ativo ? 'Sim' : 'Não' }}</p>
+        <p><strong>Preço de Mercado:</strong> {{ product().precoMercado != null ? (product().precoMercado | currency:'BRL') : 'N/A' }}</p>
 
         <hr>
         <p><strong>Estoque Físico Total:</strong> {{ product().estoqueFisicoTotal }} pacotes</p>

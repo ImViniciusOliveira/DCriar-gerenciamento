@@ -5,6 +5,10 @@
   width: 350px;
 }
 
+.mat-column-custoTotalLote {
+  white-space: nowrap;
+}
+
 // Centraliza o conteúdo da coluna de ações, se necessário
 .mat-column-acoes .mat-mdc-cell {
   justify-content: center;

@@ -47,9 +47,13 @@
 
   .type-field { flex: 0 0 220px; min-width: 220px; }
   .name-field { flex: 2; min-width: 300px; }
+  .price-field { flex: 0 0 220px; min-width: 220px; }
   .sku-field { flex: 1.5; min-width: 180px; }
   .color-field { flex: 1; min-width: 130px; }
   .units-field { flex: 1; min-width: 130px; }
+  .manufacturer-field { min-width: 260px; }
+  .material-unit-field,
+  .product-unit-field { flex: 1; min-width: 220px; }
 
   fieldset.active-fieldset {
     @include fl.fieldset-compact;
@@ -128,6 +132,10 @@
   }
 }
 
+.material-units-row {
+  margin-top: 8px;
+}
+
 fieldset.photo-fieldset {
   flex: 1;
   width: 100%;
@@ -145,7 +153,7 @@ fieldset.photo-fieldset {
 .dimensions-grid {
   display: flex;
   gap: 16px;
-  width: 100%;
+  flex: 1;
   mat-form-field { flex: 1; }
 }
 
