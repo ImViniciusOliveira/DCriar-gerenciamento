@@ -5,8 +5,10 @@ import com.dcriar.api.dto.response.product.ProdutoDeConsumoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
 import com.dcriar.domain.product.entity.*;
+import com.dcriar.domain.product.entity.enums.TipoPreco;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
+import com.dcriar.domain.product.repository.PrecoRepository;
 import com.dcriar.domain.product.repository.ProdutoDeConsumoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.repository.spec.ProdutoSpecifications;
@@ -42,6 +44,7 @@ public class ProdutoServiceImpl implements ProdutoService {
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
     private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
     private final EstoqueRepository estoqueRepository;
+    private final PrecoRepository precoRepository;
     private final OrdemDeProducaoRepository ordemDeProducaoRepository;
     private final ProdutoMapper produtoMapper;
     private final FileStorageService fileStorageService;
@@ -130,6 +133,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         }
 
         Produto produtoSalvo = produtoRepository.save(produto);
+        syncPrecoMercado(produtoSalvo, requestDTO.getPrecoMercado());
         return findById(produtoSalvo.getId());
     }
 
@@ -296,6 +300,9 @@ public class ProdutoServiceImpl implements ProdutoService {
         }
 
         Produto produtoAtualizado = produtoRepository.save(produto);
+        if (fields.containsKey("precoMercado") && fields.get("precoMercado") != null) {
+            syncPrecoMercado(produtoAtualizado, new BigDecimal(fields.get("precoMercado").toString()));
+        }
         return mapAndEnrichProduto(produtoAtualizado);
     }
 
@@ -363,6 +370,9 @@ public class ProdutoServiceImpl implements ProdutoService {
         int estoqueDistribuidoTotal = estoqueRepository.findAllByProduto(produto).stream()
                 .mapToInt(Estoque::getQuantidade)
                 .sum();
+        precoRepository.findByProdutoInAndTipoPreco(List.of(produto), TipoPreco.VAREJO).stream()
+                .findFirst()
+                .ifPresent(preco -> dto.setPrecoMercado(preco.getValor()));
         dto.setEstoqueFisicoTotal(estoqueFisicoTotal);
         dto.setEstoqueDistribuidoTotal(estoqueDistribuidoTotal);
         dto.setEstoqueDisponivelParaAlocar(estoqueFisicoTotal - estoqueDistribuidoTotal);
@@ -372,6 +382,24 @@ public class ProdutoServiceImpl implements ProdutoService {
     private Produto findProdutoById(Long id) {
         return produtoRepository.findById(id)
                 .orElseThrow(() -> new ProdutoNaoEncontradoException(id));
+    }
+
+    private void syncPrecoMercado(Produto produto, BigDecimal precoMercado) {
+        if (precoMercado == null) {
+            return;
+        }
+
+        Preco preco = precoRepository.findByProdutoInAndTipoPreco(List.of(produto), TipoPreco.VAREJO).stream()
+                .findFirst()
+                .orElseGet(() -> Preco.builder()
+                        .produto(produto)
+                        .tipoPreco(TipoPreco.VAREJO)
+                        .build());
+
+        preco.setValor(precoMercado);
+        preco.setValorPromocional(null);
+        preco.setPromocaoAtiva(false);
+        precoRepository.save(preco);
     }
 
     private void validarRegrasDeNegocio(ProdutoRequestDTO requestDTO) {

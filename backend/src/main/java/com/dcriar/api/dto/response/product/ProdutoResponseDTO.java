@@ -9,7 +9,6 @@ import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -63,6 +62,9 @@ public abstract class ProdutoResponseDTO {
 
     @Schema(description = "Saldo de unidades disponíveis para alocação em canais de venda.", example = "50")
     private Integer estoqueDisponivelParaAlocar;
+
+    @Schema(description = "Preço de mercado/comercial atual do produto.", example = "19.90")
+    private BigDecimal precoMercado;
 
     @Schema(description = "Data e hora de criação do produto.")
     private LocalDateTime dataCriacao;
