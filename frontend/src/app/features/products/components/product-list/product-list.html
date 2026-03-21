@@ -60,12 +60,12 @@
 
 <!-- Template para a coluna Detalhes, usando um popover para exibir informações adicionais -->
 <ng-template #detalhesTemplate let-product>
-  <app-details-popover [items]="getProductDetails(product)" [showKeys]="false" triggerText="Exibir detalhes"></app-details-popover>
+  <button mat-button type="button">Exibir detalhes</button>
 </ng-template>
 
 <!-- Template para a coluna Estoque por Canal, usando um popover e o pipe de filtro -->
 <ng-template #estoquePorCanalTemplate let-product>
-  <app-details-popover [items]="(product.estoquePorCanal | keyvalue | filterStock:0)" triggerText="Exibir canais"></app-details-popover>
+  <button mat-button type="button">Exibir canais</button>
 </ng-template>
 
 <!-- Template para a coluna de Ações, com botões de visualizar, editar e excluir -->

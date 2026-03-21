@@ -12,7 +12,6 @@ import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { Sale } from '../../models/sales.model';
 import { SalesService } from '../../services/sales.service';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
-import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover';
 import { SalesForm, SalesFormData } from '../sales-form/sales-form';
 
 /**
@@ -28,8 +27,7 @@ import { SalesForm, SalesFormData } from '../sales-form/sales-form';
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
-    BaseTable,
-    DetailsPopover
+    BaseTable
   ],
   templateUrl: './sales-list.html',
   styleUrls: ['./sales-list.scss'],

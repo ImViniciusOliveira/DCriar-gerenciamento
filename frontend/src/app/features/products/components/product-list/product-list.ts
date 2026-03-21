@@ -13,7 +13,6 @@ import { ProductFormComponent, ProductFormData } from '../product-form/product-f
 import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 
 /**
@@ -30,8 +29,7 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
     MatMenuModule,
     MatTooltipModule,
     FilterStockPipe,
-    BaseTable,
-    DetailsPopover
+    BaseTable
   ],
   templateUrl: './product-list.html',
   styleUrls: ['./product-list.scss'],

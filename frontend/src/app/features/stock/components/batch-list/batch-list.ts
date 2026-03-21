@@ -12,7 +12,6 @@ import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { Batch } from '../../models/batch.model';
 import { BatchService } from '../../services/batch.service';
 import { MaterialTypeList } from '../material-type-list/material-type-list';
-import { DetailsPopover } from '../../../../shared/components/details-popover/details-popover';
 import { BatchForm, BatchFormData } from '../batch-form/batch-form';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 
@@ -29,8 +28,7 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
     MatIconModule,
     MatDialogModule,
     MatTooltipModule,
-    BaseTable,
-    DetailsPopover
+    BaseTable
   ],
   templateUrl: './batch-list.html',
   styleUrls: ['./batch-list.scss'],

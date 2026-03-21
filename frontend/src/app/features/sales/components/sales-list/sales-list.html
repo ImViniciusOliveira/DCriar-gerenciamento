@@ -37,10 +37,7 @@
   </ng-template>
 
   <ng-template #itensTemplate let-sale>
-    <app-details-popover
-      [items]="getSaleItemsDetails(sale)"
-      triggerText="Ver Itens">
-    </app-details-popover>
+    <button mat-button type="button">Ver itens</button>
   </ng-template>
 
   <ng-template #acoesTemplate let-sale>
