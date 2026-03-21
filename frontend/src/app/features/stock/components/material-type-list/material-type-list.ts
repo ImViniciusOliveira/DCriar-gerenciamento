@@ -83,7 +83,7 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
       { key: 'unidadeDescricao', header: 'Unidade', sortable: false, cellTemplate: this.unitTemplate },
       { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.createdAtTemplate },
       { key: 'dataAtualizacao', header: 'Atualizado em', sortable: true, cellTemplate: this.updatedAtTemplate },
-      { key: 'actions', header: 'Ações', cellTemplate: this.actionsTemplate }
+      { key: 'actions', header: 'Ações', className: 'col-actions', cellTemplate: this.actionsTemplate }
     ];
     this.cdr.detectChanges();
   }

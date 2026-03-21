@@ -7,7 +7,7 @@
 // O contêiner principal que gerencia o efeito de "hover".
 .details-cell-content {
   width: 100%;
-  word-break: break-word; // Evita que textos longos quebrem o layout da célula.
+  overflow-wrap: anywhere;
 
   // O "botão" ou "pílula" que é visível por padrão.
   .details-trigger {
@@ -28,11 +28,13 @@
   // O contêiner com os detalhes, que fica oculto por padrão.
   .details-text-container {
     display: none; // Começa invisível.
-    flex-direction: column;
-    gap: 4px;
     font-size: 0.85rem;
     text-align: left;
     line-height: 1.4;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    max-height: calc(0.85rem * 1.4 * 3);
   }
 
   // --- A MÁGICA DO HOVER ---
@@ -44,7 +46,7 @@
     }
     // 2. O contêiner com os detalhes aparece.
     .details-text-container {
-      display: flex;
+      display: -webkit-box;
     }
   }
 }

@@ -6,8 +6,8 @@
   <div class="details-cell-content">
     <span class="details-trigger">{{ triggerText() }}</span>
     <div class="details-text-container">
-      @for(item of items(); track $index) {
-        <span><strong>{{ item.key | titlecase }}:</strong> {{ item.value }}</span>
+      @for(item of items(); track $index; let last = $last) {
+        <span><strong>{{ item.key | titlecase }}:</strong> {{ item.value }}</span>@if (!last) {<br>}
       }
     </div>
   </div>

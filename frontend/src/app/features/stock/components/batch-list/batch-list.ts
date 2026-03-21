@@ -94,7 +94,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
       { key: 'custoTotalLote', header: 'Custo do Lote', sortable: true, cellTemplate: this.costTemplate },
       { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.createdAtTemplate },
       { key: 'atributos', header: 'Atributos', sortable: false, cellTemplate: this.attributesTemplate },
-      { key: 'acoes', header: 'Ações', cellTemplate: this.actionsTemplate }
+      { key: 'acoes', header: 'Ações', className: 'col-actions', cellTemplate: this.actionsTemplate }
     ];
     this.cdr.detectChanges();
   }

@@ -47,15 +47,26 @@
 table {
   width: 100%;
   border-collapse: collapse;
-  // `table-layout: fixed` melhora a performance de renderização da tabela.
   table-layout: fixed;
 }
 
 th, td {
-  padding: 0.75rem 1.5rem;
+  padding: 4px;
   text-align: left;
   border-bottom: 1px solid var(--mat-sys-outline-variant);
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-content {
+  line-height: 1.25rem;
+  min-height: 2.5rem;
+  max-height: 2.5rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 // Remove a borda da última linha da tabela para um acabamento visual mais limpo.
@@ -82,4 +93,73 @@ tbody tr:last-child td {
 // Estilo para botões de ações secundárias no cabeçalho.
 .secondary-action-button {
   margin-left: 8px;
+}
+
+:host ::ng-deep .col-wide {
+  width: 18rem;
+  min-width: 18rem;
+  max-width: 18rem;
+}
+
+:host ::ng-deep .col-fit-center {
+  text-align: center;
+}
+
+:host ::ng-deep th.col-fit-center,
+:host ::ng-deep td.col-fit-center {
+  text-align: center;
+  vertical-align: middle;
+}
+
+:host ::ng-deep .col-active {
+  width: 68px;
+  min-width: 68px;
+  max-width: 68px;
+  height: 53.89px;
+  min-height: 53.89px;
+  max-height: 53.89px;
+  text-align: center;
+}
+
+:host ::ng-deep .col-actions {
+  width: 8.5rem;
+  min-width: 8.5rem;
+  max-width: 8.5rem;
+  text-align: center;
+}
+
+:host ::ng-deep .col-fit-center .mat-sort-header-container,
+:host ::ng-deep .col-active .mat-sort-header-container,
+:host ::ng-deep .col-actions .mat-sort-header-container {
+  justify-content: center;
+  width: 100%;
+}
+
+:host ::ng-deep th.col-active,
+:host ::ng-deep td.col-active,
+:host ::ng-deep th.col-actions,
+:host ::ng-deep td.col-actions {
+  text-align: center;
+  vertical-align: middle;
+}
+
+:host ::ng-deep td.col-fit-center .cell-content,
+:host ::ng-deep td.col-active .cell-content,
+:host ::ng-deep td.col-actions .cell-content {
+  min-height: auto;
+  max-height: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+}
+
+:host ::ng-deep td.col-fit-center mat-icon,
+:host ::ng-deep td.col-fit-center button,
+:host ::ng-deep td.col-fit-center .mat-mdc-icon-button,
+:host ::ng-deep td.col-active mat-icon,
+:host ::ng-deep td.col-actions button,
+:host ::ng-deep td.col-actions .mat-mdc-icon-button {
+  vertical-align: middle;
 }

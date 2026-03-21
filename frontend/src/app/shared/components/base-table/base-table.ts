@@ -15,6 +15,7 @@ export interface TableColumn<T> {
   header: string;
   sortable?: boolean;
   sortKey?: string;
+  className?: string;
   cellTemplate: TemplateRef<{ $implicit: T }>;
 }
 

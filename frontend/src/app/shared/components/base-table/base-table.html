@@ -8,14 +8,16 @@
       <!-- O loop `@for` agora itera sobre o valor do sinal `columns()`. -->
       @for (column of columns(); track column.key) {
         <ng-container [matColumnDef]="column.key">
-          <th mat-header-cell *matHeaderCellDef [mat-sort-header]="column.sortKey || column.key" [disabled]="!column.sortable">
+          <th mat-header-cell *matHeaderCellDef [mat-sort-header]="column.sortKey || column.key" [disabled]="!column.sortable" [ngClass]="column.className">
             {{ column.header }}
           </th>
-          <td mat-cell *matCellDef="let item">
-            <ng-container
-              [ngTemplateOutlet]="column.cellTemplate"
-              [ngTemplateOutletContext]="{ $implicit: item }">
-            </ng-container>
+          <td mat-cell *matCellDef="let item" [ngClass]="column.className">
+            <div class="cell-content">
+              <ng-container
+                [ngTemplateOutlet]="column.cellTemplate"
+                [ngTemplateOutletContext]="{ $implicit: item }">
+              </ng-container>
+            </div>
           </td>
         </ng-container>
       }

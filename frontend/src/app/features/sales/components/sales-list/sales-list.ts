@@ -90,7 +90,7 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
       { key: 'valorTotal', header: 'Total', sortable: true, cellTemplate: this.valorTemplate },
       { key: 'nomeCanalVenda', header: 'Canal', sortable: false, cellTemplate: this.canalTemplate },
       { key: 'itens', header: 'Itens', sortable: false, cellTemplate: this.itensTemplate },
-      { key: 'acoes', header: 'Ações', sortable: false, cellTemplate: this.acoesTemplate },
+      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions', cellTemplate: this.acoesTemplate },
     ];
     this.cdr.detectChanges();
   }
