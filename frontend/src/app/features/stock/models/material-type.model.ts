@@ -9,6 +9,8 @@ export interface MaterialType {
   nome: string;
   unidadeDeConsumo: string;
   unidadeDescricao?: string;
+  dataCriacao?: string;
+  dataAtualizacao?: string;
   _links?: Hateoas['_links'];
 }
 

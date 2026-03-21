@@ -86,7 +86,7 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'dataCriacao', header: 'Data', sortable: true, cellTemplate: this.dataTemplate },
+      { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.dataTemplate },
       { key: 'valorTotal', header: 'Total', sortable: true, cellTemplate: this.valorTemplate },
       { key: 'nomeCanalVenda', header: 'Canal', sortable: false, cellTemplate: this.canalTemplate },
       { key: 'itens', header: 'Itens', sortable: false, cellTemplate: this.itensTemplate },

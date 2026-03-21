@@ -28,10 +28,11 @@
 <ng-template #produtoTemplate let-order>
   <div class="product-cell">
     <span class="product-name">{{ order.nomeProduto }}</span>
-    @if (order.motivo) {
-      <small class="order-reason">{{ order.motivo }}</small>
-    }
   </div>
+</ng-template>
+
+<ng-template #tipoTemplate let-order>
+  {{ order.tipoProduto }}
 </ng-template>
 
 <ng-template #quantidadeTemplate let-order>

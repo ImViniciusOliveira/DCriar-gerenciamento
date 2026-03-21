@@ -223,6 +223,8 @@
       <div class="details-info">
         <p><strong>Produto:</strong> {{ product().nome }}</p>
         <p><strong>SKU:</strong> {{ product().sku }}</p>
+        <p><strong>Criado em:</strong> {{ product().dataCriacao ? (product().dataCriacao | date:'dd/MM/yyyy HH:mm') : 'N/A' }}</p>
+        <p><strong>Atualizado em:</strong> {{ product().dataAtualizacao ? (product().dataAtualizacao | date:'dd/MM/yyyy HH:mm') : 'N/A' }}</p>
         <p><strong>Ativo:</strong> {{ product().ativo ? 'Sim' : 'Não' }}</p>
         <p><strong>Preço Comercial:</strong> {{ product().precoComercial != null ? (product().precoComercial | currency:'BRL') : 'N/A' }}</p>
 

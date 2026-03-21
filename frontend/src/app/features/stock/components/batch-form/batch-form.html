@@ -137,6 +137,8 @@
   <mat-dialog-content class="details-content">
     <div class="details-info">
       <p><strong>Matéria-Prima:</strong> {{ materialType()?.nome }}</p>
+      <p><strong>Criado em:</strong> {{ batch().dataCriacao ? (batch().dataCriacao | date:'dd/MM/yyyy HH:mm') : 'N/A' }}</p>
+      <p><strong>Atualizado em:</strong> {{ batch().dataAtualizacao ? (batch().dataAtualizacao | date:'dd/MM/yyyy HH:mm') : 'N/A' }}</p>
       <p><strong>Unidade de Estoque:</strong> {{ getUnitDescription(batch().unidadeCadastroEstoque ?? batch().unidadeDeEstoque) }}</p>
       <p><strong>Saldo em Estoque:</strong> {{ batch().saldoEstoque }}</p>
       <p><strong>Custo Total do Lote:</strong> {{ batch().custoTotalLote | currency:'BRL' }}</p>

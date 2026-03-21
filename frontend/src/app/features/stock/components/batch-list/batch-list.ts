@@ -61,11 +61,12 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
   @ViewChild('typeTemplate') typeTemplate!: TemplateRef<any>;
   @ViewChild('balanceTemplate') balanceTemplate!: TemplateRef<any>;
   @ViewChild('costTemplate') costTemplate!: TemplateRef<any>;
+  @ViewChild('createdAtTemplate') createdAtTemplate!: TemplateRef<any>;
   @ViewChild('attributesTemplate') attributesTemplate!: TemplateRef<any>;
   @ViewChild('actionsTemplate') actionsTemplate!: TemplateRef<any>;
 
   constructor() {
-    super('batches');
+    super('batches', { active: 'tipoMateriaPrima.nome', direction: 'asc' });
 
     const lotesResponse = toSignal(
       this.batchService.batches$.pipe(
@@ -91,6 +92,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
       { key: 'tipoMateriaPrima.nome', header: 'Matéria-Prima', sortable: true, cellTemplate: this.typeTemplate },
       { key: 'saldoEstoque', header: 'Quantidade', sortable: false, cellTemplate: this.balanceTemplate },
       { key: 'custoTotalLote', header: 'Custo do Lote', sortable: false, cellTemplate: this.costTemplate },
+      { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.createdAtTemplate },
       { key: 'atributos', header: 'Atributos', sortable: false, cellTemplate: this.attributesTemplate },
       { key: 'acoes', header: 'Ações', cellTemplate: this.actionsTemplate }
     ];

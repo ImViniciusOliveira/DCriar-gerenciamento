@@ -122,7 +122,8 @@
   <mat-dialog-content class="details-content">
     <div class="details-info">
       <p><strong>Canal de Venda:</strong> {{ getChannelName() }}</p>
-      <p><strong>Data:</strong> {{ data.template?.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</p>
+      <p><strong>Criado em:</strong> {{ data.template?.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</p>
+      <p><strong>Atualizado em:</strong> {{ data.template?.dataAtualizacao | date:'dd/MM/yyyy HH:mm' }}</p>
       <p><strong>Valor Total:</strong> {{ data.template?.valorTotal | currency:'BRL' }}</p>
       <hr>
       @if (data.template?.itens) {

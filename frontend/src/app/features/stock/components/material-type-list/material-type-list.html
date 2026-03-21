@@ -29,6 +29,8 @@
 <!-- Definição dos templates para as células da tabela. -->
 <ng-template #nameTemplate let-item>{{ item.nome }}</ng-template>
 <ng-template #unitTemplate let-item>{{ item.unidadeDescricao }}</ng-template>
+<ng-template #createdAtTemplate let-item>{{ item.dataCriacao ? (item.dataCriacao | date:'dd/MM/yyyy HH:mm') : 'N/A' }}</ng-template>
+<ng-template #updatedAtTemplate let-item>{{ item.dataAtualizacao ? (item.dataAtualizacao | date:'dd/MM/yyyy HH:mm') : 'N/A' }}</ng-template>
 <ng-template #actionsTemplate let-item>
   <button mat-icon-button color="primary" (click)="onEdit(item)">
     <mat-icon>edit</mat-icon>

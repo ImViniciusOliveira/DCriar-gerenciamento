@@ -16,6 +16,8 @@ export interface Batch {
   custoTotalLote?: number;
   atributos?: { [key: string]: any };
   motivo?: string;
+  dataCriacao?: string;
+  dataAtualizacao?: string;
   _links?: Hateoas['_links'];
 }
 

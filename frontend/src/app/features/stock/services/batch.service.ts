@@ -27,7 +27,7 @@ export class BatchService {
   }>({
     page: 0,
     size: 10,
-    sort: 'id,asc',
+    sort: 'tipoMateriaPrima.nome,asc',
     tipoMateriaPrimaId: null,
     nome: null,
   }, {

@@ -52,6 +52,7 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
   tableColumns: TableColumn<ProductionOrder>[] = [];
 
   @ViewChild('produtoTemplate') produtoTemplate!: TemplateRef<any>;
+  @ViewChild('tipoTemplate') tipoTemplate!: TemplateRef<any>;
   @ViewChild('quantidadeTemplate') quantidadeTemplate!: TemplateRef<any>;
   @ViewChild('dataTemplate') dataTemplate!: TemplateRef<any>;
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
@@ -82,8 +83,9 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
   ngAfterViewInit(): void {
     this.tableColumns = [
       { key: 'nomeProduto', header: 'Produto', sortable: true, cellTemplate: this.produtoTemplate },
+      { key: 'tipoProduto', header: 'Tipo', sortable: true, cellTemplate: this.tipoTemplate },
       { key: 'quantidadeProduzida', header: 'Qtd', sortable: true, cellTemplate: this.quantidadeTemplate },
-      { key: 'dataCriacao', header: 'Data', sortable: true, cellTemplate: this.dataTemplate },
+      { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.dataTemplate },
       { key: 'acoes', header: 'Ações', sortable: false, cellTemplate: this.acoesTemplate },
     ];
     this.cdr.detectChanges();

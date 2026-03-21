@@ -47,6 +47,10 @@
   {{ product.precoComercial != null ? (product.precoComercial | currency:'BRL') : 'N/A' }}
 </ng-template>
 
+<ng-template #createdAtTemplate let-product>
+  {{ product.dataCriacao ? (product.dataCriacao | date:'dd/MM/yyyy HH:mm') : 'N/A' }}
+</ng-template>
+
 <!-- Template para a coluna Estoque, exibindo total e unidades -->
 <ng-template #estoqueTemplate let-product>
   {{ product.estoqueFisicoTotal }} pacotes

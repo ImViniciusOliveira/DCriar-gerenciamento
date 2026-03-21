@@ -59,12 +59,13 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
   @ViewChild('ativoTemplate') ativoTemplate!: TemplateRef<any>;
   @ViewChild('estoqueTemplate') estoqueTemplate!: TemplateRef<any>;
   @ViewChild('priceTemplate') priceTemplate!: TemplateRef<any>;
+  @ViewChild('createdAtTemplate') createdAtTemplate!: TemplateRef<any>;
   @ViewChild('detalhesTemplate') detalhesTemplate!: TemplateRef<any>;
   @ViewChild('estoquePorCanalTemplate') estoquePorCanalTemplate!: TemplateRef<any>;
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
 
   constructor() {
-    super('products');
+    super('products', { active: 'nome', direction: 'asc' });
     const productsResponse = toSignal(
       this.productService.getProducts().pipe(
         catchError(() => {
@@ -86,10 +87,11 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'sku', header: 'SKU', sortable: true, cellTemplate: this.skuTemplate },
       { key: 'nome', header: 'Produto', sortable: true, cellTemplate: this.nomeTemplate },
+      { key: 'sku', header: 'SKU', sortable: true, cellTemplate: this.skuTemplate },
+      { key: 'precoComercial', header: 'Preço', sortable: true, cellTemplate: this.priceTemplate },
+      { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.createdAtTemplate },
       { key: 'ativo', header: 'Ativo', sortable: true, cellTemplate: this.ativoTemplate },
-      { key: 'precoComercial', header: 'Preço', sortable: false, cellTemplate: this.priceTemplate },
       { key: 'estoque', header: 'Estoque Total', sortable: true, sortKey: 'estoqueFisicoTotal', cellTemplate: this.estoqueTemplate },
       { key: 'detalhes', header: 'Detalhes', sortable: false, cellTemplate: this.detalhesTemplate },
       { key: 'estoquePorCanal', header: 'Canais', sortable: false, cellTemplate: this.estoquePorCanalTemplate },

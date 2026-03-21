@@ -27,7 +27,7 @@ export class MaterialTypeService {
   private readonly initialSearchParams = {
     page: 0,
     size: 10,
-    sort: 'id,asc'
+    sort: 'nome,asc'
   };
 
   private readonly searchParams = signal<{

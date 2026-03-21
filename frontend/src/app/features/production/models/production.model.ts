@@ -33,6 +33,7 @@ export interface ProductionOrder {
   id: number;
   produtoId: number;
   nomeProduto: string;
+  tipoProduto?: 'CORTE' | 'CONSUMO';
   lotesConsumidosIds: number[];
   quantidadeProduzida: number;
   modoCalculo?: CalculationMode;

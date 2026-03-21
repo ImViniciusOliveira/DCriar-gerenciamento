@@ -4,7 +4,8 @@
   <div class="details-info">
     <p><strong>Produto:</strong> {{ data.template.nomeProduto }}</p>
     <p><strong>Quantidade Produzida:</strong> {{ data.template.quantidadeProduzida }}</p>
-    <p><strong>Data de Criação:</strong> {{ data.template.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</p>
+    <p><strong>Criado em:</strong> {{ data.template.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</p>
+    <p><strong>Atualizado em:</strong> {{ data.template.dataAtualizacao | date:'dd/MM/yyyy HH:mm' }}</p>
 
     @if (data.template.modoCalculo) {
       <p><strong>Modo de Cálculo:</strong> {{ getCalculationModeText() }}</p>

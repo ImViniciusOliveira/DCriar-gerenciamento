@@ -32,6 +32,8 @@ export interface Product {
   estoqueDistribuidoTotal: number;
   estoqueDisponivelParaAlocar: number;
   precoComercial?: number;
+  dataCriacao?: string;
+  dataAtualizacao?: string;
   fotoPrincipalUrl: string;
   materiaPrima: MaterialType;
   _links?: Hateoas['_links'];
