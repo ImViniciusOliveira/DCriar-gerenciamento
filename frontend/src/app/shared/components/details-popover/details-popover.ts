@@ -31,4 +31,10 @@ export class DetailsPopover {
    * O texto que servirá como gatilho para exibir o popover.
    */
   triggerText = input<string>('Exibir detalhes');
+
+  /**
+   * Define se o popover deve mostrar a chave junto do valor.
+   * O padrão é manter a descrição visível para preservar o comportamento atual do sistema.
+   */
+  showKeys = input<boolean>(true);
 }

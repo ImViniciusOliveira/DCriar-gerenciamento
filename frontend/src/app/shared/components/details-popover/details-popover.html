@@ -7,7 +7,13 @@
     <span class="details-trigger">{{ triggerText() }}</span>
     <div class="details-text-container">
       @for(item of items(); track $index; let last = $last) {
-        <span><strong>{{ item.key | titlecase }}:</strong> {{ item.value }}</span>@if (!last) {<br>}
+        <span>
+          @if (showKeys() && item.key) {
+            <strong>{{ item.key | titlecase }}:</strong>
+            {{ ' ' }}
+          }
+          {{ item.value }}
+        </span>@if (!last) {<br>}
       }
     </div>
   </div>

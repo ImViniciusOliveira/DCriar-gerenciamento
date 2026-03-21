@@ -89,12 +89,12 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
     this.tableColumns = [
       { key: 'nome', header: 'Produto', sortable: true, className: 'col-wide', cellTemplate: this.nomeTemplate },
       { key: 'sku', header: 'SKU', sortable: true, cellTemplate: this.skuTemplate },
-      { key: 'precoComercial', header: 'Preço', sortable: true, cellTemplate: this.priceTemplate },
-      { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.createdAtTemplate },
+      { key: 'precoComercial', header: 'Preço', sortable: true, className: 'col-price', cellTemplate: this.priceTemplate },
+      { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', cellTemplate: this.createdAtTemplate },
       { key: 'ativo', header: 'Ativo', sortable: true, className: 'col-active', cellTemplate: this.ativoTemplate },
       { key: 'estoque', header: 'Estoque Total', sortable: true, sortKey: 'estoqueFisicoTotal', cellTemplate: this.estoqueTemplate },
-      { key: 'detalhes', header: 'Detalhes', sortable: false, className: 'col-fit-center', cellTemplate: this.detalhesTemplate },
-      { key: 'estoquePorCanal', header: 'Canais', sortable: false, className: 'col-fit-center', cellTemplate: this.estoquePorCanalTemplate },
+      { key: 'detalhes', header: 'Detalhes', sortable: false, className: 'col-fit-hover-left', cellTemplate: this.detalhesTemplate },
+      { key: 'estoquePorCanal', header: 'Canais', sortable: false, className: 'col-fit-hover-left', cellTemplate: this.estoquePorCanalTemplate },
       { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions', cellTemplate: this.acoesTemplate },
     ];
     this.cdr.detectChanges();
@@ -186,17 +186,17 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
     const details: { key: string, value: string }[] = [];
     if (product.tipoProduto === 'CORTE') {
       if (product.dimensoes) {
-        details.push({ key: 'Dimensões', value: `${product.dimensoes.larguraCm} x ${product.dimensoes.comprimentoCm} cm` });
+        details.push({ key: '', value: `${product.dimensoes.larguraCm} x ${product.dimensoes.comprimentoCm} cm` });
       }
       if (product.cor) {
-        details.push({ key: 'Cor', value: product.cor });
+        details.push({ key: '', value: product.cor });
       }
     } else if (product.tipoProduto === 'CONSUMO') {
       if (product.codigoFabricante) {
-        details.push({ key: 'Cód. Fab.', value: product.codigoFabricante });
+        details.push({ key: '', value: product.codigoFabricante });
       }
       for (const [key, value] of Object.entries(product.especificacoes || {})) {
-        details.push({ key, value });
+        details.push({ key: '', value: String(value) });
       }
     }
     return details;

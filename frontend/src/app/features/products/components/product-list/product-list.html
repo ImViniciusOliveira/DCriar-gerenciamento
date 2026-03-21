@@ -60,7 +60,7 @@
 
 <!-- Template para a coluna Detalhes, usando um popover para exibir informações adicionais -->
 <ng-template #detalhesTemplate let-product>
-  <app-details-popover [items]="getProductDetails(product)" triggerText="Exibir detalhes"></app-details-popover>
+  <app-details-popover [items]="getProductDetails(product)" [showKeys]="false" triggerText="Exibir detalhes"></app-details-popover>
 </ng-template>
 
 <!-- Template para a coluna Estoque por Canal, usando um popover e o pipe de filtro -->

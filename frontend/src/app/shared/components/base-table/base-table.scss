@@ -101,13 +101,39 @@ tbody tr:last-child td {
   max-width: 18rem;
 }
 
+:host ::ng-deep .col-price {
+  width: 7rem;
+  min-width: 7rem;
+  max-width: 7rem;
+}
+
+:host ::ng-deep .col-created {
+  width: 8.25rem;
+  min-width: 8.25rem;
+  max-width: 8.25rem;
+}
+
 :host ::ng-deep .col-fit-center {
+  text-align: center;
+}
+
+:host ::ng-deep .col-fit-hover-left {
   text-align: center;
 }
 
 :host ::ng-deep th.col-fit-center,
 :host ::ng-deep td.col-fit-center {
   text-align: center;
+  vertical-align: middle;
+}
+
+:host ::ng-deep th.col-fit-hover-left {
+  text-align: center;
+  vertical-align: middle;
+}
+
+:host ::ng-deep td.col-fit-hover-left {
+  text-align: left;
   vertical-align: middle;
 }
 
@@ -129,6 +155,7 @@ tbody tr:last-child td {
 }
 
 :host ::ng-deep .col-fit-center .mat-sort-header-container,
+:host ::ng-deep .col-fit-hover-left .mat-sort-header-container,
 :host ::ng-deep .col-active .mat-sort-header-container,
 :host ::ng-deep .col-actions .mat-sort-header-container {
   justify-content: center;
@@ -152,12 +179,31 @@ tbody tr:last-child td {
   align-items: center;
   justify-content: center;
   width: 100%;
+}
+
+:host ::ng-deep td.col-fit-center .cell-content,
+:host ::ng-deep td.col-active .cell-content,
+:host ::ng-deep td.col-actions .cell-content {
   text-align: center;
 }
 
+:host ::ng-deep td.col-fit-hover-left .cell-content {
+  min-height: 2.5rem;
+  max-height: 2.5rem;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: initial;
+}
+
 :host ::ng-deep td.col-fit-center mat-icon,
+:host ::ng-deep td.col-fit-hover-left mat-icon,
 :host ::ng-deep td.col-fit-center button,
+:host ::ng-deep td.col-fit-hover-left button,
 :host ::ng-deep td.col-fit-center .mat-mdc-icon-button,
+:host ::ng-deep td.col-fit-hover-left .mat-mdc-icon-button,
 :host ::ng-deep td.col-active mat-icon,
 :host ::ng-deep td.col-actions button,
 :host ::ng-deep td.col-actions .mat-mdc-icon-button {
