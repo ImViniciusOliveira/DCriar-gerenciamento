@@ -90,7 +90,7 @@ export class SalesService {
   }
 
   findByUrl(url: string): Observable<Sale> {
-    return this.http.get<Sale>(url);
+    return this.http.get<Sale>(this.normalizeUrl(url));
   }
 
   /**
@@ -112,7 +112,7 @@ export class SalesService {
    * @param skipRefresh Se true, não dispara a atualização da lista.
    */
   update(url: string, request: SaleRequest, skipRefresh = false): Observable<Sale> {
-    return this.http.put<Sale>(url, request).pipe(
+    return this.http.put<Sale>(this.normalizeUrl(url), request).pipe(
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }
@@ -122,7 +122,7 @@ export class SalesService {
    * Trata o erro 404 (Not Found) como sucesso, pois o objetivo é que o recurso não exista.
    */
   delete(url: string): Observable<void> {
-    return this.http.delete<void>(url).pipe(
+    return this.http.delete<void>(this.normalizeUrl(url)).pipe(
       catchError((error: HttpErrorResponse) => {
         if (error.status === 404) {
           // Se já não existe, consideramos sucesso.
@@ -153,5 +153,9 @@ export class SalesService {
       _links: {},
       page: { size: 0, totalElements: 0, totalPages: 0, number: 0 }
     };
+  }
+
+  private normalizeUrl(url: string): string {
+    return url.split('{')[0];
   }
 }

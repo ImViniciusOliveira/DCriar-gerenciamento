@@ -49,18 +49,23 @@ export class EnumService {
   private readonly optionsCache = new Map<string, Observable<EnumOption[]>>();
   private readonly unitsMapCache = new Map<string, Observable<Map<string, EnumOption>>>();
 
+  private normalizeUrl(url: string): string {
+    return url.split('{')[0];
+  }
+
   /**
    * Retorna um Observable com um mapa de unidades de consumo.
    * A requisição é cacheada por URL para evitar chamadas repetidas.
    */
   getConsumptionUnitsMap(url: string): Observable<Map<string, EnumOption>> {
-    const cacheKey = `${url}::unidadesDeMedida::map`;
+    const normalizedUrl = this.normalizeUrl(url);
+    const cacheKey = `${normalizedUrl}::unidadesDeMedida::map`;
     const cached = this.unitsMapCache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
-    const request$ = this.getEnumOptions(url, 'unidadesDeMedida').pipe(
+    const request$ = this.getEnumOptions(normalizedUrl, 'unidadesDeMedida').pipe(
       map(options => new Map(options.map(opt => [opt.value, opt]))),
       shareReplay(1)
     );
@@ -70,13 +75,14 @@ export class EnumService {
   }
 
   getMeasurementUnitsByProductType(url: string, tipoProduto: 'CORTE' | 'CONSUMO'): Observable<EnumOption[]> {
-    const cacheKey = `${url}::unidadesDeMedida::${tipoProduto}`;
+    const normalizedUrl = this.normalizeUrl(url);
+    const cacheKey = `${normalizedUrl}::unidadesDeMedida::${tipoProduto}`;
     const cached = this.optionsCache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
-    const request$ = this.http.get<EmbeddedEnumResponse>(url, {
+    const request$ = this.http.get<EmbeddedEnumResponse>(normalizedUrl, {
       params: new HttpParams().set('tipoProduto', tipoProduto)
     }).pipe(
       map(response => {
@@ -110,13 +116,14 @@ export class EnumService {
    * @returns Um Observable que emite um array de `EnumOption`.
    */
   getEnumOptions(url: string, embeddedKey: string): Observable<EnumOption[]> {
-    const cacheKey = `${url}::${embeddedKey}`;
+    const normalizedUrl = this.normalizeUrl(url);
+    const cacheKey = `${normalizedUrl}::${embeddedKey}`;
     const cached = this.optionsCache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
-    const request$ = this.http.get<EmbeddedEnumResponse>(url).pipe(
+    const request$ = this.http.get<EmbeddedEnumResponse>(normalizedUrl).pipe(
       map(response => {
         const embedded = response?._embedded;
         if (!embedded) {

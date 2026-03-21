@@ -301,7 +301,7 @@ export class ProductService {
    * Busca um Produto específico pela sua URL completa.
    */
   getProductByUrl(url: string): Observable<Product> {
-    return this.http.get<Product>(url);
+    return this.http.get<Product>(this.normalizeUrl(url));
   }
 
   /**
@@ -320,7 +320,7 @@ export class ProductService {
    * Remove um Produto pela sua URL.
    */
   deleteProduct(url: string): Observable<void> {
-    return this.http.delete<void>(url).pipe(
+    return this.http.delete<void>(this.normalizeUrl(url)).pipe(
       tap(() => this.refreshTrigger.set(undefined))
     );
   }
@@ -370,7 +370,7 @@ export class ProductService {
     const formData = new FormData();
     formData.append('file', file);
 
-    return this.http.post<Product>(uploadUrl, formData)
+    return this.http.post<Product>(this.normalizeUrl(uploadUrl), formData)
       .pipe(tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); }));
   }
 
@@ -490,6 +490,10 @@ export class ProductService {
     if (!url) {
       throw new Error('URL de produtos não encontrada na resposta da API');
     }
+    return url.split('{')[0];
+  }
+
+  private normalizeUrl(url: string): string {
     return url.split('{')[0];
   }
 

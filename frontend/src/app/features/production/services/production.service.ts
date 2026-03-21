@@ -145,7 +145,7 @@ export class ProductionService {
    * @returns Um Observable com a resposta da simulação.
    */
   simulateProduction(url: string, payload: SimulationRequest): Observable<SimulationResult> {
-    return this.http.post<SimulationResult>(url, payload);
+    return this.http.post<SimulationResult>(this.normalizeUrl(url), payload);
   }
 
   /**
@@ -174,7 +174,7 @@ export class ProductionService {
    * @returns Um Observable com a resposta da criação.
    */
   createCutOrder(url: string, payload: CreateCutOrderRequest): Observable<any> {
-    return this.http.post<any>(url, payload).pipe(
+    return this.http.post<any>(this.normalizeUrl(url), payload).pipe(
       tap(() => this.refreshTrigger.set(undefined))
     );
   }
@@ -186,7 +186,7 @@ export class ProductionService {
    * @returns Um Observable com a resposta da criação.
    */
   createConsumptionOrder(url: string, payload: CreateConsumptionOrderRequest): Observable<any> {
-    return this.http.post<any>(url, payload).pipe(
+    return this.http.post<any>(this.normalizeUrl(url), payload).pipe(
       tap(() => this.refreshTrigger.set(undefined))
     );
   }
@@ -198,7 +198,7 @@ export class ProductionService {
    * @returns Um Observable com a resposta da simulação.
    */
   simulateConsumption(url: string, payload: SimulationRequest): Observable<SimulationResult> {
-    return this.http.post<SimulationResult>(url, payload);
+    return this.http.post<SimulationResult>(this.normalizeUrl(url), payload);
   }
 
   /**
@@ -230,5 +230,9 @@ export class ProductionService {
       _links: {},
       page: { size: 0, totalElements: 0, totalPages: 0, number: 0 }
     };
+  }
+
+  private normalizeUrl(url: string): string {
+    return url.split('{')[0];
   }
 }

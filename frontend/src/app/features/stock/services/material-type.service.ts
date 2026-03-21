@@ -181,7 +181,7 @@ export class MaterialTypeService {
    * Remove um Tipo de Matéria-Prima pela sua URL.
    */
   delete(url: string): Observable<void> {
-    return this.http.delete<void>(url).pipe(
+    return this.http.delete<void>(this.normalizeUrl(url)).pipe(
       tap(() => this.refreshTrigger.set(undefined))
     );
   }
@@ -193,7 +193,7 @@ export class MaterialTypeService {
    * @param skipRefresh Se true, não dispara a atualização da lista.
    */
   update(url: string, request: MaterialTypeRequest, skipRefresh = false): Observable<MaterialType> {
-    return this.http.patch<MaterialType>(url, request).pipe(
+    return this.http.patch<MaterialType>(this.normalizeUrl(url), request).pipe(
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }
@@ -254,5 +254,9 @@ export class MaterialTypeService {
       _links: {},
       page: { size: 0, totalElements: 0, totalPages: 0, number: 0 }
     };
+  }
+
+  private normalizeUrl(url: string): string {
+    return url.split('{')[0];
   }
 }

@@ -119,7 +119,7 @@ export class BatchService {
    * Busca um Lote de Matéria-Prima específico pela sua URL completa.
    */
   findByUrl(url: string): Observable<Batch> {
-    return this.http.get<Batch>(url);
+    return this.http.get<Batch>(this.normalizeUrl(url));
   }
 
   /**
@@ -141,7 +141,7 @@ export class BatchService {
    * @param skipRefresh Se true, não dispara a atualização da lista.
    */
   update(url: string, request: BatchRequest, skipRefresh = false): Observable<Batch> {
-    return this.http.put<Batch>(url, request).pipe(
+    return this.http.put<Batch>(this.normalizeUrl(url), request).pipe(
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }
@@ -150,7 +150,7 @@ export class BatchService {
    * Remove um Lote de Matéria-Prima pela sua URL.
    */
   delete(url: string): Observable<void> {
-    return this.http.delete<void>(url).pipe(
+    return this.http.delete<void>(this.normalizeUrl(url)).pipe(
       tap(() => this.refreshTrigger.set(undefined))
     );
   }
@@ -174,5 +174,9 @@ export class BatchService {
       _links: {},
       page: { size: 0, totalElements: 0, totalPages: 0, number: 0 }
     };
+  }
+
+  private normalizeUrl(url: string): string {
+    return url.split('{')[0];
   }
 }
