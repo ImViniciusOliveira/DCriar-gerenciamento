@@ -10,6 +10,7 @@ import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -58,4 +59,10 @@ public class LoteMateriaPrimaModel extends RepresentationModel<LoteMateriaPrimaM
 
     @Schema(description = "Motivo da criação ou entrada deste lote no estoque.", example = "Compra regular - Pedido #789")
     private String motivo;
+
+    @Schema(description = "Data e hora de criação do lote.")
+    private LocalDateTime dataCriacao;
+
+    @Schema(description = "Data e hora da última atualização do lote.")
+    private LocalDateTime dataAtualizacao;
 }

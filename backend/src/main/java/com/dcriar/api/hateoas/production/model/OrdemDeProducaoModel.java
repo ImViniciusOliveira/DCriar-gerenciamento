@@ -34,6 +34,9 @@ public class OrdemDeProducaoModel extends RepresentationModel<OrdemDeProducaoMod
     @Schema(description = "Nome do produto final fabricado.")
     private String nomeProduto;
 
+    @Schema(description = "Tipo do produto fabricado.", example = "CORTE")
+    private String tipoProduto;
+
     @Schema(description = "Lista de IDs dos lotes de matéria-prima consumidos.")
     private List<Long> lotesConsumidosIds;
 

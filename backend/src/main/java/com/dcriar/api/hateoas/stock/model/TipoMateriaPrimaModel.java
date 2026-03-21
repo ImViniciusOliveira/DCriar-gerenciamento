@@ -9,6 +9,8 @@ import lombok.Setter;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
+import java.time.LocalDateTime;
+
 /**
  * Modelo de representação HATEOAS para um Tipo de Matéria-Prima.
  * <p>
@@ -33,4 +35,10 @@ public class TipoMateriaPrimaModel extends RepresentationModel<TipoMateriaPrimaM
 
     @Schema(description = "Descrição amigável da unidade de medida.", example = "Metro Quadrado")
     private String unidadeDescricao;
+
+    @Schema(description = "Data e hora de criação do tipo de matéria-prima.")
+    private LocalDateTime dataCriacao;
+
+    @Schema(description = "Data e hora da última atualização do tipo de matéria-prima.")
+    private LocalDateTime dataAtualizacao;
 }

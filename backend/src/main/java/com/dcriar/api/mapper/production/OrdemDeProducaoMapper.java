@@ -35,6 +35,7 @@ public interface OrdemDeProducaoMapper {
     @Mapping(target = "detalhesCorte", ignore = true) // Este campo é montado separadamente no serviço, se aplicável.
     @Mapping(source = "produto.id", target = "produtoId")
     @Mapping(source = "produto.nome", target = "nomeProduto")
+    @Mapping(source = "produto.tipoProduto", target = "tipoProduto")
     @Mapping(source = "lotesConsumidos", target = "lotesConsumidosIds", qualifiedByName = "lotesToIds")
     @Mapping(source = "cortesRealizados", target = "cortesRealizados")
     @Mapping(source = "dataCriacao", target = "dataCriacao")

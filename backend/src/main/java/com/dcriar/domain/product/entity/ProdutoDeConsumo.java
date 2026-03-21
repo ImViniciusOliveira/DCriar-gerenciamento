@@ -35,4 +35,9 @@ public class ProdutoDeConsumo extends Produto {
     @Type(JsonBinaryType.class)
     @Column(columnDefinition = "jsonb")
     private Map<String, String> especificacoes;
+
+    @Override
+    public String getTipoProduto() {
+        return "CONSUMO";
+    }
 }

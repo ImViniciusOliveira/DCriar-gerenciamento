@@ -4,6 +4,8 @@ import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 /**
  * Data Transfer Object (DTO) que representa a resposta de um Tipo de Matéria-Prima.
  * <p>
@@ -40,4 +42,16 @@ public class TipoMateriaPrimaResponseDTO {
      */
     @Schema(description = "Descrição da unidade de medida.", example = "Metro Quadrado")
     private String unidadeDescricao;
+
+    /**
+     * Data e hora de criação do tipo de matéria-prima.
+     */
+    @Schema(description = "Data e hora de criação do tipo de matéria-prima.")
+    private LocalDateTime dataCriacao;
+
+    /**
+     * Data e hora da última atualização do tipo de matéria-prima.
+     */
+    @Schema(description = "Data e hora da última atualização do tipo de matéria-prima.")
+    private LocalDateTime dataAtualizacao;
 }

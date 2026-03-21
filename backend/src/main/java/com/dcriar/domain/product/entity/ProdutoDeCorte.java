@@ -24,4 +24,9 @@ public class ProdutoDeCorte extends Produto {
 
     @Embedded
     private Dimensoes dimensoes;
+
+    @Override
+    public String getTipoProduto() {
+        return "CORTE";
+    }
 }

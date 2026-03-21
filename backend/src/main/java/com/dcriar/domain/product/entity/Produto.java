@@ -51,4 +51,9 @@ public abstract class Produto extends AuditableEntity {
     @Formula("(SELECT COALESCE(SUM(CASE WHEN mep.tipo LIKE 'ENTRADA%' THEN mep.quantidade ELSE -mep.quantidade END), 0) " +
              "FROM movimentacoes_estoque_produto mep WHERE mep.produto_id = id)")
     private Integer estoqueFisicoTotal;
+
+    /**
+     * Retorna o tipo funcional do produto para uso em mapeamentos e regras de negócio.
+     */
+    public abstract String getTipoProduto();
 }
