@@ -33,7 +33,11 @@
 <ng-template #costTemplate let-lote>{{ lote.custoTotalLote | currency:'BRL' }}</ng-template>
 <ng-template #createdAtTemplate let-lote>{{ lote.dataCriacao ? (lote.dataCriacao | date:'dd/MM/yyyy HH:mm') : 'N/A' }}</ng-template>
 <ng-template #attributesTemplate let-lote>
-  <button mat-button type="button">Exibir atributos</button>
+  @if (hasAttributes(lote)) {
+    <button mat-button type="button" (click)="openAttributes(lote)">Exibir atributos</button>
+  } @else {
+    <span>-</span>
+  }
 </ng-template>
 
 <ng-template #actionsTemplate let-lote>

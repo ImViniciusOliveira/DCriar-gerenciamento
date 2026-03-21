@@ -2,6 +2,7 @@ import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetecto
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { lastValueFrom, catchError, of } from 'rxjs';
 
@@ -10,10 +11,10 @@ import { BaseList } from '../../../../shared/components/base-list/base-list';
 import { Product } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
 import { ProductFormComponent, ProductFormData } from '../product-form/product-form';
-import { FilterStockPipe } from './filter-stock.pipe';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
+import { DetailsDialog, DetailsDialogData } from '../../../../shared/components/details-dialog/details-dialog';
 
 /**
  * Componente de listagem para Produtos.
@@ -28,7 +29,6 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
-    FilterStockPipe,
     BaseTable
   ],
   templateUrl: './product-list.html',
@@ -39,6 +39,7 @@ import { PaginationHandler } from '../../../../shared/services/pagination-handle
 export class ProductList extends BaseList<Product> implements AfterViewInit {
   private readonly productService = inject(ProductService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly dialog = inject(MatDialog);
 
   private static readonly Texts = {
     deleteConfirmTitle: 'Confirmar Exclusão',
@@ -177,6 +178,46 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
     });
   }
 
+  openDetails(product: Product): void {
+    const dialogData: DetailsDialogData = {
+      title: `Detalhes de ${product.nome}`,
+      items: this.getProductDetails(product).map(item => ({ label: item.key, value: item.value })),
+      showLabels: true
+    };
+
+    this.dialog.open(DetailsDialog, {
+      data: dialogData,
+      width: '680px',
+      maxWidth: '90vw',
+      autoFocus: false
+    });
+  }
+
+  openChannels(product: Product): void {
+    const items = Object.entries(product.estoquePorCanal || {})
+      .filter(([, value]) => Number(value) > 0)
+      .map(([label, value]) => ({ label, value: String(value) }));
+
+    this.dialog.open(DetailsDialog, {
+      data: {
+        title: `Canais de ${product.nome}`,
+        items,
+        showLabels: true
+      } satisfies DetailsDialogData,
+      width: '680px',
+      maxWidth: '90vw',
+      autoFocus: false
+    });
+  }
+
+  hasProductDetails(product: Product): boolean {
+    return this.getProductDetails(product).length > 0;
+  }
+
+  hasChannels(product: Product): boolean {
+    return Object.values(product.estoquePorCanal || {}).some(value => Number(value) > 0);
+  }
+
   /**
    * Formata os detalhes específicos do produto para exibição no popover.
    */
@@ -184,17 +225,17 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
     const details: { key: string, value: string }[] = [];
     if (product.tipoProduto === 'CORTE') {
       if (product.dimensoes) {
-        details.push({ key: '', value: `${product.dimensoes.larguraCm} x ${product.dimensoes.comprimentoCm} cm` });
+        details.push({ key: 'Dimensões', value: `${product.dimensoes.larguraCm} x ${product.dimensoes.comprimentoCm} cm` });
       }
       if (product.cor) {
-        details.push({ key: '', value: product.cor });
+        details.push({ key: 'Cor', value: product.cor });
       }
     } else if (product.tipoProduto === 'CONSUMO') {
       if (product.codigoFabricante) {
-        details.push({ key: '', value: product.codigoFabricante });
+        details.push({ key: 'Cód. Fab.', value: product.codigoFabricante });
       }
       for (const [key, value] of Object.entries(product.especificacoes || {})) {
-        details.push({ key: '', value: String(value) });
+        details.push({ key, value: String(value) });
       }
     }
     return details;

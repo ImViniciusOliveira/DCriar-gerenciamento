@@ -14,6 +14,7 @@ import { BatchService } from '../../services/batch.service';
 import { MaterialTypeList } from '../material-type-list/material-type-list';
 import { BatchForm, BatchFormData } from '../batch-form/batch-form';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
+import { DetailsDialog, DetailsDialogData } from '../../../../shared/components/details-dialog/details-dialog';
 
 /**
  * Componente de listagem para Lotes de Matéria-Prima.
@@ -196,6 +197,28 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
         this.entityDialog.showSuccessSnackbar(successMessage);
       }
     });
+  }
+
+  openAttributes(lote: Batch): void {
+    const dialogData: DetailsDialogData = {
+      title: `Atributos do lote ${lote.id}`,
+      items: this.getAttributesAsArray(lote.atributos ?? {}).map(item => ({
+        label: item.key,
+        value: String(item.value)
+      })),
+      showLabels: true
+    };
+
+    this.dialog.open(DetailsDialog, {
+      data: dialogData,
+      width: '680px',
+      maxWidth: '90vw',
+      autoFocus: false
+    });
+  }
+
+  hasAttributes(lote: Batch): boolean {
+    return this.getAttributesAsArray(lote.atributos ?? {}).length > 0;
   }
 
   /**

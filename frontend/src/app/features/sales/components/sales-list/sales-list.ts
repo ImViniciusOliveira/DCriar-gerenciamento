@@ -2,6 +2,7 @@ import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetecto
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -13,6 +14,7 @@ import { Sale } from '../../models/sales.model';
 import { SalesService } from '../../services/sales.service';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 import { SalesForm, SalesFormData } from '../sales-form/sales-form';
+import { DetailsDialog, DetailsDialogData } from '../../../../shared/components/details-dialog/details-dialog';
 
 /**
  * Componente de listagem para Vendas.
@@ -37,6 +39,7 @@ import { SalesForm, SalesFormData } from '../sales-form/sales-form';
 export class SalesList extends BaseList<Sale> implements AfterViewInit {
   private readonly salesService = inject(SalesService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly dialog = inject(MatDialog);
 
   private static readonly Texts = {
     deleteConfirmTitle: 'Confirmar Exclusão',
@@ -183,6 +186,28 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
         this.salesService.updateSearchParams({});
       }
     });
+  }
+
+  openItems(sale: Sale): void {
+    const dialogData: DetailsDialogData = {
+      title: `Itens da venda #${sale.id}`,
+      items: sale.itens.map(item => ({
+        label: `${item.quantidade}x ${item.nomeProduto}`,
+        value: `R$ ${item.precoTotal.toFixed(2)}`
+      })),
+      showLabels: true
+    };
+
+    this.dialog.open(DetailsDialog, {
+      data: dialogData,
+      width: '680px',
+      maxWidth: '90vw',
+      autoFocus: false
+    });
+  }
+
+  hasItems(sale: Sale): boolean {
+    return sale.itens.length > 0;
   }
 
   /**

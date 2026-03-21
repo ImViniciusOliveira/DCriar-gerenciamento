@@ -37,7 +37,11 @@
   </ng-template>
 
   <ng-template #itensTemplate let-sale>
-    <button mat-button type="button">Ver itens</button>
+    @if (hasItems(sale)) {
+      <button mat-button type="button" (click)="openItems(sale)">Ver itens</button>
+    } @else {
+      <span>-</span>
+    }
   </ng-template>
 
   <ng-template #acoesTemplate let-sale>
