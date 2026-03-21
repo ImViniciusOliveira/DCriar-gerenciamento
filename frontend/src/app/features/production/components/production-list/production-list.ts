@@ -82,8 +82,8 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'nomeProduto', header: 'Produto', sortable: true, cellTemplate: this.produtoTemplate },
-      { key: 'tipoProduto', header: 'Tipo', sortable: true, cellTemplate: this.tipoTemplate },
+      { key: 'nomeProduto', header: 'Produto', sortable: true, sortKey: 'produto.nome', cellTemplate: this.produtoTemplate },
+      { key: 'tipoProduto', header: 'Tipo', sortable: true, sortKey: 'produto.tipoProdutoPersistido', cellTemplate: this.tipoTemplate },
       { key: 'quantidadeProduzida', header: 'Qtd', sortable: true, cellTemplate: this.quantidadeTemplate },
       { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.dataTemplate },
       { key: 'acoes', header: 'Ações', sortable: false, cellTemplate: this.acoesTemplate },

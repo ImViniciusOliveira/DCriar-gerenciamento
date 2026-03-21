@@ -5,7 +5,7 @@
     <mat-dialog-content>
       <div class="form-grid">
 
-        <!-- Linha 1: Nome e Tipo de Produto -->
+        <!-- Linha 1: Nome, SKU e Tipo de Produto -->
         <div class="row-group">
           <mat-form-field class="name-field" appearance="outline">
             <mat-label>Nome</mat-label>
@@ -14,6 +14,16 @@
               <mat-error>O nome é obrigatório.</mat-error>
             } @else if (productForm.get('nome')?.hasError('maxlength')) {
               <mat-error>O nome não pode exceder 100 caracteres.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field class="sku-field" appearance="outline">
+            <mat-label>SKU</mat-label>
+            <input matInput formControlName="sku" [errorStateMatcher]="matcher" required>
+            @if (productForm.get('sku')?.hasError('required')) {
+              <mat-error>O SKU é obrigatório.</mat-error>
+            } @else if (productForm.get('sku')?.hasError('maxlength')) {
+              <mat-error>O SKU não pode exceder 50 caracteres.</mat-error>
             }
           </mat-form-field>
 
@@ -26,27 +36,21 @@
           </mat-form-field>
         </div>
 
-        <!-- Linha 2: SKU, Cor, Unidades, Ativo -->
+        <!-- Linha 2: Preço, Quantidade por Produto, Cor e Ativo -->
         <div class="row-group">
-          <mat-form-field class="sku-field" appearance="outline">
-            <mat-label>SKU</mat-label>
-            <input matInput formControlName="sku" [errorStateMatcher]="matcher" required>
-            @if (productForm.get('sku')?.hasError('required')) {
-              <mat-error>O SKU é obrigatório.</mat-error>
-            } @else if (productForm.get('sku')?.hasError('maxlength')) {
-              <mat-error>O SKU não pode exceder 50 caracteres.</mat-error>
+          <mat-form-field class="price-field" appearance="outline">
+            <mat-label>Preço Comercial</mat-label>
+            <input matInput type="text" inputmode="decimal" formControlName="precoComercial" [errorStateMatcher]="matcher" required>
+            @if (productForm.get('precoComercial')?.hasError('required')) {
+              <mat-error>O preço é obrigatório.</mat-error>
+            } @else if (productForm.get('precoComercial')?.hasError('pattern')) {
+              <mat-error>Apenas números.</mat-error>
+            } @else if (productForm.get('precoComercial')?.hasError('min')) {
+              <mat-error>O valor deve ser maior que zero.</mat-error>
+            } @else if (productForm.get('precoComercial')?.hasError('maxIntegerDigits')) {
+              <mat-error>Máximo de 15 dígitos.</mat-error>
             }
           </mat-form-field>
-
-          @if (productForm.get('cor')?.enabled) {
-            <mat-form-field class="color-field" appearance="outline">
-              <mat-label>Cor</mat-label>
-              <input matInput formControlName="cor" [errorStateMatcher]="matcher">
-               @if (productForm.get('cor')?.hasError('maxlength')) {
-                <mat-error>Máximo de 50 caracteres.</mat-error>
-              }
-            </mat-form-field>
-          }
 
           <mat-form-field class="units-field" appearance="outline">
             <mat-label>Quantidade por Produto</mat-label>
@@ -61,6 +65,16 @@
               <mat-error>Máximo de 10 dígitos.</mat-error>
             }
           </mat-form-field>
+
+          @if (productForm.get('cor')?.enabled) {
+            <mat-form-field class="color-field" appearance="outline">
+              <mat-label>Cor</mat-label>
+              <input matInput formControlName="cor" [errorStateMatcher]="matcher">
+               @if (productForm.get('cor')?.hasError('maxlength')) {
+                <mat-error>Máximo de 50 caracteres.</mat-error>
+              }
+            </mat-form-field>
+          }
 
           <!-- Checkbox Ativo dentro de um Fieldset para ter a borda padrão -->
           <fieldset class="active-fieldset">
