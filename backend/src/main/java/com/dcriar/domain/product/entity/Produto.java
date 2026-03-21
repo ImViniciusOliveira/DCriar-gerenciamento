@@ -32,6 +32,15 @@ public abstract class Produto extends AuditableEntity {
     @Column(nullable = false, unique = true, length = 50)
     private String sku;
 
+    /**
+     * Valor do preço comercial atual do produto, carregado diretamente do banco via subconsulta.
+     * <p>
+     * Este campo é somente leitura e existe para permitir listagem e ordenação server-side
+     * sem depender de enriquecimento posterior na camada de serviço.
+     */
+    @Formula("(SELECT pr.valor FROM precos pr WHERE pr.produto_id = id)")
+    private BigDecimal precoComercial;
+
     @Column(columnDefinition = "TEXT")
     private String descricao;
 
@@ -51,6 +60,15 @@ public abstract class Produto extends AuditableEntity {
     @Formula("(SELECT COALESCE(SUM(CASE WHEN mep.tipo LIKE 'ENTRADA%' THEN mep.quantidade ELSE -mep.quantidade END), 0) " +
              "FROM movimentacoes_estoque_produto mep WHERE mep.produto_id = id)")
     private Integer estoqueFisicoTotal;
+
+    /**
+     * Tipo persistido do produto conforme o discriminator da hierarquia.
+     * <p>
+     * Exposto como campo somente leitura para permitir ordenação server-side de recursos
+     * que dependem do tipo do produto, como ordens de produção.
+     */
+    @Formula("tipo_produto")
+    private String tipoProdutoPersistido;
 
     /**
      * Retorna o tipo funcional do produto para uso em mapeamentos e regras de negócio.

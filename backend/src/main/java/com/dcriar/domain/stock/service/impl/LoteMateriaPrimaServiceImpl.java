@@ -306,6 +306,9 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     }
 
     private BigDecimal calcularSaldo(LoteMateriaPrima lote) {
+        if (lote.getSaldoAtual() != null) {
+            return lote.getSaldoAtual();
+        }
         return movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
     }
 

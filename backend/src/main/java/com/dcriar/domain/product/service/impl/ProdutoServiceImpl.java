@@ -369,10 +369,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         int estoqueDistribuidoTotal = estoqueRepository.findAllByProduto(produto).stream()
                 .mapToInt(Estoque::getQuantidade)
                 .sum();
-        Preco preco = precoRepository.findFirstByProduto(produto);
-        if (preco != null) {
-            dto.setPrecoComercial(preco.getValor());
-        }
+        dto.setPrecoComercial(produto.getPrecoComercial());
         dto.setEstoqueFisicoTotal(estoqueFisicoTotal);
         dto.setEstoqueDistribuidoTotal(estoqueDistribuidoTotal);
         dto.setEstoqueDisponivelParaAlocar(estoqueFisicoTotal - estoqueDistribuidoTotal);

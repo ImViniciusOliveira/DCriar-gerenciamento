@@ -116,7 +116,7 @@ public class VendaController {
             @Parameter(name = "sort", description = "Critério de ordenação no formato: propriedade,asc|desc.", example = "id,asc")
     })
     public ResponseEntity<PagedModel<VendaModel>> findAll(
-            @ParameterObject @PageableDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable,
+            @ParameterObject @PageableDefault(sort = "dataCriacao", direction = Sort.Direction.DESC) Pageable pageable,
             PagedResourcesAssembler<VendaResponseDTO> pagedResourcesAssembler) {
         Page<VendaResponseDTO> vendasPage = vendaService.findAll(pageable);
         PagedModel<VendaModel> pagedModel = pagedResourcesAssembler.toModel(vendasPage, vendaModelAssembler);

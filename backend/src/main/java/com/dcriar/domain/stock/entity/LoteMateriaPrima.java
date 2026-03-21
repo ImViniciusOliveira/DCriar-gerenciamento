@@ -8,6 +8,7 @@ import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Type;
+import org.hibernate.annotations.Formula;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -67,6 +68,15 @@ public class LoteMateriaPrima extends AuditableEntity {
      */
     @Column(name = "custo_total_lote", nullable = false, precision = 10, scale = 4)
     private BigDecimal custoTotalLote;
+
+    /**
+     * Saldo atual do lote calculado diretamente no banco a partir das movimentações.
+     * <p>
+     * Este campo é somente leitura e serve para suportar listagem e ordenação server-side
+     * sem depender de uma consulta adicional por lote.
+     */
+    @Formula("(SELECT COALESCE(SUM(m.quantidade), 0) FROM movimentacoes_estoque_lote m WHERE m.lote_id = id)")
+    private BigDecimal saldoAtual;
 
     /**
      * O motivo da criação ou entrada deste lote no estoque.

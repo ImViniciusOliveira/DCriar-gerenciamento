@@ -68,7 +68,7 @@ public class LoteMateriaPrimaController {
             @RequestParam(required = false) Long tipoMateriaPrimaId,
             @Parameter(description = "Filtrar apenas por lotes principais.", example = "true")
             @RequestParam(required = false) Boolean apenasLotesPrincipais,
-            @ParameterObject @PageableDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable,
+            @ParameterObject @PageableDefault(sort = "tipoMateriaPrima.nome", direction = Sort.Direction.ASC) Pageable pageable,
             PagedResourcesAssembler<LoteMateriaPrimaResponseDTO> pagedResourcesAssembler) {
         Page<LoteMateriaPrimaResponseDTO> lotesPage = loteMateriaPrimaService.findAll(tipoMateriaPrimaId, apenasLotesPrincipais, pageable);
         PagedModel<LoteMateriaPrimaModel> pagedModel = pagedResourcesAssembler.toModel(lotesPage, loteMateriaPrimaModelAssembler);
