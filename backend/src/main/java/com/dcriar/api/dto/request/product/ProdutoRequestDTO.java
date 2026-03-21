@@ -45,8 +45,8 @@ public class ProdutoRequestDTO {
     @Schema(description = "Define se o produto está ativo e disponível para operações de venda e produção. Se não for fornecido, o padrão é 'true'.", example = "true")
     private Boolean ativo;
 
-    @Schema(description = "Preço de mercado/comercial do produto.", example = "19.90", requiredMode = Schema.RequiredMode.REQUIRED)
-    private BigDecimal precoMercado;
+    @Schema(description = "Preço comercial do produto.", example = "19.90", requiredMode = Schema.RequiredMode.REQUIRED)
+    private BigDecimal precoComercial;
 
     @Schema(description = "ID do Tipo de Matéria-Prima principal que este produto consome.", example = "6", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long tipoMateriaPrimaId;

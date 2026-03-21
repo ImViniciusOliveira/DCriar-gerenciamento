@@ -5,7 +5,6 @@ import com.dcriar.api.dto.response.product.ProdutoDeConsumoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
 import com.dcriar.domain.product.entity.*;
-import com.dcriar.domain.product.entity.enums.TipoPreco;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.PrecoRepository;
@@ -133,7 +132,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         }
 
         Produto produtoSalvo = produtoRepository.save(produto);
-        syncPrecoMercado(produtoSalvo, requestDTO.getPrecoMercado());
+        syncPrecoComercial(produtoSalvo, requestDTO.getPrecoComercial());
         return findById(produtoSalvo.getId());
     }
 
@@ -300,8 +299,8 @@ public class ProdutoServiceImpl implements ProdutoService {
         }
 
         Produto produtoAtualizado = produtoRepository.save(produto);
-        if (fields.containsKey("precoMercado") && fields.get("precoMercado") != null) {
-            syncPrecoMercado(produtoAtualizado, new BigDecimal(fields.get("precoMercado").toString()));
+        if (fields.containsKey("precoComercial") && fields.get("precoComercial") != null) {
+            syncPrecoComercial(produtoAtualizado, new BigDecimal(fields.get("precoComercial").toString()));
         }
         return mapAndEnrichProduto(produtoAtualizado);
     }
@@ -370,9 +369,10 @@ public class ProdutoServiceImpl implements ProdutoService {
         int estoqueDistribuidoTotal = estoqueRepository.findAllByProduto(produto).stream()
                 .mapToInt(Estoque::getQuantidade)
                 .sum();
-        precoRepository.findByProdutoInAndTipoPreco(List.of(produto), TipoPreco.VAREJO).stream()
-                .findFirst()
-                .ifPresent(preco -> dto.setPrecoMercado(preco.getValor()));
+        Preco preco = precoRepository.findFirstByProduto(produto);
+        if (preco != null) {
+            dto.setPrecoComercial(preco.getValor());
+        }
         dto.setEstoqueFisicoTotal(estoqueFisicoTotal);
         dto.setEstoqueDistribuidoTotal(estoqueDistribuidoTotal);
         dto.setEstoqueDisponivelParaAlocar(estoqueFisicoTotal - estoqueDistribuidoTotal);
@@ -384,21 +384,17 @@ public class ProdutoServiceImpl implements ProdutoService {
                 .orElseThrow(() -> new ProdutoNaoEncontradoException(id));
     }
 
-    private void syncPrecoMercado(Produto produto, BigDecimal precoMercado) {
-        if (precoMercado == null) {
+    private void syncPrecoComercial(Produto produto, BigDecimal precoComercial) {
+        if (precoComercial == null) {
             return;
         }
 
-        Preco preco = precoRepository.findByProdutoInAndTipoPreco(List.of(produto), TipoPreco.VAREJO).stream()
-                .findFirst()
-                .orElseGet(() -> Preco.builder()
-                        .produto(produto)
-                        .tipoPreco(TipoPreco.VAREJO)
-                        .build());
-
-        preco.setValor(precoMercado);
-        preco.setValorPromocional(null);
-        preco.setPromocaoAtiva(false);
+        Preco preco = precoRepository.findFirstByProduto(produto);
+        if (preco == null) {
+            preco = Preco.from(precoComercial, produto);
+        } else {
+            preco.updateFrom(precoComercial, produto);
+        }
         precoRepository.save(preco);
     }
 

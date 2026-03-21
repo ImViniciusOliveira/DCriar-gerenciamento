@@ -2,7 +2,6 @@ package com.dcriar.domain.product.repository;
 
 import com.dcriar.domain.product.entity.Preco;
 import com.dcriar.domain.product.entity.Produto;
-import com.dcriar.domain.product.entity.enums.TipoPreco;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,28 +9,24 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Repositório para a entidade Preco.
- * <p>
- * Permite operações de acesso a dados para preços de produtos, incluindo busca por produto e tipo de preço.
- * Não deve conter regras de negócio, apenas consultas e persistência.
+ * Repositório para o preço comercial dos produtos.
  */
 @Repository
 public interface PrecoRepository extends JpaRepository<Preco, Long> {
 
     /**
-     * Lista todos os preços de um produto.
+     * Busca o preço comercial de um produto específico.
      *
-     * @param produto Produto associado
-     * @return Lista de preços
+     * @param produto Produto associado ao preço
+     * @return Preço comercial encontrado ou {@code null} quando ainda não existe cadastro
      */
-    List<Preco> findByProduto(Produto produto);
+    Preco findFirstByProduto(Produto produto);
 
     /**
-     * Busca os preços de uma coleção de produtos para um tipo de preço específico.
+     * Busca os preços comerciais de uma coleção de produtos para enriquecimento em lote.
      *
-     * @param produtos Coleção de produtos
-     * @param tipoPreco Tipo de preço
-     * @return Lista de preços encontrados
+     * @param produtos Produtos a consultar
+     * @return Lista dos preços encontrados
      */
-    List<Preco> findByProdutoInAndTipoPreco(Collection<Produto> produtos, TipoPreco tipoPreco);
+    List<Preco> findByProdutoIn(Collection<Produto> produtos);
 }

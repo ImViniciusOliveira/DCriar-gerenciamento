@@ -2,6 +2,7 @@ package com.dcriar.domain.sales.entity;
 
 import com.dcriar.api.dto.request.sales.ItemVendaRequestDTO;
 import com.dcriar.domain.product.entity.Produto;
+import com.dcriar.domain.sales.entity.enums.TipoPrecoAplicado;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -50,12 +51,15 @@ public class ItemVenda {
     @Column(nullable = false)
     private Integer quantidade;
 
+    @Column(name = "preco_comercial_original", nullable = false, precision = 19, scale = 2)
+    private BigDecimal precoComercialOriginal;
+
     /**
      * O preço unitário do produto no momento da venda.
      * É crucial armazenar este valor para garantir a integridade histórica
      * dos dados financeiros, mesmo que o preço do produto mude no futuro.
      */
-    @Column(name = "preco_unitario", nullable = false, precision = 19, scale = 2)
+    @Column(name = "preco_unitario", nullable = false, precision = 19, scale = 4)
     private BigDecimal precoUnitario;
 
     /**
@@ -65,6 +69,13 @@ public class ItemVenda {
     @Column(name = "preco_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal precoTotal;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_preco_aplicado", nullable = false, length = 30)
+    private TipoPrecoAplicado tipoPrecoAplicado;
+
+    @Column(name = "motivo_alteracao_preco", length = 255)
+    private String motivoAlteracaoPreco;
+
     /**
      * Cria uma instância de ItemVenda a partir do DTO de request e do Produto resolvido.
      * <p>
@@ -73,16 +84,27 @@ public class ItemVenda {
      *
      * @param dto DTO de request do item
      * @param produto Produto resolvido
-     * @param precoUnitario Preço unitário do produto no momento da venda
+     * @param precoComercialOriginal Preço comercial padrão do produto no momento da venda
+     * @param precoUnitario Preço unitário efetivamente aplicado
+     * @param tipoPrecoAplicado Como o preço foi aplicado na venda
      * @return ItemVenda criado
      */
-    public static ItemVenda from(ItemVendaRequestDTO dto, Produto produto, BigDecimal precoUnitario) {
-        BigDecimal precoTotal = precoUnitario.multiply(BigDecimal.valueOf(dto.getQuantidade()));
+    public static ItemVenda from(
+            ItemVendaRequestDTO dto,
+            Produto produto,
+            BigDecimal precoComercialOriginal,
+            BigDecimal precoUnitario,
+            BigDecimal precoTotal,
+            TipoPrecoAplicado tipoPrecoAplicado
+    ) {
         return ItemVenda.builder()
                 .produto(produto)
                 .quantidade(dto.getQuantidade())
+                .precoComercialOriginal(precoComercialOriginal)
                 .precoUnitario(precoUnitario)
                 .precoTotal(precoTotal)
+                .tipoPrecoAplicado(tipoPrecoAplicado)
+                .motivoAlteracaoPreco(dto.getMotivoAlteracaoPreco())
                 .build();
     }
 
@@ -94,12 +116,24 @@ public class ItemVenda {
      *
      * @param dto DTO de request do item
      * @param produto Produto resolvido
-     * @param precoUnitario Preço unitário do produto no momento da venda
+     * @param precoComercialOriginal Preço comercial padrão do produto no momento da venda
+     * @param precoUnitario Preço unitário efetivamente aplicado
+     * @param tipoPrecoAplicado Como o preço foi aplicado na venda
      */
-    public void updateFrom(ItemVendaRequestDTO dto, Produto produto, BigDecimal precoUnitario) {
+    public void updateFrom(
+            ItemVendaRequestDTO dto,
+            Produto produto,
+            BigDecimal precoComercialOriginal,
+            BigDecimal precoUnitario,
+            BigDecimal precoTotal,
+            TipoPrecoAplicado tipoPrecoAplicado
+    ) {
         this.produto = produto;
         this.quantidade = dto.getQuantidade();
+        this.precoComercialOriginal = precoComercialOriginal;
         this.precoUnitario = precoUnitario;
-        this.precoTotal = precoUnitario.multiply(BigDecimal.valueOf(dto.getQuantidade()));
+        this.precoTotal = precoTotal;
+        this.tipoPrecoAplicado = tipoPrecoAplicado;
+        this.motivoAlteracaoPreco = dto.getMotivoAlteracaoPreco();
     }
 }

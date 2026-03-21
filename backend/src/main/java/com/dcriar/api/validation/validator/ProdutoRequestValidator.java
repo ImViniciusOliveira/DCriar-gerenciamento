@@ -23,7 +23,7 @@ public class ProdutoRequestValidator extends BaseValidator<ValidProdutoRequest, 
         addViolationIf(dto.getNome() == null || dto.getNome().isBlank(), "O nome do produto é obrigatório.", "nome");
         addViolationIf(dto.getSku() == null || dto.getSku().isBlank(), "O SKU do produto é obrigatório.", "sku");
         addViolationIf(dto.getUnidadesPorProduto() == null || dto.getUnidadesPorProduto().compareTo(BigDecimal.ZERO) <= 0, "A quantidade de unidades por produto deve ser um número positivo.", "unidadesPorProduto");
-        addViolationIf(dto.getPrecoMercado() == null || dto.getPrecoMercado().compareTo(BigDecimal.ZERO) <= 0, "O preço de mercado deve ser um número positivo.", "precoMercado");
+        addViolationIf(dto.getPrecoComercial() == null || dto.getPrecoComercial().compareTo(BigDecimal.ZERO) <= 0, "O preço comercial deve ser um número positivo.", "precoComercial");
         addViolationIf(dto.getTipoMateriaPrimaId() == null, "O ID do tipo de matéria-prima é obrigatório.", "tipoMateriaPrimaId");
 
         String tipoProduto = dto.getTipoProduto();

@@ -110,21 +110,21 @@ INSERT INTO estoques (produto_id, canal_venda_id, quantidade) VALUES
     ((SELECT id FROM produtos WHERE sku = 'PAP-SEDA-A4-100'), (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 20);
 
 -- Inserção de Preços (dependem de Produtos)
-INSERT INTO precos (produto_id, tipo_preco, valor, valor_promocional, promocao_ativa, data_criacao, data_atualizacao) VALUES
-    ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), 'VAREJO', 120.00, 99.90, true, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), 'VAREJO', 85.00, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), 'VAREJO', 45.00, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'FLD-A4-DOB'), 'VAREJO', 15.00, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'ROT-CERV-LN'), 'VAREJO', 60.00, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'ADSV-HOLO-10'), 'VAREJO', 55.00, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'TAG-KFT-4X9'), 'VAREJO', 30.00, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'TIN-PRE-ES-1L'), 'VAREJO', 350.00, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'FITA-DF-25MM'), 'VAREJO', 75.00, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'ILHOS-BNR-100'), 'VAREJO', 50.00, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'), 'VAREJO', 189.90, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'), 'VAREJO', 79.90, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'VERN-UV-250'), 'VAREJO', 45.00, null, false, NOW(), NOW()),
-    ((SELECT id FROM produtos WHERE sku = 'PAP-SEDA-A4-100'), 'VAREJO', 35.00, null, false, NOW(), NOW());
+INSERT INTO precos (produto_id, valor, data_criacao, data_atualizacao) VALUES
+    ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), 120.00, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), 85.00, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), 45.00, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'FLD-A4-DOB'), 15.00, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'ROT-CERV-LN'), 60.00, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'ADSV-HOLO-10'), 55.00, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'TAG-KFT-4X9'), 30.00, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'TIN-PRE-ES-1L'), 350.00, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'FITA-DF-25MM'), 75.00, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'ILHOS-BNR-100'), 50.00, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'), 189.90, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'), 79.90, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'VERN-UV-250'), 45.00, NOW(), NOW()),
+    ((SELECT id FROM produtos WHERE sku = 'PAP-SEDA-A4-100'), 35.00, NOW(), NOW());
 
 -- ETAPA 5: INSERÇÃO DE DADOS DE PRODUÇÃO E VENDAS (Nível 3 - dependem de tudo acima)
 -- Estas são as tabelas transacionais que representam as operações do dia a dia.
@@ -182,13 +182,13 @@ INSERT INTO cortes_realizados (ordem_de_producao_id, largura_cm, comprimento_cm,
     ((SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Consumidora'), 5.0, 5.0, 10, 'PRODUTO', NULL);
 
 -- Itens de Venda (dependem de Vendas e Produtos)
-INSERT INTO itens_venda (venda_id, produto_id, quantidade, preco_unitario, preco_total) VALUES
-    ((SELECT id FROM vendas WHERE valor_total = 99.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio')), (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), 1, 99.90, 99.90),
-    ((SELECT id FROM vendas WHERE valor_total = 170.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Equipe de Vendas')), (SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), 2, 85.00, 170.00),
-    ((SELECT id FROM vendas WHERE valor_total = 75.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Shopee')), (SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), 1, 45.00, 45.00),
-    ((SELECT id FROM vendas WHERE valor_total = 75.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Shopee')), (SELECT id FROM produtos WHERE sku = 'TAG-KFT-4X9'), 1, 30.00, 30.00),
-    ((SELECT id FROM vendas WHERE valor_total = 189.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Loja Física')), (SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'), 1, 189.90, 189.90),
-    ((SELECT id FROM vendas WHERE valor_total = 159.80 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio')), (SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'), 2, 79.90, 159.80);
+INSERT INTO itens_venda (venda_id, produto_id, quantidade, preco_comercial_original, preco_unitario, preco_total, tipo_preco_aplicado, motivo_alteracao_preco) VALUES
+    ((SELECT id FROM vendas WHERE valor_total = 99.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio')), (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), 1, 120.00, 99.90, 99.90, 'PRECO_ALTERADO', 'Cliente recorrente'),
+    ((SELECT id FROM vendas WHERE valor_total = 170.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Equipe de Vendas')), (SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), 2, 85.00, 85.00, 170.00, 'PRECO_PADRAO', NULL),
+    ((SELECT id FROM vendas WHERE valor_total = 75.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Shopee')), (SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), 1, 45.00, 45.00, 45.00, 'PRECO_PADRAO', NULL),
+    ((SELECT id FROM vendas WHERE valor_total = 75.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Shopee')), (SELECT id FROM produtos WHERE sku = 'TAG-KFT-4X9'), 1, 30.00, 30.00, 30.00, 'PRECO_PADRAO', NULL),
+    ((SELECT id FROM vendas WHERE valor_total = 189.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Loja Física')), (SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'), 1, 189.90, 189.90, 189.90, 'PRECO_PADRAO', NULL),
+    ((SELECT id FROM vendas WHERE valor_total = 159.80 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio')), (SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'), 2, 79.90, 79.90, 159.80, 'PRECO_PADRAO', NULL);
 
 -- Histórico de Movimentações de Estoque de Produto (dependem de Produtos e Ordens de Produção)
 INSERT INTO movimentacoes_estoque_produto (produto_id, data, tipo, quantidade, motivo, ordem_producao_id) VALUES

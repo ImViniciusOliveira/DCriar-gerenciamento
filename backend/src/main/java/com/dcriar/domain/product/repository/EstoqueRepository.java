@@ -64,7 +64,7 @@ public interface EstoqueRepository extends JpaRepository<Estoque, Long> {
            "p.id, p.nome, p.sku, e.quantidade, pr.valor) " +
            "FROM Estoque e " +
            "JOIN e.produto p " +
-           "LEFT JOIN Preco pr ON pr.produto = p AND pr.tipoPreco = 'VAREJO' " +
+           "LEFT JOIN Preco pr ON pr.produto = p " +
            "WHERE e.canalVenda.id = :canalId " +
            "AND (:nomeProduto IS NULL OR LOWER(p.nome) LIKE LOWER(CONCAT('%', :nomeProduto, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :nomeProduto, '%'))) " +
            "AND (:apenasComSaldo = false OR e.quantidade > 0)")

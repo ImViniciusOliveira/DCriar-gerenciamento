@@ -33,9 +33,18 @@ public class ItemVendaResponseDTO {
     @Schema(description = "A quantidade de unidades do produto vendidas.", example = "2")
     private Integer quantidade;
 
+    @Schema(description = "Preço comercial padrão do produto no momento da venda.", example = "25.00")
+    private BigDecimal precoComercialOriginal;
+
     @Schema(description = "O preço unitário do produto no momento da venda.", example = "25.00")
     private BigDecimal precoUnitario;
 
     @Schema(description = "O preço total para este item (quantidade * preço unitário).", example = "50.00")
     private BigDecimal precoTotal;
+
+    @Schema(description = "Como o preço do item foi definido.", example = "PRECO_PADRAO")
+    private String tipoPrecoAplicado;
+
+    @Schema(description = "Motivo registrado quando o preço padrão não foi utilizado.", example = "Cliente recorrente")
+    private String motivoAlteracaoPreco;
 }

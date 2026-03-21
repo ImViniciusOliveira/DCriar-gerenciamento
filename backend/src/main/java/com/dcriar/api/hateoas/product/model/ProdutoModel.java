@@ -80,8 +80,8 @@ public abstract class ProdutoModel extends RepresentationModel<ProdutoModel> {
     @Schema(description = "Saldo de unidades disponíveis para alocação em canais de venda.", example = "50")
     private Integer estoqueDisponivelParaAlocar;
 
-    @Schema(description = "Preço de mercado/comercial atual do produto.", example = "19.90")
-    private BigDecimal precoMercado;
+    @Schema(description = "Preço comercial atual do produto.", example = "19.90")
+    private BigDecimal precoComercial;
 
     @Schema(description = "Data e hora de criação do produto.")
     private LocalDateTime dataCriacao;

@@ -11,7 +11,6 @@ import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Preco;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
-import com.dcriar.domain.product.entity.enums.TipoPreco;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.PrecoRepository;
@@ -19,6 +18,7 @@ import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.domain.sales.entity.ItemVenda;
 import com.dcriar.domain.sales.entity.Venda;
+import com.dcriar.domain.sales.entity.enums.TipoPrecoAplicado;
 import com.dcriar.domain.sales.repository.VendaRepository;
 import com.dcriar.domain.sales.service.VendaService;
 import com.dcriar.exception.custom.*;
@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -138,7 +139,7 @@ public class VendaServiceImpl implements VendaService {
              throw new ProdutoNaoEncontradoException(produtoIds.iterator().next());
         }
 
-        List<Preco> precosList = precoRepository.findByProdutoInAndTipoPreco(produtosMap.values(), TipoPreco.VAREJO);
+        List<Preco> precosList = precoRepository.findByProdutoIn(produtosMap.values());
         Map<Long, Preco> precosMap = precosList.stream()
                 .collect(Collectors.toMap(p -> p.getProduto().getId(), Function.identity()));
 
@@ -149,14 +150,13 @@ public class VendaServiceImpl implements VendaService {
             Preco preco = precosMap.get(itemDTO.getProdutoId());
 
             if (preco == null) {
-                throw new PrecoVarejoNaoDefinidoException(produto.getId());
+                throw new PrecoComercialNaoDefinidoException(produto.getId());
             }
 
-            BigDecimal unitPrice = preco.isPromocaoAtiva() && preco.getValorPromocional() != null
-                    ? preco.getValorPromocional()
-                    : preco.getValor();
-
-            BigDecimal itemTotalPrice = unitPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantidade()));
+            BigDecimal precoComercialOriginal = normalizarValorMonetario(preco.getValor());
+            TipoPrecoAplicado tipoPrecoAplicado = TipoPrecoAplicado.from(itemDTO.getTipoPrecoAplicado());
+            BigDecimal unitPrice = resolverPrecoUnitario(itemDTO, precoComercialOriginal, tipoPrecoAplicado);
+            BigDecimal itemTotalPrice = resolverPrecoTotal(itemDTO, unitPrice, tipoPrecoAplicado);
 
             // Realiza a baixa efetiva no estoque e registra a movimentação de saída.
             performStockReduction(produto, canalVenda, itemDTO.getQuantidade());
@@ -164,11 +164,63 @@ public class VendaServiceImpl implements VendaService {
             itemVendas.add(ItemVenda.builder()
                     .produto(produto)
                     .quantidade(itemDTO.getQuantidade())
+                    .precoComercialOriginal(precoComercialOriginal)
                     .precoUnitario(unitPrice)
                     .precoTotal(itemTotalPrice)
+                    .tipoPrecoAplicado(tipoPrecoAplicado)
+                    .motivoAlteracaoPreco(normalizarMotivo(itemDTO.getMotivoAlteracaoPreco()))
                     .build());
         }
         return itemVendas;
+    }
+
+    private BigDecimal resolverPrecoUnitario(
+            ItemVendaRequestDTO itemDTO,
+            BigDecimal precoComercialOriginal,
+            TipoPrecoAplicado tipoPrecoAplicado
+    ) {
+        return switch (tipoPrecoAplicado) {
+            case PRECO_PADRAO -> {
+                BigDecimal precoAplicado = normalizarValorMonetario(itemDTO.getPrecoAplicado());
+                if (precoAplicado.compareTo(precoComercialOriginal) != 0) {
+                    throw PrecoVendaInvalidoException.precoPadraoDivergente(precoComercialOriginal, precoAplicado);
+                }
+                yield precoComercialOriginal;
+            }
+            case PRECO_ALTERADO -> normalizarValorUnitario(itemDTO.getPrecoAplicado());
+            case DESCONTO_TOTAL -> calcularPrecoUnitarioPorTotal(itemDTO.getPrecoTotal(), itemDTO.getQuantidade());
+        };
+    }
+
+    private BigDecimal resolverPrecoTotal(
+            ItemVendaRequestDTO itemDTO,
+            BigDecimal precoUnitario,
+            TipoPrecoAplicado tipoPrecoAplicado
+    ) {
+        if (tipoPrecoAplicado == TipoPrecoAplicado.DESCONTO_TOTAL) {
+            return normalizarValorMonetario(itemDTO.getPrecoTotal());
+        }
+        return precoUnitario.multiply(BigDecimal.valueOf(itemDTO.getQuantidade())).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calcularPrecoUnitarioPorTotal(BigDecimal precoTotalInformado, Integer quantidade) {
+        BigDecimal total = normalizarValorMonetario(precoTotalInformado);
+        return total.divide(BigDecimal.valueOf(quantidade), 4, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal normalizarValorMonetario(BigDecimal valor) {
+        return valor.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal normalizarValorUnitario(BigDecimal valor) {
+        return valor.setScale(4, RoundingMode.HALF_UP);
+    }
+
+    private String normalizarMotivo(String motivo) {
+        if (motivo == null || motivo.isBlank()) {
+            return null;
+        }
+        return motivo.trim();
     }
 
     private void performStockReduction(Produto produto, CanalVenda canalVenda, int quantity) {

@@ -85,7 +85,8 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata exceções de domínio com resposta HTTP 400 (Bad Request).
-     * Intercepta {@link PrecoVarejoNaoDefinidoException},
+     * Intercepta {@link PrecoComercialNaoDefinidoException},
+     * {@link TipoPrecoAplicadoInvalidoException},
      * {@link AtributoLoteInvalidoException}, {@link CalculoCustoIncompativelException},
      * {@link DimensoesManuaisInvalidasException}, {@link MargemInvalidaException},
      * {@link LotePrincipalNaoEspecificadoException},
@@ -97,7 +98,9 @@ public class GlobalExceptionHandler {
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
      */
     @ExceptionHandler({
-            PrecoVarejoNaoDefinidoException.class,
+            PrecoComercialNaoDefinidoException.class,
+            TipoPrecoAplicadoInvalidoException.class,
+            PrecoVendaInvalidoException.class,
             AtributoLoteInvalidoException.class, CalculoCustoIncompativelException.class, DimensoesManuaisInvalidasException.class,
             MargemInvalidaException.class, LotePrincipalNaoEspecificadoException.class,
             ProdutoNaoCabeNoLoteException.class, QuantidadeUnidadesInvalidaException.class, TipoProducaoIncompativelException.class,

@@ -7,8 +7,9 @@ import java.math.BigDecimal;
 
 /**
  * DTO de resumo para listagem de estoque de produtos em um canal específico.
- * Otimizado para autocompletes e buscas rápidas, contendo apenas os dados essenciais
- * do produto e sua disponibilidade no canal consultado.
+ * <p>
+ * É usado principalmente nos autocompletes e fluxos rápidos de venda, retornando
+ * somente identificação do produto, saldo no canal e o preço comercial atual.
  */
 @Getter
 @Setter
@@ -29,6 +30,6 @@ public class EstoqueProdutoResumoDTO {
     @Schema(description = "Quantidade disponível no canal consultado.", example = "50")
     private Integer quantidadeNoCanal;
 
-    @Schema(description = "Preço de venda sugerido (varejo).", example = "99.90")
-    private BigDecimal precoVenda;
+    @Schema(description = "Preço comercial atual do produto.", example = "99.90")
+    private BigDecimal precoComercial;
 }
