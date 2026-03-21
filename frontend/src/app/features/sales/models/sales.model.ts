@@ -10,8 +10,11 @@ export interface SaleItem {
   produtoSku: string;
   nomeProduto: string;
   quantidade: number;
+  precoComercialOriginal: number;
   precoUnitario: number;
   precoTotal: number;
+  tipoPrecoAplicado: 'PRECO_PADRAO' | 'PRECO_ALTERADO' | 'DESCONTO_TOTAL';
+  motivoAlteracaoPreco?: string | null;
 }
 
 /**
@@ -36,6 +39,10 @@ export interface SaleRequest {
   itens: {
     produtoId: number;
     quantidade: number;
+    precoAplicado: number;
+    precoTotal: number;
+    tipoPrecoAplicado: 'PRECO_PADRAO' | 'PRECO_ALTERADO' | 'DESCONTO_TOTAL';
+    motivoAlteracaoPreco?: string | null;
   }[];
 }
 

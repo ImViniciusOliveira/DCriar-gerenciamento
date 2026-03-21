@@ -224,7 +224,7 @@
         <p><strong>Produto:</strong> {{ product().nome }}</p>
         <p><strong>SKU:</strong> {{ product().sku }}</p>
         <p><strong>Ativo:</strong> {{ product().ativo ? 'Sim' : 'Não' }}</p>
-        <p><strong>Preço de Mercado:</strong> {{ product().precoMercado != null ? (product().precoMercado | currency:'BRL') : 'N/A' }}</p>
+        <p><strong>Preço Comercial:</strong> {{ product().precoComercial != null ? (product().precoComercial | currency:'BRL') : 'N/A' }}</p>
 
         <hr>
         <p><strong>Estoque Físico Total:</strong> {{ product().estoqueFisicoTotal }} pacotes</p>

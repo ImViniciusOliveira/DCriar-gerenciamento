@@ -31,7 +31,7 @@ export interface Product {
   estoqueFisicoTotal: number;
   estoqueDistribuidoTotal: number;
   estoqueDisponivelParaAlocar: number;
-  precoMercado?: number;
+  precoComercial?: number;
   fotoPrincipalUrl: string;
   materiaPrima: MaterialType;
   _links?: Hateoas['_links'];
@@ -56,11 +56,6 @@ export interface Product {
    */
   estoqueDisponivel?: number;
 
-  /**
-   * Preço temporário vindo do DTO de resumo de estoque.
-   * Usado para passar o preço de venda para o formulário.
-   */
-  _tempPrice?: number;
 }
 
 /**

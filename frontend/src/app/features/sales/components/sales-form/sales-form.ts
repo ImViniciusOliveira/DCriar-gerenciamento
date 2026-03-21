@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormControl, FormGroup, FormGroupDirective, NgForm, ReactiveFormsModule, Validators, ValidationErrors, AbstractControl, ValidatorFn } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -18,6 +18,8 @@ import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { ProductSearch } from '../../../../shared/components/product-search/product-search';
 import { Product } from '../../../products/models/product.model';
 import { ProductService } from '../../../products/services/product.service';
+
+type SalePriceType = 'PRECO_PADRAO' | 'PRECO_ALTERADO' | 'DESCONTO_TOTAL';
 
 /**
  * Validador que verifica se a parte inteira de um número excede um máximo de dígitos.
@@ -135,6 +137,7 @@ export class SalesForm implements OnInit {
   private readonly productService = inject(ProductService);
   private readonly entityDialog = inject(EntityDialogService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
   public readonly data: SalesFormData = inject(MAT_DIALOG_DATA);
 
   form: FormGroup;
@@ -209,8 +212,13 @@ export class SalesForm implements OnInit {
         itemGroup.patchValue({
           produtoId: item.produtoId,
           produtoNome: { id: item.produtoId, nome: item.nomeProduto, sku: item.produtoSku } as any,
-          quantidade: item.quantidade
-        });
+          quantidade: item.quantidade,
+          precoComercialOriginal: item.precoComercialOriginal,
+          precoAplicado: item.precoUnitario,
+          precoTotal: item.precoTotal,
+          tipoPrecoAplicado: item.tipoPrecoAplicado,
+          motivoAlteracaoPreco: item.motivoAlteracaoPreco ?? ''
+        }, { emitEvent: false });
 
         // Desabilita a troca de produto para itens existentes
         itemGroup.get('produtoNome')?.disable();
@@ -253,10 +261,15 @@ export class SalesForm implements OnInit {
    * Cria o FormGroup de um item.
    */
   private createItemControl(): FormGroup {
-    return this.fb.group({
+    const group = this.fb.group({
       produtoId: [null, Validators.required],
       produtoNome: ['', Validators.required],
       estoqueDisponivel: [null],
+      precoComercialOriginal: [null],
+      precoAplicado: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d{1,4})?$/)]],
+      precoTotal: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
+      tipoPrecoAplicado: ['PRECO_PADRAO' as SalePriceType, Validators.required],
+      motivoAlteracaoPreco: [''],
       quantidade: [1, [
         Validators.required,
         Validators.min(1),
@@ -264,6 +277,16 @@ export class SalesForm implements OnInit {
         Validators.pattern(/^-?\d*(\.\d+)?$/)
       ]]
     });
+
+    group.get('quantidade')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.recalculateItemPricing(group, 'quantidade'));
+
+    group.get('motivoAlteracaoPreco')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.syncMotivoRequirement(group));
+
+    return group;
   }
 
   /**
@@ -293,9 +316,136 @@ export class SalesForm implements OnInit {
       itemGroup.patchValue({
         produtoId: product.id,
         produtoNome: product,
-        estoqueDisponivel: product.estoqueDisponivel
+        estoqueDisponivel: product.estoqueDisponivel,
+        precoComercialOriginal: product.precoComercial ?? null
       });
+      this.recalculateItemPricing(itemGroup as FormGroup, 'produto');
       this.items.updateValueAndValidity();
+    }
+  }
+
+  onPrecoAplicadoChanged(index: number): void {
+    this.recalculateItemPricing(this.items.at(index) as FormGroup, 'precoAplicado');
+  }
+
+  onPrecoTotalChanged(index: number): void {
+    this.recalculateItemPricing(this.items.at(index) as FormGroup, 'precoTotal');
+  }
+
+  private recalculateItemPricing(group: FormGroup, source: 'produto' | 'quantidade' | 'precoAplicado' | 'precoTotal'): void {
+    const quantidade = Number(group.get('quantidade')?.value || 0);
+    const precoComercialOriginal = this.toMoneyNumber(group.get('precoComercialOriginal')?.value);
+    const precoAplicadoAtual = this.toMoneyNumber(group.get('precoAplicado')?.value);
+    const precoTotalAtual = this.toMoneyNumber(group.get('precoTotal')?.value);
+    const tipoAtual = (group.get('tipoPrecoAplicado')?.value || 'PRECO_PADRAO') as SalePriceType;
+
+    if (!quantidade || !precoComercialOriginal) {
+      return;
+    }
+
+    const totalPadrao = this.roundMoney(precoComercialOriginal * quantidade);
+
+    if (source === 'produto') {
+      group.patchValue({
+        precoAplicado: precoComercialOriginal,
+        precoTotal: totalPadrao,
+        tipoPrecoAplicado: 'PRECO_PADRAO',
+        motivoAlteracaoPreco: ''
+      }, { emitEvent: false });
+      this.syncMotivoRequirement(group);
+      return;
+    }
+
+    if (source === 'precoAplicado') {
+      const precoAplicado = this.roundUnitPrice(precoAplicadoAtual);
+      const total = this.roundMoney(precoAplicado * quantidade);
+      const isPadrao = precoAplicado === precoComercialOriginal;
+      group.patchValue({
+        precoAplicado,
+        precoTotal: total,
+        tipoPrecoAplicado: isPadrao ? 'PRECO_PADRAO' : 'PRECO_ALTERADO',
+        motivoAlteracaoPreco: isPadrao ? '' : group.get('motivoAlteracaoPreco')?.value
+      }, { emitEvent: false });
+      this.syncMotivoRequirement(group);
+      return;
+    }
+
+    if (source === 'precoTotal') {
+      const total = this.roundMoney(precoTotalAtual);
+      const precoAplicado = this.roundUnitPrice(total / quantidade);
+
+      const isPadrao = precoAplicado === precoComercialOriginal && total === totalPadrao;
+      group.patchValue({
+        precoAplicado,
+        precoTotal: total,
+        tipoPrecoAplicado: isPadrao ? 'PRECO_PADRAO' : 'DESCONTO_TOTAL',
+        motivoAlteracaoPreco: isPadrao ? '' : group.get('motivoAlteracaoPreco')?.value
+      }, { emitEvent: false });
+      this.syncMotivoRequirement(group);
+      return;
+    }
+
+    if (tipoAtual === 'DESCONTO_TOTAL') {
+      const total = this.roundMoney(precoTotalAtual);
+      const precoAplicado = this.roundUnitPrice(total / quantidade);
+      group.patchValue({ precoAplicado, precoTotal: total }, { emitEvent: false });
+      this.syncMotivoRequirement(group);
+      return;
+    }
+
+    if (tipoAtual === 'PRECO_ALTERADO') {
+      const precoAplicado = this.roundUnitPrice(precoAplicadoAtual);
+      group.patchValue({
+        precoAplicado,
+        precoTotal: this.roundMoney(precoAplicado * quantidade)
+      }, { emitEvent: false });
+      this.syncMotivoRequirement(group);
+      return;
+    }
+
+    group.patchValue({
+      precoAplicado: precoComercialOriginal,
+      precoTotal: totalPadrao,
+      tipoPrecoAplicado: 'PRECO_PADRAO',
+      motivoAlteracaoPreco: ''
+    }, { emitEvent: false });
+    this.syncMotivoRequirement(group);
+  }
+
+  private roundMoney(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
+  private roundUnitPrice(value: number): number {
+    return Math.round((value + Number.EPSILON) * 10000) / 10000;
+  }
+
+  private toMoneyNumber(value: unknown): number {
+    const parsed = Number(value ?? 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private syncMotivoRequirement(group: FormGroup): void {
+    const motivoControl = group.get('motivoAlteracaoPreco');
+    const tipoPrecoAplicado = group.get('tipoPrecoAplicado')?.value as SalePriceType;
+    if (!motivoControl) {
+      return;
+    }
+
+    if (tipoPrecoAplicado === 'PRECO_PADRAO') {
+      motivoControl.setErrors(null);
+      return;
+    }
+
+    const motivo = String(motivoControl.value ?? '').trim();
+    if (!motivo) {
+      motivoControl.setErrors({ ...(motivoControl.errors || {}), required: true });
+      return;
+    }
+
+    if (motivoControl.hasError('required')) {
+      const { required, ...otherErrors } = motivoControl.errors || {};
+      motivoControl.setErrors(Object.keys(otherErrors).length ? otherErrors : null);
     }
   }
 
@@ -329,7 +479,11 @@ export class SalesForm implements OnInit {
       canalVendaId: formValue.canalVendaId,
       itens: formValue.itens.map((item: any) => ({
         produtoId: item.produtoId,
-        quantidade: item.quantidade
+        quantidade: item.quantidade,
+        precoAplicado: this.roundUnitPrice(Number(item.precoAplicado)),
+        precoTotal: this.roundMoney(Number(item.precoTotal)),
+        tipoPrecoAplicado: item.tipoPrecoAplicado,
+        motivoAlteracaoPreco: item.motivoAlteracaoPreco?.trim() || null
       }))
     };
 

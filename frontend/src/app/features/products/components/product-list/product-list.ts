@@ -89,7 +89,7 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
       { key: 'sku', header: 'SKU', sortable: true, cellTemplate: this.skuTemplate },
       { key: 'nome', header: 'Produto', sortable: true, cellTemplate: this.nomeTemplate },
       { key: 'ativo', header: 'Ativo', sortable: true, cellTemplate: this.ativoTemplate },
-      { key: 'precoMercado', header: 'Preço', sortable: false, cellTemplate: this.priceTemplate },
+      { key: 'precoComercial', header: 'Preço', sortable: false, cellTemplate: this.priceTemplate },
       { key: 'estoque', header: 'Estoque Total', sortable: true, sortKey: 'estoqueFisicoTotal', cellTemplate: this.estoqueTemplate },
       { key: 'detalhes', header: 'Detalhes', sortable: false, cellTemplate: this.detalhesTemplate },
       { key: 'estoquePorCanal', header: 'Canais', sortable: false, cellTemplate: this.estoquePorCanalTemplate },
