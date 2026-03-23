@@ -41,4 +41,17 @@ public class ImpossivelExcluirProducaoException extends RuntimeException {
                 )
         );
     }
+
+    public static ImpossivelExcluirProducaoException estoqueCanalInsuficienteParaEstorno(
+            Long canalVendaId,
+            int quantidadeProduzida,
+            int estoqueAtualCanal
+    ) {
+        return new ImpossivelExcluirProducaoException(String.format(
+                "Estoque insuficiente no canal #%d para estorno da produção. Produzido: %d, Estoque no Canal: %d.",
+                canalVendaId,
+                quantidadeProduzida,
+                estoqueAtualCanal
+        ));
+    }
 }

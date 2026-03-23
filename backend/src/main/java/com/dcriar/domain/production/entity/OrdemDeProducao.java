@@ -167,12 +167,12 @@ public class OrdemDeProducao extends AuditableEntity {
         this.lotesConsumidos = lotesConsumidos;
         this.canalVendaDestinoId = dto.getCanalVendaDestinoId();
         this.quantidadeProduzida = dto.getQuantidadeProduzida();
-        this.modoCalculo = ModoCalculo.valueOf(dto.getModoCalculo());
+        this.modoCalculo = dto.getModoCalculo() != null ? ModoCalculo.valueOf(dto.getModoCalculo()) : null;
         this.margens = margens;
         this.larguraFinalCm = dto.getLarguraFinalCm();
         this.comprimentoFinalCm = dto.getComprimentoFinalCm();
         this.motivo = dto.getMotivo();
-        this.rotacionado = dto.isRotacionado();
+        this.rotacionado = dto.getModoCalculo() != null && dto.isRotacionado();
     }
 
     /**

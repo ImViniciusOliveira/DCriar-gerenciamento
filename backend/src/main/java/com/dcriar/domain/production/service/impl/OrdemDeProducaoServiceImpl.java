@@ -3,6 +3,7 @@ package com.dcriar.domain.production.service.impl;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.production.*;
+import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
 import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
 import com.dcriar.api.dto.response.production.OrdemDeConsumoResponseDTO;
@@ -297,6 +298,209 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .build();
     }
 
+    @Override
+    @Transactional
+    public OrdemDeProducaoResponseDTO atualizarOrdemDeCorte(Long id, OrdemDeCorteRequestDTO requestDTO) {
+        OrdemDeProducao ordemExistente = findOrdemByIdWithDetails(id);
+        prepararOrdemParaReprocessamento(ordemExistente);
+
+        Produto produto = findProdutoById(requestDTO.getProdutoId());
+        if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
+            throw TipoProducaoIncompativelException.produtoNaoPermiteCorte(
+                    produto.getNome(),
+                    produto.getTipoMateriaPrima().getUnidadeDeConsumo().name()
+            );
+        }
+
+        if (requestDTO.getLoteId() == null) {
+            throw LotePrincipalNaoEspecificadoException.paraProducaoPorCorte();
+        }
+        LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLoteId());
+        validarCompatibilidadeMaterialEntreProdutoELote(produto, lotePrincipal);
+        carregarSaldoAtualNoLote(lotePrincipal);
+
+        BigDecimal comprimentoFinalCm;
+        BigDecimal larguraFinalCm;
+        List<CorteRealizadoResponseDTO> cortesRealizadosDTOs;
+        ParametrosCorte parametros;
+        boolean isModoManual = requestDTO.getModoCalculo() == ModoCalculo.MANUAL;
+
+        if (isModoManual) {
+            parametros = corteCalculatorService.extrairParametrosCorteManual(
+                    requestDTO.getQuantidadeProduzida(),
+                    produto,
+                    lotePrincipal,
+                    requestDTO.getLarguraBlocoProdutosCm(),
+                    requestDTO.getComprimentoBlocoProdutosCm()
+            );
+            larguraFinalCm = parametros.larguraTotalLoteCm();
+            comprimentoFinalCm = requestDTO.getComprimentoBlocoProdutosCm();
+            ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, true);
+            cortesRealizadosDTOs = resumo.cortes();
+        } else {
+            ParametrosCorte parametrosBase = corteCalculatorService.extrairParametrosCorte(
+                    requestDTO.getQuantidadeProduzida(), produto, lotePrincipal, null
+            );
+
+            BigDecimal margemEsquerda = Optional.ofNullable(requestDTO.getMargens()).map(MargensRequestDTO::getEsquerda).orElse(BigDecimal.ZERO);
+            BigDecimal margemDireita = Optional.ofNullable(requestDTO.getMargens()).map(MargensRequestDTO::getDireita).orElse(BigDecimal.ZERO);
+
+            BigDecimal larguraProdutosAgrupados = parametrosBase.larguraBlocoProdutosCm();
+            BigDecimal larguraBlocoFinalComMargens = larguraProdutosAgrupados
+                    .add(margemEsquerda)
+                    .add(margemDireita);
+
+            if (larguraBlocoFinalComMargens.compareTo(BigDecimal.ZERO) <= 0) {
+                throw MargemInvalidaException.larguraFinalNaoPositiva(
+                        larguraBlocoFinalComMargens,
+                        larguraProdutosAgrupados,
+                        margemEsquerda.add(margemDireita)
+                );
+            }
+
+            if (larguraBlocoFinalComMargens.compareTo(parametrosBase.larguraTotalLoteCm()) > 0) {
+                throw MargemInvalidaException.larguraComMargensExcedeLote(
+                        larguraProdutosAgrupados,
+                        margemEsquerda,
+                        margemDireita,
+                        parametrosBase.larguraTotalLoteCm()
+                );
+            }
+            BigDecimal larguraRetalhoFinal = parametrosBase.larguraTotalLoteCm().subtract(larguraBlocoFinalComMargens);
+
+            parametros = new ParametrosCorte(
+                    parametrosBase.larguraTotalLoteCm(),
+                    parametrosBase.larguraProduto(),
+                    parametrosBase.comprimentoProduto(),
+                    parametrosBase.quantidade(),
+                    margemEsquerda,
+                    margemDireita,
+                    parametrosBase.produtosPorLinha(),
+                    parametrosBase.rotacionado(),
+                    larguraBlocoFinalComMargens,
+                    larguraRetalhoFinal
+            );
+
+            long numeroDeLinhas = (long) Math.ceil((double) requestDTO.getQuantidadeProduzida() / parametros.produtosPorLinha());
+            comprimentoFinalCm = parametros.comprimentoProduto().multiply(new BigDecimal(numeroDeLinhas));
+            if (requestDTO.getMargens() != null) {
+                comprimentoFinalCm = comprimentoFinalCm
+                        .add(Optional.ofNullable(requestDTO.getMargens().getSuperior()).orElse(BigDecimal.ZERO))
+                        .add(Optional.ofNullable(requestDTO.getMargens().getInferior()).orElse(BigDecimal.ZERO));
+            }
+            if (comprimentoFinalCm.compareTo(BigDecimal.ZERO) <= 0) {
+                throw MargemInvalidaException.comprimentoFinalNaoPositivo(comprimentoFinalCm);
+            }
+
+            ResumoLayoutCorte resumo = corteCalculatorService.calcularLayoutDetalhado(parametros, comprimentoFinalCm, false);
+            cortesRealizadosDTOs = resumo.cortes();
+            larguraFinalCm = parametros.larguraTotalLoteCm();
+        }
+
+        BigDecimal consumoTotalLote = calcularConsumoCorteNaUnidadeDoLote(
+                lotePrincipal,
+                parametros.larguraTotalLoteCm(),
+                comprimentoFinalCm
+        );
+        validarSaldoLoteCorte(lotePrincipal, consumoTotalLote);
+
+        MargensRequestDTO margensRequest = requestDTO.getMargens();
+        Margens margensEntity = null;
+        if (requestDTO.getModoCalculo() == ModoCalculo.AUTOMATICO && margensRequest != null) {
+            margensEntity = ordemDeProducaoMapper.toMargensEntity(margensRequest);
+        }
+
+        OrdemDeProducaoRequestDTO ordemRequestDTO = OrdemDeProducaoRequestDTO.builder()
+                .produtoId(produto.getId())
+                .lotesConsumidosIds(Set.of(lotePrincipal.getId()))
+                .canalVendaDestinoId(requestDTO.getCanalVendaDestinoId())
+                .quantidadeProduzida(requestDTO.getQuantidadeProduzida())
+                .modoCalculo(requestDTO.getModoCalculo().name())
+                .margens(margensRequest)
+                .larguraFinalCm(larguraFinalCm)
+                .comprimentoFinalCm(comprimentoFinalCm)
+                .motivo(requestDTO.getMotivo())
+                .rotacionado(parametros.rotacionado())
+                .build();
+
+        ordemExistente.updateFrom(ordemRequestDTO, produto, new HashSet<>(Set.of(lotePrincipal)), margensEntity);
+        ordemExistente.getCortesRealizados().clear();
+
+        for (CorteRealizadoResponseDTO dto : cortesRealizadosDTOs) {
+            ordemExistente.addCorteRealizado(CorteRealizado.from(
+                    CorteRealizadoRequestDTO.builder()
+                            .larguraCm(dto.getLarguraCm())
+                            .comprimentoCm(dto.getComprimentoCm())
+                            .quantidade(dto.getQuantidade())
+                            .tipo(dto.getTipo())
+                            .retalhoCategoria(dto.getRetalhoCategoria())
+                            .repeticoes(resolveRepeticoes(dto))
+                            .ordemDeProducaoId(ordemExistente.getId())
+                            .build(),
+                    ordemExistente
+            ));
+        }
+
+        OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordemExistente);
+
+        registrarSaidaLote(lotePrincipal, consumoTotalLote, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
+        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
+        distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
+
+        for (CorteRealizadoResponseDTO dto : cortesRealizadosDTOs) {
+            if ("RETALHO".equals(dto.getTipo())) {
+                criarLoteDeRetalho(lotePrincipal, dto.getLarguraCm(), dto.getComprimentoCm(), savedOrdem);
+            }
+        }
+
+        return ordemDeProducaoMapper.toDto(savedOrdem);
+    }
+
+    @Override
+    @Transactional
+    public OrdemDeProducaoResponseDTO atualizarOrdemDeConsumo(Long id, OrdemDeConsumoRequestDTO requestDTO) {
+        OrdemDeProducao ordemExistente = findOrdemByIdWithDetails(id);
+        prepararOrdemParaReprocessamento(ordemExistente);
+
+        Produto produto = findProdutoById(requestDTO.getProdutoId());
+        if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumo()) {
+            throw TipoProducaoIncompativelException.produtoNaoEhConsumo(
+                    produto.getNome(),
+                    produto.getTipoMateriaPrima().getUnidadeDeConsumo().name()
+            );
+        }
+
+        LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());
+        validarCompatibilidadeMaterialEntreProdutoELote(produto, loteConsumido);
+
+        BigDecimal consumoTotalNecessario = produto.getUnidadesPorProduto()
+                .multiply(BigDecimal.valueOf(requestDTO.getQuantidadeProduzida()));
+        BigDecimal saldoDisponivel = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteConsumido);
+
+        if (saldoDisponivel.compareTo(consumoTotalNecessario) < 0) {
+            throw new SaldoMateriaPrimaInsuficienteException(consumoTotalNecessario, saldoDisponivel);
+        }
+
+        OrdemDeProducaoRequestDTO ordemRequestDTO = OrdemDeProducaoRequestDTO.builder()
+                .produtoId(produto.getId())
+                .lotesConsumidosIds(Set.of(loteConsumido.getId()))
+                .canalVendaDestinoId(requestDTO.getCanalVendaDestinoId())
+                .quantidadeProduzida(requestDTO.getQuantidadeProduzida())
+                .motivo(requestDTO.getMotivo())
+                .build();
+
+        ordemExistente.updateFrom(ordemRequestDTO, produto, new HashSet<>(Set.of(loteConsumido)), null);
+        ordemExistente.getCortesRealizados().clear();
+
+        OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordemExistente);
+
+        registrarSaidaLote(loteConsumido, consumoTotalNecessario, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
+        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
+        distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
+
+        return ordemDeProducaoMapper.toDto(savedOrdem);
+    }
+
     /**
      * Exclui uma ordem de produção e estorna todas as movimentações de estoque associadas.
      * <p>
@@ -321,72 +525,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Override
     @Transactional
     public void excluir(Long id) {
-        OrdemDeProducao ordem = ordemDeProducaoRepository.findById(id)
-                .orElseThrow(() -> new OrdemDeProducaoNaoEncontradaException(id));
-
-        // 1. Validação: Produto Acabado
-        Integer saldoAtualProduto = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(ordem.getProduto());
-        if (saldoAtualProduto < ordem.getQuantidadeProduzida()) {
-            throw ImpossivelExcluirProducaoException.estoqueInsuficienteParaEstorno(
-                    ordem.getQuantidadeProduzida(),
-                    saldoAtualProduto
-            );
-        }
-
-        // 2. Validação: Retalhos Gerados
-        List<LoteMateriaPrima> retalhosGerados = loteMateriaPrimaRepository.findByOrdemDeProducaoOrigem(ordem);
-        for (LoteMateriaPrima retalho : retalhosGerados) {
-            boolean temSaida = retalho.getMovimentacoes().stream()
-                    .anyMatch(m -> m.getQuantidade().compareTo(BigDecimal.ZERO) < 0);
-            
-            if (temSaida) {
-                 Long ordemOrigemId = retalho.getOrdemDeProducaoOrigem() != null
-                         ? retalho.getOrdemDeProducaoOrigem().getId()
-                         : ordem.getId();
-                 throw ImpossivelExcluirProducaoException.retalhoJaUtilizado(retalho.getId(), ordemOrigemId);
-            }
-        }
-
-        // 3. Estorno: Produto Acabado
-        MovimentacaoEstoqueProdutoRequestDTO estornoProdutoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
-                .produtoId(ordem.getProduto().getId())
-                .tipo(TipoMovimentacaoProduto.ESTORNO_PRODUCAO.name())
-                .quantidade(-ordem.getQuantidadeProduzida())
-                .motivo("Estorno da Ordem de Produção #" + ordem.getId())
-                .build();
-        MovimentacaoEstoqueProduto estornoProduto = MovimentacaoEstoqueProduto.from(estornoProdutoDTO, ordem.getProduto());
-        movimentacaoEstoqueProdutoRepository.save(estornoProduto);
-
-        // 4. Estorno: Matéria-Prima
-        List<MovimentacaoEstoqueLote> baixasMP = movimentacaoEstoqueLoteRepository.findByOrdemDeProducao(ordem);
-        for (MovimentacaoEstoqueLote baixa : baixasMP) {
-            if (baixa.getQuantidade().compareTo(BigDecimal.ZERO) >= 0) continue;
-
-            MovimentacaoRequestDTO estornoMPDTO = MovimentacaoRequestDTO.builder()
-                    .tipo(TipoMovimentacao.ESTORNO_PRODUCAO)
-                    .quantidade(baixa.getQuantidade().abs())
-                    .motivo("Estorno da Ordem de Produção #" + ordem.getId())
-                    .build();
-            MovimentacaoEstoqueLote estornoMP = MovimentacaoEstoqueLote.from(estornoMPDTO, baixa.getLote());
-            movimentacaoEstoqueLoteRepository.save(estornoMP);
-        }
-
-        // 5. Limpeza: Vínculos
-        // Dissocia todas as movimentações da ordem antes de excluí-la para evitar erros de objeto transiente.
-        List<MovimentacaoEstoqueProduto> movimentosProduto = movimentacaoEstoqueProdutoRepository.findByOrdemDeProducao(ordem);
-        movimentosProduto.forEach(mov -> mov.setOrdemDeProducao(null));
-        movimentacaoEstoqueProdutoRepository.saveAll(movimentosProduto);
-
-        baixasMP.forEach(mov -> mov.setOrdemDeProducao(null));
-        movimentacaoEstoqueLoteRepository.saveAll(baixasMP);
-
-        // 6. Limpeza: Retalhos e Relações da Ordem
-        loteMateriaPrimaRepository.deleteAll(retalhosGerados);
+        OrdemDeProducao ordem = findOrdemByIdWithDetails(id);
+        prepararOrdemParaReprocessamento(ordem);
         ordem.getLotesConsumidos().clear();
-        // Não é mais necessário salvar a ordem aqui, pois ela será deletada.
-        // ordemDeProducaoRepository.save(ordem);
-
-        // 7. Exclusão Final: Ordem de Produção
         ordemDeProducaoRepository.delete(ordem);
     }
 
@@ -593,6 +734,11 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         LoteMateriaPrima loteRetalho = LoteMateriaPrima.builder()
                 .tipoMateriaPrima(lotePrincipal.getTipoMateriaPrima())
                 .unidadeDeEstoque(lotePrincipal.getUnidadeDeEstoque())
+                .unidadeCadastroEstoque(
+                        lotePrincipal.getUnidadeCadastroEstoque() != null
+                                ? lotePrincipal.getUnidadeCadastroEstoque()
+                                : lotePrincipal.getUnidadeDeEstoque()
+                )
                 .atributos(novosAtributos)
                 .loteDeOrigem(lotePrincipal)
                 .ordemDeProducaoOrigem(ordemOrigem)
@@ -677,9 +823,113 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .orElseThrow(() -> new ProdutoNaoEncontradoException(id));
     }
 
+    private OrdemDeProducao findOrdemByIdWithDetails(Long id) {
+        return ordemDeProducaoRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new OrdemDeProducaoNaoEncontradaException(id));
+    }
+
     private LoteMateriaPrima findLoteById(Long id) {
         return loteMateriaPrimaRepository.findByIdWithTipoMateriaPrima(id)
                 .orElseThrow(() -> new LoteMateriaPrimaNaoEncontradoException(id));
+    }
+
+    private void prepararOrdemParaReprocessamento(OrdemDeProducao ordem) {
+        validarOrdemPodeSerEstornada(ordem);
+        List<MovimentacaoEstoqueLote> movimentacoesLote = estornarMovimentacoesDaOrdem(ordem);
+        desvincularMovimentacoesDaOrdem(ordem, movimentacoesLote);
+        limparRetalhosDaOrdem(ordem);
+    }
+
+    private void validarOrdemPodeSerEstornada(OrdemDeProducao ordem) {
+        Integer saldoAtualProduto = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(ordem.getProduto());
+        if (saldoAtualProduto < ordem.getQuantidadeProduzida()) {
+            throw ImpossivelExcluirProducaoException.estoqueInsuficienteParaEstorno(
+                    ordem.getQuantidadeProduzida(),
+                    saldoAtualProduto
+            );
+        }
+
+        if (ordem.getCanalVendaDestinoId() != null) {
+            int estoqueAtualCanal = consultarSaldoCanal(ordem.getProduto().getId(), ordem.getCanalVendaDestinoId());
+            if (estoqueAtualCanal < ordem.getQuantidadeProduzida()) {
+                throw ImpossivelExcluirProducaoException.estoqueCanalInsuficienteParaEstorno(
+                        ordem.getCanalVendaDestinoId(),
+                        ordem.getQuantidadeProduzida(),
+                        estoqueAtualCanal
+                );
+            }
+        }
+
+        List<LoteMateriaPrima> retalhosGerados = loteMateriaPrimaRepository.findByOrdemDeProducaoOrigem(ordem);
+        for (LoteMateriaPrima retalho : retalhosGerados) {
+            boolean temSaida = retalho.getMovimentacoes().stream()
+                    .anyMatch(m -> m.getQuantidade().compareTo(BigDecimal.ZERO) < 0);
+
+            if (temSaida) {
+                Long ordemOrigemId = retalho.getOrdemDeProducaoOrigem() != null
+                        ? retalho.getOrdemDeProducaoOrigem().getId()
+                        : ordem.getId();
+                throw ImpossivelExcluirProducaoException.retalhoJaUtilizado(retalho.getId(), ordemOrigemId);
+            }
+        }
+    }
+
+    private List<MovimentacaoEstoqueLote> estornarMovimentacoesDaOrdem(OrdemDeProducao ordem) {
+        if (ordem.getCanalVendaDestinoId() != null && ordem.getQuantidadeProduzida() != null && ordem.getQuantidadeProduzida() > 0) {
+            AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
+                    .produtoId(ordem.getProduto().getId())
+                    .canalVendaId(ordem.getCanalVendaDestinoId())
+                    .quantidade(-ordem.getQuantidadeProduzida())
+                    .build();
+            estoqueProdutoService.ajustarEstoque(ajusteDTO);
+        }
+
+        MovimentacaoEstoqueProdutoRequestDTO estornoProdutoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
+                .produtoId(ordem.getProduto().getId())
+                .tipo(TipoMovimentacaoProduto.ESTORNO_PRODUCAO.name())
+                .quantidade(-ordem.getQuantidadeProduzida())
+                .motivo("Estorno da Ordem de Produção #" + ordem.getId())
+                .build();
+        MovimentacaoEstoqueProduto estornoProduto = MovimentacaoEstoqueProduto.from(estornoProdutoDTO, ordem.getProduto());
+        movimentacaoEstoqueProdutoRepository.save(estornoProduto);
+
+        List<MovimentacaoEstoqueLote> movimentacoesLote = movimentacaoEstoqueLoteRepository.findByOrdemDeProducao(ordem);
+        for (MovimentacaoEstoqueLote movimentacao : movimentacoesLote) {
+            if (movimentacao.getQuantidade().compareTo(BigDecimal.ZERO) >= 0) continue;
+
+            MovimentacaoRequestDTO estornoMPDTO = MovimentacaoRequestDTO.builder()
+                    .tipo(TipoMovimentacao.ESTORNO_PRODUCAO)
+                    .quantidade(movimentacao.getQuantidade().abs())
+                    .motivo("Estorno da Ordem de Produção #" + ordem.getId())
+                    .build();
+            MovimentacaoEstoqueLote estornoMP = MovimentacaoEstoqueLote.from(estornoMPDTO, movimentacao.getLote());
+            movimentacaoEstoqueLoteRepository.save(estornoMP);
+        }
+
+        return movimentacoesLote;
+    }
+
+    private void desvincularMovimentacoesDaOrdem(OrdemDeProducao ordem, List<MovimentacaoEstoqueLote> movimentacoesLote) {
+        List<MovimentacaoEstoqueProduto> movimentosProduto = movimentacaoEstoqueProdutoRepository.findByOrdemDeProducao(ordem);
+        movimentosProduto.forEach(mov -> mov.setOrdemDeProducao(null));
+        movimentacaoEstoqueProdutoRepository.saveAll(movimentosProduto);
+
+        movimentacoesLote.forEach(mov -> mov.setOrdemDeProducao(null));
+        movimentacaoEstoqueLoteRepository.saveAll(movimentacoesLote);
+    }
+
+    private void limparRetalhosDaOrdem(OrdemDeProducao ordem) {
+        List<LoteMateriaPrima> retalhosGerados = loteMateriaPrimaRepository.findByOrdemDeProducaoOrigem(ordem);
+        loteMateriaPrimaRepository.deleteAll(retalhosGerados);
+    }
+
+    private int consultarSaldoCanal(Long produtoId, Long canalVendaId) {
+        try {
+            EstoqueResponseDTO estoque = estoqueProdutoService.consultarEstoque(produtoId, canalVendaId);
+            return estoque.getQuantidade();
+        } catch (EstoqueNaoEncontradoException ex) {
+            return 0;
+        }
     }
 
     private void validarCompatibilidadeMaterialEntreProdutoELote(Produto produto, LoteMateriaPrima lote) {

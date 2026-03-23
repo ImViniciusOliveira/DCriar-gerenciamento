@@ -41,6 +41,9 @@ public class OrdemDeProducaoResponseDTO extends RepresentationModel<OrdemDeProdu
     @Schema(description = "Lista de IDs dos lotes de matéria-prima consumidos.")
     private List<Long> lotesConsumidosIds;
 
+    @Schema(description = "ID do canal de venda para o qual o estoque produzido foi destinado.", nullable = true)
+    private Long canalVendaDestinoId;
+
     @Schema(description = "Quantidade de unidades do produto que foram produzidas.")
     private Integer quantidadeProduzida;
 

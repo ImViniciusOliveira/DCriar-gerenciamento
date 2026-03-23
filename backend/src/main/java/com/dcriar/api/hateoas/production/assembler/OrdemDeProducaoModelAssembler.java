@@ -66,6 +66,12 @@ public class OrdemDeProducaoModelAssembler extends RepresentationModelAssemblerS
                     .toUriString();
             model.add(Link.of(selfUrl).withSelfRel());
 
+            String atualizarUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/ordens-de-producao/{id}/{tipo}")
+                    .buildAndExpand(dto.getId(), resolveTipoPath(dto.getTipoProduto()))
+                    .toUriString();
+            model.add(Link.of(atualizarUrl, "update"));
+
             String deletarUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/api/v1/ordens-de-producao/{id}")
                     .buildAndExpand(dto.getId())
@@ -130,5 +136,9 @@ public class OrdemDeProducaoModelAssembler extends RepresentationModelAssemblerS
      */
     public ResponseEntity<OrdemDeProducaoModel> toOkResponseEntity(@NonNull OrdemDeProducaoResponseDTO dto) {
         return ResponseEntity.ok(toModel(dto));
+    }
+
+    private String resolveTipoPath(String tipoProduto) {
+        return "CONSUMO".equalsIgnoreCase(tipoProduto) ? "consumo" : "corte";
     }
 }

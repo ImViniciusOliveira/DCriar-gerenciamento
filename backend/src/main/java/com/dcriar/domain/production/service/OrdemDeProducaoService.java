@@ -33,6 +33,24 @@ public interface OrdemDeProducaoService {
     OrdemDeConsumoResponseDTO criarOrdemDeConsumo(OrdemDeConsumoRequestDTO requestDTO);
 
     /**
+     * Atualiza e reprocessa uma ordem de produção do tipo CORTE.
+     *
+     * @param id O ID da ordem de produção a ser atualizada.
+     * @param requestDTO O DTO com os novos dados da ordem de corte.
+     * @return O DTO com os dados atualizados da ordem de produção.
+     */
+    OrdemDeProducaoResponseDTO atualizarOrdemDeCorte(Long id, OrdemDeCorteRequestDTO requestDTO);
+
+    /**
+     * Atualiza e reprocessa uma ordem de produção do tipo CONSUMO.
+     *
+     * @param id O ID da ordem de produção a ser atualizada.
+     * @param requestDTO O DTO com os novos dados da ordem de consumo.
+     * @return O DTO com os dados atualizados da ordem de produção.
+     */
+    OrdemDeProducaoResponseDTO atualizarOrdemDeConsumo(Long id, OrdemDeConsumoRequestDTO requestDTO);
+
+    /**
      * Exclui uma ordem de produção pelo seu ID.
      *
      * @param id O ID da ordem a ser excluída.

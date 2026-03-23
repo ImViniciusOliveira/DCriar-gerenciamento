@@ -79,6 +79,36 @@ public class OrdemDeProducaoController {
         return ordemDeConsumoModelAssembler.toCreatedResponseEntity(responseDTO);
     }
 
+    @PutMapping("/{id}/corte")
+    @Operation(summary = "Atualizar uma ordem de produção do tipo CORTE")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ordem de produção atualizada com sucesso."),
+            @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Ordem de produção não encontrada.", content = @Content)
+    })
+    public ResponseEntity<OrdemDeProducaoModel> atualizarOrdemDeCorte(
+            @Parameter(description = "ID da ordem de produção.", example = "1")
+            @PathVariable Long id,
+            @RequestBody @Valid OrdemDeCorteRequestDTO requestDTO) {
+        OrdemDeProducaoResponseDTO responseDTO = ordemDeProducaoService.atualizarOrdemDeCorte(id, requestDTO);
+        return ordemDeProducaoModelAssembler.toOkResponseEntity(responseDTO);
+    }
+
+    @PutMapping("/{id}/consumo")
+    @Operation(summary = "Atualizar uma ordem de produção do tipo CONSUMO")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ordem de produção atualizada com sucesso."),
+            @ApiResponse(responseCode = "400", description = "Dados de requisição inválidos.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Ordem de produção não encontrada.", content = @Content)
+    })
+    public ResponseEntity<OrdemDeProducaoModel> atualizarOrdemDeConsumo(
+            @Parameter(description = "ID da ordem de produção.", example = "1")
+            @PathVariable Long id,
+            @RequestBody @Valid OrdemDeConsumoRequestDTO requestDTO) {
+        OrdemDeProducaoResponseDTO responseDTO = ordemDeProducaoService.atualizarOrdemDeConsumo(id, requestDTO);
+        return ordemDeProducaoModelAssembler.toOkResponseEntity(responseDTO);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Buscar ordem de produção por ID")
     @ApiResponses(value = {
