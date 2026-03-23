@@ -190,10 +190,12 @@
                     <h4 class="feedback-header">Produto</h4>
                     <p class="feedback-item">Tamanho do Produto (L x C): <strong>{{ produto()?.dimensoes?.larguraCm }}cm x {{ produto()?.dimensoes?.comprimentoCm }}cm</strong></p>
                     @if (result.rotacionado) {
-                      <p class="feedback-item">Tamanho no Corte (L x C): <strong>{{ rotatedDimensionString() }}</strong> (rotacionado)</p>
+                      <p class="feedback-item">Peça no Corte (L x C): <strong>{{ rotatedDimensionString() }}</strong> ({{ getCutPieceOrientationLabel(result.rotacionado) }})</p>
                     } @else {
-                      <p class="feedback-item">Tamanho no Corte (L x C): <strong>{{ result.dimensaoProduto }}</strong></p>
+                      <p class="feedback-item">Peça no Corte (L x C): <strong>{{ result.dimensaoProduto }}</strong> ({{ getCutPieceOrientationLabel(result.rotacionado) }})</p>
                     }
+                    <p class="feedback-item">Bloco de Produtos (L x C): <strong>{{ result.larguraBlocoProdutosCm }}cm x {{ result.comprimentoBlocoProdutosCm }}cm</strong></p>
+                    <p class="feedback-item">Resultado com Margens (L x C): <strong>{{ blockWithMarginsString() }}</strong> ({{ getBlockMarginsUsageLabel() }})</p>
                   </div>
 
                   <!-- Coluna Direita -->
@@ -404,7 +406,7 @@
 
   <mat-dialog-actions align="end">
     <button mat-button type="button" (click)="onCancel()">Cancelar</button>
-    <button mat-raised-button color="primary" type="submit" [disabled]="!simulationResult() || form.invalid || isSaving() || needsVerification()">
+    <button mat-raised-button color="primary" type="submit" [disabled]="!simulationResult() || form.invalid || isSaving() || needsVerification() || (isEditMode() && !hasEditChanges())">
       {{ isSaving() ? 'Salvando...' : (isEditMode() ? 'Confirmar e Atualizar Ordem' : 'Confirmar e Criar Ordem') }}
     </button>
   </mat-dialog-actions>

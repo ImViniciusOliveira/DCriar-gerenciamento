@@ -2,6 +2,7 @@ package com.dcriar.api.hateoas.production.model;
 
 import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
 import com.dcriar.api.dto.response.production.DetalhesCorteResponseDTO;
+import com.dcriar.api.dto.response.production.MargensResponseDTO;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRootName;
@@ -48,6 +49,9 @@ public class OrdemDeProducaoModel extends RepresentationModel<OrdemDeProducaoMod
 
     @Schema(description = "Modo de cálculo utilizado (relevante para ordens de corte).")
     private ModoCalculo modoCalculo;
+
+    @Schema(description = "Margens de segurança aplicadas no corte (relevante para modo automático).", nullable = true)
+    private MargensResponseDTO margens;
 
     @Schema(description = "Data e hora em que a ordem foi criada.")
     private LocalDateTime dataCriacao;
