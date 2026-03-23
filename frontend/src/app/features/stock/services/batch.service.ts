@@ -122,6 +122,12 @@ export class BatchService {
     return this.http.get<Batch>(this.normalizeUrl(url));
   }
 
+  findById(batchId: number | string): Observable<Batch> {
+    return this.getBaseUrl().pipe(
+      switchMap(baseUrl => this.http.get<Batch>(`${baseUrl}/${batchId}`))
+    );
+  }
+
   /**
    * Cria um novo Lote de Matéria-Prima na API.
    * @param request O payload para a criação.

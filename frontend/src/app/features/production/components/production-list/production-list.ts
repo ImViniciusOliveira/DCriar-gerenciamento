@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { catchError, of } from 'rxjs';
+import { catchError, lastValueFrom, of } from 'rxjs';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
@@ -42,11 +42,13 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
   private static readonly Texts = {
     deleteConfirmTitle: 'Confirmar Exclusão',
     deleteSuccess: 'Ordem de produção excluída com sucesso!',
+    updateSuccess: 'Ordem de produção atualizada com sucesso!',
     deleteError: 'Falha ao excluir a ordem de produção.',
     loadError: 'Falha ao carregar a lista de ordens de produção.',
     resourceError: 'Não foi possível encontrar o recurso.',
     createTitle: 'Nova Produção',
-    detailsTitle: 'Detalhes da Ordem'
+    detailsTitle: 'Detalhes da Ordem',
+    editTitle: 'Editar Ordem'
   };
 
   tableColumns: TableColumn<ProductionOrder>[] = [];
@@ -99,23 +101,20 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
     });
   }
 
-  onCreate(): void {
-    const dialogData: ProductionFormData = {
-      title: ProductionList.Texts.createTitle,
-      isViewMode: false
-    };
-
-    this.entityDialog.openFormDialog({
-      component: ProductionForm,
-      formData: dialogData,
-      title: dialogData.title,
-      width: '900px'
-    }).subscribe(saved => {
-      if (saved) {
-        this.entityDialog.showSuccessSnackbar('Ordem de produção criada com sucesso!');
-        this.productionService.updateSearchParams({});
-      }
-    });
+  async onCreate(): Promise<void> {
+    try {
+      const template = await lastValueFrom(this.productionService.getNewTemplate());
+      this.openEditDialog({
+        template,
+        title: ProductionList.Texts.createTitle,
+        isViewMode: false
+      }, 'Ordem de produção criada com sucesso!');
+    } catch {
+      this.openEditDialog({
+        title: ProductionList.Texts.createTitle,
+        isViewMode: false
+      }, 'Ordem de produção criada com sucesso!');
+    }
   }
 
   /**
@@ -128,6 +127,15 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
       title: ProductionList.Texts.detailsTitle,
       isViewMode: true
     });
+  }
+
+  onEdit(order: ProductionOrder): void {
+    const orderCopy = structuredClone(order);
+    this.openEditDialog({
+      template: orderCopy,
+      title: ProductionList.Texts.editTitle,
+      isViewMode: false
+    }, ProductionList.Texts.updateSuccess);
   }
 
   onDelete(order: ProductionOrder): void {
@@ -161,5 +169,19 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
       title: dialogData.title,
       width: '700px'
     }).subscribe();
+  }
+
+  private openEditDialog(dialogData: ProductionFormData, successMessage: string): void {
+    this.entityDialog.openFormDialog({
+      component: ProductionForm,
+      formData: dialogData,
+      title: dialogData.title,
+      width: '900px'
+    }).subscribe(saved => {
+      if (saved) {
+        this.entityDialog.showSuccessSnackbar(successMessage);
+        this.productionService.updateSearchParams({});
+      }
+    });
   }
 }

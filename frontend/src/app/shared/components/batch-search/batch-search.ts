@@ -38,6 +38,7 @@ export class BatchSearch {
   // --- Entradas e Saídas ---
   control = input.required<FormControl>();
   tipoMateriaPrimaId = input<number | null>(null);
+  disabled = input(false);
   selectionChange = output<Batch>();
 
   // --- Injeção de Dependências ---
@@ -102,6 +103,14 @@ export class BatchSearch {
     ).subscribe(() => {
       this.triggerSearchNow();
     });
+
+    effect(() => {
+      if (this.disabled()) {
+        this.searchControl.disable({ emitEvent: false });
+      } else {
+        this.searchControl.enable({ emitEvent: false });
+      }
+    });
   }
 
 
@@ -118,6 +127,9 @@ export class BatchSearch {
    * e enviando-os para o serviço.
    */
   private triggerSearchNow(): void {
+    if (this.disabled()) {
+      return;
+    }
     const searchTerm = typeof this.searchControl.value === 'string' ? this.searchControl.value : null;
 
     this.batchService.updateSearchParams({
@@ -169,9 +181,17 @@ export class BatchSearch {
    * Chamado quando uma opção é selecionada no autocomplete.
    */
   onOptionSelected(event: MatAutocompleteSelectedEvent): void {
+    if (this.disabled()) {
+      return;
+    }
     const selected = event.option.value as Batch;
     this.control().setValue(selected.id);
     this.selectionChange.emit(selected);
+  }
+
+  public setSelectedBatch(batch: Batch | null): void {
+    this.control().setValue(batch?.id ?? null);
+    this.searchControl.setValue(batch, { emitEvent: false });
   }
 
   /**

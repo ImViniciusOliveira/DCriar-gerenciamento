@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { take } from 'rxjs';
+import { lastValueFrom, take } from 'rxjs';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { ProductionOrder } from '../../models/production.model';
@@ -22,6 +22,9 @@ import { ChannelService } from '../../../stock/services/channel.service';
 import { ConfirmDialog } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { RethalboBadgeComponent, RetalhoValue } from '../retalho-badge/retalho-badge.component';
 import { EnumService } from '../../../../core/services/enum.service';
+import { ProductService } from '../../../products/services/product.service';
+import { BatchService } from '../../../stock/services/batch.service';
+import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -58,12 +61,16 @@ export class ProductionForm implements OnInit {
   private readonly productionService = inject(ProductionService);
   private readonly channelService = inject(ChannelService);
   private readonly enumService = inject(EnumService);
+  private readonly productService = inject(ProductService);
+  private readonly batchService = inject(BatchService);
+  private readonly entityDialog = inject(EntityDialogService);
   public readonly data: ProductionFormData = inject(MAT_DIALOG_DATA);
 
   @ViewChild(ProductStockSearch) private productStockSearchComponent!: ProductStockSearch;
   @ViewChild(BatchSearch) private batchSearchComponent!: BatchSearch;
 
   form: FormGroup;
+  isEditMode = signal(false);
   isSaving = signal(false);
   isSimulating = signal(false);
   isVerifying = signal(false);
@@ -71,6 +78,7 @@ export class ProductionForm implements OnInit {
   produto = signal<Product | null>(null);
   loteSelecionado = signal<Batch | null>(null);
   showRetalhoPreview = signal(false);
+  currentOrder = signal<ProductionOrder | null>(this.data.template ?? null);
 
   // Carrega os canais reais da API usando o novo serviço
   channels = toSignal(this.channelService.getAllChannels(), { initialValue: [] });
@@ -234,6 +242,11 @@ export class ProductionForm implements OnInit {
 
   private ignoreDimensoesUpdate = false;
 
+  private static readonly Texts = {
+    LOAD_ERROR: 'Não foi possível carregar os dados da ordem de produção.',
+    SAVE_ERROR: 'Falha ao salvar a ordem de produção. Verifique os dados e tente novamente.'
+  };
+
   constructor() {
     this.form = this.fb.group({
       // ETAPA 1: SELEÇÃO
@@ -304,6 +317,126 @@ export class ProductionForm implements OnInit {
   }
 
   ngOnInit(): void {
+    this.isEditMode.set(!!this.data.template?.id && !this.data.isViewMode);
+
+    if (this.isEditMode()) {
+      this.tipoProducaoControl.disable({ emitEvent: false });
+      this.initializeEditForm().catch(() => {
+        this.entityDialog.showErrorSnackbar(ProductionForm.Texts.LOAD_ERROR);
+        this.dialogRef.close(false);
+      });
+    }
+  }
+
+  private async initializeEditForm(): Promise<void> {
+    const selfUrl = this.data.template?._links?.['self']?.href;
+    if (!selfUrl) {
+      throw new Error('Link self da ordem não encontrado.');
+    }
+
+    const order = await lastValueFrom(this.productionService.findByUrl(selfUrl));
+    this.currentOrder.set(order);
+
+    const [product, batch] = await Promise.all([
+      lastValueFrom(this.productService.findById(order.produtoId)),
+      order.lotesConsumidosIds?.length
+        ? lastValueFrom(this.batchService.findById(order.lotesConsumidosIds[0]))
+        : Promise.resolve(null)
+    ]);
+
+    this.applyOrderToForm(order, product, batch);
+    await this.loadEditSimulation(order, product);
+  }
+
+  private applyOrderToForm(order: ProductionOrder, product: Product, batch: Batch | null): void {
+    this.syncProductSelection(product, false);
+    this.syncBatchSelection(batch, false);
+
+    this.form.patchValue({
+      tipoProducao: order.tipoProduto ?? '',
+      produtoId: order.produtoId,
+      quantidade: order.quantidadeProduzida,
+      loteId: batch?.id ?? order.lotesConsumidosIds?.[0] ?? null,
+      modoCalculo: order.modoCalculo ?? 'AUTOMATICO',
+      larguraBlocoProdutosCm: order.larguraFinalCm ?? null,
+      comprimentoBlocoProdutosCm: order.comprimentoFinalCm ?? null,
+      margens: {
+        superior: order.margens?.superior ?? null,
+        inferior: order.margens?.inferior ?? null,
+        esquerda: order.margens?.esquerda ?? null,
+        direita: order.margens?.direita ?? null
+      },
+      canalVendaId: order.canalVendaDestinoId ?? '',
+      motivo: order.motivo ?? ''
+    }, { emitEvent: false });
+
+    this.automaticoDimensoes.set({
+      largura: order.larguraFinalCm ?? null,
+      comprimento: order.comprimentoFinalCm ?? null
+    });
+    this.manualDimensoes.set({
+      largura: order.larguraFinalCm ?? null,
+      comprimento: order.comprimentoFinalCm ?? null
+    });
+
+    this.onModoCalculoChange();
+    this.syncSelectedSearchInputs(product, batch);
+    this.cdr.markForCheck();
+  }
+
+  private async loadEditSimulation(order: ProductionOrder, product: Product): Promise<void> {
+    if (order.tipoProduto === 'CORTE') {
+      const payload: VerificationRequest = {
+        produtoId: order.produtoId,
+        loteId: Number(order.lotesConsumidosIds[0]),
+        quantidade: order.quantidadeProduzida,
+        modoCalculo: order.modoCalculo ?? 'AUTOMATICO',
+        larguraBlocoProdutosCm: order.larguraFinalCm ?? null,
+        comprimentoBlocoProdutosCm: order.comprimentoFinalCm ?? null,
+        margens: order.margens ? {
+          superior: order.margens.superior ?? null,
+          inferior: order.margens.inferior ?? null,
+          esquerda: order.margens.esquerda ?? null,
+          direita: order.margens.direita ?? null
+        } : undefined
+      };
+
+      const result = await lastValueFrom(this.productionService.verifyCutLayout(payload));
+      this.simulationResult.set(result);
+    } else {
+      const simulateUrl = product._links?.['simulate']?.href;
+      if (!simulateUrl) {
+        throw new Error('Link de simulação do produto não encontrado.');
+      }
+
+      const result = await lastValueFrom(this.productionService.simulateConsumption(simulateUrl, {
+        produtoId: order.produtoId,
+        quantidade: order.quantidadeProduzida,
+        loteId: Number(order.lotesConsumidosIds[0])
+      }));
+
+      this.simulationResult.set(result);
+      this.consumptionSimulationSnapshot.set({
+        quantidade: order.quantidadeProduzida,
+        unidadesPorProduto: Number(product.unidadesPorProduto || 1)
+      });
+    }
+
+    this.formSnapshot = this.form.getRawValue();
+    this.simulationFormSnapshot.set(this.formSnapshot);
+    this.needsVerification.set(false);
+    this.cdr.markForCheck();
+  }
+
+  private syncSelectedSearchInputs(product: Product | null, batch: Batch | null): void {
+    setTimeout(() => {
+      if (product && this.productStockSearchComponent) {
+        this.productStockSearchComponent.setSelectedProduct(product);
+      }
+      if (batch && this.batchSearchComponent) {
+        this.batchSearchComponent.setSelectedBatch(batch);
+      }
+    });
   }
 
   private setupVerificationTriggers(): void {
@@ -433,44 +566,53 @@ export class ProductionForm implements OnInit {
    */
   onProdutoChange(event: MatSelectChange): void {
     const produto = event.value as Product;
-    this.produto.set(produto);
-    this.simulationResult.set(null);
-    this.simulationFormSnapshot.set(null);
-    this.consumptionSimulationSnapshot.set(null);
-    this.loteSelecionado.set(null);
-
-    // Atualiza o formulário com o ID e também sincroniza o dropdown de tipo de produção.
-    this.form.patchValue({
-      produtoId: produto.id,
-      tipoProducao: produto.tipoProduto
-    });
-
-    // Reseta o componente BatchSearch usando seu método público (mantém encapsulamento)
-    if (this.batchSearchComponent) {
-      this.batchSearchComponent.reset();
-    }
-
-    // Adiciona ou remove o validador 'required' para loteId com base no tipo de produto
-    if (produto.tipoProduto === 'CORTE' || produto.tipoProduto === 'CONSUMO') {
-      this.loteIdControl.addValidators(Validators.required);
-    } else {
-      this.loteIdControl.removeValidators(Validators.required);
-    }
-    this.loteIdControl.updateValueAndValidity();
-
-    // Força a detecção de mudanças para garantir que o mat-select-trigger seja atualizado.
-    this.cdr.markForCheck();
+    this.syncProductSelection(produto);
   }
 
   /**
    * Callback quando um lote é selecionado no componente de busca de lotes.
    */
   onLoteChange(lote: Batch): void {
+    this.syncBatchSelection(lote);
+  }
+
+  private syncProductSelection(produto: Product | null, resetState = true): void {
+    this.produto.set(produto);
+
+    if (resetState) {
+      this.simulationResult.set(null);
+      this.simulationFormSnapshot.set(null);
+      this.consumptionSimulationSnapshot.set(null);
+      this.loteSelecionado.set(null);
+
+      if (this.batchSearchComponent) {
+        this.batchSearchComponent.reset();
+      }
+    }
+
+    this.form.patchValue({
+      produtoId: produto?.id ?? null,
+      tipoProducao: produto?.tipoProduto ?? ''
+    }, { emitEvent: false });
+
+    if (produto?.tipoProduto === 'CORTE' || produto?.tipoProduto === 'CONSUMO') {
+      this.loteIdControl.addValidators(Validators.required);
+    } else {
+      this.loteIdControl.removeValidators(Validators.required);
+    }
+    this.loteIdControl.updateValueAndValidity({ emitEvent: false });
+    this.cdr.markForCheck();
+  }
+
+  private syncBatchSelection(lote: Batch | null, resetState = true): void {
     this.loteSelecionado.set(lote);
-    this.loteIdControl.setValue(lote.id);
-    this.simulationResult.set(null);
-    this.simulationFormSnapshot.set(null);
-    this.consumptionSimulationSnapshot.set(null);
+    this.loteIdControl.setValue(lote?.id ?? null, { emitEvent: false });
+
+    if (resetState) {
+      this.simulationResult.set(null);
+      this.simulationFormSnapshot.set(null);
+      this.consumptionSimulationSnapshot.set(null);
+    }
   }
 
   /**
@@ -883,9 +1025,10 @@ export class ProductionForm implements OnInit {
 
   onSave(): void {
     const simulation = this.simulationResult();
-    const url = simulation?._links?.['create-order']?.href;
+    const createUrl = simulation?._links?.['create-order']?.href;
+    const updateUrl = this.currentOrder()?._links?.['update']?.href;
 
-    if (!simulation || !url) {
+    if (!simulation || (!this.isEditMode() && !createUrl) || (this.isEditMode() && !updateUrl)) {
       return;
     }
 
@@ -903,26 +1046,31 @@ export class ProductionForm implements OnInit {
         loteId: Number(formValue.loteId),
         quantidadeProduzida: Number(formValue.quantidade),
         modoCalculo: formValue.modoCalculo,
-        larguraFinalCm: Number(formValue.larguraBlocoProdutosCm),
-        comprimentoFinalCm: Number(formValue.comprimentoBlocoProdutosCm),
+        larguraBlocoProdutosCm: Number(formValue.larguraBlocoProdutosCm),
+        comprimentoBlocoProdutosCm: Number(formValue.comprimentoBlocoProdutosCm),
         canalVendaDestinoId: formValue.canalVendaId ? Number(formValue.canalVendaId) : null,
         motivo: formValue.motivo || null,
         margens: this.buildMargensPayload(formValue)
       };
 
-      console.log('%c[DEBUG] Payload FINAL ENVIADO para Criar Ordem:', 'color: #bada55; font-weight: bold;', payload);
+      const operation = this.isEditMode()
+        ? this.productionService.updateCutOrder(updateUrl!, payload)
+        : this.productionService.createCutOrder(createUrl!, payload);
 
-      this.productionService.createCutOrder(url, payload)
+      console.log('%c[DEBUG] Payload FINAL ENVIADO para salvar Ordem:', 'color: #bada55; font-weight: bold;', payload);
+
+      operation
         .pipe(take(1))
         .subscribe({
           next: (response) => {
-            console.log('%c[DEBUG] Ordem de Produção criada com SUCESSO:', 'color: green; font-weight: bold;', response);
+            console.log('%c[DEBUG] Ordem de Produção salva com SUCESSO:', 'color: green; font-weight: bold;', response);
             this.isSaving.set(false);
             this.dialogRef.close(true);
             this.cdr.markForCheck();
           },
           error: (err) => {
-            console.error('Erro ao criar ordem de produção por corte:', err);
+            console.error('Erro ao salvar ordem de produção por corte:', err);
+            this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.SAVE_ERROR);
             this.isSaving.set(false);
             this.cdr.markForCheck();
           }
@@ -939,19 +1087,24 @@ export class ProductionForm implements OnInit {
         motivo: formValue.motivo || null
       };
 
-      console.log('%c[DEBUG] Payload FINAL ENVIADO para Criar Ordem (CONSUMO):', 'color: #bada55; font-weight: bold;', payload);
+      const operation = this.isEditMode()
+        ? this.productionService.updateConsumptionOrder(updateUrl!, payload)
+        : this.productionService.createConsumptionOrder(createUrl!, payload);
 
-      this.productionService.createConsumptionOrder(url, payload)
+      console.log('%c[DEBUG] Payload FINAL ENVIADO para salvar Ordem (CONSUMO):', 'color: #bada55; font-weight: bold;', payload);
+
+      operation
         .pipe(take(1))
         .subscribe({
           next: (response) => {
-            console.log('%c[DEBUG] Ordem de Produção criada com SUCESSO (CONSUMO):', 'color: green; font-weight: bold;', response);
+            console.log('%c[DEBUG] Ordem de Produção salva com SUCESSO (CONSUMO):', 'color: green; font-weight: bold;', response);
             this.isSaving.set(false);
             this.dialogRef.close(true);
             this.cdr.markForCheck();
           },
           error: (err) => {
-            console.error('Erro ao criar ordem de produção por consumo:', err);
+            console.error('Erro ao salvar ordem de produção por consumo:', err);
+            this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.SAVE_ERROR);
             this.isSaving.set(false);
             this.cdr.markForCheck();
           }

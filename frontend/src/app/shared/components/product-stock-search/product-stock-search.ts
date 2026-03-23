@@ -38,6 +38,7 @@ export class ProductStockSearch implements OnInit, OnDestroy {
   // --- Entradas e Saídas ---
   control = input.required<FormControl>();
   isEditMode = input(false);
+  disabled = input(false);
   productType = input<string | null>(null);
   selectionChange = output<MatSelectChange>();
 
@@ -75,6 +76,18 @@ export class ProductStockSearch implements OnInit, OnDestroy {
   constructor() {
     this.isSearching = this.productService.isSearchingByStock;
     this.setupSearchTrigger();
+
+    effect(() => {
+      if (this.disabled()) {
+        this.searchControl.disable({ emitEvent: false });
+        this.filterOperatorControl.disable({ emitEvent: false });
+        this.filterValueControl.disable({ emitEvent: false });
+      } else {
+        this.searchControl.enable({ emitEvent: false });
+        this.filterOperatorControl.enable({ emitEvent: false });
+        this.filterValueControl.enable({ emitEvent: false });
+      }
+    });
 
     effect(() => {
       const firstProduct = this.products()[0];
@@ -136,6 +149,9 @@ export class ProductStockSearch implements OnInit, OnDestroy {
    * Dispara a busca ao abrir o painel do autocomplete e limpa o campo se os filtros mudaram.
    */
   onAutocompleteOpened(): void {
+    if (this.disabled()) {
+      return;
+    }
     if (this.filtersAreDirty()) {
       this.searchControl.setValue('');
       this.filtersAreDirty.set(false);
@@ -147,6 +163,9 @@ export class ProductStockSearch implements OnInit, OnDestroy {
    * Abre o painel de autocomplete quando o usuário foca no input de estoque.
    */
   onStockInputFocus(): void {
+    if (this.disabled()) {
+      return;
+    }
     this.autocompleteTrigger?.openPanel();
   }
 
@@ -229,10 +248,17 @@ export class ProductStockSearch implements OnInit, OnDestroy {
     this.selectionChange.emit({ source: null as any, value: selected });
   }
 
+  public setSelectedProduct(product: Product | null): void {
+    this.searchControl.setValue(product, { emitEvent: false });
+  }
+
   /**
    * Alterna o operador de filtro de estoque entre 'GTE' (≥) e 'LTE' (≤).
    */
   toggleFilterOperator(): void {
+    if (this.disabled()) {
+      return;
+    }
     const current = this.filterOperatorControl.value;
     this.filterOperatorControl.setValue(current === 'GTE' ? 'LTE' : 'GTE');
   }

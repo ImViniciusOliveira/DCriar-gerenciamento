@@ -1,10 +1,10 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
-import { Observable, filter, switchMap, shareReplay, combineLatest, of, catchError, tap, throwError, take } from 'rxjs';
+import { Observable, filter, switchMap, shareReplay, combineLatest, of, catchError, tap, throwError, take, map } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
-import { ApiResponseProduction } from '../models/production.model';
+import { ApiResponseProduction, ProductionOrder } from '../models/production.model';
 import { SimulationResult, SimulationCutResult } from '../models/simulation.model';
 
 /**
@@ -45,8 +45,8 @@ export interface CreateCutOrderRequest {
   loteId: number;
   quantidadeProduzida: number;
   modoCalculo: string;
-  larguraFinalCm: number;
-  comprimentoFinalCm: number;
+  larguraBlocoProdutosCm: number;
+  comprimentoBlocoProdutosCm: number;
   canalVendaDestinoId?: number | null;
   motivo?: string | null;
   margens?: {
@@ -67,6 +67,10 @@ export interface CreateConsumptionOrderRequest {
   canalVendaDestinoId?: number | null;
   motivo?: string | null;
 }
+
+export interface UpdateCutOrderRequest extends CreateCutOrderRequest {}
+
+export interface UpdateConsumptionOrderRequest extends CreateConsumptionOrderRequest {}
 
 /**
  * Serviço para gerenciamento de Ordens de Produção.
@@ -201,6 +205,28 @@ export class ProductionService {
     return this.http.post<SimulationResult>(this.normalizeUrl(url), payload);
   }
 
+  findByUrl(url: string): Observable<ProductionOrder> {
+    return this.http.get<ProductionOrder>(this.normalizeUrl(url));
+  }
+
+  getNewTemplate(): Observable<ProductionOrder> {
+    return this.getBaseUrl().pipe(
+      switchMap(baseUrl => this.http.get<ProductionOrder>(`${baseUrl}/new`))
+    );
+  }
+
+  updateCutOrder(url: string, payload: UpdateCutOrderRequest): Observable<ProductionOrder> {
+    return this.http.put<ProductionOrder>(this.normalizeUrl(url), payload).pipe(
+      tap(() => this.refreshTrigger.set(undefined))
+    );
+  }
+
+  updateConsumptionOrder(url: string, payload: UpdateConsumptionOrderRequest): Observable<ProductionOrder> {
+    return this.http.put<ProductionOrder>(this.normalizeUrl(url), payload).pipe(
+      tap(() => this.refreshTrigger.set(undefined))
+    );
+  }
+
   /**
    * Atualiza os parâmetros de busca, disparando uma nova requisição.
    */
@@ -221,6 +247,19 @@ export class ProductionService {
         return throwError(() => error);
       }),
       tap(() => this.refreshTrigger.set(undefined))
+    );
+  }
+
+  private getBaseUrl(): Observable<string> {
+    return this.endpoints$.pipe(
+      take(1),
+      map(endpoints => {
+        const url = endpoints._links?.['ordens-de-producao']?.href;
+        if (!url) {
+          throw new Error('Endpoint de ordens-de-producao não encontrado.');
+        }
+        return url.split('{')[0];
+      })
     );
   }
 

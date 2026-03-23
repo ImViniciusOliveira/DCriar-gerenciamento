@@ -8,6 +8,7 @@
     [formControl]="searchControl"
     [matAutocomplete]="auto"
     [required]="isRequired"
+    [disabled]="disabled()"
   >
   <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete" (optionSelected)="onOptionSelected($event)" [displayWith]="displayFn"> <!-- MOVIDO AQUI -->
     @for (batch of foundBatches()._embedded['lotes-materia-prima']; track batch.id) {

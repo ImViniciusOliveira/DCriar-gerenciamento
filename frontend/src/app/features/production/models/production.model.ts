@@ -35,6 +35,7 @@ export interface ProductionOrder {
   nomeProduto: string;
   tipoProduto?: 'CORTE' | 'CONSUMO';
   lotesConsumidosIds: number[];
+  canalVendaDestinoId?: number | null;
   quantidadeProduzida: number;
   modoCalculo?: CalculationMode;
   dataCriacao: string; // ISO Date

@@ -304,6 +304,15 @@ export class ProductService {
     return this.http.get<Product>(this.normalizeUrl(url));
   }
 
+  findById(productId: number): Observable<Product> {
+    return this.endpoints$.pipe(
+      filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
+      map(endpoints => this.getProductBaseUrl(endpoints)),
+      switchMap(baseUrl => this.http.get<Product>(`${baseUrl}/${productId}`)),
+      take(1)
+    );
+  }
+
   /**
    * Retorna um template HATEOAS para a criação de um novo Produto.
    */

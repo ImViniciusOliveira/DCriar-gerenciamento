@@ -7,6 +7,7 @@
            [required]="isRequired"
            [formControl]="searchControl"
            [matAutocomplete]="auto"
+           [disabled]="disabled()"
            placeholder="Busque por nome...">
 
     <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="onOptionSelected($event)" (opened)="onAutocompleteOpened()">
@@ -20,13 +21,14 @@
     <!-- Contêiner do filtro de estoque como sufixo -->
     <div class="stock-filter-suffix" matSuffix (click)="$event.stopPropagation()">
       <button mat-icon-button type="button" class="toggle-button" (click)="toggleFilterOperator()"
+              [disabled]="disabled()"
               [ngClass]="{
                 'btn-danger-custom': filterOperatorControl.value === 'LTE',
                 'btn-success-custom': filterOperatorControl.value === 'GTE'
               }">
         {{ filterOperatorControl.value === 'GTE' ? '≥' : '≤' }}
       </button>
-      <input matInput class="stock-input" [formControl]="filterValueControl" placeholder="" (focus)="onStockInputFocus()">
+      <input matInput class="stock-input" [formControl]="filterValueControl" [disabled]="disabled()" placeholder="" (focus)="onStockInputFocus()">
     </div>
 
   </mat-form-field>
