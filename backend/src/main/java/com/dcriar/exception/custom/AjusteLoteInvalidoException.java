@@ -28,4 +28,11 @@ public class AjusteLoteInvalidoException extends RuntimeException {
                 "Perda/Descarte não aceita direção manual. A operação sempre reduz o saldo."
         );
     }
+
+    public static AjusteLoteInvalidoException itemImpactadoNaoPertenceAoLote(Long itemId, Long loteId) {
+        return new AjusteLoteInvalidoException(
+                "idsItensImpactadosAtualizados",
+                String.format("O item impactado #%d não pertence ao lote #%d.", itemId, loteId)
+        );
+    }
 }

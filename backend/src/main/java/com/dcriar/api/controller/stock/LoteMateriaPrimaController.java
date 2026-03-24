@@ -1,5 +1,6 @@
 package com.dcriar.api.controller.stock;
 
+import com.dcriar.api.dto.request.stock.AplicarAjusteLoteRequestDTO;
 import com.dcriar.api.dto.request.stock.CalcularAjusteLoteRequestDTO;
 import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
@@ -156,5 +157,19 @@ public class LoteMateriaPrimaController {
             @Parameter(description = "ID do lote ajustado.", example = "6") @PathVariable Long loteId,
             @RequestBody @Valid CalcularAjusteLoteRequestDTO requestDTO) {
         return ResponseEntity.ok(ajusteLoteService.calcular(loteId, requestDTO));
+    }
+
+    @PostMapping("/{loteId}/ajustes/aplicar")
+    @Operation(summary = "Aplicar um ajuste operacional em um lote")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ajuste aplicado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou saldo insuficiente", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
+    })
+    public ResponseEntity<LoteMateriaPrimaModel> aplicarAjuste(
+            @Parameter(description = "ID do lote ajustado.", example = "6") @PathVariable Long loteId,
+            @RequestBody @Valid AplicarAjusteLoteRequestDTO requestDTO) {
+        LoteMateriaPrimaResponseDTO loteAtualizado = ajusteLoteService.aplicar(loteId, requestDTO);
+        return loteMateriaPrimaModelAssembler.toOkResponseEntity(loteAtualizado);
     }
 }
