@@ -101,6 +101,7 @@ public class GlobalExceptionHandler {
             PrecoComercialNaoDefinidoException.class,
             TipoPrecoAplicadoInvalidoException.class,
             PrecoVendaInvalidoException.class,
+            AjusteLoteInvalidoException.class,
             AtributoLoteInvalidoException.class, CalculoCustoIncompativelException.class, DimensoesManuaisInvalidasException.class,
             MargemInvalidaException.class, LotePrincipalNaoEspecificadoException.class,
             ProdutoNaoCabeNoLoteException.class, QuantidadeUnidadesInvalidaException.class, TipoProducaoIncompativelException.class,
@@ -120,6 +121,8 @@ public class GlobalExceptionHandler {
         } else if (ex instanceof OperadorEstoqueInvalidoException e) {
             details.put("operadorFornecido", e.getOperadorFornecido());
             details.put("operadoresValidos", "GTE (≥), LTE (≤)");
+        } else if (ex instanceof AjusteLoteInvalidoException e) {
+            details.put("campo", e.getDetalhe());
         } else {
             details.put("info", ex.getMessage());
         }

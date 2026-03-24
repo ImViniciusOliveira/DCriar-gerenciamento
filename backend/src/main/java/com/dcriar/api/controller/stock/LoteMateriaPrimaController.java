@@ -1,13 +1,16 @@
 package com.dcriar.api.controller.stock;
 
+import com.dcriar.api.dto.request.stock.CalcularAjusteLoteRequestDTO;
 import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
+import com.dcriar.api.dto.response.stock.CalcularAjusteLoteResponseDTO;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
 import com.dcriar.api.dto.response.stock.MovimentacaoResponseDTO;
 import com.dcriar.api.hateoas.stock.assembler.LoteMateriaPrimaModelAssembler;
 import com.dcriar.api.hateoas.stock.assembler.MovimentacaoLoteModelAssembler;
 import com.dcriar.api.hateoas.stock.model.LoteMateriaPrimaModel;
 import com.dcriar.api.hateoas.stock.model.MovimentacaoLoteModel;
+import com.dcriar.domain.stock.service.AjusteLoteService;
 import com.dcriar.domain.stock.service.LoteMateriaPrimaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,6 +45,7 @@ import java.util.List;
 public class LoteMateriaPrimaController {
 
     private final LoteMateriaPrimaService loteMateriaPrimaService;
+    private final AjusteLoteService ajusteLoteService;
     private final LoteMateriaPrimaModelAssembler loteMateriaPrimaModelAssembler;
     private final MovimentacaoLoteModelAssembler movimentacaoLoteModelAssembler;
 
@@ -139,5 +143,18 @@ public class LoteMateriaPrimaController {
     public ResponseEntity<CollectionModel<MovimentacaoLoteModel>> listarMovimentacoes(@Parameter(description = "ID do lote.", example = "6") @PathVariable Long loteId) {
         List<MovimentacaoResponseDTO> movimentacoes = loteMateriaPrimaService.listarMovimentacoesPorLote(loteId);
         return ResponseEntity.ok(movimentacaoLoteModelAssembler.toCollectionModel(movimentacoes, loteId));
+    }
+
+    @PostMapping("/{loteId}/ajustes/calcular")
+    @Operation(summary = "Calcular o impacto de um ajuste operacional em um lote")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Preview do ajuste calculado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou saldo insuficiente", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
+    })
+    public ResponseEntity<CalcularAjusteLoteResponseDTO> calcularAjuste(
+            @Parameter(description = "ID do lote ajustado.", example = "6") @PathVariable Long loteId,
+            @RequestBody @Valid CalcularAjusteLoteRequestDTO requestDTO) {
+        return ResponseEntity.ok(ajusteLoteService.calcular(loteId, requestDTO));
     }
 }

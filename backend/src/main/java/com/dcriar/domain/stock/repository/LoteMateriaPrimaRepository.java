@@ -44,4 +44,12 @@ public interface LoteMateriaPrimaRepository extends JpaRepository<LoteMateriaPri
      * @return Lista de lotes.
      */
     List<LoteMateriaPrima> findByOrdemDeProducaoOrigem(OrdemDeProducao ordemDeProducaoOrigem);
+
+    /**
+     * Busca lotes derivados diretamente de um lote principal.
+     *
+     * @param loteDeOrigem O lote de origem.
+     * @return Lista de lotes derivados.
+     */
+    List<LoteMateriaPrima> findByLoteDeOrigem(LoteMateriaPrima loteDeOrigem);
 }
