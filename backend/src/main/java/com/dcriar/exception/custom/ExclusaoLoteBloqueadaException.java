@@ -1,46 +1,109 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import lombok.Getter;
 
-import java.util.Map;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Exceção lançada ao tentar excluir um {@link com.dcriar.domain.stock.entity.LoteMateriaPrima}
- * que já possui movimentações de saída (consumo, perda, etc.) e, portanto, não pode ser removido.
- * <p>
- * Esta exceção carrega detalhes sobre quais tipos de movimentação impedem a exclusão e suas quantidades.
+ * Exceção lançada quando a exclusão de um lote é bloqueada porque o próprio lote
+ * ou algum descendente da sua árvore de retalhos ainda possui alteração ativa.
  */
 @Getter
 public class ExclusaoLoteBloqueadaException extends RuntimeException {
 
-    /**
-     * O ID do lote que não pôde ser excluído.
-     */
-    private final Long loteId;
-
-    /**
-     * Mapa contendo o tipo de movimentação (chave) e a quantidade de ocorrências (valor)
-     * que impedem a exclusão.
-     */
-    private final Map<String, Long> movimentacoesImpeditivas;
-
-    /**
-     * Constrói a exceção com os detalhes do bloqueio.
-     *
-     * @param loteId O ID do lote.
-     * @param movimentacoesImpeditivas Mapa com os tipos de movimentação de saída encontrados.
-     */
-    public ExclusaoLoteBloqueadaException(Long loteId, Map<String, Long> movimentacoesImpeditivas) {
-        super(formatMessage(loteId, movimentacoesImpeditivas));
-        this.loteId = loteId;
-        this.movimentacoesImpeditivas = movimentacoesImpeditivas;
+    private ExclusaoLoteBloqueadaException(String mensagem) {
+        super(mensagem);
     }
 
-    private static String formatMessage(Long loteId, Map<String, Long> movimentacoes) {
-        String detalhes = movimentacoes.entrySet().stream()
-                .map(e -> e.getKey() + " (" + e.getValue() + ")")
+    public static ExclusaoLoteBloqueadaException arvoreComAlteracoesAtivas(ContextoExclusaoLoteBloqueada contexto) {
+        return new ExclusaoLoteBloqueadaException(
+                String.format(
+                        "Não é possível excluir o lote #%d porque a árvore de retalhos ainda possui alterações ativas. " +
+                                "Itens que exigem ação antes da exclusão: %s.",
+                        contexto.loteRaizId(),
+                        formatarItensBloqueados(contexto.itensBloqueados())
+                )
+        );
+    }
+
+    public static ExclusaoLoteBloqueadaException retalhoNaoPodeSerExcluidoManualmente(ContextoExclusaoLoteBloqueada contexto) {
+        return new ExclusaoLoteBloqueadaException(
+                String.format(
+                        "Não é possível excluir manualmente o retalho #%d. " +
+                                "Retalhos representam material real e devem ser tratados por perda/descarte, " +
+                                "ou removidos apenas pela reversão completa da árvore que os originou. " +
+                                "Subárvore relacionada: %s.",
+                        contexto.loteRaizId(),
+                        formatarItensBloqueados(contexto.itensBloqueados())
+                )
+        );
+    }
+
+    private static String formatarItensBloqueados(List<ItemBloqueioLote> itensBloqueados) {
+        return itensBloqueados.stream()
+                .map(item -> String.format(
+                        "[Lote #%d | Cadeia: %s | Ordens relacionadas: %s | Motivo: %s]",
+                        item.loteId(),
+                        formatarCadeiaRetalhos(item.cadeiaRetalhos()),
+                        formatarOrdensRelacionadas(item.ordensRelacionadasIds()),
+                        formatarDetalheUsoAtivo(item.tipoAlteracaoAtiva(), item.ordemConsumidoraAtivaId())
+                ))
+                .collect(Collectors.joining("; "));
+    }
+
+    private static String formatarCadeiaRetalhos(List<CadeiaRetalhoItem> cadeiaRetalhos) {
+        return cadeiaRetalhos.stream()
+                .map(item -> item.ordemDeProducaoOrigemId() == null
+                        ? String.format("Lote raiz #%d", item.loteId())
+                        : String.format("Retalho #%d (OP #%d)", item.loteId(), item.ordemDeProducaoOrigemId()))
+                .collect(Collectors.joining(" -> "));
+    }
+
+    private static String formatarOrdensRelacionadas(List<Long> ordensRelacionadasIds) {
+        if (ordensRelacionadasIds.isEmpty()) {
+            return "nenhuma";
+        }
+
+        return ordensRelacionadasIds.stream()
+                .map(id -> "OP #" + id)
                 .collect(Collectors.joining(", "));
-        return String.format("O lote de matéria-prima com ID %d não pode ser excluído pois possui movimentações de saída: %s.", loteId, detalhes);
+    }
+
+    private static String formatarDetalheUsoAtivo(TipoMovimentacao tipoAlteracaoAtiva, Long ordemConsumidoraAtivaId) {
+        if (tipoAlteracaoAtiva == null) {
+            return "o saldo atual do lote ainda difere do saldo originalmente registrado";
+        }
+
+        return switch (tipoAlteracaoAtiva) {
+            case SAIDA_PRODUCAO -> ordemConsumidoraAtivaId != null
+                    ? String.format("consumo ainda ativo pela Ordem de Produção #%d", ordemConsumidoraAtivaId)
+                    : "consumo ainda ativo no lote";
+            case PERDA_DESCARTE -> "há perda/descarte ativo registrado no lote";
+            case AJUSTE_INVENTARIO -> "há ajuste de inventário ativo registrado no lote";
+            default -> "há alteração ativa registrada no lote";
+        };
+    }
+
+    public record ContextoExclusaoLoteBloqueada(
+            Long loteRaizId,
+            List<ItemBloqueioLote> itensBloqueados
+    ) {
+    }
+
+    public record ItemBloqueioLote(
+            Long loteId,
+            List<CadeiaRetalhoItem> cadeiaRetalhos,
+            List<Long> ordensRelacionadasIds,
+            TipoMovimentacao tipoAlteracaoAtiva,
+            Long ordemConsumidoraAtivaId
+    ) {
+    }
+
+    public record CadeiaRetalhoItem(
+            Long loteId,
+            Long ordemDeProducaoOrigemId
+    ) {
     }
 }

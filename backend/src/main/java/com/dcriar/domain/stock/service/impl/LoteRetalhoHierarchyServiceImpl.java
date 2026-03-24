@@ -14,8 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.Comparator;
 
 /**
  * Implementação central da navegação recursiva de retalhos.
@@ -80,16 +84,77 @@ public class LoteRetalhoHierarchyServiceImpl implements LoteRetalhoHierarchyServ
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existeDescendenteComAlteracaoAtiva(LoteMateriaPrima lote) {
-        return listarDescendentes(lote).stream()
-                .anyMatch(LoteRetalhoHierarchyItem::possuiAlteracaoAtiva);
+    public boolean possuiAlteracaoAtivaNoEstadoAtual(LoteMateriaPrima lote) {
+        BigDecimal saldoOriginalRegistrado = obterSaldoOriginalRegistrado(lote);
+        if (saldoOriginalRegistrado.compareTo(BigDecimal.ZERO) == 0) {
+            return false;
+        }
+
+        BigDecimal saldoAtual = lote.getSaldoAtual() != null
+                ? lote.getSaldoAtual()
+                : lote.getMovimentacoes().stream()
+                .map(MovimentacaoEstoqueLote::getQuantidade)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return saldoAtual.compareTo(saldoOriginalRegistrado) != 0;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existeRetalhoDaOrdemComAlteracaoAtiva(OrdemDeProducao ordem) {
-        return listarRetalhosDaOrdemRecursivamente(ordem).stream()
-                .anyMatch(LoteRetalhoHierarchyItem::possuiAlteracaoAtiva);
+    public List<LoteMateriaPrima> listarCadeiaAteRaiz(LoteMateriaPrima lote) {
+        LinkedList<LoteMateriaPrima> cadeia = new LinkedList<>();
+        LoteMateriaPrima atual = lote;
+
+        while (atual != null) {
+            cadeia.addFirst(atual);
+            atual = atual.getLoteDeOrigem();
+        }
+
+        return cadeia;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> listarOrdensRelacionadasIds(LoteMateriaPrima lote) {
+        Set<Long> ordensRelacionadas = new LinkedHashSet<>();
+
+        for (LoteMateriaPrima loteDaCadeia : listarCadeiaAteRaiz(lote)) {
+            if (loteDaCadeia.getOrdemDeProducaoOrigem() != null) {
+                ordensRelacionadas.add(loteDaCadeia.getOrdemDeProducaoOrigem().getId());
+            }
+        }
+
+        lote.getMovimentacoes().stream()
+                .filter(movimentacao -> movimentacao.getOrdemDeProducao() != null)
+                .map(movimentacao -> movimentacao.getOrdemDeProducao().getId())
+                .forEach(ordensRelacionadas::add);
+
+        return new ArrayList<>(ordensRelacionadas);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TipoMovimentacao obterTipoAlteracaoAtiva(LoteMateriaPrima lote) {
+        return lote.getMovimentacoes().stream()
+                .filter(movimentacao -> switch (movimentacao.getTipo()) {
+                    case SAIDA_PRODUCAO, PERDA_DESCARTE, AJUSTE_INVENTARIO -> true;
+                    default -> false;
+                })
+                .max(Comparator.comparing(MovimentacaoEstoqueLote::getData))
+                .map(MovimentacaoEstoqueLote::getTipo)
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long obterOrdemConsumidoraAtivaId(LoteMateriaPrima lote) {
+        return lote.getMovimentacoes().stream()
+                .filter(movimentacao -> movimentacao.getTipo() == TipoMovimentacao.SAIDA_PRODUCAO)
+                .max(Comparator.comparing(MovimentacaoEstoqueLote::getData))
+                .map(MovimentacaoEstoqueLote::getOrdemDeProducao)
+                .filter(Objects::nonNull)
+                .map(OrdemDeProducao::getId)
+                .orElse(null);
     }
 
     private void adicionarDescendentesRecursivamente(
@@ -120,26 +185,18 @@ public class LoteRetalhoHierarchyServiceImpl implements LoteRetalhoHierarchyServ
                 lote.getLoteDeOrigem() != null ? lote.getLoteDeOrigem().getId() : null,
                 lote.getOrdemDeProducaoOrigem() != null ? lote.getOrdemDeProducaoOrigem().getId() : null,
                 List.copyOf(caminhoIds),
-                possuiAlteracaoAtiva(lote)
+                possuiAlteracaoAtivaNoEstadoAtual(lote)
         );
     }
 
-    private boolean possuiAlteracaoAtiva(LoteMateriaPrima lote) {
-        BigDecimal saldoOriginalDoRetalho = lote.getMovimentacoes().stream()
-                .filter(movimentacao -> movimentacao.getTipo() == TipoMovimentacao.ENTRADA_SOBRA)
+    private BigDecimal obterSaldoOriginalRegistrado(LoteMateriaPrima lote) {
+        TipoMovimentacao tipoEntradaOriginal = lote.getLoteDeOrigem() != null
+                ? TipoMovimentacao.ENTRADA_SOBRA
+                : TipoMovimentacao.ENTRADA_COMPRA;
+
+        return lote.getMovimentacoes().stream()
+                .filter(movimentacao -> movimentacao.getTipo() == tipoEntradaOriginal)
                 .map(MovimentacaoEstoqueLote::getQuantidade)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        if (saldoOriginalDoRetalho.compareTo(BigDecimal.ZERO) == 0) {
-            return false;
-        }
-
-        BigDecimal saldoAtual = lote.getSaldoAtual() != null
-                ? lote.getSaldoAtual()
-                : lote.getMovimentacoes().stream()
-                .map(MovimentacaoEstoqueLote::getQuantidade)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return saldoAtual.compareTo(saldoOriginalDoRetalho) != 0;
     }
 }

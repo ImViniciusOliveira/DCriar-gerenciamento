@@ -11,10 +11,12 @@ import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
+import com.dcriar.domain.stock.model.LoteRetalhoHierarchyItem;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.specification.LoteMateriaPrimaSpecification;
+import com.dcriar.domain.stock.service.LoteRetalhoHierarchyService;
 import com.dcriar.domain.stock.service.LoteMateriaPrimaService;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -48,6 +49,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     private final MovimentacaoEstoqueLoteRepository movimentacaoEstoqueLoteRepository;
     private final LoteMateriaPrimaMapper loteMateriaPrimaMapper;
     private final MovimentacaoMapper movimentacaoMapper;
+    private final LoteRetalhoHierarchyService loteRetalhoHierarchyService;
 
     /**
      * Cria um novo lote de matéria-prima e registra sua movimentação de entrada inicial.
@@ -118,9 +120,6 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
             tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
                     .orElseThrow(() -> new TipoMateriaPrimaNaoEncontradoException(requestDTO.getTipoMateriaPrimaId()));
         }
-        UnidadeDeMedida unidadeDeEstoque = requestDTO.getUnidadeDeEstoque() != null
-                ? requestDTO.getUnidadeDeEstoque()
-                : lote.getUnidadeDeEstoque();
         UnidadeDeMedida unidadeCadastroEstoque = requestDTO.getUnidadeCadastroEstoque() != null
                 ? requestDTO.getUnidadeCadastroEstoque()
                 : lote.getUnidadeCadastroEstoque();
@@ -283,21 +282,59 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     @Transactional
     public void delete(Long id) {
         LoteMateriaPrima lote = findLoteById(id);
-        
-        // Verifica se houve alguma saída (consumo) deste lote.
-        // Se tiver apenas entradas (criação, sobras, estornos), permite a exclusão.
-        Map<String, Long> movimentacoesSaida = lote.getMovimentacoes().stream()
-                .filter(mov -> mov.getQuantidade().compareTo(BigDecimal.ZERO) < 0)
-                .collect(Collectors.groupingBy(
-                        mov -> mov.getTipo().name(),
-                        Collectors.counting()
-                ));
+        List<LoteRetalhoHierarchyItem> descendentes = loteRetalhoHierarchyService.listarDescendentes(lote);
 
-        if (!movimentacoesSaida.isEmpty()) {
-            throw new ExclusaoLoteBloqueadaException(id, movimentacoesSaida);
+        if (lote.getLoteDeOrigem() != null) {
+            List<ExclusaoLoteBloqueadaException.ItemBloqueioLote> subArvoreRelacionada = new java.util.ArrayList<>();
+            subArvoreRelacionada.add(construirItemBloqueio(lote));
+            descendentes.stream()
+                    .map(LoteRetalhoHierarchyItem::lote)
+                    .map(this::construirItemBloqueio)
+                    .forEach(subArvoreRelacionada::add);
+
+            throw ExclusaoLoteBloqueadaException.retalhoNaoPodeSerExcluidoManualmente(
+                    new ExclusaoLoteBloqueadaException.ContextoExclusaoLoteBloqueada(id, subArvoreRelacionada)
+            );
         }
 
+        List<ExclusaoLoteBloqueadaException.ItemBloqueioLote> itensBloqueados = new java.util.ArrayList<>();
+        if (loteRetalhoHierarchyService.possuiAlteracaoAtivaNoEstadoAtual(lote)) {
+            itensBloqueados.add(construirItemBloqueio(lote));
+        }
+
+        descendentes.stream()
+                .filter(LoteRetalhoHierarchyItem::possuiAlteracaoAtiva)
+                .map(LoteRetalhoHierarchyItem::lote)
+                .map(this::construirItemBloqueio)
+                .forEach(itensBloqueados::add);
+
+        if (!itensBloqueados.isEmpty()) {
+            throw ExclusaoLoteBloqueadaException.arvoreComAlteracoesAtivas(
+                    new ExclusaoLoteBloqueadaException.ContextoExclusaoLoteBloqueada(id, itensBloqueados)
+            );
+        }
+
+        List<LoteMateriaPrima> descendentesParaExcluir = descendentes.stream()
+                .sorted(java.util.Comparator.comparingInt(LoteRetalhoHierarchyItem::nivel).reversed())
+                .map(LoteRetalhoHierarchyItem::lote)
+                .toList();
+        loteMateriaPrimaRepository.deleteAll(descendentesParaExcluir);
         loteMateriaPrimaRepository.delete(lote);
+    }
+
+    private ExclusaoLoteBloqueadaException.ItemBloqueioLote construirItemBloqueio(LoteMateriaPrima lote) {
+        return new ExclusaoLoteBloqueadaException.ItemBloqueioLote(
+                lote.getId(),
+                loteRetalhoHierarchyService.listarCadeiaAteRaiz(lote).stream()
+                        .map(item -> new ExclusaoLoteBloqueadaException.CadeiaRetalhoItem(
+                                item.getId(),
+                                item.getOrdemDeProducaoOrigem() != null ? item.getOrdemDeProducaoOrigem().getId() : null
+                        ))
+                        .toList(),
+                loteRetalhoHierarchyService.listarOrdensRelacionadasIds(lote),
+                loteRetalhoHierarchyService.obterTipoAlteracaoAtiva(lote),
+                loteRetalhoHierarchyService.obterOrdemConsumidoraAtivaId(lote)
+        );
     }
 
     private LoteMateriaPrima findLoteById(Long id) {
