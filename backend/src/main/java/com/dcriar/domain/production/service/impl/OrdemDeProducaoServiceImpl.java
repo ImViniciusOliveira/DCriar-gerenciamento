@@ -34,8 +34,10 @@ import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
+import com.dcriar.domain.stock.model.LoteRetalhoHierarchyItem;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
+import com.dcriar.domain.stock.service.LoteRetalhoHierarchyService;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -80,6 +82,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private final CorteCalculatorService corteCalculatorService;
     private final EstoqueProdutoService estoqueProdutoService;
     private final PlanoDeConsumoMapper planoDeConsumoMapper;
+    private final LoteRetalhoHierarchyService loteRetalhoHierarchyService;
 
     @Override
     @Transactional
@@ -873,16 +876,11 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             }
         }
 
-        List<LoteMateriaPrima> retalhosGerados = loteMateriaPrimaRepository.findByOrdemDeProducaoOrigem(ordem);
-        for (LoteMateriaPrima retalho : retalhosGerados) {
-            boolean temSaida = retalho.getMovimentacoes().stream()
-                    .anyMatch(m -> m.getQuantidade().compareTo(BigDecimal.ZERO) < 0);
-
-            if (temSaida) {
-                Long ordemOrigemId = retalho.getOrdemDeProducaoOrigem() != null
-                        ? retalho.getOrdemDeProducaoOrigem().getId()
-                        : ordem.getId();
-                throw ImpossivelExcluirProducaoException.retalhoJaUtilizado(retalho.getId(), ordemOrigemId);
+        List<LoteRetalhoHierarchyItem> retalhosGerados = loteRetalhoHierarchyService.listarRetalhosDaOrdemRecursivamente(ordem);
+        for (LoteRetalhoHierarchyItem item : retalhosGerados) {
+            if (item.possuiAlteracaoAtiva()) {
+                LoteMateriaPrima retalho = item.lote();
+                throw ImpossivelExcluirProducaoException.retalhoJaUtilizado(construirContextoRetalhoBloqueado(ordem, retalho));
             }
         }
     }
@@ -932,7 +930,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private void limparRetalhosDaOrdem(OrdemDeProducao ordem) {
-        List<LoteMateriaPrima> retalhosGerados = loteMateriaPrimaRepository.findByOrdemDeProducaoOrigem(ordem);
+        List<LoteMateriaPrima> retalhosGerados = loteRetalhoHierarchyService.listarRetalhosDaOrdemRecursivamente(ordem).stream()
+                .sorted(Comparator.comparingInt(LoteRetalhoHierarchyItem::nivel).reversed())
+                .map(LoteRetalhoHierarchyItem::lote)
+                .toList();
         loteMateriaPrimaRepository.deleteAll(retalhosGerados);
     }
 
@@ -943,6 +944,83 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         } catch (EstoqueNaoEncontradoException ex) {
             return 0;
         }
+    }
+
+    private ImpossivelExcluirProducaoException.ContextoRetalhoBloqueado construirContextoRetalhoBloqueado(
+            OrdemDeProducao ordem,
+            LoteMateriaPrima retalho
+    ) {
+        return new ImpossivelExcluirProducaoException.ContextoRetalhoBloqueado(
+                ordem.getId(),
+                retalho.getId(),
+                retalho.getOrdemDeProducaoOrigem() != null ? retalho.getOrdemDeProducaoOrigem().getId() : ordem.getId(),
+                construirCadeiaRetalhos(retalho),
+                listarOrdensRelacionadasIds(retalho),
+                obterTipoAlteracaoAtiva(retalho),
+                obterOrdemConsumidoraAtivaId(retalho)
+        );
+    }
+
+    private List<ImpossivelExcluirProducaoException.CadeiaRetalhoItem> construirCadeiaRetalhos(LoteMateriaPrima retalho) {
+        List<LoteMateriaPrima> cadeia = new ArrayList<>();
+        LoteMateriaPrima atual = retalho;
+
+        while (atual != null) {
+            cadeia.add(0, atual);
+            atual = atual.getLoteDeOrigem();
+        }
+
+        return cadeia.stream()
+                .map(lote -> new ImpossivelExcluirProducaoException.CadeiaRetalhoItem(
+                        lote.getId(),
+                        lote.getOrdemDeProducaoOrigem() != null ? lote.getOrdemDeProducaoOrigem().getId() : null
+                ))
+                .toList();
+    }
+
+    private List<Long> listarOrdensRelacionadasIds(LoteMateriaPrima retalho) {
+        Set<Long> ordensRelacionadas = new LinkedHashSet<>();
+        List<LoteMateriaPrima> cadeia = new ArrayList<>();
+
+        LoteMateriaPrima atual = retalho;
+        while (atual != null) {
+            cadeia.add(0, atual);
+            atual = atual.getLoteDeOrigem();
+        }
+
+        for (LoteMateriaPrima loteDaCadeia : cadeia) {
+            if (loteDaCadeia.getOrdemDeProducaoOrigem() != null) {
+                ordensRelacionadas.add(loteDaCadeia.getOrdemDeProducaoOrigem().getId());
+            }
+        }
+
+        retalho.getMovimentacoes().stream()
+                .filter(movimentacao -> movimentacao.getOrdemDeProducao() != null)
+                .map(movimentacao -> movimentacao.getOrdemDeProducao().getId())
+                .forEach(ordensRelacionadas::add);
+
+        return new ArrayList<>(ordensRelacionadas);
+    }
+
+    private TipoMovimentacao obterTipoAlteracaoAtiva(LoteMateriaPrima retalho) {
+        return retalho.getMovimentacoes().stream()
+                .filter(movimentacao -> switch (movimentacao.getTipo()) {
+                    case SAIDA_PRODUCAO, PERDA_DESCARTE, AJUSTE_INVENTARIO -> true;
+                    default -> false;
+                })
+                .max(Comparator.comparing(MovimentacaoEstoqueLote::getData))
+                .map(MovimentacaoEstoqueLote::getTipo)
+                .orElse(null);
+    }
+
+    private Long obterOrdemConsumidoraAtivaId(LoteMateriaPrima retalho) {
+        return retalho.getMovimentacoes().stream()
+                .filter(movimentacao -> movimentacao.getTipo() == TipoMovimentacao.SAIDA_PRODUCAO)
+                .max(Comparator.comparing(MovimentacaoEstoqueLote::getData))
+                .map(MovimentacaoEstoqueLote::getOrdemDeProducao)
+                .filter(Objects::nonNull)
+                .map(OrdemDeProducao::getId)
+                .orElse(null);
     }
 
     private void validarCompatibilidadeMaterialEntreProdutoELote(Produto produto, LoteMateriaPrima lote) {

@@ -18,7 +18,7 @@ public interface LoteRetalhoHierarchyService {
 
     List<LoteRetalhoHierarchyItem> listarRetalhosDaOrdemRecursivamente(OrdemDeProducao ordem);
 
-    boolean existeDescendenteComMovimentacaoDeSaida(LoteMateriaPrima lote);
+    boolean existeDescendenteComAlteracaoAtiva(LoteMateriaPrima lote);
 
-    boolean existeRetalhoDaOrdemComMovimentacaoDeSaida(OrdemDeProducao ordem);
+    boolean existeRetalhoDaOrdemComAlteracaoAtiva(OrdemDeProducao ordem);
 }

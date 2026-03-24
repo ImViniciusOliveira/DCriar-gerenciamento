@@ -3,6 +3,7 @@ package com.dcriar.domain.stock.service.impl;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
+import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.model.LoteRetalhoHierarchyItem;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.service.LoteRetalhoHierarchyService;
@@ -79,16 +80,16 @@ public class LoteRetalhoHierarchyServiceImpl implements LoteRetalhoHierarchyServ
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existeDescendenteComMovimentacaoDeSaida(LoteMateriaPrima lote) {
+    public boolean existeDescendenteComAlteracaoAtiva(LoteMateriaPrima lote) {
         return listarDescendentes(lote).stream()
-                .anyMatch(LoteRetalhoHierarchyItem::possuiMovimentacaoDeSaida);
+                .anyMatch(LoteRetalhoHierarchyItem::possuiAlteracaoAtiva);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existeRetalhoDaOrdemComMovimentacaoDeSaida(OrdemDeProducao ordem) {
+    public boolean existeRetalhoDaOrdemComAlteracaoAtiva(OrdemDeProducao ordem) {
         return listarRetalhosDaOrdemRecursivamente(ordem).stream()
-                .anyMatch(LoteRetalhoHierarchyItem::possuiMovimentacaoDeSaida);
+                .anyMatch(LoteRetalhoHierarchyItem::possuiAlteracaoAtiva);
     }
 
     private void adicionarDescendentesRecursivamente(
@@ -119,13 +120,26 @@ public class LoteRetalhoHierarchyServiceImpl implements LoteRetalhoHierarchyServ
                 lote.getLoteDeOrigem() != null ? lote.getLoteDeOrigem().getId() : null,
                 lote.getOrdemDeProducaoOrigem() != null ? lote.getOrdemDeProducaoOrigem().getId() : null,
                 List.copyOf(caminhoIds),
-                possuiMovimentacaoDeSaida(lote)
+                possuiAlteracaoAtiva(lote)
         );
     }
 
-    private boolean possuiMovimentacaoDeSaida(LoteMateriaPrima lote) {
-        return lote.getMovimentacoes().stream()
+    private boolean possuiAlteracaoAtiva(LoteMateriaPrima lote) {
+        BigDecimal saldoOriginalDoRetalho = lote.getMovimentacoes().stream()
+                .filter(movimentacao -> movimentacao.getTipo() == TipoMovimentacao.ENTRADA_SOBRA)
                 .map(MovimentacaoEstoqueLote::getQuantidade)
-                .anyMatch(quantidade -> quantidade.compareTo(BigDecimal.ZERO) < 0);
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (saldoOriginalDoRetalho.compareTo(BigDecimal.ZERO) == 0) {
+            return false;
+        }
+
+        BigDecimal saldoAtual = lote.getSaldoAtual() != null
+                ? lote.getSaldoAtual()
+                : lote.getMovimentacoes().stream()
+                .map(MovimentacaoEstoqueLote::getQuantidade)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return saldoAtual.compareTo(saldoOriginalDoRetalho) != 0;
     }
 }

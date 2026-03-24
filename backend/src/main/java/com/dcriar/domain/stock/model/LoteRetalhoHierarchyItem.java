@@ -12,7 +12,7 @@ import java.util.List;
  * @param loteDeOrigemId O ID do lote pai imediato.
  * @param ordemDeProducaoOrigemId O ID da ordem de produção raiz que originou este retalho, quando houver.
  * @param caminhoIds O caminho completo de IDs desde a raiz até o lote atual.
- * @param possuiMovimentacaoDeSaida Indica se o lote já sofreu alguma movimentação de saída.
+ * @param possuiAlteracaoAtiva Indica se o lote, no estado atual, difere do saldo originalmente gerado como retalho.
  */
 public record LoteRetalhoHierarchyItem(
         LoteMateriaPrima lote,
@@ -20,6 +20,6 @@ public record LoteRetalhoHierarchyItem(
         Long loteDeOrigemId,
         Long ordemDeProducaoOrigemId,
         List<Long> caminhoIds,
-        boolean possuiMovimentacaoDeSaida
+        boolean possuiAlteracaoAtiva
 ) {
 }

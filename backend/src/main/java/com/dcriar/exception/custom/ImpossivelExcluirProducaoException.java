@@ -1,6 +1,10 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import lombok.Getter;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Exceção lançada quando uma tentativa de excluir uma Ordem de Produção é bloqueada
@@ -32,12 +36,20 @@ public class ImpossivelExcluirProducaoException extends RuntimeException {
         ));
     }
 
-    public static ImpossivelExcluirProducaoException retalhoJaUtilizado(Long loteId, Long ordemDeProducaoOrigemId) {
+    public static ImpossivelExcluirProducaoException retalhoJaUtilizado(ContextoRetalhoBloqueado contexto) {
         return new ImpossivelExcluirProducaoException(
                 String.format(
-                        "O retalho gerado (Lote #%d), originado pela Ordem de Produção #%d, já foi utilizado em outra produção.",
-                        loteId,
-                        ordemDeProducaoOrigemId
+                        "Não é possível excluir a Ordem de Produção #%d porque a árvore de retalhos ainda possui alteração ativa. " +
+                                "Retalho em conflito: Lote #%d, gerado pela Ordem de Produção #%d. " +
+                                "Cadeia da árvore: %s. " +
+                                "Ordens relacionadas: %s. " +
+                                "Motivo do bloqueio: %s.",
+                        contexto.ordemDeProducaoId(),
+                        contexto.loteId(),
+                        contexto.ordemDeProducaoOrigemId(),
+                        formatarCadeiaRetalhos(contexto.cadeiaRetalhos()),
+                        formatarOrdensRelacionadas(contexto.ordensRelacionadasIds()),
+                        formatarDetalheUsoAtivo(contexto.tipoAlteracaoAtiva(), contexto.ordemConsumidoraAtivaId())
                 )
         );
     }
@@ -53,5 +65,51 @@ public class ImpossivelExcluirProducaoException extends RuntimeException {
                 quantidadeProduzida,
                 estoqueAtualCanal
         ));
+    }
+
+    private static String formatarCadeiaRetalhos(List<CadeiaRetalhoItem> cadeiaRetalhos) {
+        return cadeiaRetalhos.stream()
+                .map(item -> item.ordemDeProducaoOrigemId() == null
+                        ? String.format("Lote raiz #%d", item.loteId())
+                        : String.format("Retalho #%d (OP #%d)", item.loteId(), item.ordemDeProducaoOrigemId()))
+                .collect(Collectors.joining(" -> "));
+    }
+
+    private static String formatarOrdensRelacionadas(List<Long> ordensRelacionadasIds) {
+        return ordensRelacionadasIds.stream()
+                .map(id -> "OP #" + id)
+                .collect(Collectors.joining(", "));
+    }
+
+    private static String formatarDetalheUsoAtivo(TipoMovimentacao tipoAlteracaoAtiva, Long ordemConsumidoraAtivaId) {
+        if (tipoAlteracaoAtiva == null) {
+            return "o saldo atual do retalho ainda difere do saldo originalmente gerado";
+        }
+
+        return switch (tipoAlteracaoAtiva) {
+            case SAIDA_PRODUCAO -> ordemConsumidoraAtivaId != null
+                    ? String.format("consumo ainda ativo pela Ordem de Produção #%d", ordemConsumidoraAtivaId)
+                    : "consumo ainda ativo no retalho";
+            case PERDA_DESCARTE -> "há perda/descarte ativo registrado no retalho";
+            case AJUSTE_INVENTARIO -> "há ajuste de inventário ativo registrado no retalho";
+            default -> "há alteração ativa registrada no retalho";
+        };
+    }
+
+    public record ContextoRetalhoBloqueado(
+            Long ordemDeProducaoId,
+            Long loteId,
+            Long ordemDeProducaoOrigemId,
+            List<CadeiaRetalhoItem> cadeiaRetalhos,
+            List<Long> ordensRelacionadasIds,
+            TipoMovimentacao tipoAlteracaoAtiva,
+            Long ordemConsumidoraAtivaId
+    ) {
+    }
+
+    public record CadeiaRetalhoItem(
+            Long loteId,
+            Long ordemDeProducaoOrigemId
+    ) {
     }
 }
