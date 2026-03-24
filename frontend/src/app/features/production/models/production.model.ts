@@ -45,6 +45,8 @@ export interface ProductionOrder {
   // Campos específicos de Corte
   larguraFinalCm?: number;
   comprimentoFinalCm?: number;
+  larguraBlocoProdutosCm?: number;
+  comprimentoBlocoProdutosCm?: number;
   rotacionado?: boolean;
   cortesRealizados?: PerformedCut[];
   margens?: Margins;

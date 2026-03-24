@@ -85,6 +85,7 @@ export class ProductionForm implements OnInit {
 
   // Signal com tipo forte para armazenar o resultado da simulação.
   simulationResult = signal<SimulationResult | null>(null);
+  stableSimulationResult = signal<SimulationResult | null>(null);
   simulationFormSnapshot = signal<any | null>(null);
   consumptionSimulationSnapshot = signal<{ quantidade: number; unidadesPorProduto: number } | null>(null);
 
@@ -261,7 +262,8 @@ export class ProductionForm implements OnInit {
 
   private static readonly Texts = {
     LOAD_ERROR: 'Não foi possível carregar os dados da ordem de produção.',
-    SAVE_ERROR: 'Falha ao salvar a ordem de produção. Verifique os dados e tente novamente.'
+    SAVE_ERROR: 'Falha ao salvar a ordem de produção. Verifique os dados e tente novamente.',
+    AUTOMATIC_RESTORE_ERROR: 'Não foi possível restaurar o modo automático com o estado atual do lote.'
   };
 
   constructor() {
@@ -393,8 +395,8 @@ export class ProductionForm implements OnInit {
       quantidade: order.quantidadeProduzida,
       loteId: batch?.id ?? order.lotesConsumidosIds?.[0] ?? null,
       modoCalculo: order.modoCalculo ?? 'AUTOMATICO',
-      larguraBlocoProdutosCm: isAutomaticCutOrder ? null : (order.larguraFinalCm ?? null),
-      comprimentoBlocoProdutosCm: order.comprimentoFinalCm ?? null,
+      larguraBlocoProdutosCm: order.larguraBlocoProdutosCm ?? null,
+      comprimentoBlocoProdutosCm: order.comprimentoBlocoProdutosCm ?? null,
       margens: {
         superior: order.margens?.superior ?? null,
         inferior: order.margens?.inferior ?? null,
@@ -406,12 +408,12 @@ export class ProductionForm implements OnInit {
     }, { emitEvent: false });
 
     this.automaticoDimensoes.set({
-      largura: isAutomaticCutOrder ? null : (order.larguraFinalCm ?? null),
-      comprimento: order.comprimentoFinalCm ?? null
+      largura: isAutomaticCutOrder ? (order.larguraBlocoProdutosCm ?? null) : null,
+      comprimento: isAutomaticCutOrder ? (order.comprimentoBlocoProdutosCm ?? null) : null
     });
     this.manualDimensoes.set({
-      largura: isAutomaticCutOrder ? null : (order.larguraFinalCm ?? null),
-      comprimento: order.comprimentoFinalCm ?? null
+      largura: !isAutomaticCutOrder ? (order.larguraBlocoProdutosCm ?? null) : null,
+      comprimento: !isAutomaticCutOrder ? (order.comprimentoBlocoProdutosCm ?? null) : null
     });
 
     this.onModoCalculoChange();
@@ -423,16 +425,17 @@ export class ProductionForm implements OnInit {
     if (order.tipoProduto === 'CORTE') {
       const result = this.buildEditCutSimulation(order, product);
       this.simulationResult.set(result);
+      this.stableSimulationResult.set(result);
       this.form.patchValue({
         larguraBlocoProdutosCm: result.larguraBlocoProdutosCm ?? null,
         comprimentoBlocoProdutosCm: result.comprimentoBlocoProdutosCm ?? null
       }, { emitEvent: false });
-      this.automaticoDimensoes.set({
-        largura: result.larguraBlocoProdutosCm ?? null,
-        comprimento: result.comprimentoBlocoProdutosCm ?? null
-      });
-
-      if (order.modoCalculo === 'MANUAL') {
+      if (order.modoCalculo === 'AUTOMATICO') {
+        this.automaticoDimensoes.set({
+          largura: result.larguraBlocoProdutosCm ?? null,
+          comprimento: result.comprimentoBlocoProdutosCm ?? null
+        });
+      } else {
         this.manualDimensoes.set({
           largura: result.larguraBlocoProdutosCm ?? null,
           comprimento: result.comprimentoBlocoProdutosCm ?? null
@@ -441,6 +444,7 @@ export class ProductionForm implements OnInit {
     } else {
       const result = this.buildEditConsumptionSimulation(order, product);
       this.simulationResult.set(result);
+      this.stableSimulationResult.set(result);
       this.consumptionSimulationSnapshot.set({
         quantidade: order.quantidadeProduzida,
         unidadesPorProduto: Number(product.unidadesPorProduto || 1)
@@ -470,12 +474,8 @@ export class ProductionForm implements OnInit {
       ? totalRows - 1
       : totalRows;
 
-    const pureBlockWidth = order.modoCalculo === 'AUTOMATICO'
-      ? Math.max(0, Number(order.larguraFinalCm ?? 0) - Number(order.margens?.esquerda ?? 0) - Number(order.margens?.direita ?? 0) - Number(lateralRetalho?.larguraCm ?? 0))
-      : Number(order.larguraFinalCm ?? 0);
-    const pureBlockLength = order.modoCalculo === 'AUTOMATICO'
-      ? Math.max(0, Number(order.comprimentoFinalCm ?? 0) - Number(order.margens?.superior ?? 0) - Number(order.margens?.inferior ?? 0) - Number(inferiorRetalho?.comprimentoCm ?? 0))
-      : Number(order.comprimentoFinalCm ?? 0);
+    const pureBlockWidth = Number(order.larguraBlocoProdutosCm ?? 0);
+    const pureBlockLength = Number(order.comprimentoBlocoProdutosCm ?? 0);
 
     return {
       tipoSimulacao: 'CORTE',
@@ -566,6 +566,7 @@ export class ProductionForm implements OnInit {
 
     // 1. Quantidade é crítica em ambos os modos
     if (Number(current.quantidade || 0) !== Number(snapshot.quantidade || 0)) return true;
+    if (String(current.modoCalculo || '') !== String(snapshot.modoCalculo || '')) return true;
 
     // 2. Validação específica por modo
     if (current.modoCalculo === 'AUTOMATICO') {
@@ -775,12 +776,15 @@ export class ProductionForm implements OnInit {
       comprimentoControl.disable();
       larguraControl.clearValidators();
       comprimentoControl.clearValidators();
-      // Restaura os valores do automático
       const dimensoesAuto = this.automaticoDimensoes();
-      this.form.patchValue({
-        larguraBlocoProdutosCm: dimensoesAuto.largura,
-        comprimentoBlocoProdutosCm: dimensoesAuto.comprimento
-      }, { emitEvent: false });
+      if (dimensoesAuto.largura == null || dimensoesAuto.comprimento == null) {
+        this.restoreAutomaticDimensionsForEdit();
+      } else {
+        this.form.patchValue({
+          larguraBlocoProdutosCm: dimensoesAuto.largura,
+          comprimentoBlocoProdutosCm: dimensoesAuto.comprimento
+        }, { emitEvent: false });
+      }
     }
     this.ignoreDimensoesUpdate = false;
 
@@ -796,6 +800,68 @@ export class ProductionForm implements OnInit {
     this.cdr.markForCheck();
   }
 
+  private restoreAutomaticDimensionsForEdit(): void {
+    if (!this.isEditMode() || this.produto()?.tipoProduto !== 'CORTE') {
+      return;
+    }
+
+    const produto = this.produto();
+    const url = produto?._links?.['simulate']?.href;
+    const loteId = Number(this.form.getRawValue().loteId);
+    const quantidade = Number(this.form.getRawValue().quantidade);
+
+    if (!produto || !url || !loteId || !quantidade) {
+      return;
+    }
+
+    this.isVerifying.set(true);
+
+    const payload: SimulationRequest = {
+      produtoId: produto.id,
+      quantidade,
+      loteId,
+      ordemId: this.currentOrder()?.id
+    };
+
+    this.productionService.simulateProduction(url, payload)
+      .pipe(take(1))
+      .subscribe({
+        next: (response) => {
+          if (response.tipoSimulacao !== 'CORTE') {
+            this.isVerifying.set(false);
+            return;
+          }
+
+          this.automaticoDimensoes.set({
+            largura: response.larguraBlocoProdutosCm ?? null,
+            comprimento: response.comprimentoBlocoProdutosCm ?? null
+          });
+          this.simulationResult.set(response);
+
+          this.form.patchValue({
+            larguraBlocoProdutosCm: response.larguraBlocoProdutosCm ?? null,
+            comprimentoBlocoProdutosCm: response.comprimentoBlocoProdutosCm ?? null
+          }, { emitEvent: false });
+
+          this.needsVerification.set(this.checkIfVerificationIsNeeded());
+          this.isVerifying.set(false);
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.modoCalculoControl.setValue('MANUAL', { emitEvent: false });
+          const dimensoesManual = this.manualDimensoes();
+          this.form.patchValue({
+            larguraBlocoProdutosCm: dimensoesManual.largura,
+            comprimentoBlocoProdutosCm: dimensoesManual.comprimento
+          }, { emitEvent: false });
+          this.isVerifying.set(false);
+          this.needsVerification.set(this.checkIfVerificationIsNeeded());
+          this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.AUTOMATIC_RESTORE_ERROR);
+          this.cdr.markForCheck();
+        }
+      });
+  }
+
   /**
    * Executa a simulação de produção inicial.
    */
@@ -806,7 +872,7 @@ export class ProductionForm implements OnInit {
 
     const url = this.produto()?._links?.["simulate"]?.href;
     if (!url) {
-      console.error('URL de simulação não encontrada para o produto.');
+      this.entityDialog.showErrorSnackbar(ProductionForm.Texts.LOAD_ERROR);
       return;
     }
 
@@ -828,13 +894,12 @@ export class ProductionForm implements OnInit {
     };
 
     if (produto.tipoProduto === 'CORTE') {
-      console.log('%c[DEBUG] Payload ENVIADO para Simulação (CORTE):', 'color: blue; font-weight: bold;', payload);
       this.productionService.simulateProduction(url, payload)
         .pipe(take(1))
         .subscribe({
           next: (response) => {
-            console.log('%c[DEBUG] Resposta RECEBIDA da Simulação (CORTE):', 'color: green; font-weight: bold;', response);
             this.simulationResult.set(response as SimulationResult);
+            this.stableSimulationResult.set(response as SimulationResult);
             if (response.tipoSimulacao === 'CORTE') {
               this.form.patchValue({
                 larguraBlocoProdutosCm: response.larguraBlocoProdutosCm,
@@ -851,20 +916,19 @@ export class ProductionForm implements OnInit {
             this.scrollToBottom();
           },
           error: (err) => {
-            console.error('%c[DEBUG] Erro na Simulação (CORTE):', 'color: red; font-weight: bold;', err);
             this.simulationResult.set(null);
             this.simulationFormSnapshot.set(null);
             this.isSimulating.set(false);
+            this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.LOAD_ERROR);
           }
         });
     } else if (produto.tipoProduto === 'CONSUMO') {
-      console.log('%c[DEBUG] Payload ENVIADO para Simulação (CONSUMO):', 'color: purple; font-weight: bold;', payload);
       this.productionService.simulateConsumption(url, payload)
         .pipe(take(1))
         .subscribe({
           next: (response) => {
-            console.log('%c[DEBUG] Resposta RECEBIDA da Simulação (CONSUMO):', 'color: green; font-weight: bold;', response);
             this.simulationResult.set(response as SimulationResult);
+            this.stableSimulationResult.set(response as SimulationResult);
             this.consumptionSimulationSnapshot.set({
               quantidade,
               unidadesPorProduto: Number(produto.unidadesPorProduto || 1)
@@ -875,11 +939,11 @@ export class ProductionForm implements OnInit {
             this.scrollToBottom();
           },
           error: (err) => {
-            console.error('%c[DEBUG] Erro na Simulação (CONSUMO):', 'color: red; font-weight: bold;', err);
             this.simulationResult.set(null);
             this.simulationFormSnapshot.set(null);
             this.consumptionSimulationSnapshot.set(null);
             this.isSimulating.set(false);
+            this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.LOAD_ERROR);
           }
         });
     } else {
@@ -952,6 +1016,7 @@ export class ProductionForm implements OnInit {
         .subscribe({
           next: (response) => {
             this.simulationResult.set(response);
+            this.stableSimulationResult.set(response);
             this.consumptionSimulationSnapshot.set({
               quantidade: Number(formValue.quantidade),
               unidadesPorProduto: Number(produto.unidadesPorProduto || 1)
@@ -964,13 +1029,13 @@ export class ProductionForm implements OnInit {
           },
           error: (err) => {
             this.isVerifying.set(false);
-            console.error('Erro na verificação de consumo:', err);
+            this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.LOAD_ERROR);
           }
         });
       return;
     }
 
-    const oldResult = currentResult as SimulationCutResult;
+    const oldResult = ((this.stableSimulationResult() ?? currentResult) as SimulationCutResult);
 
     // Montar payload para a API de verificação
     let payload: VerificationRequest;
@@ -990,9 +1055,7 @@ export class ProductionForm implements OnInit {
         loteId: Number(formValue.loteId),
         quantidade: Number(formValue.quantidade),
         modoCalculo: formValue.modoCalculo,
-        ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined,
-        larguraBlocoProdutosCm: oldResult.larguraBlocoProdutosCm,
-        comprimentoBlocoProdutosCm: oldResult.comprimentoBlocoProdutosCm
+        ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined
       };
       const margens = this.buildMargensPayload(formValue);
       if (margens) {
@@ -1001,20 +1064,17 @@ export class ProductionForm implements OnInit {
     }
 
     this.isVerifying.set(true);
-    console.log('%c[DEBUG] Payload ENVIADO para Verificação:', 'color: orange; font-weight: bold;', payload);
 
     this.productionService.verifyCutLayout(payload)
       .pipe(take(1))
       .subscribe({
         next: (newResult) => {
-          console.log('%c[DEBUG] Resposta RECEBIDA da Verificação:', 'color: purple; font-weight: bold;', newResult);
           this.isVerifying.set(false);
           this.showVerificationDialog(oldResult, newResult, formValue);
         },
         error: (err) => {
           this.isVerifying.set(false);
-          // TODO: Mostrar alerta de erro (ex: dimensões insuficientes no manual)
-          console.error('Erro na verificação:', err);
+          this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.LOAD_ERROR);
         }
       });
   }
@@ -1146,6 +1206,7 @@ export class ProductionForm implements OnInit {
       if (confirmed) {
         // ACEITAR: Atualiza o estado estável
         this.simulationResult.set(newR);
+        this.stableSimulationResult.set(newR);
         this.formSnapshot = this.form.getRawValue();
         this.simulationFormSnapshot.set(this.formSnapshot);
         this.needsVerification.set(false);
@@ -1239,19 +1300,15 @@ export class ProductionForm implements OnInit {
         ? this.productionService.updateCutOrder(updateUrl!, payload)
         : this.productionService.createCutOrder(createUrl!, payload);
 
-      console.log('%c[DEBUG] Payload FINAL ENVIADO para salvar Ordem:', 'color: #bada55; font-weight: bold;', payload);
-
       operation
         .pipe(take(1))
         .subscribe({
           next: (response) => {
-            console.log('%c[DEBUG] Ordem de Produção salva com SUCESSO:', 'color: green; font-weight: bold;', response);
             this.isSaving.set(false);
             this.dialogRef.close(true);
             this.cdr.markForCheck();
           },
           error: (err) => {
-            console.error('Erro ao salvar ordem de produção por corte:', err);
             this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.SAVE_ERROR);
             this.isSaving.set(false);
             this.cdr.markForCheck();
@@ -1273,19 +1330,15 @@ export class ProductionForm implements OnInit {
         ? this.productionService.updateConsumptionOrder(updateUrl!, payload)
         : this.productionService.createConsumptionOrder(createUrl!, payload);
 
-      console.log('%c[DEBUG] Payload FINAL ENVIADO para salvar Ordem (CONSUMO):', 'color: #bada55; font-weight: bold;', payload);
-
       operation
         .pipe(take(1))
         .subscribe({
           next: (response) => {
-            console.log('%c[DEBUG] Ordem de Produção salva com SUCESSO (CONSUMO):', 'color: green; font-weight: bold;', response);
             this.isSaving.set(false);
             this.dialogRef.close(true);
             this.cdr.markForCheck();
           },
           error: (err) => {
-            console.error('Erro ao salvar ordem de produção por consumo:', err);
             this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.SAVE_ERROR);
             this.isSaving.set(false);
             this.cdr.markForCheck();
