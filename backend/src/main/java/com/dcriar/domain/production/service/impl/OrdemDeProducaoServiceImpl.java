@@ -962,15 +962,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private List<ImpossivelExcluirProducaoException.CadeiaRetalhoItem> construirCadeiaRetalhos(LoteMateriaPrima retalho) {
-        List<LoteMateriaPrima> cadeia = new ArrayList<>();
-        LoteMateriaPrima atual = retalho;
-
-        while (atual != null) {
-            cadeia.add(0, atual);
-            atual = atual.getLoteDeOrigem();
-        }
-
-        return cadeia.stream()
+        return listarCadeiaAteRaiz(retalho).stream()
                 .map(lote -> new ImpossivelExcluirProducaoException.CadeiaRetalhoItem(
                         lote.getId(),
                         lote.getOrdemDeProducaoOrigem() != null ? lote.getOrdemDeProducaoOrigem().getId() : null
@@ -980,13 +972,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     private List<Long> listarOrdensRelacionadasIds(LoteMateriaPrima retalho) {
         Set<Long> ordensRelacionadas = new LinkedHashSet<>();
-        List<LoteMateriaPrima> cadeia = new ArrayList<>();
-
-        LoteMateriaPrima atual = retalho;
-        while (atual != null) {
-            cadeia.add(0, atual);
-            atual = atual.getLoteDeOrigem();
-        }
+        List<LoteMateriaPrima> cadeia = listarCadeiaAteRaiz(retalho);
 
         for (LoteMateriaPrima loteDaCadeia : cadeia) {
             if (loteDaCadeia.getOrdemDeProducaoOrigem() != null) {
@@ -1000,6 +986,18 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .forEach(ordensRelacionadas::add);
 
         return new ArrayList<>(ordensRelacionadas);
+    }
+
+    private List<LoteMateriaPrima> listarCadeiaAteRaiz(LoteMateriaPrima retalho) {
+        LinkedList<LoteMateriaPrima> cadeia = new LinkedList<>();
+        LoteMateriaPrima atual = retalho;
+
+        while (atual != null) {
+            cadeia.addFirst(atual);
+            atual = atual.getLoteDeOrigem();
+        }
+
+        return cadeia;
     }
 
     private TipoMovimentacao obterTipoAlteracaoAtiva(LoteMateriaPrima retalho) {
@@ -1018,7 +1016,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .filter(movimentacao -> movimentacao.getTipo() == TipoMovimentacao.SAIDA_PRODUCAO)
                 .max(Comparator.comparing(MovimentacaoEstoqueLote::getData))
                 .map(MovimentacaoEstoqueLote::getOrdemDeProducao)
-                .filter(Objects::nonNull)
                 .map(OrdemDeProducao::getId)
                 .orElse(null);
     }
@@ -1092,15 +1089,10 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         int produtosPorLinha = cortesProduto.stream()
                 .map(CorteRealizado::getQuantidade)
-                .filter(Objects::nonNull)
                 .max(Integer::compareTo)
                 .orElse(0);
 
-        int totalLinhas = !cortesProduto.isEmpty()
-                ? cortesProduto.size()
-                : (produtosPorLinha > 0
-                        ? (int) Math.ceil((double) ordem.getQuantidadeProduzida() / produtosPorLinha)
-                        : 0);
+        int totalLinhas = cortesProduto.size();
 
         int produtosNaUltimaLinha = totalLinhas > 0 && produtosPorLinha > 0
                 ? ordem.getQuantidadeProduzida() - (Math.max(totalLinhas - 1, 0) * produtosPorLinha)
