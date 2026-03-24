@@ -12,9 +12,11 @@ import com.dcriar.domain.stock.entity.enums.DirecaoAjusteLote;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enums.TipoOperacaoAjusteLote;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
+import com.dcriar.domain.stock.model.LoteRetalhoHierarchyItem;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.domain.stock.service.AjusteLoteService;
+import com.dcriar.domain.stock.service.LoteRetalhoHierarchyService;
 import com.dcriar.exception.custom.AjusteLoteInvalidoException;
 import com.dcriar.exception.custom.EstoqueInsuficienteParaMovimentacaoException;
 import com.dcriar.exception.custom.LoteMateriaPrimaNaoEncontradoException;
@@ -43,6 +45,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
     private final MovimentacaoEstoqueLoteRepository movimentacaoEstoqueLoteRepository;
     private final LoteMateriaPrimaMapper loteMateriaPrimaMapper;
+    private final LoteRetalhoHierarchyService loteRetalhoHierarchyService;
     private final EntityManager entityManager;
 
     @Override
@@ -289,7 +292,8 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
             return List.of();
         }
 
-        return loteMateriaPrimaRepository.findByLoteDeOrigem(lote).stream()
+        return loteRetalhoHierarchyService.listarFilhosDiretos(lote).stream()
+                .map(LoteRetalhoHierarchyItem::lote)
                 .map(loteFilho -> {
                     BigDecimal saldoAtualFilho = calcularSaldo(loteFilho);
                     BigDecimal saldoApresentacaoFilho = converterQuantidadeParaApresentacao(loteFilho, saldoAtualFilho);
