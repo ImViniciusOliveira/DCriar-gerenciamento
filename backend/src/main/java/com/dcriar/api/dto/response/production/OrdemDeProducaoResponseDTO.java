@@ -68,6 +68,12 @@ public class OrdemDeProducaoResponseDTO extends RepresentationModel<OrdemDeProdu
     @Schema(description = "Comprimento final do corte em cm (se aplicável).", nullable = true)
     private BigDecimal comprimentoFinalCm;
 
+    @Schema(description = "Largura original do bloco de produtos em cm (se aplicável).", nullable = true)
+    private BigDecimal larguraBlocoProdutosCm;
+
+    @Schema(description = "Comprimento original do bloco de produtos em cm (se aplicável).", nullable = true)
+    private BigDecimal comprimentoBlocoProdutosCm;
+
     @Schema(description = "Indica se a peça foi rotacionada para melhor aproveitamento.", nullable = true)
     private Boolean rotacionado;
 

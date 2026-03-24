@@ -14,6 +14,7 @@ import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
 import com.dcriar.api.mapper.production.PlanoDeConsumoMapper;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
+import com.dcriar.domain.product.entity.ProdutoDeCorte;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
@@ -27,7 +28,6 @@ import com.dcriar.domain.production.model.PlanoDeConsumo;
 import com.dcriar.domain.production.model.PlanoDeConsumoItem;
 import com.dcriar.domain.production.model.ResumoLayoutCorte;
 import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
-import com.dcriar.domain.production.service.ConsumoCalculatorService;
 import com.dcriar.domain.production.service.CorteCalculatorService;
 import com.dcriar.domain.production.service.OrdemDeProducaoService;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
@@ -79,7 +79,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private final OrdemDeProducaoMapper ordemDeProducaoMapper;
     private final CorteCalculatorService corteCalculatorService;
     private final EstoqueProdutoService estoqueProdutoService;
-    private final ConsumoCalculatorService consumoCalculatorService;
     private final PlanoDeConsumoMapper planoDeConsumoMapper;
 
     @Override
@@ -536,7 +535,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Transactional(readOnly = true)
     public OrdemDeProducaoResponseDTO buscarPorId(Long id) {
         return ordemDeProducaoRepository.findByIdWithDetails(id)
-                .map(ordemDeProducaoMapper::toDto)
+                .map(this::toDetailedDto)
                 .orElseThrow(() -> new OrdemDeProducaoNaoEncontradaException(id));
     }
 
@@ -544,7 +543,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Transactional(readOnly = true)
     public Page<OrdemDeProducaoResponseDTO> listarPaginado(Pageable pageable) {
         Page<OrdemDeProducao> ordensPage = ordemDeProducaoRepository.findAll(pageable);
-        return ordensPage.map(ordemDeProducaoMapper::toDto);
+        return ordensPage.map(this::toDetailedDto);
     }
 
     @Override
@@ -960,6 +959,72 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     private void carregarSaldoDisponivelParaEdicaoNoLote(LoteMateriaPrima lote, Long ordemId) {
         lote.setSaldoCalculado(calcularSaldoDisponivelParaEdicao(lote, ordemId));
+    }
+
+    private OrdemDeProducaoResponseDTO toDetailedDto(OrdemDeProducao ordem) {
+        OrdemDeProducaoResponseDTO dto = ordemDeProducaoMapper.toDto(ordem);
+        preencherBlocoProdutos(ordem, dto);
+        return dto;
+    }
+
+    private void preencherBlocoProdutos(OrdemDeProducao ordem, OrdemDeProducaoResponseDTO dto) {
+        if (!(ordem.getProduto() instanceof ProdutoDeCorte produtoDeCorte) || ordem.getLarguraFinalCm() == null || ordem.getComprimentoFinalCm() == null) {
+            return;
+        }
+
+        CorteRealizado lateralRetalho = ordem.getCortesRealizados().stream()
+                .filter(corte -> "RETALHO".equalsIgnoreCase(corte.getTipo()))
+                .filter(corte -> corte.getRetalhoCategoria() != null && "LATERAL".equalsIgnoreCase(corte.getRetalhoCategoria()))
+                .findFirst()
+                .orElse(null);
+
+        CorteRealizado inferiorRetalho = ordem.getCortesRealizados().stream()
+                .filter(corte -> "RETALHO".equalsIgnoreCase(corte.getTipo()))
+                .filter(corte -> corte.getRetalhoCategoria() != null && "FINAL".equalsIgnoreCase(corte.getRetalhoCategoria()))
+                .findFirst()
+                .orElse(null);
+
+        BigDecimal larguraBloco = ordem.getLarguraFinalCm();
+        BigDecimal comprimentoBloco = ordem.getComprimentoFinalCm();
+
+        if (lateralRetalho != null && lateralRetalho.getLarguraCm() != null) {
+            larguraBloco = larguraBloco.subtract(lateralRetalho.getLarguraCm());
+        }
+        if (inferiorRetalho != null && inferiorRetalho.getComprimentoCm() != null) {
+            comprimentoBloco = comprimentoBloco.subtract(inferiorRetalho.getComprimentoCm());
+        }
+
+        if (ordem.getModoCalculo() == ModoCalculo.AUTOMATICO && ordem.getMargens() != null) {
+            larguraBloco = larguraBloco
+                    .subtract(valorOuZero(ordem.getMargens().getEsquerda()))
+                    .subtract(valorOuZero(ordem.getMargens().getDireita()));
+            comprimentoBloco = comprimentoBloco
+                    .subtract(valorOuZero(ordem.getMargens().getSuperior()))
+                    .subtract(valorOuZero(ordem.getMargens().getInferior()));
+        }
+
+        if (ordem.getModoCalculo() == ModoCalculo.MANUAL && produtoDeCorte.getDimensoes() != null) {
+            BigDecimal larguraProduto = ordem.isRotacionado()
+                    ? produtoDeCorte.getDimensoes().getComprimentoCm()
+                    : produtoDeCorte.getDimensoes().getLarguraCm();
+            BigDecimal comprimentoProduto = ordem.isRotacionado()
+                    ? produtoDeCorte.getDimensoes().getLarguraCm()
+                    : produtoDeCorte.getDimensoes().getComprimentoCm();
+
+            if (larguraBloco.compareTo(BigDecimal.ZERO) <= 0) {
+                larguraBloco = larguraProduto;
+            }
+            if (comprimentoBloco.compareTo(BigDecimal.ZERO) <= 0) {
+                comprimentoBloco = comprimentoProduto;
+            }
+        }
+
+        dto.setLarguraBlocoProdutosCm(larguraBloco.max(BigDecimal.ZERO));
+        dto.setComprimentoBlocoProdutosCm(comprimentoBloco.max(BigDecimal.ZERO));
+    }
+
+    private BigDecimal valorOuZero(BigDecimal valor) {
+        return valor != null ? valor : BigDecimal.ZERO;
     }
 
     private BigDecimal calcularSaldoDisponivelParaEdicao(LoteMateriaPrima lote, Long ordemId) {
