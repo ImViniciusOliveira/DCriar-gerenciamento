@@ -1,6 +1,5 @@
 package com.dcriar.api.validation.annotation;
 
-import com.dcriar.api.dto.request.stock.AplicarAjusteLoteRequestDTO;
 import com.dcriar.api.validation.validator.AplicarAjusteLoteRequestValidator;
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

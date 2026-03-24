@@ -289,7 +289,9 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
         return loteMateriaPrimaRepository.findByLoteDeOrigem(lote).stream()
                 .map(loteFilho -> {
                     BigDecimal saldoAtualFilho = calcularSaldo(loteFilho);
-                    BigDecimal valorAtual = custoUnitarioAtual.multiply(saldoAtualFilho).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+                    BigDecimal valorAtual = loteFilho.getCustoTotalLote() != null
+                            ? loteFilho.getCustoTotalLote().setScale(SCALE_MONEY, RoundingMode.HALF_UP)
+                            : BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
                     BigDecimal valorProjetado = custoUnitarioProjetado.multiply(saldoAtualFilho).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
                     return new ItemImpactadoCalculado(
                             loteFilho,
