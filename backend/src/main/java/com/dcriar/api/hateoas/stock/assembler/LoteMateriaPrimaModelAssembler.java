@@ -72,6 +72,18 @@ public class LoteMateriaPrimaModelAssembler extends RepresentationModelAssembler
                     .toUriString();
             model.add(Link.of(registrarMovimentacaoUrl, "registrar-movimentacao"));
 
+            String calcularAjusteUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/lotes-materia-prima/{id}/ajustes/calcular")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(calcularAjusteUrl, "calcular-ajuste"));
+
+            String aplicarAjusteUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/lotes-materia-prima/{id}/ajustes/aplicar")
+                    .buildAndExpand(dto.getId())
+                    .toUriString();
+            model.add(Link.of(aplicarAjusteUrl, "aplicar-ajuste"));
+
             if (model.getTipoMateriaPrimaId() != null) {
                 model.add(linkTo(methodOn(TipoMateriaPrimaController.class).findById(model.getTipoMateriaPrimaId())).withRel("tipo-materia-prima"));
             }
