@@ -775,17 +775,59 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private BigDecimal calcularCustoUnitario(LoteMateriaPrima lote) {
-        BigDecimal quantidadeTotalEntrada = lote.getMovimentacoes().stream()
-                .filter(movimentacao -> movimentacao.getTipo() == TipoMovimentacao.ENTRADA_COMPRA)
+        BigDecimal saldoAtual = lote.getSaldoCalculado() != null
+                ? lote.getSaldoCalculado()
+                : movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+
+        if (possuiAjusteOuPerdaManual(lote)) {
+            if (saldoAtual.compareTo(BigDecimal.ZERO) <= 0 || lote.getCustoTotalLote() == null) {
+                return BigDecimal.ZERO;
+            }
+            return lote.getCustoTotalLote().divide(saldoAtual, 4, RoundingMode.HALF_UP);
+        }
+
+        BigDecimal quantidadeBaseComCusto = calcularQuantidadeBaseComCusto(lote);
+        if (quantidadeBaseComCusto.compareTo(BigDecimal.ZERO) <= 0 || lote.getCustoTotalLote() == null) {
+            return BigDecimal.ZERO;
+        }
+
+        return lote.getCustoTotalLote().divide(quantidadeBaseComCusto, 4, RoundingMode.HALF_UP);
+    }
+
+    private boolean possuiAjusteOuPerdaManual(LoteMateriaPrima lote) {
+        return lote.getMovimentacoes().stream()
+                .map(MovimentacaoEstoqueLote::getTipo)
+                .anyMatch(tipo -> tipo == TipoMovimentacao.AJUSTE_INVENTARIO || tipo == TipoMovimentacao.PERDA_DESCARTE);
+    }
+
+    private BigDecimal calcularQuantidadeBaseComCusto(LoteMateriaPrima lote) {
+        BigDecimal quantidadeEntradaCompra = somarQuantidadePorTipo(lote, TipoMovimentacao.ENTRADA_COMPRA);
+        if (quantidadeEntradaCompra.compareTo(BigDecimal.ZERO) > 0) {
+            return quantidadeEntradaCompra;
+        }
+
+        BigDecimal quantidadeEntradaSobra = somarQuantidadePorTipo(lote, TipoMovimentacao.ENTRADA_SOBRA);
+        if (quantidadeEntradaSobra.compareTo(BigDecimal.ZERO) > 0) {
+            return quantidadeEntradaSobra;
+        }
+
+        BigDecimal quantidadeAjustePositiva = lote.getMovimentacoes().stream()
+                .filter(movimentacao -> movimentacao.getTipo() == TipoMovimentacao.AJUSTE_INVENTARIO)
                 .map(MovimentacaoEstoqueLote::getQuantidade)
                 .filter(quantidade -> quantidade.compareTo(BigDecimal.ZERO) > 0)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (quantidadeTotalEntrada.compareTo(BigDecimal.ZERO) == 0) {
-            return BigDecimal.ZERO;
-        }
+        return quantidadeAjustePositiva.compareTo(BigDecimal.ZERO) > 0
+                ? quantidadeAjustePositiva
+                : BigDecimal.ZERO;
+    }
 
-        return lote.getCustoTotalLote().divide(quantidadeTotalEntrada, 4, RoundingMode.HALF_UP);
+    private BigDecimal somarQuantidadePorTipo(LoteMateriaPrima lote, TipoMovimentacao tipoMovimentacao) {
+        return lote.getMovimentacoes().stream()
+                .filter(movimentacao -> movimentacao.getTipo() == tipoMovimentacao)
+                .map(MovimentacaoEstoqueLote::getQuantidade)
+                .filter(quantidade -> quantidade.compareTo(BigDecimal.ZERO) > 0)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private void registrarSaidaLote(LoteMateriaPrima lote, BigDecimal quantidade, String motivo, OrdemDeProducao ordem) {

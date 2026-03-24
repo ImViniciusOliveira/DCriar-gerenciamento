@@ -81,8 +81,8 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
 
         if (requestDTO.getIdsItensImpactadosAtualizados() != null && !requestDTO.getIdsItensImpactadosAtualizados().isEmpty()) {
             List<LoteMateriaPrima> lotesImpactadosParaAtualizar = resultado.itensImpactados().stream()
-                    .filter(item -> requestDTO.getIdsItensImpactadosAtualizados().contains(item.lote().getId()))
                     .map(ItemImpactadoCalculado::lote)
+                    .filter(loteImpactado -> requestDTO.getIdsItensImpactadosAtualizados().contains(loteImpactado.getId()))
                     .toList();
 
             lotesImpactadosParaAtualizar.forEach(loteImpactado -> {
@@ -140,7 +140,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                 ? BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP)
                 : valorProjetadoLote.divide(saldoProjetadoInterno, SCALE_MONEY, RoundingMode.HALF_UP);
 
-        List<ItemImpactadoCalculado> itensImpactados = montarItensImpactados(lote, custoUnitarioAtual, custoUnitarioProjetado, tipoOperacao);
+        List<ItemImpactadoCalculado> itensImpactados = montarItensImpactados(lote, custoUnitarioProjetado, tipoOperacao);
 
         return new ResultadoCalculoAjuste(
                 lote,
@@ -181,7 +181,10 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
     }
 
     private void validarRequest(TipoOperacaoAjusteLote tipoOperacao, DirecaoAjusteLote direcao, BigDecimal quantidade) {
-        if (quantidade == null || quantidade.compareTo(BigDecimal.ZERO) <= 0) {
+        if (quantidade == null) {
+            throw new QuantidadeUnidadesInvalidaException();
+        }
+        if (quantidade.compareTo(BigDecimal.ZERO) <= 0) {
             throw new QuantidadeUnidadesInvalidaException(quantidade);
         }
         if (tipoOperacao == TipoOperacaoAjusteLote.AJUSTE && direcao == null) {
@@ -284,7 +287,6 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
 
     private List<ItemImpactadoCalculado> montarItensImpactados(
             LoteMateriaPrima lote,
-            BigDecimal custoUnitarioAtual,
             BigDecimal custoUnitarioProjetado,
             TipoOperacaoAjusteLote tipoOperacao
     ) {
@@ -292,28 +294,38 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
             return List.of();
         }
 
-        return loteRetalhoHierarchyService.listarFilhosDiretos(lote).stream()
-                .map(LoteRetalhoHierarchyItem::lote)
-                .map(loteFilho -> {
-                    BigDecimal saldoAtualFilho = calcularSaldo(loteFilho);
-                    BigDecimal saldoApresentacaoFilho = converterQuantidadeParaApresentacao(loteFilho, saldoAtualFilho);
-                    BigDecimal valorAtual = loteFilho.getCustoTotalLote() != null
-                            ? loteFilho.getCustoTotalLote().setScale(SCALE_MONEY, RoundingMode.HALF_UP)
+        return loteRetalhoHierarchyService.listarDescendentes(lote).stream()
+                .map(itemHierarchy -> {
+                    LoteMateriaPrima loteImpactado = itemHierarchy.lote();
+                    BigDecimal saldoAtualFilho = calcularSaldo(loteImpactado);
+                    BigDecimal saldoApresentacaoFilho = converterQuantidadeParaApresentacao(loteImpactado, saldoAtualFilho);
+                    BigDecimal valorAtual = loteImpactado.getCustoTotalLote() != null
+                            ? loteImpactado.getCustoTotalLote().setScale(SCALE_MONEY, RoundingMode.HALF_UP)
                             : BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
                     BigDecimal valorProjetado = custoUnitarioProjetado.multiply(saldoAtualFilho).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
                     return new ItemImpactadoCalculado(
-                            loteFilho,
+                            loteImpactado,
                             "RETALHO",
-                            "Retalho originado do lote #" + lote.getId(),
+                            montarDescricaoItemImpactado(lote.getId(), itemHierarchy),
                             saldoApresentacaoFilho,
-                            formatarSaldoDescricao(loteFilho, saldoApresentacaoFilho),
-                            formatarDimensaoDescricao(loteFilho, saldoApresentacaoFilho),
+                            formatarSaldoDescricao(loteImpactado, saldoApresentacaoFilho),
+                            formatarDimensaoDescricao(loteImpactado, saldoApresentacaoFilho),
                             valorAtual,
                             valorProjetado,
                             true
                     );
                 })
                 .toList();
+    }
+
+    private String montarDescricaoItemImpactado(Long loteRaizId, LoteRetalhoHierarchyItem itemHierarchy) {
+        String tipo = itemHierarchy.nivel() == 1 ? "Retalho direto" : "Retalho derivado";
+        String cadeia = itemHierarchy.caminhoIds().stream()
+                .map(id -> id.equals(loteRaizId) ? "Lote #" + id : "Retalho #" + id)
+                .reduce((atual, proximo) -> atual + " -> " + proximo)
+                .orElse("Lote #" + loteRaizId);
+
+        return tipo + " da árvore do lote #" + loteRaizId + " | Cadeia: " + cadeia;
     }
 
     private ItemImpactadoAjusteLoteDTO toItemImpactadoDTO(ItemImpactadoCalculado item) {
