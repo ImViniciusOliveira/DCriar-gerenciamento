@@ -423,7 +423,10 @@ export class ProductionForm implements OnInit {
 
   private loadEditState(order: ProductionOrder, product: Product): void {
     if (order.tipoProduto === 'CORTE') {
-      const result = this.buildEditCutSimulation(order, product);
+      const result = order.simulacaoInicialCorte;
+      if (!result) {
+        throw new Error('Preview inicial de corte não encontrado na ordem.');
+      }
       this.simulationResult.set(result);
       this.stableSimulationResult.set(result);
       this.form.patchValue({
@@ -442,7 +445,10 @@ export class ProductionForm implements OnInit {
         });
       }
     } else {
-      const result = this.buildEditConsumptionSimulation(order, product);
+      const result = order.simulacaoInicialConsumo;
+      if (!result) {
+        throw new Error('Preview inicial de consumo não encontrado na ordem.');
+      }
       this.simulationResult.set(result);
       this.stableSimulationResult.set(result);
       this.consumptionSimulationSnapshot.set({
@@ -456,67 +462,6 @@ export class ProductionForm implements OnInit {
     this.simulationFormSnapshot.set(this.formSnapshot);
     this.needsVerification.set(false);
     this.cdr.markForCheck();
-  }
-
-  private buildEditCutSimulation(order: ProductionOrder, product: Product): SimulationCutResult {
-    const productCuts = (order.cortesRealizados ?? []).filter(cut => cut.tipo === 'PRODUTO');
-    const lateralRetalho = (order.cortesRealizados ?? []).find(cut => cut.tipo === 'RETALHO' && cut.retalhoCategoria === 'LATERAL');
-    const inferiorRetalho = (order.cortesRealizados ?? []).find(cut => cut.tipo === 'RETALHO' && cut.retalhoCategoria === 'FINAL');
-
-    const pieceWidth = order.rotacionado ? Number(product.dimensoes?.comprimentoCm ?? 0) : Number(product.dimensoes?.larguraCm ?? 0);
-    const pieceLength = order.rotacionado ? Number(product.dimensoes?.larguraCm ?? 0) : Number(product.dimensoes?.comprimentoCm ?? 0);
-    const productsPerLine = Math.max(...productCuts.map(cut => Number(cut.quantidade || 0)), 0);
-    const totalRows = productCuts.length || (order.quantidadeProduzida > 0 && productsPerLine > 0 ? Math.ceil(order.quantidadeProduzida / productsPerLine) : 0);
-    const productsOnLastLine = totalRows > 0 && productsPerLine > 0
-      ? order.quantidadeProduzida - (Math.max(totalRows - 1, 0) * productsPerLine)
-      : order.quantidadeProduzida;
-    const completedRows = totalRows > 0 && productsOnLastLine > 0 && productsOnLastLine < productsPerLine
-      ? totalRows - 1
-      : totalRows;
-
-    const pureBlockWidth = Number(order.larguraBlocoProdutosCm ?? 0);
-    const pureBlockLength = Number(order.comprimentoBlocoProdutosCm ?? 0);
-
-    return {
-      tipoSimulacao: 'CORTE',
-      modoCalculo: order.modoCalculo ?? 'AUTOMATICO',
-      larguraFinalCm: Number(order.larguraFinalCm ?? 0),
-      comprimentoFinalCm: Number(order.comprimentoFinalCm ?? 0),
-      consumoEstimado: 0,
-      rotacionado: !!order.rotacionado,
-      produtosPorLinha: productsPerLine,
-      numeroLinhasCompletas: Math.max(completedRows, 0),
-      produtosNaUltimaLinha: totalRows > 0 && productsOnLastLine < productsPerLine ? Math.max(productsOnLastLine, 0) : 0,
-      sobraLateral: lateralRetalho ? `${lateralRetalho.larguraCm}cm x ${lateralRetalho.comprimentoCm}cm` : '',
-      sobraInferior: inferiorRetalho ? `${inferiorRetalho.larguraCm}cm x ${inferiorRetalho.comprimentoCm}cm` : '',
-      dimensaoProduto: `${pieceWidth}cm x ${pieceLength}cm`,
-      consumoTotal: `${order.larguraFinalCm}cm x ${order.comprimentoFinalCm}cm`,
-      larguraBlocoProdutosCm: pureBlockWidth,
-      comprimentoBlocoProdutosCm: pureBlockLength
-    };
-  }
-
-  private buildEditConsumptionSimulation(order: ProductionOrder, product: Product): SimulationConsumptionResult {
-    const lotId = Number(order.lotesConsumidosIds?.[0] ?? 0);
-    const unidadeDescricao = product.materiaPrima?.unidadeDescricao ?? product.materiaPrima?.unidadeDeConsumo ?? 'unidade';
-
-    return {
-      tipoSimulacao: 'CONSUMO',
-      consumoTotalEstimado: Number(order.quantidadeProduzida || 0) * Number(product.unidadesPorProduto || 1),
-      unidadeDeConsumo: product.materiaPrima?.unidadeDeConsumo ?? '',
-      unidadeDescricao,
-      unidadeDescricaoPlural: unidadeDescricao,
-      unidadeSimbolo: '',
-      exibirQuantidadeComSimbolo: false,
-      planoDeConsumo: [
-        {
-          loteId: lotId,
-          motivoLote: '',
-          quantidadeAConsumir: Number(order.quantidadeProduzida || 0) * Number(product.unidadesPorProduto || 1)
-        }
-      ],
-      saldoRestante: lotId ? { [lotId]: 0 } : {}
-    };
   }
 
   private syncSelectedSearchInputs(product: Product | null, batch: Batch | null): void {

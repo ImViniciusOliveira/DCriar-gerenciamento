@@ -1,4 +1,5 @@
 import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
+import { SimulationConsumptionResult, SimulationCutResult } from './simulation.model';
 
 /**
  * Modos de cálculo para ordens de corte.
@@ -50,6 +51,8 @@ export interface ProductionOrder {
   rotacionado?: boolean;
   cortesRealizados?: PerformedCut[];
   margens?: Margins;
+  simulacaoInicialCorte?: SimulationCutResult;
+  simulacaoInicialConsumo?: SimulationConsumptionResult;
 
   _links?: Hateoas['_links'];
 }
