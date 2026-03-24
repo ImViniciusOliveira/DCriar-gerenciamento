@@ -53,9 +53,9 @@
       }
 
       <!-- Botão de Ação -->
-      <button mat-stroked-button color="primary" type="button" class="action-button" (click)="onSimulate()" [disabled]="isSimulating()">
-        <mat-icon>model_training</mat-icon>
-        Simular
+      <button mat-stroked-button color="primary" type="button" class="action-button" (click)="onPrimaryAction()" [disabled]="isPrimaryActionDisabled()">
+        <mat-icon>{{ isEditMode() ? 'check_circle' : 'model_training' }}</mat-icon>
+        {{ isEditMode() ? 'Verificar' : 'Simular' }}
       </button>
     </div>
 
@@ -270,6 +270,7 @@
           </div>
 
           <!-- Botão de Verificação para CORTE -->
+          @if (!isEditMode()) {
           <div class="verification-actions">
             <button mat-stroked-button color="accent" type="button" (click)="onVerify()" [disabled]="!needsVerification() || isVerifying()">
               <mat-icon>check_circle</mat-icon>
@@ -331,6 +332,7 @@
               </div>
             }
           </div>
+          }
         </div>
       } @else if (result.tipoSimulacao === 'CONSUMO') {
         <!-- Formulário para CONSUMO -->

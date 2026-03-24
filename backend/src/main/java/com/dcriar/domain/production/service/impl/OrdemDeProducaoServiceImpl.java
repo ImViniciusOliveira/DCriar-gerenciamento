@@ -24,6 +24,7 @@ import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.dcriar.domain.production.model.ParametrosCorte;
 import com.dcriar.domain.production.model.PlanoDeConsumo;
+import com.dcriar.domain.production.model.PlanoDeConsumoItem;
 import com.dcriar.domain.production.model.ResumoLayoutCorte;
 import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
 import com.dcriar.domain.production.service.ConsumoCalculatorService;
@@ -551,7 +552,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         LoteMateriaPrima loteParaSimulacao = findLoteById(requestDTO.getLoteId());
         validarCompatibilidadeMaterialEntreProdutoELote(produto, loteParaSimulacao);
-        carregarSaldoAtualNoLote(loteParaSimulacao);
+        carregarSaldoDisponivelParaEdicaoNoLote(loteParaSimulacao, requestDTO.getOrdemId());
 
         ParametrosCorte parametros = corteCalculatorService.extrairParametrosCorte(
             requestDTO.getQuantidade(), produto, loteParaSimulacao, null
@@ -588,7 +589,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         LoteMateriaPrima lote = findLoteById(requestDTO.getLoteId());
         validarCompatibilidadeMaterialEntreProdutoELote(produto, lote);
-        carregarSaldoAtualNoLote(lote);
+        carregarSaldoDisponivelParaEdicaoNoLote(lote, requestDTO.getOrdemId());
 
         BigDecimal comprimentoBlocoProdutosCm;
         BigDecimal larguraBlocoProdutosCm;
@@ -698,27 +699,39 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
 
         LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());
+        UnidadeDeMedida unidadeExibicao = produto.getTipoMateriaPrima().getUnidadeDeConsumo();
 
         BigDecimal consumoTotalNecessario = produto.getUnidadesPorProduto()
                 .multiply(BigDecimal.valueOf(requestDTO.getQuantidade()));
-        BigDecimal saldoTotalDisponivel = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteConsumido);
+        BigDecimal saldoTotalDisponivel = calcularSaldoDisponivelParaEdicao(loteConsumido, requestDTO.getOrdemId());
 
         if (saldoTotalDisponivel.compareTo(consumoTotalNecessario) < 0) {
             throw new SaldoMateriaPrimaInsuficienteException(consumoTotalNecessario, saldoTotalDisponivel);
         }
 
-        PlanoDeConsumo plano = consumoCalculatorService.calcularPlanoDeConsumo(loteConsumido, consumoTotalNecessario);
+        PlanoDeConsumo plano = new PlanoDeConsumo(
+                List.of(new PlanoDeConsumoItem(loteConsumido, consumoTotalNecessario)),
+                Map.of(loteConsumido.getId(), saldoTotalDisponivel.subtract(consumoTotalNecessario))
+        );
 
         return SimulacaoConsumoResponseDTO.builder()
-                .consumoTotalEstimado(consumoTotalNecessario)
-                .unidadeDeConsumo(produto.getTipoMateriaPrima().getUnidadeDeConsumo())
-                .unidadeDescricao(produto.getTipoMateriaPrima().getUnidadeDeConsumo().getDescricao())
-                .unidadeDescricaoPlural(produto.getTipoMateriaPrima().getUnidadeDeConsumo().getDescricaoPlural())
-                .unidadeSimbolo(produto.getTipoMateriaPrima().getUnidadeDeConsumo().getSimbolo())
-                .exibirQuantidadeComSimbolo(produto.getTipoMateriaPrima().getUnidadeDeConsumo().isExibirQuantidadeComSimbolo())
+                .consumoTotalEstimado(converterConsumoParaUnidadeExibicao(consumoTotalNecessario, unidadeExibicao))
+                .unidadeDeConsumo(unidadeExibicao)
+                .unidadeDescricao(unidadeExibicao.getDescricao())
+                .unidadeDescricaoPlural(unidadeExibicao.getDescricaoPlural())
+                .unidadeSimbolo(unidadeExibicao.getSimbolo())
+                .exibirQuantidadeComSimbolo(unidadeExibicao.isExibirQuantidadeComSimbolo())
                 .planoDeConsumo(plano.itens().stream().map(planoDeConsumoMapper::toDto).collect(Collectors.toList()))
-                .saldoRestante(plano.saldosRestantes())
+                .saldoRestante(plano.saldosRestantes().entrySet().stream()
+                        .collect(Collectors.toMap(
+                                Map.Entry::getKey,
+                                entry -> converterConsumoParaUnidadeExibicao(entry.getValue(), unidadeExibicao)
+                        )))
                 .build();
+    }
+
+    private BigDecimal converterConsumoParaUnidadeExibicao(BigDecimal quantidadeInterna, UnidadeDeMedida unidadeExibicao) {
+        return unidadeExibicao.converterQuantidadeDaUnidadeInternaParaInformada(quantidadeInterna, unidadeExibicao);
     }
 
     private void criarLoteDeRetalho(LoteMateriaPrima lotePrincipal, BigDecimal larguraSobraCm, BigDecimal comprimentoRetalhoCm, OrdemDeProducao ordemOrigem) {
@@ -943,6 +956,26 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     private void carregarSaldoAtualNoLote(LoteMateriaPrima lote) {
         lote.setSaldoCalculado(movimentacaoEstoqueLoteRepository.findSaldoByLote(lote));
+    }
+
+    private void carregarSaldoDisponivelParaEdicaoNoLote(LoteMateriaPrima lote, Long ordemId) {
+        lote.setSaldoCalculado(calcularSaldoDisponivelParaEdicao(lote, ordemId));
+    }
+
+    private BigDecimal calcularSaldoDisponivelParaEdicao(LoteMateriaPrima lote, Long ordemId) {
+        BigDecimal saldoAtual = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+        if (ordemId == null) {
+            return saldoAtual;
+        }
+
+        OrdemDeProducao ordem = findOrdemByIdWithDetails(ordemId);
+        BigDecimal consumoOriginalDaOrdem = movimentacaoEstoqueLoteRepository.findByOrdemDeProducao(ordem).stream()
+                .filter(mov -> mov.getLote() != null && mov.getLote().getId().equals(lote.getId()))
+                .filter(mov -> mov.getQuantidade().compareTo(BigDecimal.ZERO) < 0)
+                .map(mov -> mov.getQuantidade().abs())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return saldoAtual.add(consumoOriginalDaOrdem);
     }
 
     private BigDecimal calcularConsumoCorteNaUnidadeDoLote(

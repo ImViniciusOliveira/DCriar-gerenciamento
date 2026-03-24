@@ -823,7 +823,8 @@ export class ProductionForm implements OnInit {
     const payload: SimulationRequest = {
       produtoId: produto.id,
       quantidade: quantidade,
-      loteId: loteId
+      loteId: loteId,
+      ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined
     };
 
     if (produto.tipoProduto === 'CORTE') {
@@ -886,6 +887,23 @@ export class ProductionForm implements OnInit {
     }
   }
 
+  onPrimaryAction(): void {
+    if (this.isEditMode()) {
+      this.onVerify();
+      return;
+    }
+
+    this.onSimulate();
+  }
+
+  isPrimaryActionDisabled(): boolean {
+    if (this.isEditMode()) {
+      return !this.needsVerification() || this.isVerifying() || this.form.invalid || !this.hasEditChanges();
+    }
+
+    return this.isSimulating();
+  }
+
   /**
    * Monta o objeto de margens a partir dos valores do formulário.
    * Retorna undefined se o modo não for AUTOMATICO.
@@ -910,7 +928,48 @@ export class ProductionForm implements OnInit {
     const formValue = this.form.getRawValue();
     const currentResult = this.simulationResult();
 
-    if (!currentResult || currentResult.tipoSimulacao !== 'CORTE') return;
+    if (!currentResult) return;
+
+    if (currentResult.tipoSimulacao === 'CONSUMO') {
+      const produto = this.produto();
+      const url = produto?._links?.["simulate"]?.href;
+
+      if (!produto || !url) {
+        return;
+      }
+
+      this.isVerifying.set(true);
+
+      const payload: SimulationRequest = {
+        produtoId: Number(formValue.produtoId),
+        quantidade: Number(formValue.quantidade),
+        loteId: Number(formValue.loteId),
+        ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined
+      };
+
+      this.productionService.simulateConsumption(url, payload)
+        .pipe(take(1))
+        .subscribe({
+          next: (response) => {
+            this.simulationResult.set(response);
+            this.consumptionSimulationSnapshot.set({
+              quantidade: Number(formValue.quantidade),
+              unidadesPorProduto: Number(produto.unidadesPorProduto || 1)
+            });
+            this.formSnapshot = this.form.getRawValue();
+            this.simulationFormSnapshot.set(this.formSnapshot);
+            this.needsVerification.set(false);
+            this.isVerifying.set(false);
+            this.scrollToBottom();
+          },
+          error: (err) => {
+            this.isVerifying.set(false);
+            console.error('Erro na verificação de consumo:', err);
+          }
+        });
+      return;
+    }
+
     const oldResult = currentResult as SimulationCutResult;
 
     // Montar payload para a API de verificação
@@ -921,6 +980,7 @@ export class ProductionForm implements OnInit {
         loteId: Number(formValue.loteId),
         quantidade: Number(formValue.quantidade),
         modoCalculo: formValue.modoCalculo,
+        ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined,
         larguraBlocoProdutosCm: Number(formValue.larguraBlocoProdutosCm),
         comprimentoBlocoProdutosCm: Number(formValue.comprimentoBlocoProdutosCm)
       };
@@ -930,6 +990,7 @@ export class ProductionForm implements OnInit {
         loteId: Number(formValue.loteId),
         quantidade: Number(formValue.quantidade),
         modoCalculo: formValue.modoCalculo,
+        ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined,
         larguraBlocoProdutosCm: oldResult.larguraBlocoProdutosCm,
         comprimentoBlocoProdutosCm: oldResult.comprimentoBlocoProdutosCm
       };

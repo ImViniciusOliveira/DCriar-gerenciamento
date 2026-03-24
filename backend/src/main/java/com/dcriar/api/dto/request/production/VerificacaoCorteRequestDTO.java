@@ -46,4 +46,7 @@ public class VerificacaoCorteRequestDTO {
 
     @Schema(description = "Comprimento do bloco de produtos no corte (em cm).", example = "15.0")
     private BigDecimal comprimentoBlocoProdutosCm;
+
+    @Schema(description = "ID opcional da ordem de produção em edição, para considerar o estorno no cálculo.", example = "5")
+    private Long ordemId;
 }

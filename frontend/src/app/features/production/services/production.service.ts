@@ -15,6 +15,7 @@ export interface SimulationRequest {
   quantidade: number;
   loteId?: number;
   lotesConsumidosIds?: number[];
+  ordemId?: number;
 }
 
 /**
@@ -25,6 +26,7 @@ export interface VerificationRequest {
   loteId: number;
   quantidade: number;
   modoCalculo: string;
+  ordemId?: number;
   margens?: {
     superior: number | null;
     inferior: number | null;
