@@ -26,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Implementa o fluxo operacional de preview de ajuste de lote sem interferir no livro-razão técnico atual.
@@ -36,6 +38,7 @@ import java.util.List;
 public class AjusteLoteServiceImpl implements AjusteLoteService {
 
     private static final int SCALE_MONEY = 8;
+    private static final Locale PT_BR = Locale.forLanguageTag("pt-BR");
 
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
     private final MovimentacaoEstoqueLoteRepository movimentacaoEstoqueLoteRepository;
@@ -289,6 +292,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
         return loteMateriaPrimaRepository.findByLoteDeOrigem(lote).stream()
                 .map(loteFilho -> {
                     BigDecimal saldoAtualFilho = calcularSaldo(loteFilho);
+                    BigDecimal saldoApresentacaoFilho = converterQuantidadeParaApresentacao(loteFilho, saldoAtualFilho);
                     BigDecimal valorAtual = loteFilho.getCustoTotalLote() != null
                             ? loteFilho.getCustoTotalLote().setScale(SCALE_MONEY, RoundingMode.HALF_UP)
                             : BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
@@ -297,7 +301,9 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                             loteFilho,
                             "RETALHO",
                             "Retalho originado do lote #" + lote.getId(),
-                            converterQuantidadeParaApresentacao(loteFilho, saldoAtualFilho),
+                            saldoApresentacaoFilho,
+                            formatarSaldoDescricao(loteFilho, saldoApresentacaoFilho),
+                            formatarDimensaoDescricao(loteFilho, saldoApresentacaoFilho),
                             valorAtual,
                             valorProjetado,
                             true
@@ -312,10 +318,65 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                 .tipoItem(item.tipoItem())
                 .descricao(item.descricao())
                 .saldoAtual(item.saldoAtual())
+                .saldoDescricao(item.saldoDescricao())
+                .dimensaoDescricao(item.dimensaoDescricao())
                 .valorAtual(item.valorAtual())
                 .valorProjetado(item.valorProjetado())
                 .selecionadoPorPadrao(item.selecionadoPorPadrao())
                 .build();
+    }
+
+    private String formatarSaldoDescricao(LoteMateriaPrima lote, BigDecimal saldoApresentacao) {
+        return formatarNumero(saldoApresentacao) + lote.getUnidadeCadastroEstoque().getSimbolo();
+    }
+
+    private String formatarDimensaoDescricao(LoteMateriaPrima lote, BigDecimal saldoApresentacao) {
+        UnidadeDeMedida unidade = lote.getUnidadeCadastroEstoque();
+        if (!unidade.isPermiteCorte()) {
+            return null;
+        }
+
+        BigDecimal larguraMm = extrairLarguraMm(lote);
+        if (larguraMm == null || larguraMm.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
+        BigDecimal larguraCm = larguraMm.divide(new BigDecimal("10"), 2, RoundingMode.HALF_UP);
+        BigDecimal comprimentoCm = switch (unidade) {
+            case METRO_LINEAR -> saldoApresentacao.multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_UP);
+            case CENTIMETRO_LINEAR -> saldoApresentacao.setScale(2, RoundingMode.HALF_UP);
+            case METRO_QUADRADO -> saldoApresentacao.multiply(new BigDecimal("10000"))
+                    .divide(larguraCm, 2, RoundingMode.HALF_UP);
+            case CENTIMETRO_QUADRADO -> saldoApresentacao.divide(larguraCm, 2, RoundingMode.HALF_UP);
+            default -> null;
+        };
+
+        if (comprimentoCm == null) {
+            return null;
+        }
+
+        return formatarNumero(larguraCm) + "cm x " + formatarNumero(comprimentoCm) + "cm";
+    }
+
+    private BigDecimal extrairLarguraMm(LoteMateriaPrima lote) {
+        if (lote.getAtributos() == null || lote.getAtributos().get("larguraMm") == null) {
+            return null;
+        }
+
+        Object larguraValue = lote.getAtributos().get("larguraMm");
+        if (larguraValue instanceof Number number) {
+            return BigDecimal.valueOf(number.doubleValue()).setScale(2, RoundingMode.HALF_UP);
+        }
+
+        return new BigDecimal(larguraValue.toString()).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String formatarNumero(BigDecimal valor) {
+        NumberFormat formatter = NumberFormat.getNumberInstance(PT_BR);
+        formatter.setGroupingUsed(true);
+        formatter.setMaximumFractionDigits(2);
+        formatter.setMinimumFractionDigits(valor.stripTrailingZeros().scale() > 0 ? 2 : 0);
+        return formatter.format(valor);
     }
 
     private void validarItensImpactadosSelecionados(Long loteId, List<Long> idsSelecionados, List<ItemImpactadoCalculado> itensImpactados) {
@@ -374,6 +435,8 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
             String tipoItem,
             String descricao,
             BigDecimal saldoAtual,
+            String saldoDescricao,
+            String dimensaoDescricao,
             BigDecimal valorAtual,
             BigDecimal valorProjetado,
             boolean selecionadoPorPadrao

@@ -27,6 +27,12 @@ public class ItemImpactadoAjusteLoteDTO {
     @Schema(description = "Saldo atual do item impactado.", example = "0.0700")
     private BigDecimal saldoAtual;
 
+    @Schema(description = "Descrição formatada do saldo do item impactado.", example = "0,04m²")
+    private String saldoDescricao;
+
+    @Schema(description = "Descrição formatada das dimensões do item impactado, quando aplicável.", example = "20cm x 20cm")
+    private String dimensaoDescricao;
+
     @Schema(description = "Valor atual do item impactado.", example = "7.00")
     private BigDecimal valorAtual;
 
