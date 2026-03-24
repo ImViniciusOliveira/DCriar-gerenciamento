@@ -20,6 +20,7 @@ import { MaterialTypeSearch } from '../../../../shared/components/material-type-
 import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
+import { BatchAdjustmentForm } from '../batch-adjustment-form/batch-adjustment-form';
 
 /**
  * Validador que verifica se a parte inteira de um número excede um máximo de dígitos.
@@ -64,7 +65,7 @@ export interface BatchFormData {
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatIconModule, MaterialTypeSearch, MatSelectModule,
+    MatButtonModule, MatIconModule, MaterialTypeSearch, MatSelectModule, BatchAdjustmentForm,
     CurrencyPipe, TitleCasePipe
   ],
   templateUrl: './batch-form.html',

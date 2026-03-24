@@ -1,0 +1,133 @@
+@use '../../../../shared/styles/form-layout' as fl;
+
+.batch-adjustment {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.batch-adjustment__header h4,
+.adjustment-card__title h5,
+.impact-list__header h6 {
+  margin: 0;
+}
+
+.batch-adjustment__header p,
+.adjustment-card__title p,
+.impact-list__header p {
+  margin: 4px 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.92rem;
+}
+
+.adjustment-card {
+  @include fl.std-border-mixin;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  background: color-mix(in srgb, var(--mat-sys-surface) 92%, var(--mat-sys-primary) 8%);
+}
+
+.adjustment-card--result {
+  background: color-mix(in srgb, var(--mat-sys-surface) 94%, var(--mat-sys-secondary) 6%);
+}
+
+.adjustment-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.adjustment-form__full {
+  grid-column: 1 / -1;
+}
+
+.adjustment-form mat-form-field {
+  width: 100%;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric-card {
+  @include fl.std-border-mixin;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 88%, white 12%);
+}
+
+.metric-card span {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8rem;
+}
+
+.adjustment-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.impact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.impact-item {
+  @include fl.std-border-mixin;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: var(--mat-sys-surface);
+  cursor: pointer;
+}
+
+:host ::ng-deep .impact-item .mdc-checkbox {
+  margin-top: -4px;
+}
+
+.impact-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.impact-item__top,
+.impact-item__values,
+.impact-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.impact-item__top span,
+.impact-item__values span,
+.impact-item__meta span {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.86rem;
+}
+
+.impact-item__reason {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .adjustment-form,
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}

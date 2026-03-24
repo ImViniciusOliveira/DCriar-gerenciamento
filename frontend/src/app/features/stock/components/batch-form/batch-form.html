@@ -145,16 +145,19 @@
       <hr>
       @if (batch().atributos) {
         @for (attr of batch().atributos | keyvalue; track attr.key) {
-          <p><strong>{{ attr.key | titlecase }}:</strong> {{ attr.value }}</p>
+        <p><strong>{{ attr.key | titlecase }}:</strong> {{ attr.value }}</p>
         }
       }
     </div>
+
     @if (batch().motivo) {
       <div class="details-description">
         <h4>Motivo da Entrada</h4>
         <p>{{ batch().motivo }}</p>
       </div>
     }
+
+    <app-batch-adjustment-form [batch]="batch()"></app-batch-adjustment-form>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button type="button" (click)="onCancel()">Fechar</button>

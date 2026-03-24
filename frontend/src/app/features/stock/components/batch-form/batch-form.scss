@@ -60,6 +60,12 @@
   }
 }
 
+.details-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 // --- Validação Visual para Campos com Erro ---
 // Aplica feedback visual imediato quando o usuário digita valores inválidos.
 // Quando um campo tem erro (invalid) e foi modificado (dirty),
@@ -77,4 +83,3 @@
     }
   }
 }
-
