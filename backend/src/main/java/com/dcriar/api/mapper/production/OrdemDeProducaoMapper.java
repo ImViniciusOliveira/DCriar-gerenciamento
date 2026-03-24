@@ -8,7 +8,6 @@ import com.dcriar.api.hateoas.production.model.OrdemDeProducaoModel;
 import com.dcriar.domain.production.entity.CorteRealizado;
 import com.dcriar.domain.production.entity.Margens;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
-import com.dcriar.domain.production.enums.ModoCalculo;
 import org.mapstruct.*;
 
 import java.util.List;
@@ -90,19 +89,5 @@ public interface OrdemDeProducaoMapper {
     static List<Long> lotesToIds(Set<com.dcriar.domain.stock.entity.LoteMateriaPrima> lotes) {
         if (lotes == null) return null;
         return lotes.stream().map(com.dcriar.domain.stock.entity.LoteMateriaPrima::getId).collect(Collectors.toList());
-    }
-
-    /**
-     * Executa uma lógica customizada após o mapeamento da OrdemDeProducao para seu DTO.
-     * Garante que o campo 'margens' só seja populado se o modo de cálculo for AUTOMATICO.
-     *
-     * @param ordem A entidade de origem.
-     * @param dto O DTO de destino que acaba de ser mapeado.
-     */
-    @AfterMapping
-    default void afterMappingToDto(OrdemDeProducao ordem, @MappingTarget OrdemDeProducaoResponseDTO dto) {
-        if (dto.getModoCalculo() != ModoCalculo.AUTOMATICO) {
-            dto.setMargens(null);
-        }
     }
 }

@@ -773,6 +773,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     private BigDecimal calcularCustoUnitario(LoteMateriaPrima lote) {
         BigDecimal quantidadeTotalEntrada = lote.getMovimentacoes().stream()
+                .filter(movimentacao -> movimentacao.getTipo() == TipoMovimentacao.ENTRADA_COMPRA)
                 .map(MovimentacaoEstoqueLote::getQuantidade)
                 .filter(quantidade -> quantidade.compareTo(BigDecimal.ZERO) > 0)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -963,8 +964,136 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     private OrdemDeProducaoResponseDTO toDetailedDto(OrdemDeProducao ordem) {
         OrdemDeProducaoResponseDTO dto = ordemDeProducaoMapper.toDto(ordem);
+        if (ordem.getModoCalculo() != ModoCalculo.AUTOMATICO) {
+            dto.setMargens(null);
+        }
         preencherBlocoProdutos(ordem, dto);
+        preencherSimulacaoInicial(ordem, dto);
         return dto;
+    }
+
+    private void preencherSimulacaoInicial(OrdemDeProducao ordem, OrdemDeProducaoResponseDTO dto) {
+        if (ordem.getProduto() instanceof ProdutoDeCorte produtoDeCorte) {
+            dto.setSimulacaoInicialCorte(construirSimulacaoInicialCorte(ordem, dto, produtoDeCorte));
+            dto.setSimulacaoInicialConsumo(null);
+            return;
+        }
+
+        dto.setSimulacaoInicialCorte(null);
+        dto.setSimulacaoInicialConsumo(construirSimulacaoInicialConsumo(ordem));
+    }
+
+    private SimulacaoCorteResponseDTO construirSimulacaoInicialCorte(
+            OrdemDeProducao ordem,
+            OrdemDeProducaoResponseDTO dto,
+            ProdutoDeCorte produtoDeCorte
+    ) {
+        List<CorteRealizado> cortes = Optional.ofNullable(ordem.getCortesRealizados()).orElse(List.of());
+        List<CorteRealizado> cortesProduto = cortes.stream()
+                .filter(corte -> "PRODUTO".equalsIgnoreCase(corte.getTipo()))
+                .toList();
+
+        CorteRealizado lateralRetalho = cortes.stream()
+                .filter(corte -> "RETALHO".equalsIgnoreCase(corte.getTipo()))
+                .filter(corte -> corte.getRetalhoCategoria() != null && "LATERAL".equalsIgnoreCase(corte.getRetalhoCategoria()))
+                .findFirst()
+                .orElse(null);
+
+        CorteRealizado inferiorRetalho = cortes.stream()
+                .filter(corte -> "RETALHO".equalsIgnoreCase(corte.getTipo()))
+                .filter(corte -> corte.getRetalhoCategoria() != null && "FINAL".equalsIgnoreCase(corte.getRetalhoCategoria()))
+                .findFirst()
+                .orElse(null);
+
+        BigDecimal larguraPeca = ordem.isRotacionado()
+                ? produtoDeCorte.getDimensoes().getComprimentoCm()
+                : produtoDeCorte.getDimensoes().getLarguraCm();
+        BigDecimal comprimentoPeca = ordem.isRotacionado()
+                ? produtoDeCorte.getDimensoes().getLarguraCm()
+                : produtoDeCorte.getDimensoes().getComprimentoCm();
+
+        int produtosPorLinha = cortesProduto.stream()
+                .map(CorteRealizado::getQuantidade)
+                .filter(Objects::nonNull)
+                .max(Integer::compareTo)
+                .orElse(0);
+
+        int totalLinhas = !cortesProduto.isEmpty()
+                ? cortesProduto.size()
+                : (produtosPorLinha > 0
+                        ? (int) Math.ceil((double) ordem.getQuantidadeProduzida() / produtosPorLinha)
+                        : 0);
+
+        int produtosNaUltimaLinha = totalLinhas > 0 && produtosPorLinha > 0
+                ? ordem.getQuantidadeProduzida() - (Math.max(totalLinhas - 1, 0) * produtosPorLinha)
+                : ordem.getQuantidadeProduzida();
+
+        int linhasCompletas = totalLinhas > 0 && produtosNaUltimaLinha > 0 && produtosNaUltimaLinha < produtosPorLinha
+                ? totalLinhas - 1
+                : totalLinhas;
+
+        BigDecimal consumoEstimado = BigDecimal.ZERO;
+        LoteMateriaPrima lotePrincipal = ordem.getLotesConsumidos().stream().findFirst().orElse(null);
+        if (lotePrincipal != null && ordem.getLarguraFinalCm() != null && ordem.getComprimentoFinalCm() != null) {
+            consumoEstimado = calcularConsumoCorteNaUnidadeDoLote(
+                    lotePrincipal,
+                    ordem.getLarguraFinalCm(),
+                    ordem.getComprimentoFinalCm()
+            );
+        }
+
+        return SimulacaoCorteResponseDTO.builder()
+                .modoCalculo(ordem.getModoCalculo())
+                .larguraFinalCm(ordem.getLarguraFinalCm())
+                .comprimentoFinalCm(ordem.getComprimentoFinalCm())
+                .consumoEstimado(consumoEstimado)
+                .rotacionado(ordem.isRotacionado())
+                .produtosPorLinha(produtosPorLinha)
+                .numeroLinhasCompletas(Math.max(linhasCompletas, 0))
+                .produtosNaUltimaLinha(totalLinhas > 0 && produtosNaUltimaLinha < produtosPorLinha ? Math.max(produtosNaUltimaLinha, 0) : 0)
+                .sobraLateral(formatarSobra(lateralRetalho))
+                .sobraInferior(formatarSobra(inferiorRetalho))
+                .saldoRolo("")
+                .dimensaoProduto(formatarDimensao(larguraPeca, comprimentoPeca))
+                .consumoTotal(formatarDimensao(ordem.getLarguraFinalCm(), ordem.getComprimentoFinalCm()))
+                .larguraBlocoProdutosCm(dto.getLarguraBlocoProdutosCm())
+                .comprimentoBlocoProdutosCm(dto.getComprimentoBlocoProdutosCm())
+                .build();
+    }
+
+    private SimulacaoConsumoResponseDTO construirSimulacaoInicialConsumo(OrdemDeProducao ordem) {
+        UnidadeDeMedida unidadeExibicao = ordem.getProduto().getTipoMateriaPrima().getUnidadeDeConsumo();
+        BigDecimal consumoTotalInterno = ordem.getProduto().getUnidadesPorProduto()
+                .multiply(BigDecimal.valueOf(ordem.getQuantidadeProduzida()));
+
+        List<LoteMateriaPrima> lotesConsumidos = ordem.getLotesConsumidos().stream().toList();
+        List<com.dcriar.api.dto.response.production.PlanoDeConsumoItemDTO> planoDeConsumo = new ArrayList<>();
+        Map<Long, BigDecimal> saldoRestante = new LinkedHashMap<>();
+
+        for (int index = 0; index < lotesConsumidos.size(); index++) {
+            LoteMateriaPrima lote = lotesConsumidos.get(index);
+            BigDecimal quantidadeItem = index == 0 ? consumoTotalInterno : BigDecimal.ZERO;
+            planoDeConsumo.add(com.dcriar.api.dto.response.production.PlanoDeConsumoItemDTO.builder()
+                    .loteId(lote.getId())
+                    .motivoLote(lote.getMotivo())
+                    .quantidadeAConsumir(converterConsumoParaUnidadeExibicao(quantidadeItem, unidadeExibicao))
+                    .build());
+            saldoRestante.put(
+                    lote.getId(),
+                    converterConsumoParaUnidadeExibicao(movimentacaoEstoqueLoteRepository.findSaldoByLote(lote), unidadeExibicao)
+            );
+        }
+
+        return SimulacaoConsumoResponseDTO.builder()
+                .consumoTotalEstimado(converterConsumoParaUnidadeExibicao(consumoTotalInterno, unidadeExibicao))
+                .unidadeDeConsumo(unidadeExibicao)
+                .unidadeDescricao(unidadeExibicao.getDescricao())
+                .unidadeDescricaoPlural(unidadeExibicao.getDescricaoPlural())
+                .unidadeSimbolo(unidadeExibicao.getSimbolo())
+                .exibirQuantidadeComSimbolo(unidadeExibicao.isExibirQuantidadeComSimbolo())
+                .planoDeConsumo(planoDeConsumo)
+                .saldoRestante(saldoRestante)
+                .build();
     }
 
     private void preencherBlocoProdutos(OrdemDeProducao ordem, OrdemDeProducaoResponseDTO dto) {
@@ -1025,6 +1154,13 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     private BigDecimal valorOuZero(BigDecimal valor) {
         return valor != null ? valor : BigDecimal.ZERO;
+    }
+
+    private String formatarSobra(CorteRealizado corte) {
+        if (corte == null || corte.getLarguraCm() == null || corte.getComprimentoCm() == null) {
+            return "";
+        }
+        return formatarDimensao(corte.getLarguraCm(), corte.getComprimentoCm());
     }
 
     private BigDecimal calcularSaldoDisponivelParaEdicao(LoteMateriaPrima lote, Long ordemId) {

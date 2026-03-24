@@ -3,6 +3,8 @@ package com.dcriar.api.hateoas.production.model;
 import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
 import com.dcriar.api.dto.response.production.DetalhesCorteResponseDTO;
 import com.dcriar.api.dto.response.production.MargensResponseDTO;
+import com.dcriar.api.dto.response.production.SimulacaoConsumoResponseDTO;
+import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRootName;
@@ -82,4 +84,10 @@ public class OrdemDeProducaoModel extends RepresentationModel<OrdemDeProducaoMod
 
     @Schema(description = "Detalhes sobre a otimização do corte, se aplicável.", nullable = true)
     private DetalhesCorteResponseDTO detalhesCorte;
+
+    @Schema(description = "Preview inicial do layout de corte para reidratar o editar.", nullable = true)
+    private SimulacaoCorteResponseDTO simulacaoInicialCorte;
+
+    @Schema(description = "Preview inicial do consumo para reidratar o editar.", nullable = true)
+    private SimulacaoConsumoResponseDTO simulacaoInicialConsumo;
 }

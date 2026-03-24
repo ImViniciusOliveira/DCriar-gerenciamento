@@ -82,4 +82,10 @@ public class OrdemDeProducaoResponseDTO extends RepresentationModel<OrdemDeProdu
 
     @Schema(description = "Detalhes sobre a otimização do corte, se aplicável.", nullable = true)
     private DetalhesCorteResponseDTO detalhesCorte;
+
+    @Schema(description = "Preview inicial do layout de corte para reidratar o editar.", nullable = true)
+    private SimulacaoCorteResponseDTO simulacaoInicialCorte;
+
+    @Schema(description = "Preview inicial do consumo para reidratar o editar.", nullable = true)
+    private SimulacaoConsumoResponseDTO simulacaoInicialConsumo;
 }
