@@ -1,15 +1,26 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, NonNullableFormBuilder } from '@angular/forms';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 
-import { Batch } from '../../models/batch.model';
+import {
+  Batch,
+  BatchAdjustmentCalculateRequest,
+  BatchAdjustmentCalculateResponse,
+  BatchAdjustmentDirection,
+  BatchAdjustmentImpactItem,
+  BatchAdjustmentOperation
+} from '../../models/batch.model';
+import { BatchService } from '../../services/batch.service';
+import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 
-interface AdjustmentOption {
-  value: string;
+interface AdjustmentOption<T extends string> {
+  value: T;
   label: string;
 }
 
@@ -18,13 +29,11 @@ interface AdjustmentMetric {
   value: string;
 }
 
-interface AdjustmentImpactItem {
-  id: number;
-  description: string;
-  size: string;
-  currentValue: string;
-  nextValue: string;
-  reason: string;
+interface AdjustmentResultMessage {
+  movementLabel: string;
+  operationMessage: string;
+  emptyImpactTitle: string;
+  emptyImpactMessage: string;
 }
 
 @Component({
@@ -32,6 +41,7 @@ interface AdjustmentImpactItem {
   standalone: true,
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     MatButtonModule,
     MatCheckboxModule,
     MatFormFieldModule,
@@ -43,19 +53,43 @@ interface AdjustmentImpactItem {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BatchAdjustmentForm {
+  private static readonly Texts = {
+    MISSING_LINK: 'O lote não expõe o link de cálculo de ajuste.',
+    CALCULATE_ERROR: 'Não foi possível calcular o ajuste do lote.',
+  };
+
+  private readonly fb = inject(NonNullableFormBuilder);
+  private readonly batchService = inject(BatchService);
+  private readonly entityDialog = inject(EntityDialogService);
+
   readonly batch = input.required<Batch>();
 
-  protected readonly showCalculationResult = signal(false);
+  readonly form = this.fb.group({
+    tipoOperacao: this.fb.control<BatchAdjustmentOperation>('AJUSTE'),
+    direcao: this.fb.control<BatchAdjustmentDirection | null>('RETIRAR'),
+    quantidade: this.fb.control(''),
+    motivo: this.fb.control('')
+  });
 
-  protected readonly operationOptions: AdjustmentOption[] = [
+  protected readonly isCalculating = signal(false);
+  protected readonly calculationResult = signal<BatchAdjustmentCalculateResponse | null>(null);
+  protected readonly selectedImpactedIds = signal<number[]>([]);
+  protected readonly selectedOperation = toSignal(this.form.controls.tipoOperacao.valueChanges, {
+    initialValue: this.form.controls.tipoOperacao.getRawValue()
+  });
+
+  protected readonly operationOptions: AdjustmentOption<BatchAdjustmentOperation>[] = [
     { value: 'AJUSTE', label: 'Ajuste' },
     { value: 'PERDA_DESCARTE', label: 'Perda / Descarte' }
   ];
 
-  protected readonly directionOptions: AdjustmentOption[] = [
+  protected readonly directionOptions: AdjustmentOption<BatchAdjustmentDirection>[] = [
     { value: 'ADICIONAR', label: 'Adicionar' },
     { value: 'RETIRAR', label: 'Retirar' }
   ];
+
+  protected readonly shouldShowDirection = computed(() => this.selectedOperation() === 'AJUSTE');
+  protected readonly adjustmentUnitSymbol = computed(() => this.batch().unidadeSimbolo || 'un');
 
   protected readonly currentLotMetrics = computed<AdjustmentMetric[]>(() => {
     const batch = this.batch();
@@ -75,61 +109,125 @@ export class BatchAdjustmentForm {
     ];
   });
 
-  protected readonly nextLotMetrics = computed<AdjustmentMetric[]>(() => {
-    const batch = this.batch();
-    const saldoAtual = batch.saldoEstoque ?? 0;
-    const custoAtual = batch.custoTotalLote ?? 0;
-    const saldoNovo = saldoAtual > 0 ? Math.max(saldoAtual - saldoAtual * 0.2, 0) : 0;
-    const custoNovo = custoAtual > 0 ? Math.max(custoAtual - custoAtual * 0.2, 0) : 0;
+  protected readonly projectedLotMetrics = computed<AdjustmentMetric[]>(() => {
+    const result = this.calculationResult();
+    if (!result) {
+      return [];
+    }
 
     return [
       {
-        label: 'Novo Saldo do Lote',
-        value: this.formatQuantity(saldoNovo, batch.unidadeSimbolo)
+        label: 'Saldo Projetado',
+        value: this.formatQuantity(result.saldoProjetado, result.unidadeSimbolo)
       },
       {
-        label: 'Novo Custo Total do Lote',
-        value: this.formatCurrency(custoNovo)
+        label: 'Valor Projetado do Lote',
+        value: this.formatCurrency(result.valorProjetadoLote)
       },
       {
-        label: 'Novo Custo por Unidade',
-        value: this.formatUnitCost(custoNovo, saldoNovo, batch.unidadeSimbolo)
+        label: 'Custo Unitário Projetado',
+        value: this.formatUnitCost(result.valorProjetadoLote, result.saldoProjetado, result.unidadeSimbolo)
       }
     ];
   });
 
-  protected readonly impactedItems = computed<AdjustmentImpactItem[]>(() => {
-    const batch = this.batch();
-    const widthMm = Number(batch.atributos?.['larguraMm'] ?? 0);
-    const widthCm = widthMm > 0 ? widthMm / 10 : 20;
-    const fallbackUnit = batch.unidadeSimbolo || 'm²';
+  protected readonly impactedItems = computed<BatchAdjustmentImpactItem[]>(() => this.calculationResult()?.itensImpactados ?? []);
 
-    return [
-      {
-        id: Number(batch.id) + 1 || 1,
-        description: `Retalho direto do lote #${batch.id}`,
-        size: `${this.formatNumber(widthCm)}cm x 20cm`,
-        currentValue: this.formatCurrency((batch.custoTotalLote ?? 0) * 0.15),
-        nextValue: this.formatCurrency((batch.custoTotalLote ?? 0) * 0.21),
-        reason: `Pela mudança no ajuste, esse retalho herdaria o novo custo do lote base em ${fallbackUnit}.`
-      },
-      {
-        id: Number(batch.id) + 2 || 2,
-        description: `Retalho derivado do retalho #${Number(batch.id) + 1 || 1}`,
-        size: `${this.formatNumber(Math.max(widthCm / 2, 5))}cm x 10cm`,
-        currentValue: this.formatCurrency((batch.custoTotalLote ?? 0) * 0.08),
-        nextValue: this.formatCurrency((batch.custoTotalLote ?? 0) * 0.11),
-        reason: 'Se a cadeia de retalhos for recalculada, este item também pode ter o valor atualizado.'
-      }
-    ];
+  protected readonly resultMessage = computed<AdjustmentResultMessage | null>(() => {
+    const result = this.calculationResult();
+    if (!result) {
+      return null;
+    }
+
+    if (result.tipoOperacao === 'PERDA_DESCARTE') {
+      return {
+        movementLabel: 'Perda / Descarte',
+        operationMessage: 'Perda ou descarte reduz o valor total do lote e mantém o custo unitário, porque o material perdido já fazia parte do custo pago pelo lote.',
+        emptyImpactTitle: 'Esta operação afeta apenas o lote informado.',
+        emptyImpactMessage: 'Perda ou descarte não recalcula lotes derivados.'
+      };
+    }
+
+    return {
+      movementLabel: 'Ajuste de inventário',
+      operationMessage: 'Ajuste corrige divergências de registro no lote. O valor total é mantido e o custo unitário é recalculado com base na nova quantidade informada.',
+      emptyImpactTitle: 'Nenhum item derivado impactado.',
+      emptyImpactMessage: 'Este lote não possui retalhos derivados para recalcular, então o ajuste afetará apenas este lote.'
+    };
   });
 
-  protected previewCalculation(): void {
-    this.showCalculationResult.set(true);
+  constructor() {
+    this.form.controls.tipoOperacao.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(tipoOperacao => {
+        const directionControl = this.form.controls.direcao;
+        if (tipoOperacao === 'PERDA_DESCARTE') {
+          directionControl.setValue(null, { emitEvent: false });
+        } else {
+          if (!directionControl.value) {
+            directionControl.setValue('RETIRAR', { emitEvent: false });
+          }
+        }
+      });
+
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        if (this.calculationResult()) {
+          this.calculationResult.set(null);
+          this.selectedImpactedIds.set([]);
+        }
+      });
+  }
+
+  protected calculateAdjustment(): void {
+    const calculateUrl = this.batch()._links?.['calcular-ajuste']?.href;
+    if (!calculateUrl) {
+      this.entityDialog.showErrorSnackbar(BatchAdjustmentForm.Texts.MISSING_LINK);
+      return;
+    }
+
+    const payload: BatchAdjustmentCalculateRequest = {
+      tipoOperacao: this.form.controls.tipoOperacao.getRawValue(),
+      direcao: this.shouldShowDirection() ? this.form.controls.direcao.getRawValue() : null,
+      quantidade: this.parseQuantity(this.form.controls.quantidade.getRawValue()),
+      motivo: this.form.controls.motivo.getRawValue().trim()
+    };
+
+    this.isCalculating.set(true);
+
+    this.batchService.calculateAdjustment(calculateUrl, payload).subscribe({
+      next: result => {
+        this.calculationResult.set(result);
+        this.selectedImpactedIds.set(
+          result.itensImpactados
+            .filter(item => item.selecionadoPorPadrao)
+            .map(item => item.id)
+        );
+        this.isCalculating.set(false);
+      },
+      error: err => {
+        this.isCalculating.set(false);
+        this.entityDialog.showErrorSnackbar(err?.error?.detail || err?.error?.message || BatchAdjustmentForm.Texts.CALCULATE_ERROR);
+      }
+    });
   }
 
   protected resetPreview(): void {
-    this.showCalculationResult.set(false);
+    this.calculationResult.set(null);
+    this.selectedImpactedIds.set([]);
+  }
+
+  protected onImpactedItemToggle(itemId: number, event: MatCheckboxChange): void {
+    this.selectedImpactedIds.update(current =>
+      event.checked
+        ? Array.from(new Set([...current, itemId]))
+        : current.filter(id => id !== itemId)
+    );
+  }
+
+  protected isImpactedItemSelected(itemId: number): boolean {
+    return this.selectedImpactedIds().includes(itemId);
   }
 
   private formatCurrency(value: number | undefined): string {
@@ -163,7 +261,11 @@ export class BatchAdjustmentForm {
 
   private formatNumber(value: number): string {
     return new Intl.NumberFormat('pt-BR', {
-      maximumFractionDigits: 2
+      maximumFractionDigits: 4
     }).format(value);
+  }
+
+  private parseQuantity(value: string): number {
+    return Number(value.replace(',', '.'));
   }
 }

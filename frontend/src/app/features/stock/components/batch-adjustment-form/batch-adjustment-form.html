@@ -2,7 +2,7 @@
   <div class="batch-adjustment__header">
     <div>
       <h4>Ajuste Operacional do Lote</h4>
-      <p>Use este fluxo para visualizar o impacto do ajuste antes de aplicar a mudança real no lote.</p>
+      <p>Use este fluxo para calcular o impacto real do ajuste antes de aplicar a mudança no lote.</p>
     </div>
   </div>
 
@@ -10,41 +10,44 @@
     <div class="adjustment-card__title">
       <div>
         <h5>Informar Ajuste</h5>
-        <p>Campos que serão enviados para o cálculo do backend.</p>
+        <p>Os dados abaixo serão enviados ao backend para calcular o impacto operacional do lote.</p>
       </div>
     </div>
 
-    <div class="adjustment-form">
-      <mat-form-field appearance="outline">
+    <form class="adjustment-form" [formGroup]="form">
+      <mat-form-field appearance="outline" class="adjustment-form__operation">
         <mat-label>Tipo de Operação</mat-label>
-        <mat-select value="AJUSTE">
+        <mat-select formControlName="tipoOperacao">
           @for (option of operationOptions; track option.value) {
             <mat-option [value]="option.value">{{ option.label }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Direção</mat-label>
-        <mat-select value="RETIRAR">
-          @for (option of directionOptions; track option.value) {
-            <mat-option [value]="option.value">{{ option.label }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      @if (shouldShowDirection()) {
+        <mat-form-field appearance="outline" class="adjustment-form__direction">
+          <mat-label>Direção</mat-label>
+          <mat-select formControlName="direcao">
+            @for (option of directionOptions; track option.value) {
+              <mat-option [value]="option.value">{{ option.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
 
-      <mat-form-field appearance="outline">
+      <mat-form-field appearance="outline" class="adjustment-form__quantity">
         <mat-label>Quantidade</mat-label>
-        <input matInput value="20">
-        <span matTextSuffix>{{ batch().unidadeSimbolo || 'm²' }}</span>
+        <input matInput type="text" inputmode="decimal" formControlName="quantidade">
+        <span matTextSuffix>{{ adjustmentUnitSymbol() }}</span>
+        <mat-hint>A quantidade e informada na unidade de cadastro do lote.</mat-hint>
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="adjustment-form__full">
+      <mat-form-field appearance="outline" class="adjustment-form__full adjustment-form__motivo">
         <mat-label>Motivo</mat-label>
-        <textarea matInput rows="3">Correção após conferência física do lote.</textarea>
+        <textarea matInput rows="3" formControlName="motivo"></textarea>
       </mat-form-field>
 
-      <div class="metrics-grid adjustment-form__full">
+      <div class="metrics-grid adjustment-form__full adjustment-form__metrics">
         @for (metric of currentLotMetrics(); track metric.label) {
           <div class="metric-card">
             <span>{{ metric.label }}</span>
@@ -54,23 +57,25 @@
       </div>
 
       <div class="adjustment-form__actions adjustment-form__full">
-        <button type="button" mat-stroked-button>Cancelar</button>
-        <button type="button" mat-raised-button color="primary" (click)="previewCalculation()">Calcular</button>
+        <button type="button" mat-stroked-button (click)="resetPreview()">Limpar</button>
+        <button type="button" mat-raised-button color="primary" [disabled]="isCalculating()" (click)="calculateAdjustment()">
+          {{ isCalculating() ? 'Calculando...' : 'Calcular' }}
+        </button>
       </div>
-    </div>
+    </form>
   </article>
 
-  @if (showCalculationResult()) {
+  @if (calculationResult(); as result) {
     <article class="adjustment-card adjustment-card--result">
       <div class="adjustment-card__title">
         <div>
           <h5>Resultado do Cálculo</h5>
-          <p>Depois do cálculo, você poderá revisar os novos valores do lote e os itens afetados.</p>
+          <p>Os valores abaixo vieram do backend com base no lote atual e na operação informada.</p>
         </div>
       </div>
 
       <div class="metrics-grid">
-        @for (metric of nextLotMetrics(); track metric.label) {
+        @for (metric of projectedLotMetrics(); track metric.label) {
           <div class="metric-card">
             <span>{{ metric.label }}</span>
             <strong>{{ metric.value }}</strong>
@@ -78,40 +83,56 @@
         }
       </div>
 
-      <div class="impact-list">
-        <div class="impact-list__header">
-          <h6>Itens Impactados</h6>
-          <p>Selecione quais itens terão o valor atualizado com base no novo custo do lote.</p>
+      @if (resultMessage(); as message) {
+        <div class="adjustment-summary">
+          <span>Registro da operação: <strong>{{ message.movementLabel }}</strong></span>
+          <span>Quantidade movimentada: <strong>{{ result.quantidadeMovimentacaoGerada }}</strong></span>
         </div>
 
-        @for (item of impactedItems(); track item.id) {
-          <label class="impact-item">
-            <mat-checkbox checked></mat-checkbox>
-            <div class="impact-item__body">
-              <div class="impact-item__top">
-                <strong>{{ item.description }}</strong>
-                <span>#{{ item.id }}</span>
+        <p class="adjustment-summary__message">{{ message.operationMessage }}</p>
+      }
+
+      @if (impactedItems().length > 0) {
+        <div class="impact-list">
+          <div class="impact-list__header">
+            <h6>Itens Impactados</h6>
+            <p>Selecione quais lotes derivados terão o valor atualizado quando o ajuste for aplicado.</p>
+          </div>
+
+          @for (item of impactedItems(); track item.id) {
+            <label class="impact-item">
+              <mat-checkbox
+                [checked]="isImpactedItemSelected(item.id)"
+                (change)="onImpactedItemToggle(item.id, $event)">
+              </mat-checkbox>
+
+              <div class="impact-item__body">
+                <div class="impact-item__top">
+                  <strong>{{ item.descricao }}</strong>
+                  <span>#{{ item.id }}</span>
+                </div>
+
+                <div class="impact-item__meta">
+                  <span>Saldo: {{ item.saldoDescricao }}</span>
+                  @if (item.dimensaoDescricao) {
+                    <span>Dimensão: {{ item.dimensaoDescricao }}</span>
+                  }
+                </div>
+
+                <div class="impact-item__values">
+                  <span>Atual: {{ item.valorAtual | currency:'BRL' }}</span>
+                  <span>Novo: {{ item.valorProjetado | currency:'BRL' }}</span>
+                </div>
               </div>
-
-              <div class="impact-item__meta">
-                <span>Tamanho: {{ item.size }}</span>
-              </div>
-
-              <div class="impact-item__values">
-                <span>Atual: {{ item.currentValue }}</span>
-                <span>Novo: {{ item.nextValue }}</span>
-              </div>
-
-              <p class="impact-item__reason">{{ item.reason }}</p>
-            </div>
-          </label>
-        }
-      </div>
-
-      <div class="adjustment-form__actions">
-        <button type="button" mat-stroked-button (click)="resetPreview()">Voltar</button>
-        <button type="button" mat-raised-button color="primary">Aplicar Ajuste</button>
-      </div>
+            </label>
+          }
+        </div>
+      } @else {
+        <div class="adjustment-empty">
+          <strong>{{ resultMessage()?.emptyImpactTitle }}</strong>
+          <span>{{ resultMessage()?.emptyImpactMessage }}</span>
+        </div>
+      }
     </article>
   }
 </section>

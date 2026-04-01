@@ -38,11 +38,40 @@
 .adjustment-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    'operation direction'
+    'quantity quantity'
+    'motivo motivo'
+    'metrics metrics'
+    'actions actions';
   gap: 14px;
 }
 
-.adjustment-form__full {
-  grid-column: 1 / -1;
+.adjustment-form__operation {
+  grid-area: operation;
+}
+
+.adjustment-form__direction {
+  grid-area: direction;
+}
+
+.adjustment-form__quantity {
+  grid-area: quantity;
+}
+
+.adjustment-form__motivo {
+  grid-area: motivo;
+}
+
+.adjustment-form__metrics {
+  grid-area: metrics;
+}
+
+.adjustment-form__actions {
+  grid-area: actions;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .adjustment-form mat-form-field {
@@ -69,10 +98,19 @@
   font-size: 0.8rem;
 }
 
-.adjustment-form__actions {
+.adjustment-summary {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.92rem;
+}
+
+.adjustment-summary__message {
+  margin: -6px 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 
 .impact-list {
@@ -125,8 +163,31 @@
   line-height: 1.4;
 }
 
+.adjustment-empty {
+  @include fl.std-border-mixin;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  background: var(--mat-sys-surface);
+}
+
+.adjustment-empty span {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.9rem;
+}
+
 @media (max-width: 900px) {
-  .adjustment-form,
+  .adjustment-form {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'operation'
+      'quantity'
+      'motivo'
+      'metrics'
+      'actions';
+  }
+
   .metrics-grid {
     grid-template-columns: 1fr;
   }
