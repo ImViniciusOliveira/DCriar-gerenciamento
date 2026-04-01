@@ -4,7 +4,14 @@ import { Observable, filter, switchMap, shareReplay, take, map, combineLatest, o
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
-import { ApiResponseBatches, Batch, BatchRequest } from '../models/batch.model';
+import {
+  ApiResponseBatches,
+  Batch,
+  BatchAdjustmentApplyRequest,
+  BatchAdjustmentCalculateRequest,
+  BatchAdjustmentCalculateResponse,
+  BatchRequest
+} from '../models/batch.model';
 
 /**
  * Serviço responsável pelo gerenciamento de Lotes de Matéria-Prima.
@@ -148,6 +155,16 @@ export class BatchService {
    */
   update(url: string, request: BatchRequest, skipRefresh = false): Observable<Batch> {
     return this.http.put<Batch>(this.normalizeUrl(url), request).pipe(
+      tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
+    );
+  }
+
+  calculateAdjustment(url: string, request: BatchAdjustmentCalculateRequest): Observable<BatchAdjustmentCalculateResponse> {
+    return this.http.post<BatchAdjustmentCalculateResponse>(this.normalizeUrl(url), request);
+  }
+
+  applyAdjustment(url: string, request: BatchAdjustmentApplyRequest, skipRefresh = false): Observable<Batch> {
+    return this.http.post<Batch>(this.normalizeUrl(url), request).pipe(
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
   }

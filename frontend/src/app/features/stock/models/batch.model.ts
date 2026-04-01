@@ -1,5 +1,51 @@
 import { Hateoas, PageInfo } from "../../../core/models/hateoas.model";
 
+export type BatchAdjustmentOperation = 'AJUSTE' | 'PERDA_DESCARTE';
+
+export type BatchAdjustmentDirection = 'ADICIONAR' | 'RETIRAR';
+
+export interface BatchAdjustmentCalculateRequest {
+  tipoOperacao: BatchAdjustmentOperation;
+  direcao?: BatchAdjustmentDirection | null;
+  quantidade: number;
+  motivo: string;
+}
+
+export interface BatchAdjustmentImpactItem {
+  id: number;
+  tipoItem: string;
+  descricao: string;
+  saldoAtual: number;
+  saldoDescricao: string;
+  dimensaoDescricao?: string | null;
+  valorAtual: number;
+  valorProjetado: number;
+  selecionadoPorPadrao: boolean;
+}
+
+export interface BatchAdjustmentCalculateResponse {
+  loteId: number;
+  tipoOperacao: BatchAdjustmentOperation;
+  tipoOperacaoDescricao: string;
+  direcao?: BatchAdjustmentDirection | null;
+  direcaoDescricao?: string | null;
+  unidadeApresentacao: string;
+  unidadeSimbolo: string;
+  saldoAtual: number;
+  saldoProjetado: number;
+  valorAtualLote: number;
+  valorProjetadoLote: number;
+  custoUnitarioAtual: number;
+  custoUnitarioProjetado: number;
+  tipoMovimentacaoGerada: string;
+  quantidadeMovimentacaoGerada: number;
+  itensImpactados: BatchAdjustmentImpactItem[];
+}
+
+export interface BatchAdjustmentApplyRequest extends BatchAdjustmentCalculateRequest {
+  idsItensImpactadosAtualizados?: number[];
+}
+
 /**
  * Representa a entidade Lote de Matéria-Prima no sistema.
  * Mapeia a estrutura de dados retornada pela API, incluindo links HATEOAS para navegação.
@@ -15,6 +61,7 @@ export interface Batch {
   saldoEstoque?: number;
   custoTotalLote?: number;
   atributos?: { [key: string]: any };
+  loteDeOrigemId?: number;
   motivo?: string;
   dataCriacao?: string;
   dataAtualizacao?: string;
