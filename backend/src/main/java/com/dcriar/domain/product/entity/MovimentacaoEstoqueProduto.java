@@ -51,6 +51,20 @@ public class MovimentacaoEstoqueProduto {
     private OrdemDeProducao ordemDeProducao;
 
     /**
+     * ID da ordem de produção que originou esta movimentação, preservado para auditoria
+     * mesmo que a ordem seja posteriormente excluída.
+     */
+    @Column(name = "ordem_producao_origem_id")
+    private Long ordemProducaoOrigemId;
+
+    /**
+     * ID da venda que originou esta movimentação, preservado para auditoria
+     * mesmo que a venda seja posteriormente excluída.
+     */
+    @Column(name = "venda_origem_id")
+    private Long vendaOrigemId;
+
+    /**
      * A data e hora em que a movimentação foi registrada.
      * Gerado automaticamente no momento da criação.
      */

@@ -59,6 +59,7 @@ public class VendaServiceImpl implements VendaService {
         newVenda.setValorTotal(calcularValorTotal(itemVendas));
         
         Venda savedVenda = vendaRepository.save(newVenda);
+        registrarSaidasEstoque(savedVenda);
         return vendaMapper.toResponseDTO(savedVenda);
     }
 
@@ -80,6 +81,7 @@ public class VendaServiceImpl implements VendaService {
         vendaExistente.setValorTotal(calcularValorTotal(novosItens));
 
         Venda savedVenda = vendaRepository.save(vendaExistente);
+        registrarSaidasEstoque(savedVenda);
         return vendaMapper.toResponseDTO(savedVenda);
     }
 
@@ -120,7 +122,7 @@ public class VendaServiceImpl implements VendaService {
     /**
      * Processa a lista de itens da requisição de venda.
      * Realiza a busca em lote de produtos e preços para performance, valida a existência e preços,
-     * calcula os valores unitários e totais, e executa a baixa de estoque.
+     * calcula os valores unitários e totais para posterior persistência.
      *
      * @param itensDTO Lista de DTOs dos itens da venda.
      * @param canalVenda Canal de venda para contexto de estoque.
@@ -157,9 +159,6 @@ public class VendaServiceImpl implements VendaService {
             TipoPrecoAplicado tipoPrecoAplicado = TipoPrecoAplicado.from(itemDTO.getTipoPrecoAplicado());
             BigDecimal unitPrice = resolverPrecoUnitario(itemDTO, precoComercialOriginal, tipoPrecoAplicado);
             BigDecimal itemTotalPrice = resolverPrecoTotal(itemDTO, unitPrice, tipoPrecoAplicado);
-
-            // Realiza a baixa efetiva no estoque e registra a movimentação de saída.
-            performStockReduction(produto, canalVenda, itemDTO.getQuantidade());
 
             itemVendas.add(ItemVenda.builder()
                     .produto(produto)
@@ -223,7 +222,7 @@ public class VendaServiceImpl implements VendaService {
         return motivo.trim();
     }
 
-    private void performStockReduction(Produto produto, CanalVenda canalVenda, int quantity) {
+    private void performStockReduction(Produto produto, CanalVenda canalVenda, int quantity, Long vendaId) {
         AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
                 .produtoId(produto.getId())
                 .canalVendaId(canalVenda.getId())
@@ -238,6 +237,7 @@ public class VendaServiceImpl implements VendaService {
                 .motivo(String.format("Venda no canal: %s", canalVenda.getNome()))
                 .build();
         MovimentacaoEstoqueProduto movimentacaoVenda = MovimentacaoEstoqueProduto.from(movimentacaoDTO, produto);
+        movimentacaoVenda.setVendaOrigemId(vendaId);
         movimentacaoEstoqueProdutoRepository.save(movimentacaoVenda);
     }
 
@@ -257,6 +257,7 @@ public class VendaServiceImpl implements VendaService {
                     .build();
             
             MovimentacaoEstoqueProduto movimentacaoEstorno = MovimentacaoEstoqueProduto.from(movimentacaoDTO, item.getProduto());
+            movimentacaoEstorno.setVendaOrigemId(venda.getId());
             movimentacaoEstoqueProdutoRepository.save(movimentacaoEstorno);
 
             // 2. Estorna o estoque do canal (adiciona de volta, quantidade positiva)
@@ -266,6 +267,13 @@ public class VendaServiceImpl implements VendaService {
                     .quantidade(item.getQuantidade())
                     .build();
             estoqueProdutoService.ajustarEstoque(ajusteDTO);
+        }
+    }
+
+    private void registrarSaidasEstoque(Venda venda) {
+        CanalVenda canalVenda = venda.getCanalVenda();
+        for (ItemVenda item : venda.getItens()) {
+            performStockReduction(item.getProduto(), canalVenda, item.getQuantidade(), venda.getId());
         }
     }
 }

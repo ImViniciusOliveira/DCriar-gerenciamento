@@ -48,4 +48,10 @@ public class HistoricoEstoqueConsolidadoResponseDTO {
 
     @Schema(description = "SKU do produto associado.", example = "ADH-10X10-HOLO")
     private String produtoSku;
+
+    @Schema(description = "ID da ordem de produção de origem, quando aplicável.", example = "11")
+    private Long ordemProducaoId;
+
+    @Schema(description = "ID da venda de origem, quando aplicável.", example = "6")
+    private Long vendaId;
 }

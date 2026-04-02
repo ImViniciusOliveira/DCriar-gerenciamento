@@ -861,6 +861,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .build();
         MovimentacaoEstoqueProduto entrada = MovimentacaoEstoqueProduto.from(movimentacaoDTO, produto);
         entrada.setOrdemDeProducao(ordem);
+        entrada.setOrdemProducaoOrigemId(ordem.getId());
         movimentacaoEstoqueProdutoRepository.save(entrada);
     }
 
@@ -946,6 +947,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .motivo(motivoEstorno)
                 .build();
         MovimentacaoEstoqueProduto estornoProduto = MovimentacaoEstoqueProduto.from(estornoProdutoDTO, ordem.getProduto());
+        estornoProduto.setOrdemProducaoOrigemId(ordem.getId());
         movimentacaoEstoqueProdutoRepository.save(estornoProduto);
 
         List<MovimentacaoEstoqueLote> movimentacoesLote = movimentacaoEstoqueLoteRepository.findByOrdemDeProducao(ordem);

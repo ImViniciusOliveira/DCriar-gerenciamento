@@ -236,11 +236,30 @@ export class StockHome implements AfterViewInit {
   }
 
   protected openReasonDetails(item: StockHistoryItem): void {
+    const details = [
+      { label: 'Produto', value: item.produtoNome },
+      { label: 'Movimentação', value: item.tipoDescricao || item.tipo },
+      { label: 'Quantidade', value: this.formatSignedQuantity(item.quantidade) },
+      { label: 'Data da movimentação', value: new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+      }).format(new Date(item.data)) },
+      { label: 'Motivo', value: item.motivo }
+    ];
+
+    if (item.ordemProducaoId) {
+      details.push({ label: 'Ordem de produção', value: `#${item.ordemProducaoId}` });
+    }
+
+    if (item.vendaId) {
+      details.push({ label: 'Venda', value: `#${item.vendaId}` });
+    }
+
     this.dialog.open(DetailsDialog, {
       data: {
         title: `Motivo da movimentação #${item.id}`,
-        items: [{ value: item.motivo }],
-        showLabels: false
+        items: details,
+        showLabels: true
       },
       width: '680px',
       maxWidth: '90vw',
