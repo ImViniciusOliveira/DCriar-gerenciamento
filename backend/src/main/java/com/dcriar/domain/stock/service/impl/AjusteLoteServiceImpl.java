@@ -155,7 +155,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                 : valorProjetadoLote.divide(saldoProjetadoApresentacao, SCALE_MONEY, RoundingMode.HALF_UP);
 
         List<LoteRetalhoHierarchyItem> descendentes = loteRetalhoHierarchyService.listarDescendentes(lote);
-        List<ItemImpactadoCalculado> itensImpactados = montarItensImpactados(lote, custoUnitarioProjetadoInterno, tipoOperacao, descendentes);
+        List<ItemImpactadoCalculado> itensImpactados = montarItensImpactados(custoUnitarioProjetadoInterno, tipoOperacao, descendentes);
         ContextoItensImpactadosAjusteLote contextoItensImpactados = resolverContextoItensImpactados(lote, tipoOperacao, descendentes, itensImpactados);
 
         return new ResultadoCalculoAjuste(
@@ -251,7 +251,6 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
     }
 
     private List<ItemImpactadoCalculado> montarItensImpactados(
-            LoteMateriaPrima lote,
             BigDecimal custoUnitarioProjetado,
             TipoOperacaoAjusteLote tipoOperacao,
             List<LoteRetalhoHierarchyItem> descendentes
