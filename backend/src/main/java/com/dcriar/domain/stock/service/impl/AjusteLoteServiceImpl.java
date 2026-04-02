@@ -267,10 +267,9 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                     if (saldoAtualFilho.compareTo(BigDecimal.ZERO) <= 0) {
                         return null;
                     }
+                    ValorizacaoAtualLoteMateriaPrima valorizacaoAtualImpactado = valorizacaoLoteMateriaPrimaService.calcularValorizacaoAtual(loteImpactado);
                     BigDecimal saldoApresentacaoFilho = converterQuantidadeParaApresentacao(loteImpactado, saldoAtualFilho);
-                    BigDecimal valorAtual = loteImpactado.getCustoTotalLote() != null
-                            ? loteImpactado.getCustoTotalLote().setScale(SCALE_MONEY, RoundingMode.HALF_UP)
-                            : BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+                    BigDecimal valorAtual = valorizacaoAtualImpactado.valorAtualLote().setScale(SCALE_MONEY, RoundingMode.HALF_UP);
                     BigDecimal valorProjetado = custoUnitarioProjetado.multiply(saldoAtualFilho).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
                     List<LoteMateriaPrima> cadeiaAteRaiz = loteRetalhoHierarchyService.listarCadeiaAteRaiz(loteImpactado);
                     String identificadorPublico = LotePublicIdentifierFormatter.format(loteImpactado);
