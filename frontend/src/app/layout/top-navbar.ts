@@ -38,7 +38,8 @@ export class TopNavbar {
     'produtos',
     'lotes-materia-prima',
     'ordens-de-producao',
-    'vendas'
+    'vendas',
+    'estoques'
   ];
 
   // Mapeia as chaves dos endpoints para objetos NavLink com labels e ícones.
@@ -48,6 +49,7 @@ export class TopNavbar {
     'lotes-materia-prima': { path: 'lotes-materia-prima', label: 'Lotes', icon: 'view_in_ar' },
     'ordens-de-producao': { path: 'ordens-de-producao', label: 'Ordens de Produção', icon: 'content_cut' },
     'vendas': { path: 'vendas', label: 'Vendas', icon: 'point_of_sale' },
+    'estoques': { path: 'estoques', label: 'Estoque', icon: 'warehouse' },
   };
 
   /**

@@ -1,0 +1,80 @@
+.stock-home {
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+}
+
+.stock-home__header {
+  display: grid;
+  gap: 8px;
+}
+
+.stock-home__eyebrow {
+  margin: 0;
+  color: #5a6b57;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stock-home__header h1 {
+  margin: 0;
+  color: #1f2a1f;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  line-height: 1.05;
+}
+
+.stock-home__subtitle {
+  margin: 0;
+  max-width: 720px;
+  color: #526152;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.stock-home__grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.stock-home__card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #d5ddcd;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(149, 175, 131, 0.18), transparent 48%),
+    linear-gradient(180deg, #fffef8 0%, #f5f1e7 100%);
+  box-shadow: 0 16px 32px rgba(72, 88, 62, 0.08);
+}
+
+.stock-home__card mat-icon {
+  width: 40px;
+  height: 40px;
+  font-size: 40px;
+  color: #657a5d;
+}
+
+.stock-home__card h2,
+.stock-home__card p {
+  margin: 0;
+}
+
+.stock-home__card h2 {
+  color: #253225;
+  font-size: 1.1rem;
+}
+
+.stock-home__card p {
+  color: #5c6a5c;
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .stock-home {
+    padding: 16px;
+  }
+}

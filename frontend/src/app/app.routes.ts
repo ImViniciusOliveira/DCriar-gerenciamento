@@ -23,11 +23,19 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'vendas',
-    title: 'D-Criar | Vendas',
+    path: 'tipos-materia-prima',
+    title: 'D-Criar | Tipos de Matéria-Prima',
     loadComponent: () =>
-      import('./features/sales/components/sales-list/sales-list').then(
-        (m) => m.SalesList
+      import(
+        './features/stock/components/material-type-list/material-type-list'
+      ).then((m) => m.MaterialTypeList),
+  },
+  {
+    path: 'lotes-materia-prima',
+    title: 'D-Criar | Lotes de Matéria-Prima',
+    loadComponent: () =>
+      import('./features/stock/components/batch-list/batch-list').then(
+        (m) => m.BatchList
       ),
   },
   {
@@ -39,20 +47,20 @@ export const routes: Routes = [
       ).then((m) => m.ProductionList),
   },
   {
-    path: 'lotes-materia-prima',
-    title: 'D-Criar | Lotes de Matéria-Prima',
+    path: 'vendas',
+    title: 'D-Criar | Vendas',
     loadComponent: () =>
-      import('./features/stock/components/batch-list/batch-list').then(
-        (m) => m.BatchList
+      import('./features/sales/components/sales-list/sales-list').then(
+        (m) => m.SalesList
       ),
   },
   {
-    path: 'tipos-materia-prima',
-    title: 'D-Criar | Tipos de Matéria-Prima',
+    path: 'estoques',
+    title: 'D-Criar | Estoque',
     loadComponent: () =>
-      import(
-        './features/stock/components/material-type-list/material-type-list'
-      ).then((m) => m.MaterialTypeList),
+      import('./features/stock/components/stock-home/stock-home').then(
+        (m) => m.StockHome
+      ),
   },
   // Rota curinga: redireciona qualquer URL não encontrada para o dashboard.
   {
