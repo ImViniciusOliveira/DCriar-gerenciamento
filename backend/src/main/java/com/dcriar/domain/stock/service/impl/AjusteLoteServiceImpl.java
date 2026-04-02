@@ -257,6 +257,9 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                 .map(itemHierarchy -> {
                     LoteMateriaPrima loteImpactado = itemHierarchy.lote();
                     BigDecimal saldoAtualFilho = calcularSaldo(loteImpactado);
+                    if (saldoAtualFilho.compareTo(BigDecimal.ZERO) <= 0) {
+                        return null;
+                    }
                     BigDecimal saldoApresentacaoFilho = converterQuantidadeParaApresentacao(loteImpactado, saldoAtualFilho);
                     BigDecimal valorAtual = loteImpactado.getCustoTotalLote() != null
                             ? loteImpactado.getCustoTotalLote().setScale(SCALE_MONEY, RoundingMode.HALF_UP)
@@ -274,6 +277,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                             true
                     );
                 })
+                .filter(java.util.Objects::nonNull)
                 .toList();
     }
 
