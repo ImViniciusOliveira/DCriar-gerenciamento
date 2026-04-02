@@ -72,6 +72,11 @@
   gap: 10px;
 }
 
+.details-description--movements {
+  padding-top: 18px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
 .details-description__header {
   display: flex;
   justify-content: space-between;
