@@ -11,7 +11,7 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { filter, map, switchMap } from 'rxjs/operators';
 import { ErrorStateMatcher } from '@angular/material/core';
 
-import { Batch, BatchRequest } from '../../models/batch.model';
+import { Batch, BatchMovement, BatchRequest } from '../../models/batch.model';
 import { MaterialType } from '../../models/material-type.model';
 import { BatchService } from '../../services/batch.service';
 import { MaterialTypeService } from '../../services/material-type.service';
@@ -97,6 +97,9 @@ export class BatchForm implements OnInit {
   matcher = new ImmediateErrorStateMatcher();
 
   readonly batch = signal<Batch>(this.data.template);
+  readonly movements = signal<BatchMovement[]>([]);
+  readonly isLoadingMovements = signal(false);
+  readonly showMovements = signal(false);
   private readonly allMeasurementUnits: Signal<EnumOption[]>;
   stockUnitOptions: Signal<EnumOption[]>;
   readonly unitsUrl = signal<string | null>(null);
@@ -221,6 +224,7 @@ export class BatchForm implements OnInit {
             }
           });
         }
+        await this.loadMovements(fullBatch);
         this.cdr.markForCheck();
       } catch {
         this.entityDialog.showErrorSnackbar(BatchForm.Texts.LOAD_ERROR);
@@ -266,10 +270,61 @@ export class BatchForm implements OnInit {
     try {
       const freshBatch = await lastValueFrom(this.batchService.findByUrl(selfLink));
       this.batch.set(freshBatch);
+      await this.loadMovements(freshBatch);
       this.cdr.markForCheck();
     } catch {
       this.batch.set(updatedBatch);
+      await this.loadMovements(updatedBatch);
       this.cdr.markForCheck();
+    }
+  }
+
+  toggleMovements(): void {
+    this.showMovements.update(current => !current);
+  }
+
+  movementLabel(tipo: string): string {
+    switch (tipo) {
+      case 'ENTRADA_COMPRA':
+        return 'Entrada de compra';
+      case 'SAIDA_PRODUCAO':
+        return 'Saída para produção';
+      case 'AJUSTE_INVENTARIO':
+        return 'Ajuste de inventário';
+      case 'PERDA_DESCARTE':
+        return 'Perda / Descarte';
+      case 'ENTRADA_SOBRA':
+        return 'Entrada de retalho';
+      default:
+        return tipo.replaceAll('_', ' ').toLowerCase().replace(/^\w/, char => char.toUpperCase());
+    }
+  }
+
+  formatMovementQuantity(movement: BatchMovement): string {
+    const unit = this.batch().unidadeSimbolo ?? 'un';
+    const prefix = movement.quantidade > 0 ? '+' : '';
+    const quantity = new Intl.NumberFormat('pt-BR', {
+      maximumFractionDigits: 4
+    }).format(movement.quantidade);
+    return `${prefix}${quantity}${unit}`;
+  }
+
+  private async loadMovements(batch: Batch): Promise<void> {
+    const movementsUrl = batch._links?.['movimentacoes']?.href;
+    if (!movementsUrl) {
+      this.movements.set([]);
+      return;
+    }
+
+    this.isLoadingMovements.set(true);
+
+    try {
+      const response = await lastValueFrom(this.batchService.findMovements(movementsUrl));
+      this.movements.set(response._embedded?.movimentacoes ?? []);
+    } catch {
+      this.movements.set([]);
+    } finally {
+      this.isLoadingMovements.set(false);
     }
   }
 

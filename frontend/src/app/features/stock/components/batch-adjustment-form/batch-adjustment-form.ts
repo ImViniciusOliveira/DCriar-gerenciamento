@@ -337,7 +337,7 @@ export class BatchAdjustmentForm {
     setTimeout(() => {
       this.resultCard?.nativeElement.scrollIntoView({
         behavior: 'smooth',
-        block: 'start'
+        block: 'end'
       });
     });
   }

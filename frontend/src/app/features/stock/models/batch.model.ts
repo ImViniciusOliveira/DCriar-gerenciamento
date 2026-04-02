@@ -52,6 +52,23 @@ export interface BatchAdjustmentApplyRequest extends BatchAdjustmentCalculateReq
   idsItensImpactadosAtualizados?: number[];
 }
 
+export interface BatchMovement {
+  id: number;
+  data: string;
+  tipo: string;
+  quantidade: number;
+  motivo?: string;
+  _links?: Hateoas['_links'];
+}
+
+export interface EmbeddedBatchMovements {
+  movimentacoes: BatchMovement[];
+}
+
+export interface ApiResponseBatchMovements extends Hateoas {
+  _embedded: EmbeddedBatchMovements;
+}
+
 /**
  * Representa a entidade Lote de Matéria-Prima no sistema.
  * Mapeia a estrutura de dados retornada pela API, incluindo links HATEOAS para navegação.

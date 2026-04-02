@@ -5,6 +5,7 @@ import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
 import {
+  ApiResponseBatchMovements,
   ApiResponseBatches,
   Batch,
   BatchAdjustmentApplyRequest,
@@ -161,6 +162,10 @@ export class BatchService {
     return this.http.post<Batch>(this.normalizeUrl(url), request).pipe(
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );
+  }
+
+  findMovements(url: string): Observable<ApiResponseBatchMovements> {
+    return this.http.get<ApiResponseBatchMovements>(this.normalizeUrl(url));
   }
 
   /**
