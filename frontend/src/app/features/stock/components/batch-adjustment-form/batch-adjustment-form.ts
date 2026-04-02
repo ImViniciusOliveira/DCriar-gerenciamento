@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -18,6 +19,7 @@ import {
 } from '../../models/batch.model';
 import { BatchService } from '../../services/batch.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
+import { BatchAdjustmentImpactDialog, BatchAdjustmentImpactDialogResult } from '../batch-adjustment-impact-dialog/batch-adjustment-impact-dialog';
 
 interface AdjustmentOption<T extends string> {
   value: T;
@@ -60,6 +62,7 @@ export class BatchAdjustmentForm {
   };
 
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly dialog = inject(MatDialog);
   private readonly batchService = inject(BatchService);
   private readonly entityDialog = inject(EntityDialogService);
 
@@ -248,6 +251,31 @@ export class BatchAdjustmentForm {
   }
 
   protected applyOperation(): void {
+    this.applyOperationWithSelection();
+  }
+
+  protected openImpactedItemsDialog(): void {
+    const dialogRef = this.dialog.open(BatchAdjustmentImpactDialog, {
+      data: {
+        items: this.impactedItems(),
+        selectedIds: this.selectedImpactedIds()
+      },
+      width: '90vw',
+      maxWidth: '920px',
+      autoFocus: false
+    });
+
+    dialogRef.afterClosed().subscribe((result: BatchAdjustmentImpactDialogResult | false | undefined) => {
+      if (!result) {
+        return;
+      }
+
+      this.selectedImpactedIds.set(result.selectedIds);
+      this.applyOperationWithSelection(result.selectedIds);
+    });
+  }
+
+  private applyOperationWithSelection(selectedIds?: number[]): void {
     const applyUrl = this.batch()._links?.['aplicar-ajuste']?.href;
     if (!applyUrl) {
       this.entityDialog.showErrorSnackbar(BatchAdjustmentForm.Texts.MISSING_APPLY_LINK);
@@ -258,7 +286,8 @@ export class BatchAdjustmentForm {
       tipoOperacao: this.form.controls.tipoOperacao.getRawValue(),
       direcao: this.shouldShowDirection() ? this.form.controls.direcao.getRawValue() : null,
       quantidade: this.parseQuantity(this.form.controls.quantidade.getRawValue()),
-      motivo: this.form.controls.motivo.getRawValue().trim()
+      motivo: this.form.controls.motivo.getRawValue().trim(),
+      idsItensImpactadosAtualizados: selectedIds
     };
 
     this.isApplying.set(true);

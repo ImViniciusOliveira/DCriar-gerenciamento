@@ -97,7 +97,7 @@
 
       <div class="result-actions">
         @if (hasImpactedItems()) {
-          <button type="button" mat-stroked-button>Selecionar itens impactados</button>
+          <button type="button" mat-stroked-button [disabled]="isApplying()" (click)="openImpactedItemsDialog()">Selecionar itens impactados</button>
         } @else {
           <button type="button" mat-raised-button color="primary" [disabled]="isApplying()" (click)="applyOperation()">
             {{ isApplying() ? 'Aplicando...' : 'Aplicar operação' }}

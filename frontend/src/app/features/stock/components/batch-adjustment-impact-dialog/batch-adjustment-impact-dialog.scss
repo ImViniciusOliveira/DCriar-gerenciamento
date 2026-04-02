@@ -1,0 +1,81 @@
+@use '../../../../shared/styles/form-layout' as fl;
+
+.impact-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: min(52rem, 92vw);
+}
+
+.impact-dialog-copy {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  line-height: 1.45;
+}
+
+.impact-dialog-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.92rem;
+}
+
+.impact-dialog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.impact-dialog-item {
+  @include fl.std-border-mixin;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--mat-sys-surface);
+  cursor: pointer;
+}
+
+:host ::ng-deep .impact-dialog-item .mdc-checkbox {
+  margin-top: 0;
+}
+
+.impact-dialog-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.impact-dialog-item__top,
+.impact-dialog-item__values,
+.impact-dialog-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.impact-dialog-item__top span,
+.impact-dialog-item__values span,
+.impact-dialog-item__meta span,
+.impact-dialog-item__chain span {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.86rem;
+}
+
+.impact-dialog-item__chain {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .impact-dialog-summary {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,55 @@
+<h2 mat-dialog-title>Selecionar itens impactados</h2>
+
+<mat-dialog-content class="impact-dialog-content">
+  <p class="impact-dialog-copy">
+    Escolha quais lotes derivados terão o valor atualizado quando a operação for aplicada.
+  </p>
+
+  <div class="impact-dialog-summary">
+    <span>{{ data.items.length }} item(ns) elegível(is)</span>
+    <span>{{ selectedCount() }} selecionado(s)</span>
+  </div>
+
+  <div class="impact-dialog-list">
+    @for (item of data.items; track item.id) {
+      <label class="impact-dialog-item">
+        <mat-checkbox
+          [checked]="isSelected(item.id)"
+          (change)="onToggle(item.id, $event)">
+        </mat-checkbox>
+
+        <div class="impact-dialog-item__body">
+          <div class="impact-dialog-item__top">
+            <strong>{{ item.identificadorPublico || item.descricao }}</strong>
+            @if (item.identificadorOrigemPublico) {
+              <span>Origem: {{ item.identificadorOrigemPublico }}</span>
+            }
+          </div>
+
+          <div class="impact-dialog-item__meta">
+            <span>Saldo: {{ item.saldoDescricao }}</span>
+            @if (item.dimensaoDescricao) {
+              <span>Dimensão: {{ item.dimensaoDescricao }}</span>
+            }
+          </div>
+
+          @if (item.cadeiaPublica && item.nivelArvore && item.nivelArvore > 1) {
+            <div class="impact-dialog-item__chain">
+              <span>Cadeia: {{ item.cadeiaPublica }}</span>
+            </div>
+          }
+
+          <div class="impact-dialog-item__values">
+            <span>Atual: {{ item.valorAtual | currency:'BRL' }}</span>
+            <span>Novo: {{ item.valorProjetado | currency:'BRL' }}</span>
+          </div>
+        </div>
+      </label>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancelar</button>
+  <button mat-raised-button color="primary" type="button" (click)="confirm()">Confirmar e aplicar</button>
+</mat-dialog-actions>
