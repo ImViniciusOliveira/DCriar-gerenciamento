@@ -32,8 +32,6 @@ interface AdjustmentMetric {
 interface AdjustmentResultMessage {
   movementLabel: string;
   operationMessage: string;
-  emptyImpactTitle: string;
-  emptyImpactMessage: string;
 }
 
 @Component({
@@ -136,6 +134,15 @@ export class BatchAdjustmentForm {
     ];
   });
 
+  protected readonly movementQuantityLabel = computed(() => {
+    const result = this.calculationResult();
+    if (!result) {
+      return '';
+    }
+
+    return this.formatSignedQuantity(result.quantidadeMovimentacaoGerada, result.unidadeSimbolo);
+  });
+
   protected readonly impactedItems = computed<BatchAdjustmentImpactItem[]>(() => this.calculationResult()?.itensImpactados ?? []);
 
   protected readonly resultMessage = computed<AdjustmentResultMessage | null>(() => {
@@ -147,9 +154,7 @@ export class BatchAdjustmentForm {
     if (result.tipoOperacao === 'PERDA_DESCARTE') {
       return {
         movementLabel: 'Perda / Descarte',
-        operationMessage: 'Perda ou descarte reduz o valor total do lote e mantém o custo unitário, porque o material perdido já fazia parte do custo pago pelo lote.',
-        emptyImpactTitle: 'Esta operação afeta apenas o lote informado.',
-        emptyImpactMessage: 'Perda ou descarte não recalcula lotes derivados.'
+        operationMessage: 'Perda ou descarte reduz o valor total do lote e mantém o custo unitário, porque o material perdido já fazia parte do custo pago pelo lote.'
       };
     }
 
@@ -157,31 +162,23 @@ export class BatchAdjustmentForm {
       case 'MATERIA_PRIMA_NAO_GERA_RETALHO':
         return {
           movementLabel: 'Ajuste de inventário',
-          operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE,
-          emptyImpactTitle: 'Esta matéria-prima não gera retalhos.',
-          emptyImpactMessage: 'O ajuste afetará apenas este lote, sem recalcular itens derivados.'
+          operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE
         };
       case 'SEM_RETALHOS_COM_SALDO':
         return {
           movementLabel: 'Ajuste de inventário',
-          operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE,
-          emptyImpactTitle: 'Não há retalhos com saldo disponível para recalcular.',
-          emptyImpactMessage: 'Os retalhos vinculados a este lote já foram consumidos ou zerados.'
+          operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE
         };
       case 'SEM_RETALHOS_VINCULADOS':
         return {
           movementLabel: 'Ajuste de inventário',
-          operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE,
-          emptyImpactTitle: 'Este lote ainda não possui retalhos vinculados.',
-          emptyImpactMessage: 'O ajuste afetará apenas este lote.'
+          operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE
         };
     }
 
     return {
       movementLabel: 'Ajuste de inventário',
-      operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE,
-      emptyImpactTitle: 'Nenhum item derivado impactado.',
-      emptyImpactMessage: 'Este lote não possui retalhos derivados para recalcular, então o ajuste afetará apenas este lote.'
+      operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE
     };
   });
 
@@ -272,6 +269,15 @@ export class BatchAdjustmentForm {
     }
 
     return `${this.formatNumber(value)}${unit || ''}`;
+  }
+
+  private formatSignedQuantity(value: number | undefined, unit: string | undefined): string {
+    if (typeof value !== 'number') {
+      return `0${unit || ''}`;
+    }
+
+    const prefix = value > 0 ? '+' : '';
+    return `${prefix}${this.formatNumber(value)}${unit || ''}`;
   }
 
   private calculateUnitCost(total: number | undefined, quantity: number | undefined): number {

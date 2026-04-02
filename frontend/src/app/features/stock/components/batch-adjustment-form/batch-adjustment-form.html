@@ -2,7 +2,7 @@
   <div class="batch-adjustment__header">
     <div>
       <h4>Ajuste Operacional do Lote</h4>
-      <p>Use este fluxo para calcular o impacto real do ajuste antes de aplicar a mudança no lote.</p>
+      <p>Revise o impacto da operação antes de aplicar a mudança no lote.</p>
     </div>
   </div>
 
@@ -10,7 +10,6 @@
     <div class="adjustment-card__title">
       <div>
         <h5>Informar Ajuste</h5>
-        <p>Os dados abaixo serão enviados ao backend para calcular o impacto operacional do lote.</p>
       </div>
     </div>
 
@@ -70,7 +69,6 @@
       <div class="adjustment-card__title">
         <div>
           <h5>Resultado do Cálculo</h5>
-          <p>Os valores abaixo vieram do backend com base no lote atual e na operação informada.</p>
         </div>
       </div>
 
@@ -85,20 +83,28 @@
 
       @if (resultMessage(); as message) {
         <div class="adjustment-summary">
-          <span>Registro da operação: <strong>{{ message.movementLabel }}</strong></span>
-          <span>Quantidade movimentada: <strong>{{ result.quantidadeMovimentacaoGerada }}</strong></span>
+          <div class="adjustment-summary__item">
+            <span>Registro da operação</span>
+            <strong>{{ message.movementLabel }}</strong>
+          </div>
+
+          <div class="adjustment-summary__item">
+            <span>Quantidade movimentada</span>
+            <strong>{{ movementQuantityLabel() }}</strong>
+          </div>
         </div>
 
         <p class="adjustment-summary__message">{{ message.operationMessage }}</p>
       }
 
       @if (impactedItems().length > 0) {
-        <div class="impact-list">
+        <section class="impact-section">
           <div class="impact-list__header">
             <h6>Itens Impactados</h6>
-            <p>Selecione quais lotes derivados terão o valor atualizado quando o ajuste for aplicado.</p>
+            <p>Selecione quais lotes derivados terão o valor atualizado quando a operação for aplicada.</p>
           </div>
 
+          <div class="impact-list">
           @for (item of impactedItems(); track item.id) {
             <label class="impact-item">
               <mat-checkbox
@@ -134,12 +140,8 @@
               </div>
             </label>
           }
-        </div>
-      } @else {
-        <div class="adjustment-empty">
-          <strong>{{ resultMessage()?.emptyImpactTitle }}</strong>
-          <span>{{ resultMessage()?.emptyImpactMessage }}</span>
-        </div>
+          </div>
+        </section>
       }
     </article>
   }
