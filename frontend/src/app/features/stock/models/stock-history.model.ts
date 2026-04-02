@@ -4,6 +4,7 @@ export interface StockHistoryItem {
   id: number;
   data: string;
   tipo: string;
+  tipoDescricao: string;
   quantidade: number;
   motivo: string;
   produtoId: number;

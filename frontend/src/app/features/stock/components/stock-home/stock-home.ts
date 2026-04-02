@@ -193,25 +193,6 @@ export class StockHome implements AfterViewInit {
     this.pagination.handleSortChange(sort);
   }
 
-  protected formatMovementType(tipo: string): string {
-    switch (tipo) {
-      case 'ENTRADA_PRODUCAO':
-        return 'Entrada de producao';
-      case 'SAIDA_VENDA':
-        return 'Saida de venda';
-      case 'AJUSTE_MANUAL':
-        return 'Ajuste manual';
-      case 'ESTORNO_VENDA':
-        return 'Estorno de venda';
-      case 'ENTRADA_ESTORNO':
-        return 'Estorno de venda';
-      case 'ESTORNO_PRODUCAO':
-        return 'Estorno de producao';
-      default:
-        return tipo;
-    }
-  }
-
   protected formatSignedQuantity(quantidade: number): string {
     return `${quantidade > 0 ? '+' : '-'}${Math.abs(quantidade)}`;
   }

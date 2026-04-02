@@ -80,7 +80,7 @@
 </ng-template>
 
 <ng-template #movementTemplate let-item>
-  {{ formatMovementType(item.tipo) }}
+  {{ item.tipoDescricao || item.tipo }}
 </ng-template>
 
 <ng-template #quantityTemplate let-item>
