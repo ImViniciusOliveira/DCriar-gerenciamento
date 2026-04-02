@@ -50,6 +50,12 @@ public class LoteMateriaPrimaModel extends RepresentationModel<LoteMateriaPrimaM
     @Schema(description = "Custo total do lote no momento da entrada.", example = "150.00")
     private BigDecimal custoTotalLote;
 
+    @Schema(description = "Valor econômico atual do saldo remanescente do lote.", example = "125.00")
+    private BigDecimal valorAtualLote;
+
+    @Schema(description = "Custo unitário atual do lote na unidade de apresentação.", example = "5.00")
+    private BigDecimal custoUnitarioAtual;
+
     @Schema(description = "Atributos flexíveis do lote, como largura, fornecedor, etc.",
             example = "{ \"larguraMm\": 1220, \"fornecedor\": \"Adesivos Premium\" }")
     private Map<String, Object> atributos;

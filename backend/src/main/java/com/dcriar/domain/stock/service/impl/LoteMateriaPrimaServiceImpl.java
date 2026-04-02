@@ -12,12 +12,14 @@ import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.model.LoteRetalhoHierarchyItem;
+import com.dcriar.domain.stock.model.ValorizacaoAtualLoteMateriaPrima;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.specification.LoteMateriaPrimaSpecification;
 import com.dcriar.domain.stock.service.LoteRetalhoHierarchyService;
 import com.dcriar.domain.stock.service.LoteMateriaPrimaService;
+import com.dcriar.domain.stock.service.ValorizacaoLoteMateriaPrimaService;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -50,6 +52,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     private final LoteMateriaPrimaMapper loteMateriaPrimaMapper;
     private final MovimentacaoMapper movimentacaoMapper;
     private final LoteRetalhoHierarchyService loteRetalhoHierarchyService;
+    private final ValorizacaoLoteMateriaPrimaService valorizacaoLoteMateriaPrimaService;
 
     /**
      * Cria um novo lote de matéria-prima e registra sua movimentação de entrada inicial.
@@ -214,10 +217,8 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     @Transactional(readOnly = true)
     public LoteMateriaPrimaResponseDTO findById(Long id) {
         LoteMateriaPrima lote = findLoteById(id);
-        BigDecimal saldo = calcularSaldo(lote);
-
         LoteMateriaPrimaResponseDTO responseDTO = loteMateriaPrimaMapper.toResponseDTO(lote);
-        popularDadosDeApresentacao(responseDTO, lote, saldo);
+        popularDadosDeApresentacao(responseDTO, lote, calcularSaldo(lote));
 
         return responseDTO;
     }
@@ -231,9 +232,8 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
 
         // Mapeia a Page de entidades para uma Page de DTOs
         return lotesPage.map(lote -> {
-            BigDecimal saldo = calcularSaldo(lote);
             LoteMateriaPrimaResponseDTO dto = loteMateriaPrimaMapper.toResponseDTO(lote);
-            popularDadosDeApresentacao(dto, lote, saldo);
+            popularDadosDeApresentacao(dto, lote, calcularSaldo(lote));
             dto.setAtributos(lote.getAtributos());
             return dto;
         });
@@ -353,6 +353,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         UnidadeDeMedida unidadeCadastro = lote.getUnidadeCadastroEstoque();
         UnidadeDeMedida unidadePrincipal = lote.getTipoMateriaPrima().getUnidadeDeConsumo();
         BigDecimal saldoApresentacao = saldoInterno;
+        ValorizacaoAtualLoteMateriaPrima valorizacaoAtual = valorizacaoLoteMateriaPrimaService.calcularValorizacaoAtual(lote);
 
         if (unidadePrincipal.isConsumo() && !unidadePrincipal.isPermiteCorte()) {
             saldoApresentacao = unidadePrincipal.converterQuantidadeDaUnidadeInternaParaInformada(
@@ -365,5 +366,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         responseDTO.setUnidadeCadastroEstoque(unidadeCadastro);
         responseDTO.setUnidadeSimbolo(unidadeCadastro.getSimbolo());
         responseDTO.setSaldoEstoque(saldoApresentacao);
+        responseDTO.setValorAtualLote(valorizacaoAtual.valorAtualLote());
+        responseDTO.setCustoUnitarioAtual(valorizacaoAtual.custoUnitarioAtualApresentacao());
     }
 }

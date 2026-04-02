@@ -45,6 +45,12 @@ public class LoteMateriaPrimaResponseDTO {
     @Schema(description = "Custo total do lote no momento da entrada.", example = "150.00")
     private BigDecimal custoTotalLote;
 
+    @Schema(description = "Valor econômico atual do saldo remanescente do lote.", example = "125.00")
+    private BigDecimal valorAtualLote;
+
+    @Schema(description = "Custo unitário atual do lote na unidade de apresentação.", example = "5.00")
+    private BigDecimal custoUnitarioAtual;
+
     @Schema(description = "Atributos flexíveis que descrevem as especificações deste lote físico.", example = "{\"larguraMm\": 610}")
     private Map<String, Object> atributos;
 

@@ -145,8 +145,8 @@ INSERT INTO ordens_de_producao (produto_id, quantidade_produzida, modo_calculo, 
 -- Inserção de Lotes de Retalho (dependem de Lotes de Compra e Ordens de Produção)
 -- É crucial que esta etapa venha DEPOIS da criação das Ordens de Produção.
 INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, unidade_cadastro_estoque, custo_total_lote, motivo, atributos, lote_de_origem_id, ordem_producao_origem_id, data_criacao, data_atualizacao) VALUES
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 'METRO_QUADRADO', 'METRO_QUADRADO', 0.00, 'Retalho da Ordem #3', '{ "larguraMm": 200 }', (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1003'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'), NOW() - INTERVAL '3 hour', NOW() - INTERVAL '3 hour'),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 'METRO_QUADRADO', 'METRO_QUADRADO', 0.00, 'Retalho da Ordem #5', '{ "larguraMm": 300 }', (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour');
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 'METRO_QUADRADO', 'METRO_QUADRADO', 0.24000000, 'Retalho da Ordem #3', '{ "larguraMm": 200 }', (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1003'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'), NOW() - INTERVAL '3 hour', NOW() - INTERVAL '3 hour'),
+    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 'METRO_QUADRADO', 'METRO_QUADRADO', 25.00000000, 'Retalho da Ordem #5', '{ "larguraMm": 300 }', (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour');
 
 -- Inserção de Vendas (dependem de Canais de Venda)
 INSERT INTO vendas (data_criacao, data_atualizacao, canal_venda_id, valor_total) VALUES

@@ -13,10 +13,12 @@ import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enums.TipoOperacaoAjusteLote;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.model.LoteRetalhoHierarchyItem;
+import com.dcriar.domain.stock.model.ValorizacaoAtualLoteMateriaPrima;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.domain.stock.service.AjusteLoteService;
 import com.dcriar.domain.stock.service.LoteRetalhoHierarchyService;
+import com.dcriar.domain.stock.service.ValorizacaoLoteMateriaPrimaService;
 import com.dcriar.exception.custom.AjusteLoteInvalidoException;
 import com.dcriar.exception.custom.EstoqueInsuficienteParaMovimentacaoException;
 import com.dcriar.exception.custom.LoteMateriaPrimaNaoEncontradoException;
@@ -46,6 +48,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
     private final MovimentacaoEstoqueLoteRepository movimentacaoEstoqueLoteRepository;
     private final LoteMateriaPrimaMapper loteMateriaPrimaMapper;
     private final LoteRetalhoHierarchyService loteRetalhoHierarchyService;
+    private final ValorizacaoLoteMateriaPrimaService valorizacaoLoteMateriaPrimaService;
     private final EntityManager entityManager;
 
     @Override
@@ -115,7 +118,8 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
     ) {
         validarRequest(tipoOperacao, direcao, quantidadeInformada);
 
-        BigDecimal saldoAtualInterno = calcularSaldo(lote);
+        ValorizacaoAtualLoteMateriaPrima valorizacaoAtual = valorizacaoLoteMateriaPrimaService.calcularValorizacaoAtual(lote);
+        BigDecimal saldoAtualInterno = valorizacaoAtual.saldoInterno();
         BigDecimal quantidadeAjusteInterna = converterQuantidadeParaUnidadeInterna(lote, quantidadeInformada);
         BigDecimal quantidadeMovimentacao = resolverQuantidadeMovimentacao(tipoOperacao, direcao, quantidadeAjusteInterna);
 
@@ -127,20 +131,28 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
             );
         }
 
-        BigDecimal custoUnitarioAtual = calcularCustoUnitarioAtual(lote);
-        BigDecimal valorAtualLote = custoUnitarioAtual.multiply(saldoAtualInterno).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+        BigDecimal custoUnitarioAtualInterno = valorizacaoAtual.custoUnitarioAtualInterno();
+        BigDecimal valorAtualLote = valorizacaoAtual.valorAtualLote();
         BigDecimal saldoProjetadoInterno = saldoAtualInterno.add(quantidadeMovimentacao);
 
         BigDecimal valorProjetadoLote = switch (tipoOperacao) {
-            case PERDA_DESCARTE -> custoUnitarioAtual.multiply(saldoProjetadoInterno).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+            case PERDA_DESCARTE -> custoUnitarioAtualInterno.multiply(saldoProjetadoInterno).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
             case AJUSTE -> valorAtualLote;
         };
 
-        BigDecimal custoUnitarioProjetado = saldoProjetadoInterno.compareTo(BigDecimal.ZERO) == 0
+        BigDecimal saldoAtualApresentacao = converterQuantidadeParaApresentacao(lote, saldoAtualInterno);
+        BigDecimal saldoProjetadoApresentacao = converterQuantidadeParaApresentacao(lote, saldoProjetadoInterno);
+        BigDecimal custoUnitarioAtualApresentacao = saldoAtualApresentacao.compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP)
+                : valorAtualLote.divide(saldoAtualApresentacao, SCALE_MONEY, RoundingMode.HALF_UP);
+        BigDecimal custoUnitarioProjetadoInterno = saldoProjetadoInterno.compareTo(BigDecimal.ZERO) == 0
                 ? BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP)
                 : valorProjetadoLote.divide(saldoProjetadoInterno, SCALE_MONEY, RoundingMode.HALF_UP);
+        BigDecimal custoUnitarioProjetadoApresentacao = saldoProjetadoApresentacao.compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP)
+                : valorProjetadoLote.divide(saldoProjetadoApresentacao, SCALE_MONEY, RoundingMode.HALF_UP);
 
-        List<ItemImpactadoCalculado> itensImpactados = montarItensImpactados(lote, custoUnitarioProjetado, tipoOperacao);
+        List<ItemImpactadoCalculado> itensImpactados = montarItensImpactados(lote, custoUnitarioProjetadoInterno, tipoOperacao);
 
         return new ResultadoCalculoAjuste(
                 lote,
@@ -151,8 +163,8 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                 saldoProjetadoInterno,
                 valorAtualLote,
                 valorProjetadoLote,
-                custoUnitarioAtual,
-                custoUnitarioProjetado,
+                custoUnitarioAtualApresentacao,
+                custoUnitarioProjetadoApresentacao,
                 resolverTipoMovimentacao(tipoOperacao),
                 quantidadeMovimentacao,
                 itensImpactados
@@ -214,59 +226,6 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
         return lote.getSaldoAtual() != null
                 ? lote.getSaldoAtual()
                 : movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
-    }
-
-    private BigDecimal calcularCustoUnitarioAtual(LoteMateriaPrima lote) {
-        BigDecimal saldoAtual = calcularSaldo(lote);
-        if (possuiAjusteOuPerdaManual(lote)) {
-            if (saldoAtual.compareTo(BigDecimal.ZERO) <= 0 || lote.getCustoTotalLote() == null) {
-                return BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
-            }
-            return lote.getCustoTotalLote().divide(saldoAtual, SCALE_MONEY, RoundingMode.HALF_UP);
-        }
-
-        BigDecimal quantidadeBaseComCusto = calcularQuantidadeBaseComCusto(lote);
-        if (quantidadeBaseComCusto.compareTo(BigDecimal.ZERO) <= 0 || lote.getCustoTotalLote() == null) {
-            return BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
-        }
-        return lote.getCustoTotalLote().divide(quantidadeBaseComCusto, SCALE_MONEY, RoundingMode.HALF_UP);
-    }
-
-    private boolean possuiAjusteOuPerdaManual(LoteMateriaPrima lote) {
-        return movimentacaoEstoqueLoteRepository.findAllByLote(lote).stream()
-                .map(MovimentacaoEstoqueLote::getTipo)
-                .anyMatch(tipo -> tipo == TipoMovimentacao.AJUSTE_INVENTARIO || tipo == TipoMovimentacao.PERDA_DESCARTE);
-    }
-
-    private BigDecimal calcularQuantidadeBaseComCusto(LoteMateriaPrima lote) {
-        List<MovimentacaoEstoqueLote> movimentacoes = movimentacaoEstoqueLoteRepository.findAllByLote(lote);
-
-        BigDecimal quantidadeEntradaCompra = somarQuantidadePorTipo(movimentacoes, TipoMovimentacao.ENTRADA_COMPRA);
-        if (quantidadeEntradaCompra.compareTo(BigDecimal.ZERO) > 0) {
-            return quantidadeEntradaCompra;
-        }
-
-        BigDecimal quantidadeEntradaSobra = somarQuantidadePorTipo(movimentacoes, TipoMovimentacao.ENTRADA_SOBRA);
-        if (quantidadeEntradaSobra.compareTo(BigDecimal.ZERO) > 0) {
-            return quantidadeEntradaSobra;
-        }
-
-        BigDecimal quantidadeAjustePositiva = movimentacoes.stream()
-                .filter(mov -> mov.getTipo() == TipoMovimentacao.AJUSTE_INVENTARIO)
-                .map(MovimentacaoEstoqueLote::getQuantidade)
-                .filter(qtd -> qtd.compareTo(BigDecimal.ZERO) > 0)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return quantidadeAjustePositiva.compareTo(BigDecimal.ZERO) > 0
-                ? quantidadeAjustePositiva
-                : BigDecimal.ZERO;
-    }
-
-    private BigDecimal somarQuantidadePorTipo(List<MovimentacaoEstoqueLote> movimentacoes, TipoMovimentacao tipoMovimentacao) {
-        return movimentacoes.stream()
-                .filter(mov -> mov.getTipo() == tipoMovimentacao)
-                .map(MovimentacaoEstoqueLote::getQuantidade)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal converterQuantidadeParaUnidadeInterna(LoteMateriaPrima lote, BigDecimal quantidadeInformada) {
@@ -428,6 +387,9 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
         responseDTO.setUnidadeCadastroEstoque(unidadeCadastro);
         responseDTO.setUnidadeSimbolo(unidadeCadastro.getSimbolo());
         responseDTO.setSaldoEstoque(saldoApresentacao);
+        ValorizacaoAtualLoteMateriaPrima valorizacaoAtual = valorizacaoLoteMateriaPrimaService.calcularValorizacaoAtual(lote);
+        responseDTO.setValorAtualLote(valorizacaoAtual.valorAtualLote());
+        responseDTO.setCustoUnitarioAtual(valorizacaoAtual.custoUnitarioAtualApresentacao());
     }
 
     private record ResultadoCalculoAjuste(
