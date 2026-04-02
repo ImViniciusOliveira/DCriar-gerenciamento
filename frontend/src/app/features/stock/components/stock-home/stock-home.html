@@ -20,8 +20,82 @@
   </div>
 
   <div class="stock-home__content">
-    <div class="stock-home__placeholder">
-      {{ activeSection().key }} works
-    </div>
+    @if (isHistorySection()) {
+      <div class="stock-home__history">
+        <div class="stock-home__history-filters">
+          <div class="stock-home__filter-group">
+            @for (option of rangeOptions; track option.key) {
+              <button
+                mat-stroked-button
+                type="button"
+                class="stock-home__filter-button"
+                [class.stock-home__filter-button--active]="selectedRange() === option.key"
+                (click)="setHistoryRange(option.key)">
+                {{ option.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="stock-home__history-table">
+          <div class="stock-home__history-head">
+            <button type="button" class="stock-home__sort-header" (click)="toggleHistorySort('data')">
+              <span>Data</span>
+              <mat-icon>{{ getSortIcon('data') }}</mat-icon>
+            </button>
+            <button type="button" class="stock-home__sort-header" (click)="toggleHistorySort('produto')">
+              <span>Produto</span>
+              <mat-icon>{{ getSortIcon('produto') }}</mat-icon>
+            </button>
+            <button type="button" class="stock-home__sort-header" (click)="toggleHistorySort('sku')">
+              <span>SKU</span>
+              <mat-icon>{{ getSortIcon('sku') }}</mat-icon>
+            </button>
+            <span>Tipo</span>
+            <button type="button" class="stock-home__sort-header" (click)="toggleHistorySort('quantidade')">
+              <span>Quantidade</span>
+              <mat-icon>{{ getSortIcon('quantidade') }}</mat-icon>
+            </button>
+            <span>Motivo</span>
+            <span>Ações</span>
+          </div>
+
+          @for (item of filteredHistoryItems(); track item.id) {
+            <article class="stock-home__history-record">
+              <span>{{ item.data | date:'dd/MM/yyyy HH:mm' }}</span>
+              <strong>{{ item.produto.nome }}</strong>
+              <span>{{ item.produto.sku }}</span>
+              <span>{{ formatMovementType(item.tipo) }}</span>
+              <span
+                class="stock-home__history-quantity"
+                [class.stock-home__history-quantity--positive]="isPositiveQuantity(item.quantidade)"
+                [class.stock-home__history-quantity--negative]="!isPositiveQuantity(item.quantidade)">
+                {{ formatSignedQuantity(item.quantidade) }}
+              </span>
+              <p>{{ getTruncatedReason(item.motivo) }}</p>
+              <button
+                mat-icon-button
+                type="button"
+                class="stock-home__details-button"
+                title="Visualizar motivo"
+                aria-label="Visualizar motivo"
+                (click)="openReasonDetails(item.id, item.motivo)">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            </article>
+          }
+
+          @if (!filteredHistoryItems().length) {
+            <div class="stock-home__history-empty">
+              Nenhuma movimentacao encontrada para o periodo selecionado.
+            </div>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="stock-home__placeholder">
+        {{ activeSection().key }} works
+      </div>
+    }
   </div>
 </div>
