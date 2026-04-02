@@ -27,7 +27,7 @@ public class ValorizacaoLoteMateriaPrimaServiceImpl implements ValorizacaoLoteMa
         BigDecimal saldoInterno = calcularSaldo(lote);
         BigDecimal saldoApresentacao = converterQuantidadeParaApresentacao(lote, saldoInterno);
         BigDecimal custoUnitarioAtualInterno = calcularCustoUnitarioAtualInterno(lote, saldoInterno);
-        BigDecimal valorAtualLote = custoUnitarioAtualInterno.multiply(saldoInterno).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+        BigDecimal valorAtualLote = calcularValorAtualLote(lote, saldoInterno, custoUnitarioAtualInterno);
 
         BigDecimal custoUnitarioAtualApresentacao = saldoApresentacao.compareTo(BigDecimal.ZERO) <= 0
                 ? BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP)
@@ -61,6 +61,29 @@ public class ValorizacaoLoteMateriaPrimaServiceImpl implements ValorizacaoLoteMa
             return BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
         }
         return lote.getCustoTotalLote().divide(quantidadeBaseComCusto, SCALE_MONEY, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calcularValorAtualLote(
+            LoteMateriaPrima lote,
+            BigDecimal saldoAtual,
+            BigDecimal custoUnitarioAtualInterno
+    ) {
+        if (saldoAtual.compareTo(BigDecimal.ZERO) <= 0 || lote.getCustoTotalLote() == null) {
+            return BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+        }
+
+        if (possuiAjusteOuPerdaManual(lote)) {
+            return lote.getCustoTotalLote().setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+        }
+
+        BigDecimal quantidadeBaseComCusto = calcularQuantidadeBaseComCusto(lote);
+        if (quantidadeBaseComCusto.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+        }
+
+        return lote.getCustoTotalLote()
+                .multiply(saldoAtual)
+                .divide(quantidadeBaseComCusto, SCALE_MONEY, RoundingMode.HALF_UP);
     }
 
     private boolean possuiAjusteOuPerdaManual(LoteMateriaPrima lote) {
