@@ -4,26 +4,91 @@
 .items-container {
   display: flex;
   flex-direction: column;
-  gap: 16px; // Espaço entre cada linha de item
+  gap: 16px;
 }
 
 .item-row {
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: var(--std-border-width) solid var(--std-border-color);
+  border-radius: var(--std-border-radius);
+  background: var(--mat-sys-surface);
+}
+
+.item-row__main {
+  display: flex;
+  align-items: flex-start;
   gap: 12px;
-  align-items: center; // Centraliza todos os itens verticalmente
+}
 
-  .product-column {
-    flex: 1;
-  }
+.item-row__pricing {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-  .qty-field {
-    width: 180px; // Aumentado de 90px para o dobro
-  }
+.item-row__pricing-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(220px, 260px) minmax(280px, 1fr);
+  grid-template-areas:
+    'base rule reason'
+    'applied total reason';
+  gap: 12px;
+  align-items: start;
+}
 
-  button {
-    flex-shrink: 0;
-    margin-bottom: 20px; // Alinha com o topo do input de quantidade (compensa o espaço das mensagens de erro abaixo)
+.product-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.qty-field {
+  width: 150px;
+  min-width: 150px;
+}
+
+.price-type-field {
+  min-width: 220px;
+}
+
+.price-field {
+  min-width: 180px;
+}
+
+.sales-form__pricing-card {
+  min-width: 0;
+}
+
+.sales-form__pricing-card--base {
+  grid-area: base;
+}
+
+.sales-form__pricing-card--rule {
+  grid-area: rule;
+}
+
+.sales-form__pricing-card--applied {
+  grid-area: applied;
+}
+
+.sales-form__pricing-card--total {
+  grid-area: total;
+}
+
+.sales-form__pricing-card--reason {
+  grid-area: reason;
+
+  ::ng-deep textarea {
+    min-height: 118px;
+    resize: vertical;
   }
+}
+
+.item-row__remove {
+  flex-shrink: 0;
+  margin-top: 6px;
 }
 
 .full-width {
@@ -45,6 +110,16 @@
   line-height: 1.4;
 }
 
+.sales-form__readonly-field {
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    background-color: #f5f5f5 !important;
+  }
+
+  ::ng-deep input[readonly] {
+    cursor: default;
+  }
+}
+
 // --- Validação Visual para Campos com Erro ---
 // Aplica feedback visual imediato quando o usuário digita valores inválidos.
 // Quando um campo tem erro (invalid) e foi modificado (dirty),
@@ -63,3 +138,34 @@
   }
 }
 
+@media (max-width: 1280px) {
+  .item-row__pricing-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+    grid-template-areas:
+      'base rule'
+      'applied total'
+      'reason reason';
+  }
+}
+
+@media (max-width: 900px) {
+  .item-row__main {
+    flex-direction: column;
+  }
+
+  .qty-field,
+  .price-type-field,
+  .price-field {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .item-row__pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .item-row__remove {
+    margin-top: 0;
+    align-self: flex-end;
+  }
+}

@@ -266,15 +266,15 @@ export class SalesForm implements OnInit {
       produtoNome: ['', Validators.required],
       estoqueDisponivel: [null],
       precoComercialOriginal: [null],
-      precoAplicado: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d{1,4})?$/)]],
-      precoTotal: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
+      precoAplicado: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+([.,]\d{1,4})?$/)]],
+      precoTotal: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+([.,]\d{1,2})?$/)]],
       tipoPrecoAplicado: ['PRECO_PADRAO' as SalePriceType, Validators.required],
       motivoAlteracaoPreco: [''],
       quantidade: [1, [
         Validators.required,
         Validators.min(1),
         maxIntegerDigits(15),
-        Validators.pattern(/^-?\d*(\.\d+)?$/)
+        Validators.pattern(/^-?\d*([.,]\d+)?$/)
       ]]
     });
 
@@ -332,7 +332,11 @@ export class SalesForm implements OnInit {
     this.recalculateItemPricing(this.items.at(index) as FormGroup, 'precoTotal');
   }
 
-  private recalculateItemPricing(group: FormGroup, source: 'produto' | 'quantidade' | 'precoAplicado' | 'precoTotal'): void {
+  onTipoPrecoChanged(index: number): void {
+    this.recalculateItemPricing(this.items.at(index) as FormGroup, 'tipo');
+  }
+
+  private recalculateItemPricing(group: FormGroup, source: 'produto' | 'quantidade' | 'precoAplicado' | 'precoTotal' | 'tipo'): void {
     const quantidade = Number(group.get('quantidade')?.value || 0);
     const precoComercialOriginal = this.toMoneyNumber(group.get('precoComercialOriginal')?.value);
     const precoAplicadoAtual = this.toMoneyNumber(group.get('precoAplicado')?.value);
@@ -385,6 +389,39 @@ export class SalesForm implements OnInit {
       return;
     }
 
+    if (source === 'tipo') {
+      if (tipoAtual === 'DESCONTO_TOTAL') {
+        const total = precoTotalAtual || totalPadrao;
+        const precoAplicado = this.roundUnitPrice(total / quantidade);
+        group.patchValue({
+          precoAplicado,
+          precoTotal: this.roundMoney(total),
+          motivoAlteracaoPreco: group.get('motivoAlteracaoPreco')?.value
+        }, { emitEvent: false });
+        this.syncMotivoRequirement(group);
+        return;
+      }
+
+      if (tipoAtual === 'PRECO_ALTERADO') {
+        const precoAplicado = precoAplicadoAtual || precoComercialOriginal;
+        group.patchValue({
+          precoAplicado: this.roundUnitPrice(precoAplicado),
+          precoTotal: this.roundMoney(precoAplicado * quantidade),
+          motivoAlteracaoPreco: group.get('motivoAlteracaoPreco')?.value
+        }, { emitEvent: false });
+        this.syncMotivoRequirement(group);
+        return;
+      }
+
+      group.patchValue({
+        precoAplicado: precoComercialOriginal,
+        precoTotal: totalPadrao,
+        motivoAlteracaoPreco: ''
+      }, { emitEvent: false });
+      this.syncMotivoRequirement(group);
+      return;
+    }
+
     if (tipoAtual === 'DESCONTO_TOTAL') {
       const total = this.roundMoney(precoTotalAtual);
       const precoAplicado = this.roundUnitPrice(total / quantidade);
@@ -421,7 +458,8 @@ export class SalesForm implements OnInit {
   }
 
   private toMoneyNumber(value: unknown): number {
-    const parsed = Number(value ?? 0);
+    const normalized = String(value ?? '0').replace(',', '.');
+    const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
@@ -455,6 +493,31 @@ export class SalesForm implements OnInit {
    */
   getProductControl(index: number): FormControl {
     return this.items.at(index).get('produtoNome') as FormControl;
+  }
+
+  getPriceTypeLabel(value: SalePriceType): string {
+    switch (value) {
+      case 'PRECO_PADRAO':
+        return 'Preço padrão';
+      case 'PRECO_ALTERADO':
+        return 'Preço aplicado';
+      case 'DESCONTO_TOTAL':
+        return 'Desconto no total';
+      default:
+        return value;
+    }
+  }
+
+  isPrecoAplicadoLocked(itemGroup: FormGroup): boolean {
+    return itemGroup.get('tipoPrecoAplicado')?.value !== 'PRECO_ALTERADO';
+  }
+
+  isPrecoTotalLocked(itemGroup: FormGroup): boolean {
+    return itemGroup.get('tipoPrecoAplicado')?.value !== 'DESCONTO_TOTAL';
+  }
+
+  isMotivoRequired(itemGroup: FormGroup): boolean {
+    return itemGroup.get('tipoPrecoAplicado')?.value !== 'PRECO_PADRAO';
   }
 
   /**
