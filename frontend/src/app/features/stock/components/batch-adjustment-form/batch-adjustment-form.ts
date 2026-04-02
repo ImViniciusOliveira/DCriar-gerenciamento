@@ -266,7 +266,7 @@ export class BatchAdjustmentForm {
     this.batchService.applyAdjustment(applyUrl, payload).subscribe({
       next: updatedBatch => {
         this.isApplying.set(false);
-        this.resetPreview();
+        this.clearCalculatedState();
         this.operationApplied.emit(updatedBatch);
         this.entityDialog.showSuccessSnackbar(BatchAdjustmentForm.Texts.APPLY_SUCCESS);
       },
@@ -277,7 +277,7 @@ export class BatchAdjustmentForm {
     });
   }
 
-  protected resetPreview(): void {
+  private clearCalculatedState(): void {
     this.calculationResult.set(null);
     this.selectedImpactedIds.set([]);
   }

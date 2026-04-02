@@ -55,7 +55,6 @@
       </div>
 
       <div class="adjustment-form__actions adjustment-form__full">
-        <button type="button" mat-stroked-button (click)="resetPreview()">Limpar</button>
         <button type="button" mat-raised-button color="primary" [disabled]="isCalculating()" (click)="calculateAdjustment()">
           {{ isCalculating() ? 'Calculando...' : 'Calcular' }}
         </button>
