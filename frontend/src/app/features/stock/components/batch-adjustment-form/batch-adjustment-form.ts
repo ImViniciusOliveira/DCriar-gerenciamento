@@ -93,18 +93,22 @@ export class BatchAdjustmentForm {
 
   protected readonly currentLotMetrics = computed<AdjustmentMetric[]>(() => {
     const batch = this.batch();
+    const currentValue = batch.valorAtualLote ?? batch.custoTotalLote;
+    const currentUnitCost = batch.custoUnitarioAtual
+      ?? this.calculateUnitCost(currentValue, batch.saldoEstoque);
+
     return [
       {
         label: 'Saldo do Lote',
         value: this.formatQuantity(batch.saldoEstoque, batch.unidadeSimbolo)
       },
       {
-        label: 'Custo Total do Lote',
-        value: this.formatCurrency(batch.custoTotalLote)
+        label: 'Valor Atual do Lote',
+        value: this.formatCurrency(currentValue)
       },
       {
-        label: 'Custo por Unidade do Lote',
-        value: this.formatUnitCost(batch.custoTotalLote, batch.saldoEstoque, batch.unidadeSimbolo)
+        label: 'Custo Unitário Atual',
+        value: this.formatCurrencyPerUnit(currentUnitCost, batch.unidadeSimbolo)
       }
     ];
   });
@@ -126,7 +130,7 @@ export class BatchAdjustmentForm {
       },
       {
         label: 'Custo Unitário Projetado',
-        value: this.formatUnitCost(result.valorProjetadoLote, result.saldoProjetado, result.unidadeSimbolo)
+        value: this.formatCurrencyPerUnit(this.calculateUnitCost(result.valorProjetadoLote, result.saldoProjetado), result.unidadeSimbolo)
       }
     ];
   });
@@ -245,16 +249,19 @@ export class BatchAdjustmentForm {
     return `${this.formatNumber(value)}${unit || ''}`;
   }
 
-  private formatUnitCost(total: number | undefined, quantity: number | undefined, unit: string | undefined): string {
+  private calculateUnitCost(total: number | undefined, quantity: number | undefined): number {
     if (!quantity || quantity <= 0) {
-      return `R$ 0,00/${unit || 'un'}`;
+      return 0;
     }
 
-    const unitCost = (total ?? 0) / quantity;
+    return (total ?? 0) / quantity;
+  }
+
+  private formatCurrencyPerUnit(value: number | undefined, unit: string | undefined): string {
     const currency = new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(unitCost);
+    }).format(value ?? 0);
 
     return `${currency}/${unit || 'un'}`;
   }

@@ -60,6 +60,8 @@ export interface Batch {
   unidadeSimbolo?: string;
   saldoEstoque?: number;
   custoTotalLote?: number;
+  valorAtualLote?: number;
+  custoUnitarioAtual?: number;
   atributos?: { [key: string]: any };
   loteDeOrigemId?: number;
   motivo?: string;

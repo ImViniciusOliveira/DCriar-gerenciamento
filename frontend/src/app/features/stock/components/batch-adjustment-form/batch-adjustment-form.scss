@@ -44,15 +44,17 @@
     'motivo motivo'
     'metrics metrics'
     'actions actions';
-  gap: 14px;
 }
 
 .adjustment-form__operation {
   grid-area: operation;
+  margin-top: 8px;
 }
 
 .adjustment-form__direction {
   grid-area: direction;
+  margin-left: 12px;
+  margin-top: 8px;
 }
 
 .adjustment-form__quantity {
@@ -72,6 +74,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  margin-top: 12px;
 }
 
 .adjustment-form mat-form-field {
@@ -186,6 +189,10 @@
       'motivo'
       'metrics'
       'actions';
+  }
+
+  .adjustment-form__direction {
+    margin-left: 0;
   }
 
   .metrics-grid {
