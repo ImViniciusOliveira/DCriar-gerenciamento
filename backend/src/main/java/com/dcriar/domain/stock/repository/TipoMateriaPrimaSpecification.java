@@ -1,5 +1,6 @@
 package com.dcriar.domain.stock.repository;
 
+import com.dcriar.domain.common.util.PostgresSearchUtils;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import org.springframework.data.jpa.domain.Specification;
@@ -19,8 +20,9 @@ public class TipoMateriaPrimaSpecification {
         if (nome == null || nome.isBlank()) {
             return null;
         }
+        String termo = PostgresSearchUtils.likeTerm(nome);
         return (root, query, builder) ->
-                builder.like(builder.lower(root.get("nome")), "%" + nome.toLowerCase() + "%");
+                builder.like(PostgresSearchUtils.unaccentedLower(builder, root.get("nome")), termo);
     }
 
     /**

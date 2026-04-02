@@ -47,14 +47,4 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long>, JpaSpec
      */
     boolean existsBySku(String sku);
 
-    /**
-     * Busca produtos de forma paginada, filtrando por nome ou SKU que contenham o termo de busca.
-     * A busca é case-insensitive.
-     *
-     * @param nome O termo a ser buscado no campo 'nome'.
-     * @param sku O termo a ser buscado no campo 'sku'.
-     * @param pageable Objeto com as informações de paginação.
-     * @return Uma página de produtos que correspondem ao critério.
-     */
-    Page<Produto> findByNomeContainingIgnoreCaseOrSkuContainingIgnoreCase(String nome, String sku, Pageable pageable);
 }

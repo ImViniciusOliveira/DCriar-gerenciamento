@@ -1,5 +1,6 @@
 package com.dcriar.domain.product.repository.spec;
 
+import com.dcriar.domain.common.util.PostgresSearchUtils;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.ProdutoDeConsumo;
 import com.dcriar.domain.product.entity.ProdutoDeCorte;
@@ -24,10 +25,11 @@ public class ProdutoSpecifications {
         if (!StringUtils.hasText(nome)) {
             return null; // Retorna uma specification nula se não houver nome, que será ignorada.
         }
+        String termo = PostgresSearchUtils.likeTerm(nome);
         return (root, query, builder) ->
                 builder.or(
-                        builder.like(builder.lower(root.get("nome")), "%" + nome.toLowerCase() + "%"),
-                        builder.like(builder.lower(root.get("sku")), "%" + nome.toLowerCase() + "%")
+                        builder.like(PostgresSearchUtils.unaccentedLower(builder, root.get("nome")), termo),
+                        builder.like(PostgresSearchUtils.unaccentedLower(builder, root.get("sku")), termo)
                 );
     }
 

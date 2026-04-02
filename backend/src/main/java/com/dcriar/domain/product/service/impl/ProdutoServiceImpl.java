@@ -51,12 +51,12 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Override
     @Transactional(readOnly = true)
     public Page<ProdutoResponseDTO> findAll(String nome, Pageable pageable) {
-        Page<Produto> produtoPage;
+        Specification<Produto> spec = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
         if (nome != null && !nome.isBlank()) {
-            produtoPage = produtoRepository.findByNomeContainingIgnoreCaseOrSkuContainingIgnoreCase(nome, nome, pageable);
-        } else {
-            produtoPage = produtoRepository.findAll(pageable);
+            spec = spec.and(ProdutoSpecifications.comNomeLike(nome));
         }
+
+        Page<Produto> produtoPage = produtoRepository.findAll(spec, pageable);
         return produtoPage.map(this::mapAndEnrichProduto);
     }
 

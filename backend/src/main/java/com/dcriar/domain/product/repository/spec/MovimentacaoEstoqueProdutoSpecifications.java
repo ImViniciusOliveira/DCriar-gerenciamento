@@ -1,11 +1,11 @@
 package com.dcriar.domain.product.repository.spec;
 
+import com.dcriar.domain.common.util.PostgresSearchUtils;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 
-import java.text.Normalizer;
 import java.time.LocalDateTime;
 
 /**
@@ -13,9 +13,6 @@ import java.time.LocalDateTime;
  * Permite combinar filtros opcionais sem duplicar lógica de query no serviço.
  */
 public final class MovimentacaoEstoqueProdutoSpecifications {
-
-    private static final String ACCENTED_CHARS = "áàãâäéèẽêëíìĩîïóòõôöúùũûüç";
-    private static final String PLAIN_CHARS = "aaaaaeeeeeiiiiiooooouuuuuc";
 
     private MovimentacaoEstoqueProdutoSpecifications() {
     }
@@ -53,20 +50,14 @@ public final class MovimentacaoEstoqueProdutoSpecifications {
             return null;
         }
 
-        String termo = "%" + normalizarTexto(nomeProduto) + "%";
+        String termo = PostgresSearchUtils.likeTerm(nomeProduto);
         return (root, query, builder) ->
                 builder.or(
                         builder.like(
-                                builder.function(
-                                        "translate",
-                                        String.class,
-                                        builder.lower(root.get("produto").get("nome")),
-                                        builder.literal(ACCENTED_CHARS),
-                                        builder.literal(PLAIN_CHARS)
-                                ),
+                                PostgresSearchUtils.unaccentedLower(builder, root.get("produto").get("nome")),
                                 termo
                         ),
-                        builder.like(builder.lower(root.get("produto").get("sku")), termo)
+                        builder.like(PostgresSearchUtils.unaccentedLower(builder, root.get("produto").get("sku")), termo)
                 );
     }
 
@@ -76,11 +67,5 @@ public final class MovimentacaoEstoqueProdutoSpecifications {
         }
 
         return (root, query, builder) -> builder.equal(root.get("tipo"), tipo);
-    }
-
-    private static String normalizarTexto(String valor) {
-        String textoNormalizado = Normalizer.normalize(valor, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}+", "");
-        return textoNormalizado.toLowerCase();
     }
 }
