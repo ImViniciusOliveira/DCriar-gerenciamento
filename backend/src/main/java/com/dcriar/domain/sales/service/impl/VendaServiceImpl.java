@@ -69,7 +69,7 @@ public class VendaServiceImpl implements VendaService {
                 .orElseThrow(() -> new VendaNaoEncontradaException(id));
 
         // 1. Estorna o estoque da venda antiga
-        performStockReversal(vendaExistente);
+        performStockReversal(vendaExistente, "edição");
 
         // 2. Prepara os novos dados
         CanalVenda novoCanal = buscarCanalVenda(requestDTO.getCanalVendaId());
@@ -89,7 +89,7 @@ public class VendaServiceImpl implements VendaService {
         Venda venda = vendaRepository.findById(id)
                 .orElseThrow(() -> new VendaNaoEncontradaException(id));
 
-        performStockReversal(venda);
+        performStockReversal(venda, "exclusão");
         vendaRepository.delete(venda);
     }
 
@@ -245,7 +245,7 @@ public class VendaServiceImpl implements VendaService {
      * Realiza o estorno do estoque para uma venda cancelada ou em edição.
      * Adiciona a quantidade dos itens de volta ao estoque e registra a movimentação de entrada.
      */
-    private void performStockReversal(Venda venda) {
+    private void performStockReversal(Venda venda, String contexto) {
         for (ItemVenda item : venda.getItens()) {
             // 1. Registra movimentação de estorno para auditoria (AUMENTA O ESTOQUE FÍSICO)
             // IMPORTANTE: Deve ser feito ANTES de ajustar o canal para garantir que o teto físico suba primeiro.
@@ -253,7 +253,7 @@ public class VendaServiceImpl implements VendaService {
                     .produtoId(item.getProduto().getId())
                     .tipo(TipoMovimentacaoProduto.ESTORNO_VENDA.name())
                     .quantidade(item.getQuantidade())
-                    .motivo(String.format("Estorno de venda #%d", venda.getId()))
+                    .motivo(String.format("Estorno da venda #%d por %s", venda.getId(), contexto))
                     .build();
             
             MovimentacaoEstoqueProduto movimentacaoEstorno = MovimentacaoEstoqueProduto.from(movimentacaoDTO, item.getProduto());

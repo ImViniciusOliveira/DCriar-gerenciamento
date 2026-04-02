@@ -235,7 +235,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         // 5. Orquestra as movimentações de estoque.
         registrarSaidaLote(lotePrincipal, consumoTotalLote, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
-        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
+        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Lançamento da OP #" + savedOrdem.getId(), savedOrdem);
         distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
 
         // 6. Criação de Lotes de Retalho
@@ -286,7 +286,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         // 4. Orquestra as movimentações de estoque.
         registrarSaidaLote(loteConsumido, consumoTotalNecessario, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
-        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
+        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Lançamento da OP #" + savedOrdem.getId(), savedOrdem);
         distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
 
         return OrdemDeConsumoResponseDTO.builder()
@@ -305,7 +305,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Transactional
     public OrdemDeProducaoResponseDTO atualizarOrdemDeCorte(Long id, OrdemDeCorteRequestDTO requestDTO) {
         OrdemDeProducao ordemExistente = findOrdemByIdWithDetails(id);
-        prepararOrdemParaReprocessamento(ordemExistente);
+        prepararOrdemParaReprocessamento(ordemExistente, "edição");
 
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
@@ -447,7 +447,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordemExistente);
 
         registrarSaidaLote(lotePrincipal, consumoTotalLote, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
-        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
+        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Relançamento da OP #" + savedOrdem.getId() + " por edição", savedOrdem);
         distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
 
         for (CorteRealizadoResponseDTO dto : cortesRealizadosDTOs) {
@@ -463,7 +463,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Transactional
     public OrdemDeProducaoResponseDTO atualizarOrdemDeConsumo(Long id, OrdemDeConsumoRequestDTO requestDTO) {
         OrdemDeProducao ordemExistente = findOrdemByIdWithDetails(id);
-        prepararOrdemParaReprocessamento(ordemExistente);
+        prepararOrdemParaReprocessamento(ordemExistente, "edição");
 
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumo()) {
@@ -498,7 +498,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         OrdemDeProducao savedOrdem = ordemDeProducaoRepository.save(ordemExistente);
 
         registrarSaidaLote(loteConsumido, consumoTotalNecessario, "Consumido pela Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
-        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Produzido via Ordem de Produção #" + savedOrdem.getId(), savedOrdem);
+        registrarEntradaProduto(produto, requestDTO.getQuantidadeProduzida(), "Relançamento da OP #" + savedOrdem.getId() + " por edição", savedOrdem);
         distribuirEstoqueParaCanal(savedOrdem.getProduto().getId(), requestDTO.getCanalVendaDestinoId(), requestDTO.getQuantidadeProduzida());
 
         return ordemDeProducaoMapper.toDto(savedOrdem);
@@ -529,7 +529,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Transactional
     public void excluir(Long id) {
         OrdemDeProducao ordem = findOrdemByIdWithDetails(id);
-        prepararOrdemParaReprocessamento(ordem);
+        prepararOrdemParaReprocessamento(ordem, "exclusão");
         ordem.getLotesConsumidos().clear();
         ordemDeProducaoRepository.delete(ordem);
     }
@@ -891,9 +891,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .orElseThrow(() -> new LoteMateriaPrimaNaoEncontradoException(id));
     }
 
-    private void prepararOrdemParaReprocessamento(OrdemDeProducao ordem) {
+    private void prepararOrdemParaReprocessamento(OrdemDeProducao ordem, String contexto) {
         validarOrdemPodeSerEstornada(ordem);
-        List<MovimentacaoEstoqueLote> movimentacoesLote = estornarMovimentacoesDaOrdem(ordem);
+        List<MovimentacaoEstoqueLote> movimentacoesLote = estornarMovimentacoesDaOrdem(ordem, contexto);
         desvincularMovimentacoesDaOrdem(ordem, movimentacoesLote);
         limparRetalhosDaOrdem(ordem);
     }
@@ -927,7 +927,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
     }
 
-    private List<MovimentacaoEstoqueLote> estornarMovimentacoesDaOrdem(OrdemDeProducao ordem) {
+    private List<MovimentacaoEstoqueLote> estornarMovimentacoesDaOrdem(OrdemDeProducao ordem, String contexto) {
+        String motivoEstorno = "Estorno da OP #" + ordem.getId() + " por " + contexto;
+
         if (ordem.getCanalVendaDestinoId() != null && ordem.getQuantidadeProduzida() != null && ordem.getQuantidadeProduzida() > 0) {
             AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
                     .produtoId(ordem.getProduto().getId())
@@ -941,7 +943,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .produtoId(ordem.getProduto().getId())
                 .tipo(TipoMovimentacaoProduto.ESTORNO_PRODUCAO.name())
                 .quantidade(-ordem.getQuantidadeProduzida())
-                .motivo("Estorno da Ordem de Produção #" + ordem.getId())
+                .motivo(motivoEstorno)
                 .build();
         MovimentacaoEstoqueProduto estornoProduto = MovimentacaoEstoqueProduto.from(estornoProdutoDTO, ordem.getProduto());
         movimentacaoEstoqueProdutoRepository.save(estornoProduto);
@@ -953,7 +955,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             MovimentacaoRequestDTO estornoMPDTO = MovimentacaoRequestDTO.builder()
                     .tipo(TipoMovimentacao.ESTORNO_PRODUCAO)
                     .quantidade(movimentacao.getQuantidade().abs())
-                    .motivo("Estorno da Ordem de Produção #" + ordem.getId())
+                    .motivo(motivoEstorno)
                     .build();
             MovimentacaoEstoqueLote estornoMP = MovimentacaoEstoqueLote.from(estornoMPDTO, movimentacao.getLote());
             movimentacaoEstoqueLoteRepository.save(estornoMP);
