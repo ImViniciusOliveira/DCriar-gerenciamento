@@ -38,7 +38,6 @@
         <mat-label>Quantidade</mat-label>
         <input matInput type="text" inputmode="decimal" formControlName="quantidade">
         <span matTextSuffix>{{ adjustmentUnitSymbol() }}</span>
-        <mat-hint>A quantidade e informada na unidade de cadastro do lote.</mat-hint>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="adjustment-form__full adjustment-form__motivo">
@@ -65,7 +64,7 @@
   </article>
 
   @if (calculationResult(); as result) {
-    <article class="adjustment-card adjustment-card--result">
+    <article #resultCard class="adjustment-card adjustment-card--result">
       <div class="adjustment-card__title">
         <div>
           <h5>Resultado do Cálculo</h5>
@@ -97,52 +96,15 @@
         <p class="adjustment-summary__message">{{ message.operationMessage }}</p>
       }
 
-      @if (impactedItems().length > 0) {
-        <section class="impact-section">
-          <div class="impact-list__header">
-            <h6>Itens Impactados</h6>
-            <p>Selecione quais lotes derivados terão o valor atualizado quando a operação for aplicada.</p>
-          </div>
-
-          <div class="impact-list">
-          @for (item of impactedItems(); track item.id) {
-            <label class="impact-item">
-              <mat-checkbox
-                [checked]="isImpactedItemSelected(item.id)"
-                (change)="onImpactedItemToggle(item.id, $event)">
-              </mat-checkbox>
-
-              <div class="impact-item__body">
-                <div class="impact-item__top">
-                  <strong>{{ item.identificadorPublico || item.descricao }}</strong>
-                  @if (item.identificadorOrigemPublico) {
-                    <span>Origem: {{ item.identificadorOrigemPublico }}</span>
-                  }
-                </div>
-
-                <div class="impact-item__meta">
-                  <span>Saldo: {{ item.saldoDescricao }}</span>
-                  @if (item.dimensaoDescricao) {
-                    <span>Dimensão: {{ item.dimensaoDescricao }}</span>
-                  }
-                </div>
-
-                @if (item.cadeiaPublica && item.nivelArvore && item.nivelArvore > 1) {
-                  <div class="impact-item__chain">
-                    <span>Cadeia: {{ item.cadeiaPublica }}</span>
-                  </div>
-                }
-
-                <div class="impact-item__values">
-                  <span>Atual: {{ item.valorAtual | currency:'BRL' }}</span>
-                  <span>Novo: {{ item.valorProjetado | currency:'BRL' }}</span>
-                </div>
-              </div>
-            </label>
-          }
-          </div>
-        </section>
-      }
+      <div class="result-actions">
+        @if (hasImpactedItems()) {
+          <button type="button" mat-stroked-button>Selecionar itens impactados</button>
+        } @else {
+          <button type="button" mat-raised-button color="primary" [disabled]="isApplying()" (click)="applyOperation()">
+            {{ isApplying() ? 'Aplicando...' : 'Aplicar operação' }}
+          </button>
+        }
+      </div>
     </article>
   }
 </section>

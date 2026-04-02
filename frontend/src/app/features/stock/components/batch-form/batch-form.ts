@@ -255,6 +255,24 @@ export class BatchForm implements OnInit {
     });
   }
 
+  async onAdjustmentApplied(updatedBatch: Batch): Promise<void> {
+    const selfLink = updatedBatch._links?.['self']?.href ?? this.batch()._links?.['self']?.href;
+    if (!selfLink) {
+      this.batch.set(updatedBatch);
+      this.cdr.markForCheck();
+      return;
+    }
+
+    try {
+      const freshBatch = await lastValueFrom(this.batchService.findByUrl(selfLink));
+      this.batch.set(freshBatch);
+      this.cdr.markForCheck();
+    } catch {
+      this.batch.set(updatedBatch);
+      this.cdr.markForCheck();
+    }
+  }
+
   private updateWidthValidation(unidade: string | null): void {
     const widthControl = this.form.get('larguraMm');
     if (unidade && BatchForm.GEOMETRIC_UNITS.has(unidade)) {

@@ -9,8 +9,7 @@
 }
 
 .batch-adjustment__header h4,
-.adjustment-card__title h5,
-.impact-list__header h6 {
+.adjustment-card__title h5 {
   margin: 0;
 }
 
@@ -20,8 +19,7 @@
 }
 
 .batch-adjustment__header p,
-.adjustment-card__title p,
-.impact-list__header p {
+.adjustment-card__title p {
   margin: 4px 0 0;
   color: var(--mat-sys-on-surface-variant);
   font-size: 0.92rem;
@@ -137,68 +135,10 @@
   line-height: 1.45;
 }
 
-.impact-section {
+.result-actions {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding-top: 6px;
-  border-top: 1px solid var(--mat-sys-outline-variant);
-}
-
-.impact-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.impact-item {
-  @include fl.std-border-mixin;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 12px 14px;
-  background: var(--mat-sys-surface);
-  cursor: pointer;
-}
-
-:host ::ng-deep .impact-item .mdc-checkbox {
-  margin-top: -4px;
-}
-
-.impact-item__body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.impact-item__top,
-.impact-item__values,
-.impact-item__meta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.impact-item__top span,
-.impact-item__values span,
-.impact-item__meta span,
-.impact-item__chain span {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.86rem;
-}
-
-.impact-item__chain {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.impact-item__reason {
-  margin: 0;
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.84rem;
-  line-height: 1.4;
+  justify-content: flex-end;
+  padding-top: 4px;
 }
 
 @media (max-width: 900px) {

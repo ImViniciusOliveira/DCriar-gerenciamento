@@ -1,15 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 
 import {
   Batch,
+  BatchAdjustmentApplyRequest,
   BatchAdjustmentCalculateRequest,
   BatchAdjustmentCalculateResponse,
   BatchAdjustmentDirection,
@@ -41,7 +41,6 @@ interface AdjustmentResultMessage {
     CommonModule,
     ReactiveFormsModule,
     MatButtonModule,
-    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule
@@ -53,7 +52,10 @@ interface AdjustmentResultMessage {
 export class BatchAdjustmentForm {
   private static readonly Texts = {
     MISSING_LINK: 'O lote não expõe o link de cálculo de ajuste.',
+    MISSING_APPLY_LINK: 'O lote não expõe o link de aplicação do ajuste.',
     CALCULATE_ERROR: 'Não foi possível calcular o ajuste do lote.',
+    APPLY_SUCCESS: 'Operação aplicada com sucesso.',
+    APPLY_ERROR: 'Não foi possível aplicar a operação no lote.',
     ADJUSTMENT_OPERATION_MESSAGE: 'Ajuste corrige divergências de registro no lote. O valor total é mantido e o custo unitário é recalculado com base na nova quantidade informada.'
   };
 
@@ -62,6 +64,9 @@ export class BatchAdjustmentForm {
   private readonly entityDialog = inject(EntityDialogService);
 
   readonly batch = input.required<Batch>();
+  readonly operationApplied = output<Batch>();
+
+  @ViewChild('resultCard') private resultCard?: ElementRef<HTMLElement>;
 
   readonly form = this.fb.group({
     tipoOperacao: this.fb.control<BatchAdjustmentOperation>('AJUSTE'),
@@ -71,6 +76,7 @@ export class BatchAdjustmentForm {
   });
 
   protected readonly isCalculating = signal(false);
+  protected readonly isApplying = signal(false);
   protected readonly calculationResult = signal<BatchAdjustmentCalculateResponse | null>(null);
   protected readonly selectedImpactedIds = signal<number[]>([]);
   protected readonly selectedOperation = toSignal(this.form.controls.tipoOperacao.valueChanges, {
@@ -144,6 +150,7 @@ export class BatchAdjustmentForm {
   });
 
   protected readonly impactedItems = computed<BatchAdjustmentImpactItem[]>(() => this.calculationResult()?.itensImpactados ?? []);
+  protected readonly hasImpactedItems = computed(() => this.impactedItems().length > 0);
 
   protected readonly resultMessage = computed<AdjustmentResultMessage | null>(() => {
     const result = this.calculationResult();
@@ -231,6 +238,7 @@ export class BatchAdjustmentForm {
             .map(item => item.id)
         );
         this.isCalculating.set(false);
+        this.scrollToResult();
       },
       error: err => {
         this.isCalculating.set(false);
@@ -239,21 +247,39 @@ export class BatchAdjustmentForm {
     });
   }
 
+  protected applyOperation(): void {
+    const applyUrl = this.batch()._links?.['aplicar-ajuste']?.href;
+    if (!applyUrl) {
+      this.entityDialog.showErrorSnackbar(BatchAdjustmentForm.Texts.MISSING_APPLY_LINK);
+      return;
+    }
+
+    const payload: BatchAdjustmentApplyRequest = {
+      tipoOperacao: this.form.controls.tipoOperacao.getRawValue(),
+      direcao: this.shouldShowDirection() ? this.form.controls.direcao.getRawValue() : null,
+      quantidade: this.parseQuantity(this.form.controls.quantidade.getRawValue()),
+      motivo: this.form.controls.motivo.getRawValue().trim()
+    };
+
+    this.isApplying.set(true);
+
+    this.batchService.applyAdjustment(applyUrl, payload).subscribe({
+      next: updatedBatch => {
+        this.isApplying.set(false);
+        this.resetPreview();
+        this.operationApplied.emit(updatedBatch);
+        this.entityDialog.showSuccessSnackbar(BatchAdjustmentForm.Texts.APPLY_SUCCESS);
+      },
+      error: err => {
+        this.isApplying.set(false);
+        this.entityDialog.showErrorSnackbar(err?.error?.detail || err?.error?.message || BatchAdjustmentForm.Texts.APPLY_ERROR);
+      }
+    });
+  }
+
   protected resetPreview(): void {
     this.calculationResult.set(null);
     this.selectedImpactedIds.set([]);
-  }
-
-  protected onImpactedItemToggle(itemId: number, event: MatCheckboxChange): void {
-    this.selectedImpactedIds.update(current =>
-      event.checked
-        ? Array.from(new Set([...current, itemId]))
-        : current.filter(id => id !== itemId)
-    );
-  }
-
-  protected isImpactedItemSelected(itemId: number): boolean {
-    return this.selectedImpactedIds().includes(itemId);
   }
 
   private formatCurrency(value: number | undefined): string {
@@ -305,5 +331,14 @@ export class BatchAdjustmentForm {
 
   private parseQuantity(value: string): number {
     return Number(value.replace(',', '.'));
+  }
+
+  private scrollToResult(): void {
+    setTimeout(() => {
+      this.resultCard?.nativeElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    });
   }
 }
