@@ -44,6 +44,7 @@ export interface BatchAdjustmentCalculateResponse {
   custoUnitarioProjetado: number;
   tipoMovimentacaoGerada: string;
   quantidadeMovimentacaoGerada: number;
+  contextoItensImpactados?: 'COM_ITENS_IMPACTADOS' | 'PERDA_NAO_RECALCULA_DERIVADOS' | 'MATERIA_PRIMA_NAO_GERA_RETALHO' | 'SEM_RETALHOS_VINCULADOS' | 'SEM_RETALHOS_COM_SALDO';
   itensImpactados: BatchAdjustmentImpactItem[];
 }
 
@@ -64,6 +65,7 @@ export interface Batch {
   unidadeDescricao?: string;
   unidadeSimbolo?: string;
   saldoEstoque?: number;
+  saldoInternoAtual?: number;
   custoTotalLote?: number;
   valorAtualLote?: number;
   custoUnitarioAtual?: number;

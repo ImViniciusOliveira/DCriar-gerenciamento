@@ -1,4 +1,4 @@
-import { Component, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
@@ -59,6 +59,11 @@ export class BatchSearch {
   });
   readonly isSearching = this.batchService.isSearching;
   private readonly unitsUrl = signal<string | null>(null);
+  protected readonly availableBatches = computed(() =>
+    [...this.foundBatches()._embedded['lotes-materia-prima']]
+      .filter(batch => this.getAvailableInternalBalance(batch) > 0)
+      .sort((left, right) => this.getAvailableInternalBalance(right) - this.getAvailableInternalBalance(left))
+  );
 
   // Subject para controlar quando disparar a busca
   private readonly searchTrigger$ = new Subject<void>();
@@ -148,6 +153,7 @@ export class BatchSearch {
 
     const batch = value;
     const unidadeApresentacao = batch.unidadeCadastroEstoque ?? batch.unidadeDeEstoque;
+    const saldoDisponivel = this.getAvailableInternalBalance(batch) > 0;
 
     // SE for uma unidade de medida de CORTE, usa a formatação original
     if (unidadeApresentacao === 'METRO_QUADRADO' || unidadeApresentacao === 'METRO_LINEAR') {
@@ -163,11 +169,14 @@ export class BatchSearch {
       // Comprimento calculado a partir do saldo e largura
       let comprimentoMm = '';
       let comprimentoCm = '';
-      if (batch.saldoEstoque && larguraMmVal) {
+      if (saldoDisponivel && batch.saldoEstoque && larguraMmVal) {
         // Comprimento em mm: saldoEstoque (m²) * 1_000_000 / larguraMm (mm)
         const comprimentoMmVal = (batch.saldoEstoque * 1000000) / larguraMmVal;
         comprimentoMm = nf.format(comprimentoMmVal);
         comprimentoCm = nf.format(comprimentoMmVal / 10);
+      }
+      if (!saldoDisponivel) {
+        return `Saldo: ${saldoM2}${batch.unidadeSimbolo || ''}`;
       }
       // Monta string final
       return `Saldo: ${saldoM2}m² (${saldoCm2}cm²) | Largura: ${larguraMm}mm (${larguraCm}cm) | Comprimento: ${comprimentoMm}mm (${comprimentoCm}cm)`;
@@ -201,6 +210,14 @@ export class BatchSearch {
   public reset(): void {
     this.searchControl.setValue('', { emitEvent: false });
     this.control().setValue(null);
+  }
+
+  private getAvailableInternalBalance(batch: Batch): number {
+    if (typeof batch.saldoInternoAtual === 'number') {
+      return batch.saldoInternoAtual;
+    }
+
+    return typeof batch.saldoEstoque === 'number' ? batch.saldoEstoque : 0;
   }
 
   private getDisplayUnit(batch: Batch): string {

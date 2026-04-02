@@ -56,6 +56,7 @@ export class BatchAdjustmentForm {
   private static readonly Texts = {
     MISSING_LINK: 'O lote não expõe o link de cálculo de ajuste.',
     CALCULATE_ERROR: 'Não foi possível calcular o ajuste do lote.',
+    ADJUSTMENT_OPERATION_MESSAGE: 'Ajuste corrige divergências de registro no lote. O valor total é mantido e o custo unitário é recalculado com base na nova quantidade informada.'
   };
 
   private readonly fb = inject(NonNullableFormBuilder);
@@ -152,9 +153,33 @@ export class BatchAdjustmentForm {
       };
     }
 
+    switch (result.contextoItensImpactados) {
+      case 'MATERIA_PRIMA_NAO_GERA_RETALHO':
+        return {
+          movementLabel: 'Ajuste de inventário',
+          operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE,
+          emptyImpactTitle: 'Esta matéria-prima não gera retalhos.',
+          emptyImpactMessage: 'O ajuste afetará apenas este lote, sem recalcular itens derivados.'
+        };
+      case 'SEM_RETALHOS_COM_SALDO':
+        return {
+          movementLabel: 'Ajuste de inventário',
+          operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE,
+          emptyImpactTitle: 'Não há retalhos com saldo disponível para recalcular.',
+          emptyImpactMessage: 'Os retalhos vinculados a este lote já foram consumidos ou zerados.'
+        };
+      case 'SEM_RETALHOS_VINCULADOS':
+        return {
+          movementLabel: 'Ajuste de inventário',
+          operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE,
+          emptyImpactTitle: 'Este lote ainda não possui retalhos vinculados.',
+          emptyImpactMessage: 'O ajuste afetará apenas este lote.'
+        };
+    }
+
     return {
       movementLabel: 'Ajuste de inventário',
-      operationMessage: 'Ajuste corrige divergências de registro no lote. O valor total é mantido e o custo unitário é recalculado com base na nova quantidade informada.',
+      operationMessage: BatchAdjustmentForm.Texts.ADJUSTMENT_OPERATION_MESSAGE,
       emptyImpactTitle: 'Nenhum item derivado impactado.',
       emptyImpactMessage: 'Este lote não possui retalhos derivados para recalcular, então o ajuste afetará apenas este lote.'
     };

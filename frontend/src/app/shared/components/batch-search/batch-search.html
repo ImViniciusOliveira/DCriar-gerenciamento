@@ -11,7 +11,7 @@
     [disabled]="disabled()"
   >
   <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete" (optionSelected)="onOptionSelected($event)" [displayWith]="displayFn"> <!-- MOVIDO AQUI -->
-    @for (batch of foundBatches()._embedded['lotes-materia-prima']; track batch.id) {
+    @for (batch of availableBatches(); track batch.id) {
       <mat-option [value]="batch">
         <div class="batch-option-content">
           <span class="batch-option-text">{{ displayFn(batch) }}</span>
@@ -21,7 +21,7 @@
         </div>
       </mat-option>
     }
-    @if (!isSearching() && foundBatches()._embedded['lotes-materia-prima'].length === 0) {
+    @if (!isSearching() && availableBatches().length === 0) {
       <mat-option disabled>Nenhum lote encontrado.</mat-option>
     }
   </mat-autocomplete>
