@@ -37,60 +37,15 @@
           </div>
         </div>
 
-        <div class="stock-home__history-table">
-          <div class="stock-home__history-head">
-            <button type="button" class="stock-home__sort-header" (click)="toggleHistorySort('data')">
-              <span>Data</span>
-              <mat-icon>{{ getSortIcon('data') }}</mat-icon>
-            </button>
-            <button type="button" class="stock-home__sort-header" (click)="toggleHistorySort('produto')">
-              <span>Produto</span>
-              <mat-icon>{{ getSortIcon('produto') }}</mat-icon>
-            </button>
-            <button type="button" class="stock-home__sort-header" (click)="toggleHistorySort('sku')">
-              <span>SKU</span>
-              <mat-icon>{{ getSortIcon('sku') }}</mat-icon>
-            </button>
-            <span>Movimentação</span>
-            <button type="button" class="stock-home__sort-header" (click)="toggleHistorySort('quantidade')">
-              <span>Quantidade</span>
-              <mat-icon>{{ getSortIcon('quantidade') }}</mat-icon>
-            </button>
-            <span>Motivo</span>
-            <span>Ações</span>
-          </div>
-
-          @for (item of filteredHistoryItems(); track item.id) {
-            <article class="stock-home__history-record">
-              <span>{{ item.data | date:'dd/MM/yyyy HH:mm' }}</span>
-              <strong>{{ item.produto.nome }}</strong>
-              <span>{{ item.produto.sku }}</span>
-              <span>{{ formatMovementType(item.tipo) }}</span>
-              <span
-                class="stock-home__history-quantity"
-                [class.stock-home__history-quantity--positive]="isPositiveQuantity(item.quantidade)"
-                [class.stock-home__history-quantity--negative]="!isPositiveQuantity(item.quantidade)">
-                {{ formatSignedQuantity(item.quantidade) }}
-              </span>
-              <p>{{ getTruncatedReason(item.motivo) }}</p>
-              <button
-                mat-icon-button
-                type="button"
-                class="stock-home__details-button"
-                title="Visualizar motivo"
-                aria-label="Visualizar motivo"
-                (click)="openReasonDetails(item.id, item.motivo)">
-                <mat-icon>visibility</mat-icon>
-              </button>
-            </article>
-          }
-
-          @if (!filteredHistoryItems().length) {
-            <div class="stock-home__history-empty">
-              Nenhuma movimentacao encontrada para o periodo selecionado.
-            </div>
-          }
-        </div>
+        <app-base-table
+          [items]="historyItems()"
+          [columns]="tableColumns"
+          [totalElements]="pagination.totalElements()"
+          [pageSize]="pagination.pageSize()"
+          [pageIndex]="pagination.pageIndex()"
+          (pageChange)="onPageChange($event)"
+          (sortChange)="onSortChange($event)">
+        </app-base-table>
       </div>
     } @else {
       <div class="stock-home__placeholder">
@@ -99,3 +54,43 @@
     }
   </div>
 </div>
+
+<ng-template #dataTemplate let-item>
+  {{ item.data | date:'dd/MM/yyyy HH:mm' }}
+</ng-template>
+
+<ng-template #produtoTemplate let-item>
+  {{ item.produtoNome }}
+</ng-template>
+
+<ng-template #skuTemplate let-item>
+  {{ item.produtoSku }}
+</ng-template>
+
+<ng-template #movementTemplate let-item>
+  {{ formatMovementType(item.tipo) }}
+</ng-template>
+
+<ng-template #quantityTemplate let-item>
+  <span
+    class="stock-home__history-quantity"
+    [class.stock-home__history-quantity--positive]="isPositiveQuantity(item.quantidade)"
+    [class.stock-home__history-quantity--negative]="!isPositiveQuantity(item.quantidade)">
+    {{ formatSignedQuantity(item.quantidade) }}
+  </span>
+</ng-template>
+
+<ng-template #reasonTemplate let-item>
+  {{ getTruncatedReason(item.motivo) }}
+</ng-template>
+
+<ng-template #actionsTemplate let-item>
+  <button
+    mat-icon-button
+    type="button"
+    title="Visualizar"
+    aria-label="Visualizar motivo"
+    (click)="openReasonDetails(item)">
+    <mat-icon>visibility</mat-icon>
+  </button>
+</ng-template>

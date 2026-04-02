@@ -1,15 +1,32 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  TemplateRef,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  signal
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { STOCK_HISTORY_RESPONSE_MOCK } from './stock-home.mock';
+import { PageEvent } from '@angular/material/paginator';
+import { Sort } from '@angular/material/sort';
+import { catchError, of } from 'rxjs';
+
+import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { DetailsDialog } from '../../../../shared/components/details-dialog/details-dialog';
+import { PaginationHandler } from '../../../../shared/services/pagination-handler';
+import { ApiResponseStockHistory, StockHistoryItem } from '../../models/stock-history.model';
+import { StockService } from '../../services/stock.service';
 
 type StockSectionKey = 'consultas' | 'ajustes' | 'historico';
 type HistoryRangeKey = '1d' | '1m' | '6m' | '1a' | 'all';
-type HistorySortField = 'data' | 'produto' | 'sku' | 'quantidade' | null;
-type HistorySortDirection = 'asc' | 'desc';
 
 interface StockSection {
   key: StockSectionKey;
@@ -23,20 +40,20 @@ interface HistoryRangeOption {
   label: string;
 }
 
-interface HistorySortOption {
-  field: Exclude<HistorySortField, null>;
-  label: string;
-}
-
 @Component({
   selector: 'app-stock-home',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, MatButtonModule, MatIconModule, BaseTable],
   templateUrl: './stock-home.html',
   styleUrl: './stock-home.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [PaginationHandler]
 })
-export class StockHome {
+export class StockHome implements AfterViewInit {
   private readonly dialog = inject(MatDialog);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly stockService = inject(StockService);
+  protected readonly pagination = inject(PaginationHandler);
 
   protected readonly sections: StockSection[] = [
     {
@@ -60,12 +77,9 @@ export class StockHome {
   ];
 
   protected readonly activeSection = signal<StockSection>(this.sections[0]);
-  protected readonly historyResponse = STOCK_HISTORY_RESPONSE_MOCK;
-  private readonly historyAnchorDate = new Date('2026-04-02T08:10:00');
   protected readonly isHistorySection = computed(() => this.activeSection().key === 'historico');
   protected readonly selectedRange = signal<HistoryRangeKey>('1m');
-  protected readonly selectedSortField = signal<HistorySortField>(null);
-  protected readonly selectedSortDirection = signal<HistorySortDirection>('desc');
+  protected readonly historyItems = signal<StockHistoryItem[]>([]);
   protected readonly rangeOptions: HistoryRangeOption[] = [
     { key: '1d', label: '1D' },
     { key: '1m', label: '1M' },
@@ -73,45 +87,65 @@ export class StockHome {
     { key: '1a', label: '1A' },
     { key: 'all', label: 'Todo período' }
   ];
-  protected readonly sortOptions: HistorySortOption[] = [
-    { field: 'data', label: 'Data' },
-    { field: 'produto', label: 'Produto' },
-    { field: 'sku', label: 'SKU' },
-    { field: 'quantidade', label: 'Quantidade' }
-  ];
-  protected readonly filteredHistoryItems = computed(() => {
-    const range = this.selectedRange();
-    const sortField = this.selectedSortField();
-    const sortDirection = this.selectedSortDirection();
-    const cutoff = this.resolveCutoffDate(range);
 
-    const filtered = this.historyResponse._embedded.movimentacoes.filter(item => {
-      if (!cutoff) {
-        return true;
-      }
+  tableColumns: TableColumn<StockHistoryItem>[] = [];
 
-      return new Date(item.data).getTime() >= cutoff.getTime();
-    });
+  @ViewChild('dataTemplate') dataTemplate!: TemplateRef<any>;
+  @ViewChild('produtoTemplate') produtoTemplate!: TemplateRef<any>;
+  @ViewChild('skuTemplate') skuTemplate!: TemplateRef<any>;
+  @ViewChild('movementTemplate') movementTemplate!: TemplateRef<any>;
+  @ViewChild('quantityTemplate') quantityTemplate!: TemplateRef<any>;
+  @ViewChild('reasonTemplate') reasonTemplate!: TemplateRef<any>;
+  @ViewChild('actionsTemplate') actionsTemplate!: TemplateRef<any>;
 
-    if (!sortField) {
-      return [...filtered].sort((left, right) => new Date(right.data).getTime() - new Date(left.data).getTime());
-    }
+  constructor() {
+    this.pagination.initialize('stock-history', { active: 'data', direction: 'desc' });
 
-    const sorted = [...filtered].sort((left, right) => {
-      switch (sortField) {
-        case 'data':
-          return new Date(left.data).getTime() - new Date(right.data).getTime();
-        case 'produto':
-          return left.produto.nome.localeCompare(right.produto.nome, 'pt-BR');
-        case 'sku':
-          return left.produto.sku.localeCompare(right.produto.sku, 'pt-BR');
-        case 'quantidade':
-          return left.quantidade - right.quantidade;
+    const historyResponse = toSignal(
+      this.stockService.getHistory().pipe(
+        catchError(() => of(undefined))
+      )
+    );
+
+    effect(() => {
+      const response = historyResponse();
+      if (response) {
+        this.applyHistoryResponse(response);
       }
     });
 
-    return sortDirection === 'desc' ? sorted.reverse() : sorted;
-  });
+    effect(() => {
+      const isHistoryActive = this.isHistorySection();
+      const page = this.pagination.pageIndex();
+      const size = this.pagination.pageSize();
+      const sort = this.pagination.sortString();
+      const periodo = this.selectedRange();
+
+      if (!isHistoryActive) {
+        return;
+      }
+
+      this.stockService.updateHistorySearchParams({
+        page,
+        size,
+        sort,
+        periodo
+      });
+    });
+  }
+
+  ngAfterViewInit(): void {
+    this.tableColumns = [
+      { key: 'data', header: 'Criado em', sortable: true, className: 'col-created', cellTemplate: this.dataTemplate },
+      { key: 'produtoNome', header: 'Produto', sortable: true, sortKey: 'produto.nome', className: 'col-wide', cellTemplate: this.produtoTemplate },
+      { key: 'produtoSku', header: 'SKU', sortable: true, cellTemplate: this.skuTemplate },
+      { key: 'tipo', header: 'Movimentação', sortable: false, cellTemplate: this.movementTemplate },
+      { key: 'quantidade', header: 'Quantidade', sortable: true, cellTemplate: this.quantityTemplate },
+      { key: 'motivo', header: 'Motivo', sortable: false, cellTemplate: this.reasonTemplate },
+      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions', cellTemplate: this.actionsTemplate }
+    ];
+    this.cdr.detectChanges();
+  }
 
   protected setActiveSection(section: StockSection): void {
     this.activeSection.set(section);
@@ -119,30 +153,20 @@ export class StockHome {
 
   protected setHistoryRange(range: HistoryRangeKey): void {
     this.selectedRange.set(range);
+    this.pagination.handlePageEvent({
+      pageIndex: 0,
+      pageSize: this.pagination.pageSize(),
+      length: this.pagination.totalElements(),
+      previousPageIndex: this.pagination.pageIndex()
+    });
   }
 
-  protected toggleHistorySort(field: Exclude<HistorySortField, null>): void {
-    const currentField = this.selectedSortField();
-    const currentDirection = this.selectedSortDirection();
+  protected onPageChange(event: PageEvent): void {
+    this.pagination.handlePageEvent(event);
+  }
 
-    if (currentField !== field) {
-      this.selectedSortField.set(field);
-      this.selectedSortDirection.set(field === 'data' ? 'desc' : 'asc');
-      return;
-    }
-
-    if (currentDirection === 'asc') {
-      this.selectedSortDirection.set('desc');
-      return;
-    }
-
-    if (field === 'data') {
-      this.selectedSortField.set(null);
-      this.selectedSortDirection.set('desc');
-      return;
-    }
-
-    this.selectedSortDirection.set('asc');
+  protected onSortChange(sort: Sort): void {
+    this.pagination.handleSortChange(sort);
   }
 
   protected formatMovementType(tipo: string): string {
@@ -170,27 +194,6 @@ export class StockHome {
     return quantidade >= 0;
   }
 
-  protected getSortIcon(field: Exclude<HistorySortField, null>): string {
-    if (this.selectedSortField() !== field) {
-      return field === 'data' ? 'south' : 'unfold_more';
-    }
-
-    return this.selectedSortDirection() === 'asc' ? 'north' : 'south';
-  }
-
-  protected openReasonDetails(id: number, motivo: string): void {
-    this.dialog.open(DetailsDialog, {
-      data: {
-        title: `Motivo da movimentação #${id}`,
-        items: [{ value: motivo }],
-        showLabels: false
-      },
-      width: '680px',
-      maxWidth: '90vw',
-      autoFocus: false
-    });
-  }
-
   protected getTruncatedReason(motivo: string): string {
     if (motivo.length <= 100) {
       return motivo;
@@ -199,24 +202,21 @@ export class StockHome {
     return `${motivo.slice(0, 97)}...`;
   }
 
-  private resolveCutoffDate(range: HistoryRangeKey): Date | null {
-    const base = new Date(this.historyAnchorDate);
+  protected openReasonDetails(item: StockHistoryItem): void {
+    this.dialog.open(DetailsDialog, {
+      data: {
+        title: `Motivo da movimentação #${item.id}`,
+        items: [{ value: item.motivo }],
+        showLabels: false
+      },
+      width: '680px',
+      maxWidth: '90vw',
+      autoFocus: false
+    });
+  }
 
-    switch (range) {
-      case '1d':
-        base.setDate(base.getDate() - 1);
-        return base;
-      case '1m':
-        base.setMonth(base.getMonth() - 1);
-        return base;
-      case '6m':
-        base.setMonth(base.getMonth() - 6);
-        return base;
-      case '1a':
-        base.setFullYear(base.getFullYear() - 1);
-        return base;
-      case 'all':
-        return null;
-    }
+  private applyHistoryResponse(response: ApiResponseStockHistory): void {
+    this.historyItems.set(response._embedded?.historicoEstoqueConsolidadoResponseDTOList ?? []);
+    this.pagination.updateTotalElements(response.page?.totalElements ?? 0);
   }
 }
