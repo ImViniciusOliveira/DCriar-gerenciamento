@@ -47,6 +47,9 @@ public class LoteMateriaPrimaModel extends RepresentationModel<LoteMateriaPrimaM
     @Schema(description = "Saldo atual de material disponível neste lote.", example = "45.5000")
     private BigDecimal saldoEstoque;
 
+    @Schema(description = "Saldo técnico atual do lote na unidade interna de cálculo.", example = "455000.0000")
+    private BigDecimal saldoInternoAtual;
+
     @Schema(description = "Custo total do lote no momento da entrada.", example = "150.00")
     private BigDecimal custoTotalLote;
 

@@ -9,6 +9,7 @@ import com.dcriar.api.mapper.stock.LoteMateriaPrimaMapper;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import com.dcriar.domain.stock.entity.enums.DirecaoAjusteLote;
+import com.dcriar.domain.stock.entity.enums.ContextoItensImpactadosAjusteLote;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enums.TipoOperacaoAjusteLote;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
@@ -153,7 +154,9 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                 ? BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP)
                 : valorProjetadoLote.divide(saldoProjetadoApresentacao, SCALE_MONEY, RoundingMode.HALF_UP);
 
-        List<ItemImpactadoCalculado> itensImpactados = montarItensImpactados(lote, custoUnitarioProjetadoInterno, tipoOperacao);
+        List<LoteRetalhoHierarchyItem> descendentes = loteRetalhoHierarchyService.listarDescendentes(lote);
+        List<ItemImpactadoCalculado> itensImpactados = montarItensImpactados(lote, custoUnitarioProjetadoInterno, tipoOperacao, descendentes);
+        ContextoItensImpactadosAjusteLote contextoItensImpactados = resolverContextoItensImpactados(lote, tipoOperacao, descendentes, itensImpactados);
 
         return new ResultadoCalculoAjuste(
                 lote,
@@ -168,6 +171,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                 custoUnitarioProjetadoApresentacao,
                 resolverTipoMovimentacao(tipoOperacao),
                 quantidadeMovimentacao,
+                contextoItensImpactados,
                 itensImpactados
         );
     }
@@ -189,6 +193,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                 .custoUnitarioProjetado(resultado.custoUnitarioProjetado())
                 .tipoMovimentacaoGerada(resultado.tipoMovimentacaoGerada())
                 .quantidadeMovimentacaoGerada(resultado.quantidadeMovimentacao())
+                .contextoItensImpactados(resultado.contextoItensImpactados())
                 .itensImpactados(resultado.itensImpactados().stream().map(this::toItemImpactadoDTO).toList())
                 .build();
     }
@@ -248,13 +253,14 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
     private List<ItemImpactadoCalculado> montarItensImpactados(
             LoteMateriaPrima lote,
             BigDecimal custoUnitarioProjetado,
-            TipoOperacaoAjusteLote tipoOperacao
+            TipoOperacaoAjusteLote tipoOperacao,
+            List<LoteRetalhoHierarchyItem> descendentes
     ) {
         if (tipoOperacao != TipoOperacaoAjusteLote.AJUSTE) {
             return List.of();
         }
 
-        return loteRetalhoHierarchyService.listarDescendentes(lote).stream()
+        return descendentes.stream()
                 .map(itemHierarchy -> {
                     LoteMateriaPrima loteImpactado = itemHierarchy.lote();
                     BigDecimal saldoAtualFilho = calcularSaldo(loteImpactado);
@@ -291,6 +297,31 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                 })
                 .filter(java.util.Objects::nonNull)
                 .toList();
+    }
+
+    private ContextoItensImpactadosAjusteLote resolverContextoItensImpactados(
+            LoteMateriaPrima lote,
+            TipoOperacaoAjusteLote tipoOperacao,
+            List<LoteRetalhoHierarchyItem> descendentes,
+            List<ItemImpactadoCalculado> itensImpactados
+    ) {
+        if (tipoOperacao == TipoOperacaoAjusteLote.PERDA_DESCARTE) {
+            return ContextoItensImpactadosAjusteLote.PERDA_NAO_RECALCULA_DERIVADOS;
+        }
+
+        if (!lote.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
+            return ContextoItensImpactadosAjusteLote.MATERIA_PRIMA_NAO_GERA_RETALHO;
+        }
+
+        if (descendentes.isEmpty()) {
+            return ContextoItensImpactadosAjusteLote.SEM_RETALHOS_VINCULADOS;
+        }
+
+        if (itensImpactados.isEmpty()) {
+            return ContextoItensImpactadosAjusteLote.SEM_RETALHOS_COM_SALDO;
+        }
+
+        return ContextoItensImpactadosAjusteLote.COM_ITENS_IMPACTADOS;
     }
 
     private String montarDescricaoItemImpactado(
@@ -409,6 +440,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
         responseDTO.setUnidadeCadastroEstoque(unidadeCadastro);
         responseDTO.setUnidadeSimbolo(unidadeCadastro.getSimbolo());
         responseDTO.setSaldoEstoque(saldoApresentacao);
+        responseDTO.setSaldoInternoAtual(saldoInterno);
         ValorizacaoAtualLoteMateriaPrima valorizacaoAtual = valorizacaoLoteMateriaPrimaService.calcularValorizacaoAtual(lote);
         responseDTO.setValorAtualLote(valorizacaoAtual.valorAtualLote());
         responseDTO.setCustoUnitarioAtual(valorizacaoAtual.custoUnitarioAtualApresentacao());
@@ -432,6 +464,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
             BigDecimal custoUnitarioProjetado,
             TipoMovimentacao tipoMovimentacaoGerada,
             BigDecimal quantidadeMovimentacao,
+            ContextoItensImpactadosAjusteLote contextoItensImpactados,
             List<ItemImpactadoCalculado> itensImpactados
     ) {}
 

@@ -42,6 +42,9 @@ public class LoteMateriaPrimaResponseDTO {
     @Schema(description = "O saldo de estoque atual deste lote.", example = "49.0000")
     private BigDecimal saldoEstoque;
 
+    @Schema(description = "Saldo técnico atual do lote na unidade interna de cálculo.", example = "490000.0000")
+    private BigDecimal saldoInternoAtual;
+
     @Schema(description = "Custo total do lote no momento da entrada.", example = "150.00")
     private BigDecimal custoTotalLote;
 

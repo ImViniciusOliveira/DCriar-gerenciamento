@@ -367,6 +367,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         responseDTO.setUnidadeCadastroEstoque(unidadeCadastro);
         responseDTO.setUnidadeSimbolo(unidadeCadastro.getSimbolo());
         responseDTO.setSaldoEstoque(saldoApresentacao);
+        responseDTO.setSaldoInternoAtual(saldoInterno);
         responseDTO.setValorAtualLote(valorizacaoAtual.valorAtualLote());
         responseDTO.setCustoUnitarioAtual(valorizacaoAtual.custoUnitarioAtualApresentacao());
         responseDTO.setIdentificadorPublico(LotePublicIdentifierFormatter.format(lote));

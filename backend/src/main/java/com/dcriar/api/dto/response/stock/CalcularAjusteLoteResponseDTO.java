@@ -1,6 +1,7 @@
 package com.dcriar.api.dto.response.stock;
 
 import com.dcriar.domain.stock.entity.enums.DirecaoAjusteLote;
+import com.dcriar.domain.stock.entity.enums.ContextoItensImpactadosAjusteLote;
 import com.dcriar.domain.stock.entity.enums.TipoOperacaoAjusteLote;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
@@ -64,6 +65,9 @@ public class CalcularAjusteLoteResponseDTO {
 
     @Schema(description = "Quantidade técnica da movimentação que será registrada.", example = "-20.0000")
     private BigDecimal quantidadeMovimentacaoGerada;
+
+    @Schema(description = "Contexto semântico da lista de itens impactados.", example = "SEM_RETALHOS_VINCULADOS")
+    private ContextoItensImpactadosAjusteLote contextoItensImpactados;
 
     @Schema(description = "Itens derivados impactados pelo ajuste.", implementation = ItemImpactadoAjusteLoteDTO.class)
     private List<ItemImpactadoAjusteLoteDTO> itensImpactados;
