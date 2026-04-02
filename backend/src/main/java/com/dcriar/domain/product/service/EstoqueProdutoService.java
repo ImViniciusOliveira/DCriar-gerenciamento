@@ -4,8 +4,10 @@ import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
+import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
+import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -62,6 +64,26 @@ public interface EstoqueProdutoService {
      * @return Uma lista de DTOs, cada um representando uma movimentação de estoque (entrada, saída, ajuste).
      */
     List<MovimentacaoProdutoResponseDTO> listarMovimentacoesPorProduto(Long produtoId);
+
+    /**
+     * Lista o histórico consolidado das movimentações de estoque de produtos acabados.
+     * Este endpoint é pensado para consultas paginadas e ordenáveis em telas de auditoria
+     * e acompanhamento operacional, podendo ser filtrado por período, produto e tipo de movimentação.
+     *
+     * @param periodo Filtro rápido de período (ex: 1d, 1m, 6m, 1a, all).
+     * @param produtoId ID do produto para filtro específico (opcional).
+     * @param nomeProduto Parte do nome ou SKU do produto para busca textual (opcional).
+     * @param tipoMovimentacao Tipo da movimentação para filtro específico (opcional).
+     * @param pageable Configuração de paginação e ordenação.
+     * @return Página com o histórico consolidado de movimentações.
+     */
+    Page<HistoricoEstoqueConsolidadoResponseDTO> listarHistoricoConsolidado(
+            String periodo,
+            Long produtoId,
+            String nomeProduto,
+            TipoMovimentacaoProduto tipoMovimentacao,
+            Pageable pageable
+    );
 
     /**
      * Lista o estoque de todos os produtos, agrupados por produto e seus respectivos canais de venda.

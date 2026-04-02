@@ -4,12 +4,14 @@ import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
+import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
 import com.dcriar.api.hateoas.product.assembler.EstoqueProdutoModelAssembler;
 import com.dcriar.api.hateoas.product.assembler.MovimentacaoProdutoModelAssembler;
 import com.dcriar.api.hateoas.product.model.EstoqueProdutoModel;
 import com.dcriar.api.hateoas.product.model.MovimentacaoProdutoModel;
+import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -60,8 +62,8 @@ public class EstoqueProdutoController {
         rootModel.add(linkTo(methodOn(EstoqueProdutoController.class).getRoot()).withSelfRel());
         
         // Link para busca resumida (usado em autocompletes)
-        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
-                .buscarEstoqueResumido(null, null, true, null, null))
+        rootModel.add(linkTo(EstoqueProdutoController.class)
+                .slash("resumo")
                 .withRel("resumo"));
                 
         // Link para listagem por lista de produtos
@@ -73,6 +75,10 @@ public class EstoqueProdutoController {
         rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
                 .listarEstoqueDeTodosOsProdutosPorCanal())
                 .withRel("todos-por-canais"));
+
+        rootModel.add(linkTo(EstoqueProdutoController.class)
+                .slash("historico")
+                .withRel("historico"));
 
         return ResponseEntity.ok(rootModel);
     }
@@ -170,4 +176,25 @@ public class EstoqueProdutoController {
         List<MovimentacaoProdutoResponseDTO> historicoDTO = estoqueProdutoService.listarMovimentacoesPorProduto(produtoId);
         return movimentacaoProdutoModelAssembler.toOkResponseEntity(historicoDTO, produtoId);
     }
+
+    @GetMapping("/historico")
+    @Operation(summary = "Consultar o histórico consolidado das movimentações de estoque")
+    @Parameters({
+            @Parameter(name = "periodo", description = "Filtro rápido por período.", example = "1m"),
+            @Parameter(name = "sort", description = "Critério de ordenação.", example = "data,desc")
+    })
+    public ResponseEntity<PagedModel<EntityModel<HistoricoEstoqueConsolidadoResponseDTO>>> listarHistoricoConsolidado(
+            @RequestParam(required = false, defaultValue = "all") String periodo,
+            @RequestParam(required = false) Long produtoId,
+            @RequestParam(required = false) String nomeProduto,
+            @RequestParam(required = false) TipoMovimentacaoProduto tipoMovimentacao,
+            @ParameterObject @PageableDefault(sort = "data", direction = Sort.Direction.DESC) Pageable pageable,
+            PagedResourcesAssembler<HistoricoEstoqueConsolidadoResponseDTO> pagedResourcesAssembler
+    ) {
+        Page<HistoricoEstoqueConsolidadoResponseDTO> page = estoqueProdutoService
+                .listarHistoricoConsolidado(periodo, produtoId, nomeProduto, tipoMovimentacao, pageable);
+
+        return ResponseEntity.ok(pagedResourcesAssembler.toModel(page));
+    }
+
 }

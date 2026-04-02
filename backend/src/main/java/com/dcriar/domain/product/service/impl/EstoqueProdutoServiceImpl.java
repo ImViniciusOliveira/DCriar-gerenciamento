@@ -6,9 +6,11 @@ import com.dcriar.api.dto.request.product.EstoqueRequestDTO;
 import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
+import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
 import com.dcriar.api.mapper.product.EstoqueMapper;
+import com.dcriar.api.mapper.product.HistoricoEstoqueConsolidadoMapper;
 import com.dcriar.api.mapper.product.MovimentacaoProdutoMapper;
 import com.dcriar.api.mapper.product.ProdutoEstoqueDTOMapper;
 import com.dcriar.domain.product.entity.CanalVenda;
@@ -20,14 +22,17 @@ import com.dcriar.domain.product.repository.CanalVendaRepository;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
+import com.dcriar.domain.product.repository.spec.MovimentacaoEstoqueProdutoSpecifications;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +54,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     private final CanalVendaRepository canalVendaRepository;
     private final EstoqueMapper estoqueMapper;
     private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
+    private final HistoricoEstoqueConsolidadoMapper historicoEstoqueConsolidadoMapper;
     private final MovimentacaoProdutoMapper movimentacaoProdutoMapper;
     private final ProdutoEstoqueDTOMapper produtoEstoqueDTOMapper;
 
@@ -148,6 +154,25 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .stream()
                 .map(movimentacaoProdutoMapper::toResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<HistoricoEstoqueConsolidadoResponseDTO> listarHistoricoConsolidado(
+            String periodo,
+            Long produtoId,
+            String nomeProduto,
+            TipoMovimentacaoProduto tipoMovimentacao,
+            Pageable pageable
+    ) {
+        Specification<MovimentacaoEstoqueProduto> spec = (root, query, builder) -> builder.conjunction();
+        spec = spec.and(MovimentacaoEstoqueProdutoSpecifications.comPeriodo(periodo, LocalDateTime.now()));
+        spec = spec.and(MovimentacaoEstoqueProdutoSpecifications.comProdutoId(produtoId));
+        spec = spec.and(MovimentacaoEstoqueProdutoSpecifications.comNomeProduto(nomeProduto));
+        spec = spec.and(MovimentacaoEstoqueProdutoSpecifications.comTipo(tipoMovimentacao));
+
+        return movimentacaoEstoqueProdutoRepository.findAll(spec, pageable)
+                .map(historicoEstoqueConsolidadoMapper::toResponseDTO);
     }
 
     @Override

@@ -3,8 +3,13 @@ package com.dcriar.domain.product.repository;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -14,7 +19,7 @@ import java.util.List;
  * Repositório para a entidade MovimentacaoEstoqueProduto.
  */
 @Repository
-public interface MovimentacaoEstoqueProdutoRepository extends JpaRepository<MovimentacaoEstoqueProduto, Long> {
+public interface MovimentacaoEstoqueProdutoRepository extends JpaRepository<MovimentacaoEstoqueProduto, Long>, JpaSpecificationExecutor<MovimentacaoEstoqueProduto> {
 
     /**
      * Calcula o saldo de estoque físico total para um determinado produto
@@ -33,6 +38,10 @@ public interface MovimentacaoEstoqueProdutoRepository extends JpaRepository<Movi
      * @return Uma lista com todas as movimentações do produto.
      */
     List<MovimentacaoEstoqueProduto> findAllByProduto(Produto produto);
+
+    @Override
+    @EntityGraph(attributePaths = "produto")
+    Page<MovimentacaoEstoqueProduto> findAll(Specification<MovimentacaoEstoqueProduto> spec, Pageable pageable);
 
     /**
      * Busca todas as movimentações de produto associadas a uma ordem de produção específica.
