@@ -154,9 +154,15 @@
 
 .impact-item__top span,
 .impact-item__values span,
-.impact-item__meta span {
+.impact-item__meta span,
+.impact-item__chain span {
   color: var(--mat-sys-on-surface-variant);
   font-size: 0.86rem;
+}
+
+.impact-item__chain {
+  display: flex;
+  flex-wrap: wrap;
 }
 
 .impact-item__reason {

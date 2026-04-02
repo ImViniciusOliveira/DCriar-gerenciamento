@@ -108,8 +108,10 @@
 
               <div class="impact-item__body">
                 <div class="impact-item__top">
-                  <strong>{{ item.descricao }}</strong>
-                  <span>#{{ item.id }}</span>
+                  <strong>{{ item.identificadorPublico || item.descricao }}</strong>
+                  @if (item.identificadorOrigemPublico) {
+                    <span>Origem: {{ item.identificadorOrigemPublico }}</span>
+                  }
                 </div>
 
                 <div class="impact-item__meta">
@@ -118,6 +120,12 @@
                     <span>Dimensão: {{ item.dimensaoDescricao }}</span>
                   }
                 </div>
+
+                @if (item.cadeiaPublica && item.nivelArvore && item.nivelArvore > 1) {
+                  <div class="impact-item__chain">
+                    <span>Cadeia: {{ item.cadeiaPublica }}</span>
+                  </div>
+                }
 
                 <div class="impact-item__values">
                   <span>Atual: {{ item.valorAtual | currency:'BRL' }}</span>

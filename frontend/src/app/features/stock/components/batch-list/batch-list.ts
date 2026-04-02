@@ -58,6 +58,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
   tableColumns: TableColumn<Batch>[] = [];
 
   @ViewChild('typeTemplate') typeTemplate!: TemplateRef<any>;
+  @ViewChild('structureTemplate') structureTemplate!: TemplateRef<any>;
   @ViewChild('balanceTemplate') balanceTemplate!: TemplateRef<any>;
   @ViewChild('costTemplate') costTemplate!: TemplateRef<any>;
   @ViewChild('createdAtTemplate') createdAtTemplate!: TemplateRef<any>;
@@ -89,6 +90,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
   ngAfterViewInit(): void {
     this.tableColumns = [
       { key: 'tipoMateriaPrima.nome', header: 'Matéria-Prima', sortable: true, cellTemplate: this.typeTemplate },
+      { key: 'tipoEstrutural', header: 'Tipo', sortable: false, cellTemplate: this.structureTemplate },
       { key: 'saldoEstoque', header: 'Quantidade', sortable: false, cellTemplate: this.balanceTemplate },
       { key: 'custoTotalLote', header: 'Custo do Lote', sortable: true, cellTemplate: this.costTemplate },
       { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.createdAtTemplate },
@@ -219,6 +221,22 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
 
   hasAttributes(lote: Batch): boolean {
     return this.getAttributesAsArray(lote.atributos ?? {}).length > 0;
+  }
+
+  getStructureLabel(lote: Batch): string {
+    return lote.identificadorPublico ?? String(lote.id);
+  }
+
+  getStructureOriginLabel(lote: Batch): string | null {
+    if (lote.tipoEstrutural === 'RETALHO' && lote.identificadorOrigemPublico) {
+      return `Origem: ${lote.identificadorOrigemPublico}`;
+    }
+
+    if (lote.tipoEstrutural === 'LOTE_PRINCIPAL') {
+      return 'Lote principal';
+    }
+
+    return null;
   }
 
   /**

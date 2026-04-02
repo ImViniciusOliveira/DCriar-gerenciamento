@@ -9,6 +9,17 @@
   white-space: nowrap;
 }
 
+.structure-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.structure-cell span {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.82rem;
+}
+
 // Centraliza o conteúdo da coluna de ações, se necessário
 .mat-column-acoes .mat-mdc-cell {
   justify-content: center;

@@ -14,6 +14,11 @@ export interface BatchAdjustmentCalculateRequest {
 export interface BatchAdjustmentImpactItem {
   id: number;
   tipoItem: string;
+  identificadorPublico?: string;
+  identificadorOrigemPublico?: string | null;
+  nivelArvore?: number;
+  cadeiaPublica?: string | null;
+  cadeiaIdentificadoresPublicos?: string[];
   descricao: string;
   saldoAtual: number;
   saldoDescricao: string;
@@ -64,6 +69,9 @@ export interface Batch {
   custoUnitarioAtual?: number;
   atributos?: { [key: string]: any };
   loteDeOrigemId?: number;
+  identificadorPublico?: string;
+  identificadorOrigemPublico?: string | null;
+  tipoEstrutural?: 'LOTE_PRINCIPAL' | 'RETALHO' | string;
   motivo?: string;
   dataCriacao?: string;
   dataAtualizacao?: string;
