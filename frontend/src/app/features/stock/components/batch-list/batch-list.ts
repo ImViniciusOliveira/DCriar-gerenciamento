@@ -232,10 +232,6 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
       return `Origem: ${lote.identificadorOrigemPublico}`;
     }
 
-    if (lote.tipoEstrutural === 'LOTE_PRINCIPAL') {
-      return 'Lote principal';
-    }
-
     return null;
   }
 
