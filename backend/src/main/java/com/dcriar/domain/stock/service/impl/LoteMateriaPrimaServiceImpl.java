@@ -20,6 +20,7 @@ import com.dcriar.domain.stock.repository.specification.LoteMateriaPrimaSpecific
 import com.dcriar.domain.stock.service.LoteRetalhoHierarchyService;
 import com.dcriar.domain.stock.service.LoteMateriaPrimaService;
 import com.dcriar.domain.stock.service.ValorizacaoLoteMateriaPrimaService;
+import com.dcriar.domain.stock.util.LotePublicIdentifierFormatter;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -368,5 +369,10 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         responseDTO.setSaldoEstoque(saldoApresentacao);
         responseDTO.setValorAtualLote(valorizacaoAtual.valorAtualLote());
         responseDTO.setCustoUnitarioAtual(valorizacaoAtual.custoUnitarioAtualApresentacao());
+        responseDTO.setIdentificadorPublico(LotePublicIdentifierFormatter.format(lote));
+        responseDTO.setIdentificadorOrigemPublico(lote.getLoteDeOrigem() != null
+                ? LotePublicIdentifierFormatter.format(lote.getLoteDeOrigem())
+                : null);
+        responseDTO.setTipoEstrutural(LotePublicIdentifierFormatter.resolverTipoEstrutural(lote));
     }
 }

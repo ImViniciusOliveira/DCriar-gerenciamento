@@ -63,6 +63,15 @@ public class LoteMateriaPrimaModel extends RepresentationModel<LoteMateriaPrimaM
     @Schema(description = "ID do lote de origem, se este for um lote de retalho/sobra.", nullable = true, example = "1")
     private Long loteDeOrigemId;
 
+    @Schema(description = "Identificador público do lote para exibição ao usuário.", example = "LT-000015")
+    private String identificadorPublico;
+
+    @Schema(description = "Identificador público da origem imediata, quando este item for um retalho.", nullable = true, example = "RT-000013")
+    private String identificadorOrigemPublico;
+
+    @Schema(description = "Tipo estrutural do item na árvore de lotes.", example = "RETALHO")
+    private String tipoEstrutural;
+
     @Schema(description = "Motivo da criação ou entrada deste lote no estoque.", example = "Compra regular - Pedido #789")
     private String motivo;
 

@@ -19,6 +19,7 @@ import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.domain.stock.service.AjusteLoteService;
 import com.dcriar.domain.stock.service.LoteRetalhoHierarchyService;
 import com.dcriar.domain.stock.service.ValorizacaoLoteMateriaPrimaService;
+import com.dcriar.domain.stock.util.LotePublicIdentifierFormatter;
 import com.dcriar.exception.custom.AjusteLoteInvalidoException;
 import com.dcriar.exception.custom.EstoqueInsuficienteParaMovimentacaoException;
 import com.dcriar.exception.custom.LoteMateriaPrimaNaoEncontradoException;
@@ -265,10 +266,21 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                             ? loteImpactado.getCustoTotalLote().setScale(SCALE_MONEY, RoundingMode.HALF_UP)
                             : BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
                     BigDecimal valorProjetado = custoUnitarioProjetado.multiply(saldoAtualFilho).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+                    List<LoteMateriaPrima> cadeiaAteRaiz = loteRetalhoHierarchyService.listarCadeiaAteRaiz(loteImpactado);
+                    String identificadorPublico = LotePublicIdentifierFormatter.format(loteImpactado);
+                    String identificadorOrigemPublico = loteImpactado.getLoteDeOrigem() != null
+                            ? LotePublicIdentifierFormatter.format(loteImpactado.getLoteDeOrigem())
+                            : null;
+                    String cadeiaPublica = LotePublicIdentifierFormatter.formatarCadeia(cadeiaAteRaiz);
                     return new ItemImpactadoCalculado(
                             loteImpactado,
                             "RETALHO",
-                            montarDescricaoItemImpactado(lote.getId(), itemHierarchy),
+                            montarDescricaoItemImpactado(itemHierarchy, identificadorPublico, identificadorOrigemPublico),
+                            identificadorPublico,
+                            identificadorOrigemPublico,
+                            itemHierarchy.nivel(),
+                            cadeiaPublica,
+                            cadeiaAteRaiz.stream().map(LotePublicIdentifierFormatter::format).toList(),
                             saldoApresentacaoFilho,
                             formatarSaldoDescricao(loteImpactado, saldoApresentacaoFilho),
                             formatarDimensaoDescricao(loteImpactado, saldoApresentacaoFilho),
@@ -281,20 +293,26 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                 .toList();
     }
 
-    private String montarDescricaoItemImpactado(Long loteRaizId, LoteRetalhoHierarchyItem itemHierarchy) {
-        String tipo = itemHierarchy.nivel() == 1 ? "Retalho direto" : "Retalho derivado";
-        String cadeia = itemHierarchy.caminhoIds().stream()
-                .map(id -> id.equals(loteRaizId) ? "Lote #" + id : "Retalho #" + id)
-                .reduce((atual, proximo) -> atual + " -> " + proximo)
-                .orElse("Lote #" + loteRaizId);
-
-        return tipo + " da árvore do lote #" + loteRaizId + " | Cadeia: " + cadeia;
+    private String montarDescricaoItemImpactado(
+            LoteRetalhoHierarchyItem itemHierarchy,
+            String identificadorPublico,
+            String identificadorOrigemPublico
+    ) {
+        if (itemHierarchy.nivel() == 1) {
+            return identificadorPublico + " originado de " + identificadorOrigemPublico;
+        }
+        return identificadorPublico + " derivado de " + identificadorOrigemPublico;
     }
 
     private ItemImpactadoAjusteLoteDTO toItemImpactadoDTO(ItemImpactadoCalculado item) {
         return ItemImpactadoAjusteLoteDTO.builder()
                 .id(item.lote().getId())
                 .tipoItem(item.tipoItem())
+                .identificadorPublico(item.identificadorPublico())
+                .identificadorOrigemPublico(item.identificadorOrigemPublico())
+                .nivelArvore(item.nivelArvore())
+                .cadeiaPublica(item.cadeiaPublica())
+                .cadeiaIdentificadoresPublicos(item.cadeiaIdentificadoresPublicos())
                 .descricao(item.descricao())
                 .saldoAtual(item.saldoAtual())
                 .saldoDescricao(item.saldoDescricao())
@@ -394,6 +412,11 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
         ValorizacaoAtualLoteMateriaPrima valorizacaoAtual = valorizacaoLoteMateriaPrimaService.calcularValorizacaoAtual(lote);
         responseDTO.setValorAtualLote(valorizacaoAtual.valorAtualLote());
         responseDTO.setCustoUnitarioAtual(valorizacaoAtual.custoUnitarioAtualApresentacao());
+        responseDTO.setIdentificadorPublico(LotePublicIdentifierFormatter.format(lote));
+        responseDTO.setIdentificadorOrigemPublico(lote.getLoteDeOrigem() != null
+                ? LotePublicIdentifierFormatter.format(lote.getLoteDeOrigem())
+                : null);
+        responseDTO.setTipoEstrutural(LotePublicIdentifierFormatter.resolverTipoEstrutural(lote));
     }
 
     private record ResultadoCalculoAjuste(
@@ -416,6 +439,11 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
             LoteMateriaPrima lote,
             String tipoItem,
             String descricao,
+            String identificadorPublico,
+            String identificadorOrigemPublico,
+            Integer nivelArvore,
+            String cadeiaPublica,
+            List<String> cadeiaIdentificadoresPublicos,
             BigDecimal saldoAtual,
             String saldoDescricao,
             String dimensaoDescricao,

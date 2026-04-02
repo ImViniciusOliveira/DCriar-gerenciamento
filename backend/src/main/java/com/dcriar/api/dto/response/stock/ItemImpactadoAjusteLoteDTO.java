@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Representa um item derivado de um lote que pode ter seu valor atualizado por um ajuste.
@@ -20,6 +21,21 @@ public class ItemImpactadoAjusteLoteDTO {
 
     @Schema(description = "Tipo do item impactado.", example = "RETALHO")
     private String tipoItem;
+
+    @Schema(description = "Identificador público do item impactado.", example = "RT-000018")
+    private String identificadorPublico;
+
+    @Schema(description = "Identificador público da origem imediata do item impactado.", nullable = true, example = "RT-000016")
+    private String identificadorOrigemPublico;
+
+    @Schema(description = "Nível do item na árvore a partir do lote ajustado.", example = "2")
+    private Integer nivelArvore;
+
+    @Schema(description = "Cadeia pública completa do item impactado na árvore.", example = "LT-000015 -> RT-000016 -> RT-000018")
+    private String cadeiaPublica;
+
+    @Schema(description = "Lista ordenada dos identificadores públicos da cadeia do item impactado.", example = "[\"LT-000015\", \"RT-000016\", \"RT-000018\"]")
+    private List<String> cadeiaIdentificadoresPublicos;
 
     @Schema(description = "Descrição amigável do item.", example = "Retalho originado do lote #15")
     private String descricao;
