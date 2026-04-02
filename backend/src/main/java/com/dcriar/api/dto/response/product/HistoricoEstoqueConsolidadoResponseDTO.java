@@ -31,6 +31,9 @@ public class HistoricoEstoqueConsolidadoResponseDTO {
     @Schema(description = "Tipo da movimentação.", example = "AJUSTE_MANUAL")
     private TipoMovimentacaoProduto tipo;
 
+    @Schema(description = "Descrição amigável do tipo da movimentação.", example = "Ajuste manual")
+    private String tipoDescricao;
+
     @Schema(description = "Quantidade movimentada.", example = "-7")
     private Integer quantidade;
 
