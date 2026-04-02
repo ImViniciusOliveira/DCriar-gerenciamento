@@ -1,4 +1,4 @@
-import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, effect, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, ViewChild, TemplateRef, AfterViewInit, ChangeDetectorRef, effect, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -36,7 +36,7 @@ import { DetailsDialog, DetailsDialogData } from '../../../../shared/components/
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PaginationHandler]
 })
-export class BatchList extends BaseList<Batch> implements AfterViewInit {
+export class BatchList extends BaseList<Batch> implements AfterViewInit, OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly batchService = inject(BatchService);
   private readonly dialog = inject(MatDialog);
@@ -85,6 +85,10 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit {
         this.items.set(items);
       }
     });
+  }
+
+  ngOnInit(): void {
+    this.batchService.resetSearchParams();
   }
 
   ngAfterViewInit(): void {

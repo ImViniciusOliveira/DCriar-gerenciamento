@@ -7,7 +7,6 @@
            [required]="isRequired"
            [formControl]="searchControl"
            [matAutocomplete]="auto"
-           [disabled]="disabled()"
            placeholder="Busque por nome...">
 
     <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="onOptionSelected($event)" (opened)="onAutocompleteOpened()">
@@ -28,7 +27,7 @@
               }">
         {{ filterOperatorControl.value === 'GTE' ? '≥' : '≤' }}
       </button>
-      <input matInput class="stock-input" [formControl]="filterValueControl" [disabled]="disabled()" placeholder="" (focus)="onStockInputFocus()">
+      <input matInput class="stock-input" [formControl]="filterValueControl" placeholder="" (focus)="onStockInputFocus()">
     </div>
 
   </mat-form-field>

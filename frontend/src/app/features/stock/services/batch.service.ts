@@ -13,6 +13,14 @@ import {
   BatchRequest
 } from '../models/batch.model';
 
+type BatchSearchParams = {
+  page: number;
+  size: number;
+  sort: string;
+  tipoMateriaPrimaId: number | null;
+  nome: string | null;
+};
+
 /**
  * Serviço responsável pelo gerenciamento de Lotes de Matéria-Prima.
  * Implementa uma arquitetura reativa para lidar com paginação, filtros e atualizações de dados,
@@ -25,18 +33,25 @@ export class BatchService {
 
   private readonly refreshTrigger = signal<void>(undefined, { equal: () => false });
 
-  private readonly searchParams = signal<{
-    page: number;
-    size: number;
-    sort: string;
-    tipoMateriaPrimaId: number | null;
-    nome: string | null;
-  }>({
+  private readonly initialSearchParams: BatchSearchParams = {
     page: 0,
     size: 10,
     sort: 'tipoMateriaPrima.nome,asc',
     tipoMateriaPrimaId: null,
     nome: null,
+  };
+
+  private readonly searchParams = signal<BatchSearchParams>(this.initialSearchParams, {
+    equal: (a, b) =>
+      a.page === b.page &&
+      a.size === b.size &&
+      a.sort === b.sort &&
+      a.tipoMateriaPrimaId === b.tipoMateriaPrimaId &&
+      a.nome === b.nome
+  });
+
+  private readonly selectionSearchParams = signal<BatchSearchParams>({
+    ...this.initialSearchParams
   }, {
     equal: (a, b) =>
       a.page === b.page &&
@@ -48,6 +63,7 @@ export class BatchService {
 
   private readonly refresh$ = toObservable(this.refreshTrigger);
   private readonly searchParams$ = toObservable(this.searchParams);
+  private readonly selectionSearchParams$ = toObservable(this.selectionSearchParams);
 
   private readonly endpoints$ = toObservable(this.apiRoot.endpoints).pipe(
     filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
@@ -66,51 +82,30 @@ export class BatchService {
    * mantendo os componentes atualizados automaticamente.
    */
   readonly batches$: Observable<ApiResponseBatches>;
+  readonly selectionBatches$: Observable<ApiResponseBatches>;
 
   constructor() {
-    this.batches$ = this.endpoints$.pipe(
-      switchMap(endpoints => {
-        const url = endpoints._links?.['lotes-materia-prima']?.href;
-        if (!url) {
-          return of(this.createEmptyResponse());
-        }
-        const baseUrl = url.split('{')[0];
-
-        return combineLatest([
-          this.searchParams$,
-          this.refresh$
-        ]).pipe(
-          tap(() => this.isSearching.set(true)),
-          switchMap(([params, _]) => {
-            let httpParams = new HttpParams()
-              .set('page', params.page.toString())
-              .set('size', params.size.toString())
-              .set('sort', params.sort);
-
-            // Adicionar os novos filtros se existirem
-            if (params.tipoMateriaPrimaId) {
-              httpParams = httpParams.set('tipoMateriaPrimaId', params.tipoMateriaPrimaId.toString());
-            }
-            if (params.nome) {
-              httpParams = httpParams.set('nome', params.nome);
-            }
-
-            return this.http.get<ApiResponseBatches>(baseUrl, { params: httpParams }).pipe(
-              catchError(() => of(this.createEmptyResponse())),
-              finalize(() => this.isSearching.set(false))
-            );
-          })
-        );
-      }),
-      shareReplay(1)
-    );
+    this.batches$ = this.createBatchesObservable(this.searchParams$, false);
+    this.selectionBatches$ = this.createBatchesObservable(this.selectionSearchParams$, true);
   }
 
   /**
    * Atualiza os parâmetros de busca, o que dispara uma nova emissão no `batches$`.
    */
-  updateSearchParams(params: Partial<{ page: number; size: number; sort: string; tipoMateriaPrimaId: number | null; nome: string | null; }>): void {
+  updateSearchParams(params: Partial<BatchSearchParams>): void {
     this.searchParams.update(current => ({ ...current, ...params }));
+  }
+
+  updateSelectionSearchParams(params: Partial<BatchSearchParams>): void {
+    this.selectionSearchParams.update(current => ({ ...current, ...params }));
+  }
+
+  resetSearchParams(): void {
+    this.searchParams.set(this.initialSearchParams);
+  }
+
+  resetSelectionSearchParams(): void {
+    this.selectionSearchParams.set({ ...this.initialSearchParams });
   }
 
   /**
@@ -197,6 +192,56 @@ export class BatchService {
       _links: {},
       page: { size: 0, totalElements: 0, totalPages: 0, number: 0 }
     };
+  }
+
+  private createBatchesObservable(
+    params$: Observable<BatchSearchParams>,
+    trackLoading: boolean
+  ): Observable<ApiResponseBatches> {
+    return this.endpoints$.pipe(
+      switchMap(endpoints => {
+        const url = endpoints._links?.['lotes-materia-prima']?.href;
+        if (!url) {
+          return of(this.createEmptyResponse());
+        }
+
+        const baseUrl = url.split('{')[0];
+
+        return combineLatest([
+          params$,
+          this.refresh$
+        ]).pipe(
+          tap(() => {
+            if (trackLoading) {
+              this.isSearching.set(true);
+            }
+          }),
+          switchMap(([params, _]) => {
+            let httpParams = new HttpParams()
+              .set('page', params.page.toString())
+              .set('size', params.size.toString())
+              .set('sort', params.sort);
+
+            if (params.tipoMateriaPrimaId) {
+              httpParams = httpParams.set('tipoMateriaPrimaId', params.tipoMateriaPrimaId.toString());
+            }
+            if (params.nome) {
+              httpParams = httpParams.set('nome', params.nome);
+            }
+
+            return this.http.get<ApiResponseBatches>(baseUrl, { params: httpParams }).pipe(
+              catchError(() => of(this.createEmptyResponse())),
+              finalize(() => {
+                if (trackLoading) {
+                  this.isSearching.set(false);
+                }
+              })
+            );
+          })
+        );
+      }),
+      shareReplay(1)
+    );
   }
 
   private normalizeUrl(url: string): string {

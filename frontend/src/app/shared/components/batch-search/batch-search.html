@@ -8,9 +8,8 @@
     [formControl]="searchControl"
     [matAutocomplete]="auto"
     [required]="isRequired"
-    [disabled]="disabled()"
   >
-  <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete" (optionSelected)="onOptionSelected($event)" [displayWith]="displayFn"> <!-- MOVIDO AQUI -->
+  <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete" (optionSelected)="onOptionSelected($event)" (opened)="onAutocompleteOpened()" [displayWith]="displayFn">
     @for (batch of availableBatches(); track batch.id) {
       <mat-option [value]="batch">
         <div class="batch-option-content">
@@ -31,3 +30,9 @@
     </mat-error>
   }
 </mat-form-field>
+
+@if (getSelectedBatchSubtitle(); as selectedBatchSubtitle) {
+  <div class="batch-selection-summary">
+    <span>{{ selectedBatchSubtitle }}</span>
+  </div>
+}

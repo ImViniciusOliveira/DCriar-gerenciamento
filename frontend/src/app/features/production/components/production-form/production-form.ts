@@ -650,10 +650,10 @@ export class ProductionForm implements OnInit {
       this.simulationResult.set(null);
       this.simulationFormSnapshot.set(null);
       this.consumptionSimulationSnapshot.set(null);
-      this.loteSelecionado.set(null);
+      this.syncBatchSelection(null, false);
 
       if (this.batchSearchComponent) {
-        this.batchSearchComponent.reset();
+        this.batchSearchComponent.markFiltersAsDirty();
       }
     }
 
