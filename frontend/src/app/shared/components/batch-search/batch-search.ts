@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
-import { Subject } from 'rxjs';
+import { Subject, of, EMPTY } from 'rxjs';
 
 import { EnumService } from '../../../core/services/enum.service';
 import { ApiResponseBatches, Batch } from '../../../features/stock/models/batch.model';
@@ -52,14 +52,13 @@ export class BatchSearch {
   searchControl = new FormControl<string | Batch | null>('');
 
   // --- Estado Interno ---
-  foundBatches = toSignal(this.batchService.selectionBatches$, {
-    initialValue: {
-      _embedded: { 'lotes-materia-prima': [] },
-      page: { size: 0, totalElements: 0, totalPages: 0, number: 0 },
-      _links: {}
-    } as ApiResponseBatches
-  });
-  readonly isSearching = this.batchService.isSearching;
+  private readonly emptyResponse: ApiResponseBatches = {
+    _embedded: { 'lotes-materia-prima': [] },
+    page: { size: 0, totalElements: 0, totalPages: 0, number: 0 },
+    _links: {}
+  };
+  protected readonly foundBatches = signal<ApiResponseBatches>(this.emptyResponse);
+  readonly isSearching = signal(false);
   private readonly unitsUrl = signal<string | null>(null);
   protected readonly selectedBatch = signal<Batch | null>(null);
   protected readonly availableBatches = computed(() =>
@@ -67,9 +66,9 @@ export class BatchSearch {
       .filter(batch => this.getAvailableInternalBalance(batch) > 0)
       .sort((left, right) => this.getAvailableInternalBalance(right) - this.getAvailableInternalBalance(left))
   );
-
-  // Subject para controlar quando disparar a busca
-  private readonly searchTrigger$ = new Subject<void>();
+  private readonly searchRequests$ = new Subject<{ term: string; tipoMateriaPrimaId: number | null }>();
+  private activeSearchKey: string | null = null;
+  private lastLoadedSearchKey: string | null = null;
 
   readonly measurementUnitOptions = toSignal(
     toObservable(this.unitsUrl).pipe(
@@ -81,18 +80,19 @@ export class BatchSearch {
   );
 
   constructor() {
-    // Reage a mudanças no `tipoMateriaPrimaId` (vindo do pai) para disparar uma nova busca.
+    // Reage a mudanças no contexto externo e apenas marca o autocomplete como desatualizado.
     effect(() => {
       const currentTipoMateriaPrimaId = this.tipoMateriaPrimaId();
 
       if (this.previousTipoMateriaPrimaId !== undefined && this.previousTipoMateriaPrimaId !== currentTipoMateriaPrimaId) {
         this.filtersAreDirty.set(true);
+        this.foundBatches.set(this.emptyResponse);
+        this.lastLoadedSearchKey = null;
         this.previousTipoMateriaPrimaId = currentTipoMateriaPrimaId;
         return;
       }
 
       this.previousTipoMateriaPrimaId = currentTipoMateriaPrimaId;
-      this.searchTrigger$.next();
     });
 
     effect(() => {
@@ -116,14 +116,45 @@ export class BatchSearch {
           this.control().setValue(null);
         }
       }
-      this.searchTrigger$.next();
+
+      if (typeof value === 'string') {
+        this.queueSearch(value);
+      }
     });
 
-    // Processa o trigger de busca centralizado
-    this.searchTrigger$.pipe(
+    this.searchRequests$.pipe(
+      switchMap(({ term, tipoMateriaPrimaId }) => {
+        if (this.disabled() || !tipoMateriaPrimaId) {
+          this.isSearching.set(false);
+          return of(this.emptyResponse);
+        }
+
+        const searchKey = `${tipoMateriaPrimaId}:${term}`;
+        if (this.activeSearchKey === searchKey) {
+          return EMPTY;
+        }
+
+        this.activeSearchKey = searchKey;
+        this.isSearching.set(true);
+        return this.batchService.search({
+          nome: term || null,
+          tipoMateriaPrimaId,
+          page: 0
+        });
+      }),
       takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => {
-      this.triggerSearchNow();
+    ).subscribe({
+      next: response => {
+        this.foundBatches.set(response);
+        this.lastLoadedSearchKey = this.activeSearchKey;
+        this.activeSearchKey = null;
+        this.isSearching.set(false);
+      },
+      error: () => {
+        this.foundBatches.set(this.emptyResponse);
+        this.activeSearchKey = null;
+        this.isSearching.set(false);
+      }
     });
 
     effect(() => {
@@ -148,16 +179,24 @@ export class BatchSearch {
    * Centraliza a lógica de busca, lendo os valores atuais dos controles
    * e enviando-os para o serviço.
    */
-  private triggerSearchNow(): void {
-    if (this.disabled()) {
+  private queueSearch(searchTerm = ''): void {
+    const tipoMateriaPrimaId = this.tipoMateriaPrimaId();
+
+    if (!tipoMateriaPrimaId) {
+      this.foundBatches.set(this.emptyResponse);
+      this.lastLoadedSearchKey = null;
+      this.isSearching.set(false);
       return;
     }
-    const searchTerm = typeof this.searchControl.value === 'string' ? this.searchControl.value : null;
 
-    this.batchService.updateSelectionSearchParams({
-      nome: searchTerm,
-      tipoMateriaPrimaId: this.tipoMateriaPrimaId(),
-      page: 0
+    const searchKey = `${tipoMateriaPrimaId}:${searchTerm}`;
+    if (!this.filtersAreDirty() && this.lastLoadedSearchKey === searchKey) {
+      return;
+    }
+
+    this.searchRequests$.next({
+      term: searchTerm,
+      tipoMateriaPrimaId
     });
   }
 
@@ -179,12 +218,13 @@ export class BatchSearch {
       this.filtersAreDirty.set(false);
     }
 
-    this.triggerSearchNow();
+    this.queueSearch(typeof this.searchControl.value === 'string' ? this.searchControl.value : '');
   }
 
   public markFiltersAsDirty(): void {
     this.selectedBatch.set(null);
     this.filtersAreDirty.set(true);
+    this.lastLoadedSearchKey = null;
   }
 
   /**
@@ -256,8 +296,10 @@ export class BatchSearch {
     this.selectedBatch.set(null);
     this.searchControl.setValue('', { emitEvent: false });
     this.control().setValue(null);
+    this.activeSearchKey = null;
+    this.lastLoadedSearchKey = null;
     this.filtersAreDirty.set(false);
-    this.batchService.resetSelectionSearchParams();
+    this.foundBatches.set(this.emptyResponse);
   }
 
   protected getSelectedBatchSubtitle(): string | null {

@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, filter, switchMap, shareReplay, take, map, combineLatest, of, catchError, tap, finalize } from 'rxjs';
+import { Observable, filter, switchMap, shareReplay, take, map, combineLatest, of, catchError, tap } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
@@ -50,20 +50,8 @@ export class BatchService {
       a.nome === b.nome
   });
 
-  private readonly selectionSearchParams = signal<BatchSearchParams>({
-    ...this.initialSearchParams
-  }, {
-    equal: (a, b) =>
-      a.page === b.page &&
-      a.size === b.size &&
-      a.sort === b.sort &&
-      a.tipoMateriaPrimaId === b.tipoMateriaPrimaId &&
-      a.nome === b.nome
-  });
-
   private readonly refresh$ = toObservable(this.refreshTrigger);
   private readonly searchParams$ = toObservable(this.searchParams);
-  private readonly selectionSearchParams$ = toObservable(this.selectionSearchParams);
 
   private readonly endpoints$ = toObservable(this.apiRoot.endpoints).pipe(
     filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
@@ -71,22 +59,14 @@ export class BatchService {
   );
 
   /**
-   * Sinal público que indica se a busca de lotes está em andamento.
-   * Os componentes podem usar este sinal para exibir indicadores de carregamento.
-   */
-  readonly isSearching = signal(false);
-
-  /**
    * Observable reativo que emite a lista de Lotes de Matéria-Prima.
    * É acionado sempre que os parâmetros de busca mudam ou um refresh manual é solicitado,
    * mantendo os componentes atualizados automaticamente.
    */
   readonly batches$: Observable<ApiResponseBatches>;
-  readonly selectionBatches$: Observable<ApiResponseBatches>;
 
   constructor() {
-    this.batches$ = this.createBatchesObservable(this.searchParams$, false);
-    this.selectionBatches$ = this.createBatchesObservable(this.selectionSearchParams$, true);
+    this.batches$ = this.createBatchesObservable(this.searchParams$);
   }
 
   /**
@@ -96,16 +76,35 @@ export class BatchService {
     this.searchParams.update(current => ({ ...current, ...params }));
   }
 
-  updateSelectionSearchParams(params: Partial<BatchSearchParams>): void {
-    this.selectionSearchParams.update(current => ({ ...current, ...params }));
-  }
-
   resetSearchParams(): void {
     this.searchParams.set(this.initialSearchParams);
   }
 
-  resetSelectionSearchParams(): void {
-    this.selectionSearchParams.set({ ...this.initialSearchParams });
+  search(params: Partial<BatchSearchParams>): Observable<ApiResponseBatches> {
+    return this.getBaseUrl().pipe(
+      switchMap(baseUrl => {
+        const resolvedParams: BatchSearchParams = {
+          ...this.initialSearchParams,
+          ...params
+        };
+
+        let httpParams = new HttpParams()
+          .set('page', resolvedParams.page.toString())
+          .set('size', resolvedParams.size.toString())
+          .set('sort', resolvedParams.sort);
+
+        if (resolvedParams.tipoMateriaPrimaId) {
+          httpParams = httpParams.set('tipoMateriaPrimaId', resolvedParams.tipoMateriaPrimaId.toString());
+        }
+        if (resolvedParams.nome) {
+          httpParams = httpParams.set('nome', resolvedParams.nome);
+        }
+
+        return this.http.get<ApiResponseBatches>(baseUrl, { params: httpParams }).pipe(
+          catchError(() => of(this.createEmptyResponse()))
+        );
+      })
+    );
   }
 
   /**
@@ -194,10 +193,7 @@ export class BatchService {
     };
   }
 
-  private createBatchesObservable(
-    params$: Observable<BatchSearchParams>,
-    trackLoading: boolean
-  ): Observable<ApiResponseBatches> {
+  private createBatchesObservable(params$: Observable<BatchSearchParams>): Observable<ApiResponseBatches> {
     return this.endpoints$.pipe(
       switchMap(endpoints => {
         const url = endpoints._links?.['lotes-materia-prima']?.href;
@@ -211,11 +207,6 @@ export class BatchService {
           params$,
           this.refresh$
         ]).pipe(
-          tap(() => {
-            if (trackLoading) {
-              this.isSearching.set(true);
-            }
-          }),
           switchMap(([params, _]) => {
             let httpParams = new HttpParams()
               .set('page', params.page.toString())
@@ -230,12 +221,7 @@ export class BatchService {
             }
 
             return this.http.get<ApiResponseBatches>(baseUrl, { params: httpParams }).pipe(
-              catchError(() => of(this.createEmptyResponse())),
-              finalize(() => {
-                if (trackLoading) {
-                  this.isSearching.set(false);
-                }
-              })
+              catchError(() => of(this.createEmptyResponse()))
             );
           })
         );
