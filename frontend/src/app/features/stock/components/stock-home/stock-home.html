@@ -23,13 +23,23 @@
     @if (isHistorySection()) {
       <div class="stock-home__history">
         <div class="stock-home__history-filters">
-          <div class="stock-home__filter-group">
+          <mat-form-field appearance="outline" class="stock-home__search-field">
+            <mat-label>Buscar produto</mat-label>
+            <input
+              matInput
+              type="text"
+              placeholder="Digite o nome do produto"
+              [formControl]="searchControl">
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <div class="stock-home__filter-group stock-home__filter-group--right">
             @for (option of rangeOptions; track option.key) {
               <button
                 mat-stroked-button
                 type="button"
-                class="stock-home__filter-button"
-                [class.stock-home__filter-button--active]="selectedRange() === option.key"
+                class="stock-home__tab-button stock-home__filter-button"
+                [class.stock-home__tab-button--active]="selectedRange() === option.key"
                 (click)="setHistoryRange(option.key)">
                 {{ option.label }}
               </button>
@@ -37,15 +47,17 @@
           </div>
         </div>
 
-        <app-base-table
-          [items]="historyItems()"
-          [columns]="tableColumns"
-          [totalElements]="pagination.totalElements()"
-          [pageSize]="pagination.pageSize()"
-          [pageIndex]="pagination.pageIndex()"
-          (pageChange)="onPageChange($event)"
-          (sortChange)="onSortChange($event)">
-        </app-base-table>
+        <div class="stock-home__history-table">
+          <app-base-table
+            [items]="historyItems()"
+            [columns]="tableColumns"
+            [totalElements]="pagination.totalElements()"
+            [pageSize]="pagination.pageSize()"
+            [pageIndex]="pagination.pageIndex()"
+            (pageChange)="onPageChange($event)"
+            (sortChange)="onSortChange($event)">
+          </app-base-table>
+        </div>
       </div>
     } @else {
       <div class="stock-home__placeholder">

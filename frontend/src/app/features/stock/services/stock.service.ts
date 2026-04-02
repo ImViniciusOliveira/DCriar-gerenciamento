@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { catchError, combineLatest, filter, map, of, shareReplay, switchMap } from 'rxjs';
+import { catchError, filter, of, shareReplay, switchMap, Observable } from 'rxjs';
 
 import { Hateoas } from '../../../core/models/hateoas.model';
 import { ApiRoot } from '../../../core/services/api-root';
@@ -14,6 +14,7 @@ type StockHistorySearchParams = {
   size: number;
   sort: string;
   periodo: StockHistoryPeriod;
+  nomeProduto: string;
 };
 
 @Injectable({
@@ -27,7 +28,8 @@ export class StockService {
     page: 0,
     size: 10,
     sort: 'data,desc',
-    periodo: '1m'
+    periodo: '1d',
+    nomeProduto: ''
   };
 
   private readonly historySearchParams = signal<StockHistorySearchParams>(this.initialHistorySearchParams, {
@@ -35,16 +37,19 @@ export class StockService {
       a.page === b.page &&
       a.size === b.size &&
       a.sort === b.sort &&
-      a.periodo === b.periodo
+      a.periodo === b.periodo &&
+      a.nomeProduto === b.nomeProduto
   });
+  private readonly historyRefreshVersion = signal(0);
 
   private readonly historySearchParams$ = toObservable(this.historySearchParams);
+  private readonly historyRefreshVersion$ = toObservable(this.historyRefreshVersion);
   private readonly endpoints$ = toObservable(this.apiRoot.endpoints).pipe(
     filter((endpoints): endpoints is Hateoas => !!endpoints),
     shareReplay(1)
   );
 
-  readonly history$ = this.endpoints$.pipe(
+  readonly history$: Observable<ApiResponseStockHistory> = this.endpoints$.pipe(
     switchMap(endpoints => {
       const stockRootUrl = endpoints._links?.['estoques']?.href;
       if (!stockRootUrl) {
@@ -60,18 +65,23 @@ export class StockService {
 
           const baseUrl = this.normalizeUrl(historyUrl);
 
-          return combineLatest([this.historySearchParams$]).pipe(
-            switchMap(([params]) => {
-              const httpParams = new HttpParams()
-                .set('page', params.page.toString())
-                .set('size', params.size.toString())
-                .set('sort', params.sort)
-                .set('periodo', params.periodo);
+          return this.historyRefreshVersion$.pipe(
+            switchMap(() =>
+              this.historySearchParams$.pipe(
+                switchMap(params => {
+                  const httpParams = new HttpParams()
+                    .set('page', params.page.toString())
+                    .set('size', params.size.toString())
+                    .set('sort', params.sort)
+                    .set('periodo', params.periodo)
+                    .set('nomeProduto', params.nomeProduto);
 
-              return this.http.get<ApiResponseStockHistory>(baseUrl, { params: httpParams }).pipe(
-                catchError(() => of(this.createEmptyHistoryResponse()))
-              );
-            })
+                  return this.http.get<ApiResponseStockHistory>(baseUrl, { params: httpParams }).pipe(
+                    catchError(() => of(this.createEmptyHistoryResponse()))
+                  );
+                })
+              )
+            )
           );
         }),
         catchError(() => of(this.createEmptyHistoryResponse()))
@@ -86,6 +96,10 @@ export class StockService {
 
   updateHistorySearchParams(params: Partial<StockHistorySearchParams>): void {
     this.historySearchParams.update(current => ({ ...current, ...params }));
+  }
+
+  refreshHistory(): void {
+    this.historyRefreshVersion.update(current => current + 1);
   }
 
   private createEmptyHistoryResponse(): ApiResponseStockHistory {

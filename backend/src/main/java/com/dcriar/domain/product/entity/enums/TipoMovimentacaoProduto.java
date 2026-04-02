@@ -21,10 +21,10 @@ public enum TipoMovimentacaoProduto {
     AJUSTE_MANUAL,
 
     /**
-     * Representa o estorno de uma saída de venda, devolvendo o produto ao estoque.
+     * Representa o estorno de uma venda, devolvendo o produto ao estoque.
      * Utilizado quando uma Venda é excluída ou atualizada. (Quantidade positiva)
      */
-    ENTRADA_ESTORNO,
+    ESTORNO_VENDA,
 
     /**
      * Representa o estorno de uma entrada de produção, removendo o produto do estoque.

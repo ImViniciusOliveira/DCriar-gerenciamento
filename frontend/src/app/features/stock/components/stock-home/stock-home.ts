@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   TemplateRef,
   ViewChild,
   computed,
@@ -11,13 +12,16 @@ import {
   inject,
   signal
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { Sort } from '@angular/material/sort';
-import { catchError, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, of } from 'rxjs';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { DetailsDialog } from '../../../../shared/components/details-dialog/details-dialog';
@@ -43,7 +47,15 @@ interface HistoryRangeOption {
 @Component({
   selector: 'app-stock-home',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, BaseTable],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    BaseTable
+  ],
   templateUrl: './stock-home.html',
   styleUrl: './stock-home.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,6 +65,7 @@ export class StockHome implements AfterViewInit {
   private readonly dialog = inject(MatDialog);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly stockService = inject(StockService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly pagination = inject(PaginationHandler);
 
   protected readonly sections: StockSection[] = [
@@ -78,8 +91,10 @@ export class StockHome implements AfterViewInit {
 
   protected readonly activeSection = signal<StockSection>(this.sections[0]);
   protected readonly isHistorySection = computed(() => this.activeSection().key === 'historico');
-  protected readonly selectedRange = signal<HistoryRangeKey>('1m');
+  protected readonly selectedRange = signal<HistoryRangeKey>('1d');
   protected readonly historyItems = signal<StockHistoryItem[]>([]);
+  protected readonly searchControl = new FormControl('', { nonNullable: true });
+  protected readonly productSearch = signal('');
   protected readonly rangeOptions: HistoryRangeOption[] = [
     { key: '1d', label: '1D' },
     { key: '1m', label: '1M' },
@@ -101,6 +116,15 @@ export class StockHome implements AfterViewInit {
   constructor() {
     this.pagination.initialize('stock-history', { active: 'data', direction: 'desc' });
 
+    this.searchControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(value => {
+      this.productSearch.set(value.trim());
+      this.resetHistoryPage();
+    });
+
     const historyResponse = toSignal(
       this.stockService.getHistory().pipe(
         catchError(() => of(undefined))
@@ -120,6 +144,7 @@ export class StockHome implements AfterViewInit {
       const size = this.pagination.pageSize();
       const sort = this.pagination.sortString();
       const periodo = this.selectedRange();
+      const nomeProduto = this.productSearch();
 
       if (!isHistoryActive) {
         return;
@@ -129,7 +154,8 @@ export class StockHome implements AfterViewInit {
         page,
         size,
         sort,
-        periodo
+        periodo,
+        nomeProduto
       });
     });
   }
@@ -149,16 +175,14 @@ export class StockHome implements AfterViewInit {
 
   protected setActiveSection(section: StockSection): void {
     this.activeSection.set(section);
+    if (section.key === 'historico') {
+      this.stockService.refreshHistory();
+    }
   }
 
   protected setHistoryRange(range: HistoryRangeKey): void {
     this.selectedRange.set(range);
-    this.pagination.handlePageEvent({
-      pageIndex: 0,
-      pageSize: this.pagination.pageSize(),
-      length: this.pagination.totalElements(),
-      previousPageIndex: this.pagination.pageIndex()
-    });
+    this.resetHistoryPage();
   }
 
   protected onPageChange(event: PageEvent): void {
@@ -177,8 +201,10 @@ export class StockHome implements AfterViewInit {
         return 'Saida de venda';
       case 'AJUSTE_MANUAL':
         return 'Ajuste manual';
+      case 'ESTORNO_VENDA':
+        return 'Estorno de venda';
       case 'ENTRADA_ESTORNO':
-        return 'Entrada de estorno';
+        return 'Estorno de venda';
       case 'ESTORNO_PRODUCAO':
         return 'Estorno de producao';
       default:
@@ -218,5 +244,14 @@ export class StockHome implements AfterViewInit {
   private applyHistoryResponse(response: ApiResponseStockHistory): void {
     this.historyItems.set(response._embedded?.historicoEstoqueConsolidadoResponseDTOList ?? []);
     this.pagination.updateTotalElements(response.page?.totalElements ?? 0);
+  }
+
+  private resetHistoryPage(): void {
+    this.pagination.handlePageEvent({
+      pageIndex: 0,
+      pageSize: this.pagination.pageSize(),
+      length: this.pagination.totalElements(),
+      previousPageIndex: this.pagination.pageIndex()
+    });
   }
 }

@@ -34,13 +34,20 @@
 
 .stock-home__history {
   display: grid;
-  gap: 20px;
+  min-height: 0;
 }
 
 .stock-home__history-filters {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
+  padding: 0 4px 4px;
+}
+
+.stock-home__search-field {
+  flex: 1 1 320px;
+  max-width: 420px;
 }
 
 .stock-home__filter-group {
@@ -49,13 +56,16 @@
   gap: 8px;
 }
 
-.stock-home__filter-button {
-  min-width: 68px;
+.stock-home__filter-group--right {
+  justify-content: flex-end;
 }
 
-.stock-home__filter-button--active {
-  border-color: var(--mat-sys-primary, #1976d2);
-  background: rgba(25, 118, 210, 0.08);
+.stock-home__filter-button {
+  min-width: 40px;
+}
+
+.stock-home__history-table {
+  min-height: 0;
 }
 
 .stock-home__history-quantity {
@@ -68,4 +78,20 @@
 
 .stock-home__history-quantity--negative {
   color: #c62828;
+}
+
+@media (max-width: 768px) {
+  .stock-home__history-filters {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stock-home__search-field {
+    max-width: none;
+    width: 100%;
+  }
+
+  .stock-home__filter-group--right {
+    justify-content: flex-start;
+  }
 }

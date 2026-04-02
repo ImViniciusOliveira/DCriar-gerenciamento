@@ -19,6 +19,7 @@ export class PaginationHandler {
 
   // --- Estado Interno ---
   private listId: string | null = null;
+  private defaultSort: Sort = { active: 'id', direction: 'asc' };
 
   // --- Estado da Paginação ---
   readonly pageSize = signal(10);
@@ -48,6 +49,9 @@ export class PaginationHandler {
    */
   initialize(key: string, defaultSort?: Sort): void {
     this.listId = key;
+    if (defaultSort) {
+      this.defaultSort = defaultSort;
+    }
     const savedState = this.stateService.getState(key);
 
     if (savedState) {
@@ -60,6 +64,9 @@ export class PaginationHandler {
       // Aplica o padrão específico da lista se não houver estado salvo.
       this.sortActive.set(defaultSort.active);
       this.sortDirection.set(defaultSort.direction);
+    } else {
+      this.sortActive.set(this.defaultSort.active);
+      this.sortDirection.set(this.defaultSort.direction);
     }
   }
 
@@ -76,8 +83,8 @@ export class PaginationHandler {
    * Atualiza o estado de ordenação, reseta para a primeira página e salva o estado.
    */
   handleSortChange(sort: Sort): void {
-    this.sortActive.set(sort.direction ? sort.active : 'id');
-    this.sortDirection.set(sort.direction || 'asc');
+    this.sortActive.set(sort.direction ? sort.active : this.defaultSort.active);
+    this.sortDirection.set(sort.direction || this.defaultSort.direction);
     this.pageIndex.set(0); // Sempre volta para a primeira página ao reordenar.
     this.saveState();
   }

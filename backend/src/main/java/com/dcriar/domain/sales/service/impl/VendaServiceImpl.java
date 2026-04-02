@@ -251,7 +251,7 @@ public class VendaServiceImpl implements VendaService {
             // IMPORTANTE: Deve ser feito ANTES de ajustar o canal para garantir que o teto físico suba primeiro.
             MovimentacaoEstoqueProdutoRequestDTO movimentacaoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
                     .produtoId(item.getProduto().getId())
-                    .tipo(TipoMovimentacaoProduto.ENTRADA_ESTORNO.name())
+                    .tipo(TipoMovimentacaoProduto.ESTORNO_VENDA.name())
                     .quantidade(item.getQuantidade())
                     .motivo(String.format("Estorno de venda #%d", venda.getId()))
                     .build();
