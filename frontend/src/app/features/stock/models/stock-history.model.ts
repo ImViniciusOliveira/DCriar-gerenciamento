@@ -12,6 +12,15 @@ export interface StockHistoryItem {
   produtoSku: string;
 }
 
+export interface StockMovementTypeOption {
+  name: string;
+  descricao: string;
+}
+
+export interface EmbeddedStockMovementTypes {
+  tiposMovimentacaoProduto: StockMovementTypeOption[];
+}
+
 export interface EmbeddedStockHistory {
   historicoEstoqueConsolidadoResponseDTOList: StockHistoryItem[];
 }
@@ -19,4 +28,8 @@ export interface EmbeddedStockHistory {
 export interface ApiResponseStockHistory extends Hateoas {
   _embedded?: EmbeddedStockHistory;
   page?: PageInfo;
+}
+
+export interface ApiResponseStockMovementTypes extends Hateoas {
+  _embedded?: EmbeddedStockMovementTypes;
 }

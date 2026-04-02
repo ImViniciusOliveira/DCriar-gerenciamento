@@ -45,9 +45,21 @@
   padding: 0 4px 4px;
 }
 
+.stock-home__search-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1 1 auto;
+}
+
 .stock-home__search-field {
   flex: 1 1 320px;
   max-width: 420px;
+}
+
+.stock-home__movement-field {
+  width: 220px;
+  min-width: 220px;
 }
 
 .stock-home__filter-group {
@@ -86,9 +98,19 @@
     align-items: flex-start;
   }
 
+  .stock-home__search-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
   .stock-home__search-field {
     max-width: none;
     width: 100%;
+  }
+
+  .stock-home__movement-field {
+    width: 100%;
+    min-width: 0;
   }
 
   .stock-home__filter-group--right {

@@ -24,6 +24,7 @@ public class TipoMovimentacaoProdutoModelAssembler extends RepresentationModelAs
     public TipoMovimentacaoProdutoModel toModel(@NonNull TipoMovimentacaoProduto tipoMovimentacao) {
         TipoMovimentacaoProdutoModel model = instantiateModel(tipoMovimentacao);
         model.setName(tipoMovimentacao.name());
+        model.setDescricao(tipoMovimentacao.getDescricao());
 
         String selfUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/v1/enums/tipos-movimentacao-produto/{name}")

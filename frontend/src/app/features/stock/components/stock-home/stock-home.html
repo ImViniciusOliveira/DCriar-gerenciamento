@@ -23,15 +23,27 @@
     @if (isHistorySection()) {
       <div class="stock-home__history">
         <div class="stock-home__history-filters">
-          <mat-form-field appearance="outline" class="stock-home__search-field">
-            <mat-label>Buscar produto</mat-label>
-            <input
-              matInput
-              type="text"
-              placeholder="Digite o nome do produto"
-              [formControl]="searchControl">
-            <mat-icon matSuffix>search</mat-icon>
-          </mat-form-field>
+          <div class="stock-home__search-group">
+            <mat-form-field appearance="outline" class="stock-home__search-field">
+              <mat-label>Buscar produto</mat-label>
+              <input
+                matInput
+                type="text"
+                placeholder="Digite o nome do produto"
+                [formControl]="searchControl">
+              <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="stock-home__movement-field">
+              <mat-label>Movimentação</mat-label>
+              <mat-select [formControl]="movementTypeControl">
+                <mat-option value="">Todas</mat-option>
+                @for (option of movementTypes(); track option.name) {
+                  <mat-option [value]="option.name">{{ option.descricao }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
 
           <div class="stock-home__filter-group stock-home__filter-group--right">
             @for (option of rangeOptions; track option.key) {

@@ -20,13 +20,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
+import { MatSelectModule } from '@angular/material/select';
 import { Sort } from '@angular/material/sort';
 import { catchError, debounceTime, distinctUntilChanged, of } from 'rxjs';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { DetailsDialog } from '../../../../shared/components/details-dialog/details-dialog';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
-import { ApiResponseStockHistory, StockHistoryItem } from '../../models/stock-history.model';
+import { ApiResponseStockHistory, StockHistoryItem, StockMovementTypeOption } from '../../models/stock-history.model';
 import { StockService } from '../../services/stock.service';
 
 type StockSectionKey = 'consultas' | 'ajustes' | 'historico';
@@ -54,6 +55,7 @@ interface HistoryRangeOption {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatSelectModule,
     BaseTable
   ],
   templateUrl: './stock-home.html',
@@ -93,8 +95,11 @@ export class StockHome implements AfterViewInit {
   protected readonly isHistorySection = computed(() => this.activeSection().key === 'historico');
   protected readonly selectedRange = signal<HistoryRangeKey>('1d');
   protected readonly historyItems = signal<StockHistoryItem[]>([]);
+  protected readonly movementTypes = signal<StockMovementTypeOption[]>([]);
   protected readonly searchControl = new FormControl('', { nonNullable: true });
+  protected readonly movementTypeControl = new FormControl('', { nonNullable: true });
   protected readonly productSearch = signal('');
+  protected readonly selectedMovementType = signal('');
   protected readonly rangeOptions: HistoryRangeOption[] = [
     { key: '1d', label: '1D' },
     { key: '1m', label: '1M' },
@@ -125,10 +130,25 @@ export class StockHome implements AfterViewInit {
       this.resetHistoryPage();
     });
 
+    this.movementTypeControl.valueChanges.pipe(
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(value => {
+      this.selectedMovementType.set(value);
+      this.resetHistoryPage();
+    });
+
     const historyResponse = toSignal(
       this.stockService.getHistory().pipe(
         catchError(() => of(undefined))
       )
+    );
+
+    const movementTypesResponse = toSignal(
+      this.stockService.getMovementTypes().pipe(
+        catchError(() => of([]))
+      ),
+      { initialValue: [] }
     );
 
     effect(() => {
@@ -139,12 +159,17 @@ export class StockHome implements AfterViewInit {
     });
 
     effect(() => {
+      this.movementTypes.set(movementTypesResponse());
+    });
+
+    effect(() => {
       const isHistoryActive = this.isHistorySection();
       const page = this.pagination.pageIndex();
       const size = this.pagination.pageSize();
       const sort = this.pagination.sortString();
       const periodo = this.selectedRange();
       const nomeProduto = this.productSearch();
+      const tipoMovimentacao = this.selectedMovementType();
 
       if (!isHistoryActive) {
         return;
@@ -155,14 +180,15 @@ export class StockHome implements AfterViewInit {
         size,
         sort,
         periodo,
-        nomeProduto
+        nomeProduto,
+        tipoMovimentacao
       });
     });
   }
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'data', header: 'Criado em', sortable: true, className: 'col-created', cellTemplate: this.dataTemplate },
+      { key: 'data', header: 'Data da movimentação', sortable: true, className: 'col-created', cellTemplate: this.dataTemplate },
       { key: 'produtoNome', header: 'Produto', sortable: true, sortKey: 'produto.nome', className: 'col-wide', cellTemplate: this.produtoTemplate },
       { key: 'produtoSku', header: 'SKU', sortable: true, cellTemplate: this.skuTemplate },
       { key: 'tipo', header: 'Movimentação', sortable: false, cellTemplate: this.movementTemplate },

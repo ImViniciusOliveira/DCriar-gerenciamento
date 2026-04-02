@@ -21,4 +21,9 @@ public class TipoMovimentacaoProdutoModel extends RepresentationModel<TipoMovime
      * O nome do valor do enum (ex: "ENTRADA_PRODUCAO").
      */
     private String name;
+
+    /**
+     * Descrição amigável do valor do enum (ex: "Entrada de producao").
+     */
+    private String descricao;
 }

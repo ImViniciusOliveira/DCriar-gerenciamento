@@ -5,7 +5,8 @@ import { catchError, filter, of, shareReplay, switchMap, Observable } from 'rxjs
 
 import { Hateoas } from '../../../core/models/hateoas.model';
 import { ApiRoot } from '../../../core/services/api-root';
-import { ApiResponseStockHistory } from '../models/stock-history.model';
+import { environment } from '../../../core/services/environment';
+import { ApiResponseStockHistory, ApiResponseStockMovementTypes, StockMovementTypeOption } from '../models/stock-history.model';
 
 type StockHistoryPeriod = '1d' | '1m' | '6m' | '1a' | 'all';
 
@@ -15,6 +16,7 @@ type StockHistorySearchParams = {
   sort: string;
   periodo: StockHistoryPeriod;
   nomeProduto: string;
+  tipoMovimentacao: string;
 };
 
 @Injectable({
@@ -29,7 +31,8 @@ export class StockService {
     size: 10,
     sort: 'data,desc',
     periodo: '1d',
-    nomeProduto: ''
+    nomeProduto: '',
+    tipoMovimentacao: ''
   };
 
   private readonly historySearchParams = signal<StockHistorySearchParams>(this.initialHistorySearchParams, {
@@ -38,7 +41,8 @@ export class StockService {
       a.size === b.size &&
       a.sort === b.sort &&
       a.periodo === b.periodo &&
-      a.nomeProduto === b.nomeProduto
+      a.nomeProduto === b.nomeProduto &&
+      a.tipoMovimentacao === b.tipoMovimentacao
   });
   private readonly historyRefreshVersion = signal(0);
 
@@ -48,6 +52,14 @@ export class StockService {
     filter((endpoints): endpoints is Hateoas => !!endpoints),
     shareReplay(1)
   );
+
+  readonly movementTypes$: Observable<StockMovementTypeOption[]> = this.http
+    .get<ApiResponseStockMovementTypes>(`${environment.apiUrl}/api/v1/enums/product/tipos-movimentacao-produto`)
+    .pipe(
+      switchMap(response => of(response._embedded?.tiposMovimentacaoProduto ?? [])),
+      catchError(() => of([])),
+      shareReplay(1)
+    );
 
   readonly history$: Observable<ApiResponseStockHistory> = this.endpoints$.pipe(
     switchMap(endpoints => {
@@ -74,7 +86,8 @@ export class StockService {
                     .set('size', params.size.toString())
                     .set('sort', params.sort)
                     .set('periodo', params.periodo)
-                    .set('nomeProduto', params.nomeProduto);
+                    .set('nomeProduto', params.nomeProduto)
+                    .set('tipoMovimentacao', params.tipoMovimentacao);
 
                   return this.http.get<ApiResponseStockHistory>(baseUrl, { params: httpParams }).pipe(
                     catchError(() => of(this.createEmptyHistoryResponse()))
@@ -92,6 +105,10 @@ export class StockService {
 
   getHistory() {
     return this.history$;
+  }
+
+  getMovementTypes() {
+    return this.movementTypes$;
   }
 
   updateHistorySearchParams(params: Partial<StockHistorySearchParams>): void {
