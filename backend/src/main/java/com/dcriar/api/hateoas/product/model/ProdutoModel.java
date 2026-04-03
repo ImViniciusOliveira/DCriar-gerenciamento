@@ -12,6 +12,8 @@ import org.springframework.hateoas.server.core.Relation;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Modelo de representação HATEOAS para Produto na API.
@@ -88,4 +90,10 @@ public abstract class ProdutoModel extends RepresentationModel<ProdutoModel> {
 
     @Schema(description = "Data e hora da última atualização do produto.")
     private LocalDateTime dataAtualizacao;
+
+    @Schema(description = "Campos atualmente bloqueados para edição no frontend.", example = "[\"tipoMateriaPrimaId\", \"unidadesPorProduto\"]")
+    private Set<String> camposBloqueados;
+
+    @Schema(description = "Motivos por campo bloqueado, para orientar a UI.", example = "{\"unidadesPorProduto\":\"Produto já utilizado em produção ou venda.\"}")
+    private Map<String, String> motivosBloqueio;
 }

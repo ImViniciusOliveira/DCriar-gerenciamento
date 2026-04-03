@@ -135,7 +135,8 @@ public class GlobalExceptionHandler {
      * Trata exceções de conflito, como criação de recurso duplicado ou recurso em uso (HTTP 409 Conflict).
      * Intercepta {@link TipoMateriaPrimaJaExisteException}, {@link ProdutoEmUsoException},
      * {@link TipoMateriaPrimaEmUsoException}, {@link ProdutoNomeDuplicadoException},
-     * {@link ProdutoSkuDuplicadoException} e {@link ExclusaoLoteBloqueadaException}.
+     * {@link ProdutoSkuDuplicadoException}, {@link ExclusaoLoteBloqueadaException}
+     * e {@link ProdutoCamposBloqueadosException}.
      *
      * @param ex A exceção de conflito lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 409.
@@ -143,7 +144,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             TipoMateriaPrimaJaExisteException.class, ProdutoEmUsoException.class,
             TipoMateriaPrimaEmUsoException.class, ProdutoNomeDuplicadoException.class,
-            ProdutoSkuDuplicadoException.class, ExclusaoLoteBloqueadaException.class
+            ProdutoSkuDuplicadoException.class, ExclusaoLoteBloqueadaException.class,
+            ProdutoCamposBloqueadosException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
@@ -153,6 +155,11 @@ public class GlobalExceptionHandler {
         else if (ex instanceof ProdutoNomeDuplicadoException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof ProdutoSkuDuplicadoException e) { details.put("sku", e.getSku()); }
         else if (ex instanceof ExclusaoLoteBloqueadaException e) { details.put("info", e.getMessage()); }
+        else if (ex instanceof ProdutoCamposBloqueadosException e) {
+            details.put("produtoId", String.valueOf(e.getProdutoId()));
+            details.put("camposBloqueados", e.getCamposBloqueados().toString());
+            e.getMotivosBloqueio().forEach((campo, motivo) -> details.put("motivo." + campo, motivo));
+        }
 
         log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);

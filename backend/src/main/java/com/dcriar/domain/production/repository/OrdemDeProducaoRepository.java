@@ -27,6 +27,8 @@ public interface OrdemDeProducaoRepository extends JpaRepository<OrdemDeProducao
      */
     List<OrdemDeProducao> findAllByProduto(Produto produto);
 
+    boolean existsByProduto(Produto produto);
+
     /**
      * Busca todas as Ordens de Produção e, em uma única query, já carrega
      * os dados das entidades relacionadas 'produto' e 'lotesConsumidos'.

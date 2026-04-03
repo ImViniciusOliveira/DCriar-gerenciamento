@@ -13,6 +13,7 @@ import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.repository.spec.ProdutoSpecifications;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
+import com.dcriar.domain.sales.repository.ItemVendaRepository;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
@@ -28,7 +29,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,8 +49,16 @@ public class ProdutoServiceImpl implements ProdutoService {
     private final EstoqueRepository estoqueRepository;
     private final PrecoRepository precoRepository;
     private final OrdemDeProducaoRepository ordemDeProducaoRepository;
+    private final ItemVendaRepository itemVendaRepository;
     private final ProdutoMapper produtoMapper;
     private final FileStorageService fileStorageService;
+
+    private static final Set<String> CAMPOS_SENSIVEIS_PRODUTO = Set.of(
+            "tipoMateriaPrimaId",
+            "unidadesPorProduto",
+            "dimensoes",
+            "unidadeCadastroConsumo"
+    );
 
     @Override
     @Transactional(readOnly = true)
@@ -196,6 +208,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         }
 
         Produto produto = findProdutoById(id);
+        validarCamposBloqueadosNaEdicao(produto, fields);
 
         // Mapeamento Manual de Alta Performance
         fields.forEach((key, value) -> {
@@ -373,6 +386,8 @@ public class ProdutoServiceImpl implements ProdutoService {
         dto.setEstoqueFisicoTotal(estoqueFisicoTotal);
         dto.setEstoqueDistribuidoTotal(estoqueDistribuidoTotal);
         dto.setEstoqueDisponivelParaAlocar(estoqueFisicoTotal - estoqueDistribuidoTotal);
+        dto.setCamposBloqueados(resolverCamposBloqueados(produto).keySet());
+        dto.setMotivosBloqueio(resolverCamposBloqueados(produto));
         return dto;
     }
 
@@ -426,5 +441,33 @@ public class ProdutoServiceImpl implements ProdutoService {
     private void validarCompatibilidadeTipoProdutoComMateriaPrima(Produto produto, TipoMateriaPrima tipoMateriaPrima) {
         String tipoProduto = produto instanceof ProdutoDeCorte ? "CORTE" : "CONSUMO";
         validarCompatibilidadeTipoProdutoComMateriaPrima(tipoProduto, tipoMateriaPrima, produto.getNome());
+    }
+
+    private void validarCamposBloqueadosNaEdicao(Produto produto, Map<String, Object> fields) {
+        Map<String, String> camposBloqueados = resolverCamposBloqueados(produto);
+        Set<String> tentativaCamposSensveis = fields.keySet().stream()
+                .filter(CAMPOS_SENSIVEIS_PRODUTO::contains)
+                .filter(camposBloqueados::containsKey)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        if (!tentativaCamposSensveis.isEmpty()) {
+            throw new ProdutoCamposBloqueadosException(produto.getId(), tentativaCamposSensveis, camposBloqueados);
+        }
+    }
+
+    private Map<String, String> resolverCamposBloqueados(Produto produto) {
+        if (!produtoPossuiUsoOperacional(produto)) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> bloqueios = new LinkedHashMap<>();
+        String motivoPadrao = "Produto já utilizado em produção ou venda.";
+        CAMPOS_SENSIVEIS_PRODUTO.forEach(campo -> bloqueios.put(campo, motivoPadrao));
+        return bloqueios;
+    }
+
+    private boolean produtoPossuiUsoOperacional(Produto produto) {
+        return ordemDeProducaoRepository.existsByProduto(produto)
+                || itemVendaRepository.existsByProduto(produto);
     }
 }

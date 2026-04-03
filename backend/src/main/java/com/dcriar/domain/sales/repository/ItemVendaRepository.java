@@ -1,5 +1,6 @@
 package com.dcriar.domain.sales.repository;
 
+import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.sales.entity.ItemVenda;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -12,4 +13,6 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface ItemVendaRepository extends JpaRepository<ItemVenda, Long> {
+
+    boolean existsByProduto(Produto produto);
 }
