@@ -79,7 +79,7 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'nome', header: 'Nome', sortable: true, cellTemplate: this.nameTemplate },
+      { key: 'nome', header: 'Nome', sortable: true, sortType: 'text', cellTemplate: this.nameTemplate },
       { key: 'unidadeDescricao', header: 'Unidade', sortable: false, cellTemplate: this.unitTemplate },
       { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.createdAtTemplate },
       { key: 'dataAtualizacao', header: 'Atualizado em', sortable: true, cellTemplate: this.updatedAtTemplate },

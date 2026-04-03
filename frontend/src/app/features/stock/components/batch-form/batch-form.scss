@@ -22,6 +22,14 @@
   }
 }
 
+.form-row--single-column {
+  width: calc((100% - 32px) / 3);
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
 // Garante que os campos de linha inteira ocupem todo o espaço
 .full-width {
   width: 100%;
@@ -65,14 +73,6 @@
   color: var(--mat-sys-on-surface-variant);
   margin-top: 8px;
   padding: 0 24px; // Adiciona padding lateral para ficar bonito
-}
-
-// Container para o campo de largura (para evitar quebra de linha na mensagem de erro)
-.width-row {
-  width: 50%;
-  mat-form-field {
-    width: 100%;
-  }
 }
 
 .details-content {

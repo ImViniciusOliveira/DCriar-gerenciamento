@@ -93,7 +93,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit, OnInit 
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'tipoMateriaPrima.nome', header: 'Matéria-Prima', sortable: true, cellTemplate: this.typeTemplate },
+      { key: 'tipoMateriaPrima.nome', header: 'Matéria-Prima', sortable: true, sortType: 'text', cellTemplate: this.typeTemplate },
       { key: 'tipoEstrutural', header: 'Tipo', sortable: false, cellTemplate: this.structureTemplate },
       { key: 'saldoEstoque', header: 'Quantidade', sortable: false, cellTemplate: this.balanceTemplate },
       { key: 'custoTotalLote', header: 'Custo do Lote', sortable: true, cellTemplate: this.costTemplate },

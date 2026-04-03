@@ -86,8 +86,8 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'nome', header: 'Produto', sortable: true, className: 'col-product-name', cellTemplate: this.nomeTemplate },
-      { key: 'sku', header: 'SKU', sortable: true, className: 'col-product-sku', cellTemplate: this.skuTemplate },
+      { key: 'nome', header: 'Produto', sortable: true, sortType: 'text', className: 'col-product-name', cellTemplate: this.nomeTemplate },
+      { key: 'sku', header: 'SKU', sortable: true, sortType: 'text', className: 'col-product-sku', cellTemplate: this.skuTemplate },
       { key: 'precoComercial', header: 'Preço', sortable: true, className: 'col-price', cellTemplate: this.priceTemplate },
       { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', cellTemplate: this.createdAtTemplate },
       { key: 'ativo', header: 'Ativo', sortable: true, className: 'col-active', cellTemplate: this.ativoTemplate },

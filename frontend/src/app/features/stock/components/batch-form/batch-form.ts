@@ -120,7 +120,7 @@ export class BatchForm implements OnInit {
 
     this.form = this.fb.group({
       materiaPrima: [null, Validators.required],
-      unidadeDeEstoque: [null, Validators.required],
+      unidadeDeEstoque: [{ value: null, disabled: true }, Validators.required],
       quantidadeInicial: [{ value: this.data.template?.saldoEstoque || '', disabled: this.isEditMode() }, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       motivo: [this.data.template?.motivo || '', [Validators.required, Validators.maxLength(100)]],
@@ -176,6 +176,7 @@ export class BatchForm implements OnInit {
       this.updateWidthValidation(unidade);
     });
 
+    this.syncStockUnitControlState();
     this.applyFieldLocks();
   }
 
@@ -220,6 +221,7 @@ export class BatchForm implements OnInit {
           });
         }
         await this.loadMovements(fullBatch);
+        this.syncStockUnitControlState();
         this.applyFieldLocks();
         this.cdr.markForCheck();
       } catch {
@@ -232,6 +234,16 @@ export class BatchForm implements OnInit {
     if (!value) return 'N/A';
     const unit = this.allMeasurementUnits().find(u => u.value === value);
     return unit?.viewValue ?? value;
+  }
+
+  protected getSelectedStockUnitSuffix(): string {
+    const selectedUnit = this.form.get('unidadeDeEstoque')?.value;
+    if (!selectedUnit) {
+      return '';
+    }
+
+    const option = this.stockUnitOptions().find(unit => unit.value === selectedUnit);
+    return option?.simbolo || option?.viewValue || selectedUnit;
   }
 
   get attributes(): FormArray {
@@ -265,6 +277,7 @@ export class BatchForm implements OnInit {
       materiaPrima: materialType,
       unidadeDeEstoque: materialType.unidadeDeConsumo
     });
+    this.syncStockUnitControlState();
   }
 
   async onAdjustmentApplied(updatedBatch: Batch): Promise<void> {
@@ -466,5 +479,25 @@ export class BatchForm implements OnInit {
     if (this.isFieldLocked('atributos.larguraMm')) {
       this.form.get('larguraMm')?.disable({ emitEvent: false });
     }
+  }
+
+  private syncStockUnitControlState(): void {
+    const stockUnitControl = this.form.get('unidadeDeEstoque');
+    if (!stockUnitControl) {
+      return;
+    }
+
+    if (this.isEditMode() && this.isFieldLocked('unidadeDeEstoque', 'unidadeCadastroEstoque')) {
+      stockUnitControl.disable({ emitEvent: false });
+      return;
+    }
+
+    if (!this.materialType()) {
+      stockUnitControl.disable({ emitEvent: false });
+      stockUnitControl.setValue(null, { emitEvent: false });
+      return;
+    }
+
+    stockUnitControl.enable({ emitEvent: false });
   }
 }

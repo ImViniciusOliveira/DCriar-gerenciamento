@@ -189,8 +189,8 @@ export class StockHome implements AfterViewInit {
   ngAfterViewInit(): void {
     this.tableColumns = [
       { key: 'data', header: 'Data da movimentação', sortable: true, className: 'col-created', cellTemplate: this.dataTemplate },
-      { key: 'produtoNome', header: 'Produto', sortable: true, sortKey: 'produto.nome', className: 'col-product-history', cellTemplate: this.produtoTemplate },
-      { key: 'produtoSku', header: 'SKU', sortable: true, className: 'col-sku-history', cellTemplate: this.skuTemplate },
+      { key: 'produtoNome', header: 'Produto', sortable: true, sortKey: 'produto.nome', sortType: 'text', className: 'col-product-history', cellTemplate: this.produtoTemplate },
+      { key: 'produtoSku', header: 'SKU', sortable: true, sortType: 'text', className: 'col-sku-history', cellTemplate: this.skuTemplate },
       { key: 'tipo', header: 'Movimentação', sortable: false, className: 'col-movement-history', cellTemplate: this.movementTemplate },
       { key: 'quantidade', header: 'Quantidade', sortable: true, className: 'col-quantity-history', cellTemplate: this.quantityTemplate },
       { key: 'motivo', header: 'Motivo', sortable: false, className: 'col-reason-history', cellTemplate: this.reasonTemplate },

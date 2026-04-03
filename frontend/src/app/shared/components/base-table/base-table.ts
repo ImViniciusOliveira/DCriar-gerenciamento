@@ -15,6 +15,7 @@ export interface TableColumn<T> {
   header: string;
   sortable?: boolean;
   sortKey?: string;
+  sortType?: 'default' | 'text';
   className?: string;
   cellTemplate: TemplateRef<{ $implicit: T }>;
 }
@@ -96,6 +97,10 @@ export class BaseTable<T> {
 
     if (this.sortActive() !== sortKey || !this.sortDirection()) {
       return 'unfold_more';
+    }
+
+    if (column.sortType === 'text') {
+      return this.sortDirection() === 'asc' ? 'keyboard_arrow_down' : 'keyboard_arrow_up';
     }
 
     return this.sortDirection() === 'asc' ? 'keyboard_arrow_up' : 'keyboard_arrow_down';

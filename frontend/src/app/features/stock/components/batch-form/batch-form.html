@@ -38,6 +38,9 @@
           <mat-form-field appearance="outline">
             <mat-label>Quantidade Inicial</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="quantidadeInicial" [errorStateMatcher]="matcher" required>
+            @if (getSelectedStockUnitSuffix()) {
+              <span matTextSuffix>{{ getSelectedStockUnitSuffix() }}</span>
+            }
             @if (form.get('quantidadeInicial')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (form.get('quantidadeInicial')?.hasError('pattern')) {
@@ -53,6 +56,7 @@
           <mat-form-field appearance="outline">
             <mat-label>Custo Total do Lote</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="custoTotalLote" [errorStateMatcher]="matcher" required>
+            <span matTextSuffix>&nbsp;R$</span>
             @if (getFieldLockReason('custoTotalLote')) {
               <mat-hint>{{ getFieldLockReason('custoTotalLote') }}</mat-hint>
             }
@@ -82,7 +86,7 @@
 
         <!-- Campo de Largura -->
         @if (requiresWidth()) {
-          <div class="width-row">
+          <div class="form-row form-row--single-column">
             <mat-form-field appearance="outline">
               <mat-label>Largura (mm)</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="larguraMm" [errorStateMatcher]="matcher" required>
