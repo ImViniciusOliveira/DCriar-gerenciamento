@@ -1,5 +1,52 @@
 @use '../../../../shared/styles/page-layout';
 
+:host ::ng-deep .col-batch-name {
+  width: 20rem;
+  min-width: 20rem;
+  max-width: 20rem;
+}
+
+:host ::ng-deep .col-batch-type {
+  width: 10rem;
+  min-width: 10rem;
+  max-width: 10rem;
+}
+
+:host ::ng-deep .col-batch-quantity {
+  width: 5.5rem;
+  min-width: 5.5rem;
+  max-width: 5.5rem;
+}
+
+:host ::ng-deep .col-batch-cost {
+  width: 6rem;
+  min-width: 6rem;
+  max-width: 6rem;
+}
+
+:host ::ng-deep .col-batch-trigger {
+  width: 7rem;
+  min-width: 7rem;
+  max-width: 7rem;
+}
+
+:host ::ng-deep td.col-batch-trigger .cell-content {
+  min-height: auto;
+  max-height: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:host ::ng-deep td.col-batch-trigger button {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 // Define uma largura maior para a coluna de atributos
 .mat-column-atributos {
   width: 350px;

@@ -93,12 +93,12 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit, OnInit 
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'tipoMateriaPrima.nome', header: 'Matéria-Prima', sortable: true, sortType: 'text', cellTemplate: this.typeTemplate },
-      { key: 'tipoEstrutural', header: 'Tipo', sortable: false, cellTemplate: this.structureTemplate },
-      { key: 'saldoEstoque', header: 'Quantidade', sortable: false, cellTemplate: this.balanceTemplate },
-      { key: 'custoTotalLote', header: 'Custo do Lote', sortable: true, cellTemplate: this.costTemplate },
-      { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.createdAtTemplate },
-      { key: 'atributos', header: 'Atributos', sortable: false, cellTemplate: this.attributesTemplate },
+      { key: 'tipoMateriaPrima.nome', header: 'Matéria-Prima', sortable: true, sortType: 'text', className: 'col-batch-name', cellTemplate: this.typeTemplate },
+      { key: 'tipoEstrutural', header: 'Tipo', sortable: false, className: 'col-batch-type', cellTemplate: this.structureTemplate },
+      { key: 'saldoEstoque', header: 'Quantidade', sortable: false, className: 'col-batch-quantity', cellTemplate: this.balanceTemplate },
+      { key: 'custoTotalLote', header: 'Custo do Lote', sortable: true, className: 'col-batch-cost', cellTemplate: this.costTemplate },
+      { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', cellTemplate: this.createdAtTemplate },
+      { key: 'atributos', header: 'Atributos', sortable: false, className: 'col-batch-trigger col-fit-center', cellTemplate: this.attributesTemplate },
       { key: 'acoes', header: 'Ações', className: 'col-actions', cellTemplate: this.actionsTemplate }
     ];
     this.cdr.detectChanges();
