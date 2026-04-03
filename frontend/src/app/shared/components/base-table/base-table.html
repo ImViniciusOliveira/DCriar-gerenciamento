@@ -11,10 +11,15 @@
       [matSortActive]="sortActive()"
       [matSortDirection]="sortDirection()"
       (matSortChange)="onSortChange($event)">
+      <colgroup>
+        @for (column of columns(); track column.key) {
+          <col [style.width]="getColumnWidth(column)" [style.min-width]="getColumnWidth(column)" [style.max-width]="getColumnWidth(column)">
+        }
+      </colgroup>
       <!-- O loop `@for` agora itera sobre o valor do sinal `columns()`. -->
       @for (column of columns(); track column.key) {
         <ng-container [matColumnDef]="column.key">
-          <th mat-header-cell *matHeaderCellDef [mat-sort-header]="column.sortKey || column.key" [disabled]="!column.sortable" [ngClass]="column.className">
+          <th mat-header-cell *matHeaderCellDef [mat-sort-header]="column.sortKey || column.key" [disabled]="!column.sortable" [ngClass]="column.className" [ngStyle]="getColumnWidthStyle(column)">
             <span class="sort-header-content">
               <span>{{ column.header }}</span>
               @if (column.sortable) {
@@ -22,7 +27,7 @@
               }
             </span>
           </th>
-          <td mat-cell *matCellDef="let item" [ngClass]="column.className">
+          <td mat-cell *matCellDef="let item" [ngClass]="column.className" [ngStyle]="getColumnWidthStyle(column)">
             <div class="cell-content">
               <ng-container
                 [ngTemplateOutlet]="column.cellTemplate"

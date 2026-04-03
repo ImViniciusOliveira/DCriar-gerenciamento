@@ -87,11 +87,11 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'dataCriacao', header: 'Criado em', sortable: true, cellTemplate: this.dataTemplate },
-      { key: 'valorTotal', header: 'Total', sortable: true, cellTemplate: this.valorTemplate },
-      { key: 'nomeCanalVenda', header: 'Canal', sortable: false, cellTemplate: this.canalTemplate },
-      { key: 'itens', header: 'Itens', sortable: false, cellTemplate: this.itensTemplate },
-      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions', cellTemplate: this.acoesTemplate },
+      { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', cellTemplate: this.dataTemplate },
+      { key: 'valorTotal', header: 'Total', sortable: true, className: 'col-price', widthPx: 110, cellTemplate: this.valorTemplate },
+      { key: 'nomeCanalVenda', header: 'Canal', sortable: false, className: 'col-sales-channel', widthPx: 170, cellTemplate: this.canalTemplate },
+      { key: 'itens', header: 'Itens', sortable: false, className: 'col-trigger', widthPx: 117, cellTemplate: this.itensTemplate },
+      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions col-actions-main', widthPx: 125, cellTemplate: this.acoesTemplate },
     ];
     this.cdr.detectChanges();
   }

@@ -50,6 +50,11 @@ table {
   table-layout: fixed;
 }
 
+:host ::ng-deep .mat-mdc-header-row,
+:host ::ng-deep .mat-mdc-row {
+  height: 56px;
+}
+
 th, td {
   padding: 4px;
   text-align: left;
@@ -112,22 +117,8 @@ tbody tr:last-child td {
   margin-left: 8px;
 }
 
-:host ::ng-deep .col-wide {
-  width: 18rem;
-  min-width: 18rem;
-  max-width: 18rem;
-}
-
-:host ::ng-deep .col-price {
-  width: 7rem;
-  min-width: 7rem;
-  max-width: 7rem;
-}
-
-:host ::ng-deep .col-created {
-  width: 8.25rem;
-  min-width: 8.25rem;
-  max-width: 8.25rem;
+:host ::ng-deep .col-trigger {
+  text-align: center;
 }
 
 :host ::ng-deep .col-fit-center {
@@ -155,9 +146,6 @@ tbody tr:last-child td {
 }
 
 :host ::ng-deep .col-active {
-  width: 68px;
-  min-width: 68px;
-  max-width: 68px;
   height: 53.89px;
   min-height: 53.89px;
   max-height: 53.89px;
@@ -165,20 +153,20 @@ tbody tr:last-child td {
 }
 
 :host ::ng-deep .col-actions {
-  width: 7.5rem;
-  min-width: 7.5rem;
-  max-width: 7.5rem;
   text-align: center;
 }
 
 :host ::ng-deep .col-fit-center .mat-sort-header-container,
 :host ::ng-deep .col-fit-hover-left .mat-sort-header-container,
+:host ::ng-deep .col-trigger .mat-sort-header-container,
 :host ::ng-deep .col-active .mat-sort-header-container,
 :host ::ng-deep .col-actions .mat-sort-header-container {
   justify-content: center;
   width: 100%;
 }
 
+:host ::ng-deep th.col-trigger,
+:host ::ng-deep td.col-trigger,
 :host ::ng-deep th.col-active,
 :host ::ng-deep td.col-active,
 :host ::ng-deep th.col-actions,
@@ -187,6 +175,7 @@ tbody tr:last-child td {
   vertical-align: middle;
 }
 
+:host ::ng-deep td.col-trigger .cell-content,
 :host ::ng-deep td.col-fit-center .cell-content,
 :host ::ng-deep td.col-active .cell-content,
 :host ::ng-deep td.col-actions .cell-content {
@@ -200,9 +189,25 @@ tbody tr:last-child td {
 }
 
 :host ::ng-deep td.col-fit-center .cell-content,
+:host ::ng-deep td.col-trigger .cell-content,
 :host ::ng-deep td.col-active .cell-content,
 :host ::ng-deep td.col-actions .cell-content {
   text-align: center;
+}
+
+:host ::ng-deep td.col-trigger button {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:host ::ng-deep td.col-actions-main .mat-mdc-icon-button {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
 }
 
 :host ::ng-deep td.col-fit-hover-left .cell-content {

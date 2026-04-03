@@ -17,6 +17,7 @@ export interface TableColumn<T> {
   sortKey?: string;
   sortType?: 'default' | 'text';
   className?: string;
+  widthPx?: number;
   cellTemplate: TemplateRef<{ $implicit: T }>;
 }
 
@@ -112,5 +113,22 @@ export class BaseTable<T> {
 
   onSortChange(sort: Sort): void {
     this.sortChange.emit(sort);
+  }
+
+  getColumnWidthStyle(column: TableColumn<T>): Record<string, string> | null {
+    if (!column.widthPx) {
+      return null;
+    }
+
+    const width = `${column.widthPx}px`;
+    return {
+      width,
+      minWidth: width,
+      maxWidth: width
+    };
+  }
+
+  getColumnWidth(column: TableColumn<T>): string | null {
+    return column.widthPx ? `${column.widthPx}px` : null;
   }
 }

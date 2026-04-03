@@ -109,36 +109,6 @@
   margin-right: 4px;
 }
 
-:host ::ng-deep .col-product-history {
-  width: 20rem;
-  min-width: 20rem;
-  max-width: 20rem;
-}
-
-:host ::ng-deep .col-sku-history {
-  width: 12rem;
-  min-width: 12rem;
-  max-width: 12rem;
-}
-
-:host ::ng-deep .col-movement-history {
-  width: 10rem;
-  min-width: 10rem;
-  max-width: 10rem;
-}
-
-:host ::ng-deep .col-quantity-history {
-  width: 7rem;
-  min-width: 7rem;
-  max-width: 7rem;
-}
-
-:host ::ng-deep .col-reason-history {
-  width: 13rem;
-  min-width: 13rem;
-  max-width: 13rem;
-}
-
 :host ::ng-deep td.col-product-history .cell-content,
 :host ::ng-deep td.col-sku-history .cell-content {
   min-height: auto;
