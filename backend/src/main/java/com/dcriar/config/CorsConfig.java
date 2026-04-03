@@ -7,7 +7,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Configuração global de CORS (Cross-Origin Resource Sharing) para a aplicação.
- * Lê a origem(s) permitida(s) a partir da propriedade `cors.allowed-origins`
+ * Lê a origem(s) permitida(s) a partir da propriedade `cors.allowed-origin`
  * (definida em `application-*.yml` ou por variável de ambiente `CORS_ALLOWED_ORIGIN`).
  */
 @Configuration

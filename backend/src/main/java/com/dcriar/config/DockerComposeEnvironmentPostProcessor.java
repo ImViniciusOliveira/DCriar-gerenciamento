@@ -23,8 +23,12 @@ public class DockerComposeEnvironmentPostProcessor implements EnvironmentPostPro
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         String profile = resolveActiveProfile(environment);
-        String composeFileName = determineComposeFileName(profile);
-        String envFileName = determineEnvFileName(profile);
+        if (!shouldAutoConfigureCompose(profile)) {
+            return;
+        }
+
+        String composeFileName = determineComposeFileName();
+        String envFileName = determineEnvFileName();
 
         Path composePath = findInParents(Paths.get("").toAbsolutePath(), composeFileName);
         Map<String, Object> props = new HashMap<>();
@@ -47,6 +51,14 @@ public class DockerComposeEnvironmentPostProcessor implements EnvironmentPostPro
         }
 
         environment.getPropertySources().addFirst(new MapPropertySource("dockerComposeAuto", props));
+    }
+
+    private boolean shouldAutoConfigureCompose(String profile) {
+        if (profile == null || profile.isBlank()) {
+            return true;
+        }
+
+        return profile.toLowerCase().contains("dev");
     }
 
     private Map<String, String> readEnvFile(Path envPath) {
@@ -89,17 +101,11 @@ public class DockerComposeEnvironmentPostProcessor implements EnvironmentPostPro
         return System.getenv("SPRING_PROFILES_ACTIVE");
     }
 
-    private String determineComposeFileName(String profile) {
-        if (profile != null && profile.toLowerCase().contains("prod")) {
-            return "docker-compose.prod.yml";
-        }
+    private String determineComposeFileName() {
         return "docker-compose.dev.yml";
     }
 
-    private String determineEnvFileName(String profile) {
-        if (profile != null && profile.toLowerCase().contains("prod")) {
-            return ".env.prod";
-        }
+    private String determineEnvFileName() {
         return ".env.dev";
     }
 

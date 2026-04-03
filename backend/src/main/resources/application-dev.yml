@@ -30,12 +30,18 @@ spring:
     # Permite que a estratégia de clean+migrate funcione em desenvolvimento
     clean-disabled: false
 
+server:
+  forward-headers-strategy: framework
+
 # --- MINIO CONFIGURATION ---
 minio:
   url: ${MINIO_URL}
   access-key: ${MINIO_ACCESS_KEY}
   secret-key: ${MINIO_SECRET_KEY}
   bucket-name: ${MINIO_BUCKET_NAME}
+
+cors:
+  allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:4200}
 
 # Nível de log para desenvolvimento (ajustado para reduzir SQL no console)
 logging:
@@ -64,4 +70,3 @@ management:
   endpoint:
     health:
       show-details: always
-

@@ -32,6 +32,9 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+server:
+  forward-headers-strategy: framework
+
 minio:
   url: ${MINIO_URL}
   access-key: ${MINIO_ACCESS_KEY}
@@ -39,7 +42,7 @@ minio:
   bucket-name: ${MINIO_BUCKET_NAME}
 
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGIN}
+  allowed-origin: ${CORS_ALLOWED_ORIGIN}
 
 springdoc:
   api-docs: { enabled: true }

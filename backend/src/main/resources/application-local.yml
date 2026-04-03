@@ -40,6 +40,9 @@ spring:
     locations: classpath:db/migration
     clean-disabled: false
 
+server:
+  forward-headers-strategy: framework
+
 # --- MINIO CONFIGURATION ---
 minio:
   url: ${MINIO_URL}
