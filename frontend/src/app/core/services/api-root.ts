@@ -17,7 +17,7 @@ export class ApiRoot {
   private readonly http = inject(HttpClient);
   private readonly snackBar = inject(MatSnackBar);
 
-  private readonly API_URL = `${environment.apiUrl}/api/v1`;
+  private readonly API_URL = environment.apiVersionPath;
 
   // Observable que carrega os endpoints da API.
   // O `shareReplay(1)` garante que a requisição seja feita apenas uma vez e o resultado cacheado.

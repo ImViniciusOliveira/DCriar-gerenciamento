@@ -54,7 +54,7 @@ export class StockService {
   );
 
   readonly movementTypes$: Observable<StockMovementTypeOption[]> = this.http
-    .get<ApiResponseStockMovementTypes>(`${environment.apiUrl}/api/v1/enums/product/tipos-movimentacao-produto`)
+    .get<ApiResponseStockMovementTypes>(`${environment.apiVersionPath}/enums/product/tipos-movimentacao-produto`)
     .pipe(
       switchMap(response => of(response._embedded?.tiposMovimentacaoProduto ?? [])),
       catchError(() => of([])),

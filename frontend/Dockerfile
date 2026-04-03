@@ -55,6 +55,16 @@ server {
         return 200 'ok';
     }
 
+    # O frontend fala com /api e o nginx encaminha para o backend na rede interna do compose.
+    location /api/ {
+        proxy_pass http://backend:8080/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
     # Cache longo para arquivos estáticos versionados (hash no nome)
     location ~* \.(?:css|js|svg|png|jpg|jpeg|gif|ico|woff2?|ttf|eot)\$ {
         try_files \$uri =404;
