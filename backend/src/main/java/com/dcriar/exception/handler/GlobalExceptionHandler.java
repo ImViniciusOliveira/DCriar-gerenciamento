@@ -135,8 +135,8 @@ public class GlobalExceptionHandler {
      * Trata exceções de conflito, como criação de recurso duplicado ou recurso em uso (HTTP 409 Conflict).
      * Intercepta {@link TipoMateriaPrimaJaExisteException}, {@link ProdutoEmUsoException},
      * {@link TipoMateriaPrimaEmUsoException}, {@link ProdutoNomeDuplicadoException},
-     * {@link ProdutoSkuDuplicadoException}, {@link ExclusaoLoteBloqueadaException}
-     * e {@link ProdutoCamposBloqueadosException}.
+     * {@link ProdutoSkuDuplicadoException}, {@link ExclusaoLoteBloqueadaException},
+     * {@link ProdutoCamposBloqueadosException} e {@link TipoMateriaPrimaCamposBloqueadosException}.
      *
      * @param ex A exceção de conflito lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 409.
@@ -145,7 +145,7 @@ public class GlobalExceptionHandler {
             TipoMateriaPrimaJaExisteException.class, ProdutoEmUsoException.class,
             TipoMateriaPrimaEmUsoException.class, ProdutoNomeDuplicadoException.class,
             ProdutoSkuDuplicadoException.class, ExclusaoLoteBloqueadaException.class,
-            ProdutoCamposBloqueadosException.class
+            ProdutoCamposBloqueadosException.class, TipoMateriaPrimaCamposBloqueadosException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
@@ -157,6 +157,11 @@ public class GlobalExceptionHandler {
         else if (ex instanceof ExclusaoLoteBloqueadaException e) { details.put("info", e.getMessage()); }
         else if (ex instanceof ProdutoCamposBloqueadosException e) {
             details.put("produtoId", String.valueOf(e.getProdutoId()));
+            details.put("camposBloqueados", e.getCamposBloqueados().toString());
+            e.getMotivosBloqueio().forEach((campo, motivo) -> details.put("motivo." + campo, motivo));
+        }
+        else if (ex instanceof TipoMateriaPrimaCamposBloqueadosException e) {
+            details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId()));
             details.put("camposBloqueados", e.getCamposBloqueados().toString());
             e.getMotivosBloqueio().forEach((campo, motivo) -> details.put("motivo." + campo, motivo));
         }

@@ -3,6 +3,7 @@ package com.dcriar.domain.stock.service.impl;
 import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
 import com.dcriar.api.mapper.stock.TipoMateriaPrimaMapper;
+import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
@@ -11,6 +12,7 @@ import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaSpecification;
 import com.dcriar.domain.stock.service.TipoMateriaPrimaService;
 import com.dcriar.exception.custom.TipoMateriaPrimaJaExisteException;
+import com.dcriar.exception.custom.TipoMateriaPrimaCamposBloqueadosException;
 import com.dcriar.exception.custom.TipoMateriaPrimaEmUsoException;
 import com.dcriar.exception.custom.TipoMateriaPrimaNaoEncontradoException;
 import com.dcriar.exception.custom.TipoProdutoInvalidoException;
@@ -22,6 +24,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -41,6 +47,9 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
     private final TipoMateriaPrimaMapper tipoMateriaPrimaMapper;
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
+    private final ProdutoRepository produtoRepository;
+
+    private static final Set<String> CAMPOS_SENSIVEIS_TIPO_MATERIA_PRIMA = Set.of("unidadeDeConsumo");
 
     @Override
     @Transactional(readOnly = true)
@@ -58,14 +67,14 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
 
         Page<TipoMateriaPrima> paginaDeEntidades = tipoMateriaPrimaRepository.findAll(spec, pageable);
 
-        return paginaDeEntidades.map(tipoMateriaPrimaMapper::toResponseDTO);
+        return paginaDeEntidades.map(this::mapAndEnrichTipo);
     }
 
     @Override
     @Transactional(readOnly = true)
     public TipoMateriaPrimaResponseDTO findById(Long id) {
         TipoMateriaPrima tipo = findTipoById(id);
-        return tipoMateriaPrimaMapper.toResponseDTO(tipo);
+        return mapAndEnrichTipo(tipo);
     }
 
     @Override
@@ -77,13 +86,14 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         TipoMateriaPrima tipo = tipoMateriaPrimaMapper.toEntity(requestDTO);
         
         TipoMateriaPrima salvo = tipoMateriaPrimaRepository.save(tipo);
-        return tipoMateriaPrimaMapper.toResponseDTO(salvo);
+        return mapAndEnrichTipo(salvo);
     }
 
     @Override
     @Transactional
     public TipoMateriaPrimaResponseDTO update(Long id, TipoMateriaPrimaRequestDTO requestDTO) {
         TipoMateriaPrima tipo = findTipoById(id);
+        validarCamposBloqueadosNaEdicao(tipo, requestDTO);
         if (requestDTO.getNome() != null && !tipo.getNome().equalsIgnoreCase(requestDTO.getNome())) {
             validateNomeDisponivel(requestDTO.getNome());
         }
@@ -93,7 +103,7 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         tipo.updateFrom(requestDTO); 
 
         TipoMateriaPrima atualizado = tipoMateriaPrimaRepository.save(tipo);
-        return tipoMateriaPrimaMapper.toResponseDTO(atualizado);
+        return mapAndEnrichTipo(atualizado);
     }
 
     @Override
@@ -115,6 +125,14 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
                 .orElseThrow(() -> new TipoMateriaPrimaNaoEncontradoException(id));
     }
 
+    private TipoMateriaPrimaResponseDTO mapAndEnrichTipo(TipoMateriaPrima tipo) {
+        TipoMateriaPrimaResponseDTO dto = tipoMateriaPrimaMapper.toResponseDTO(tipo);
+        Map<String, String> camposBloqueados = resolverCamposBloqueados(tipo);
+        dto.setCamposBloqueados(camposBloqueados.keySet());
+        dto.setMotivosBloqueio(camposBloqueados);
+        return dto;
+    }
+
     private void validateNomeDisponivel(String nome) {
         if (tipoMateriaPrimaRepository.existsByNome(nome)) {
             throw new TipoMateriaPrimaJaExisteException(nome);
@@ -129,5 +147,34 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         if (!"CORTE".equalsIgnoreCase(tipoProduto) && !"CONSUMO".equalsIgnoreCase(tipoProduto)) {
             throw new TipoProdutoInvalidoException(tipoProduto);
         }
+    }
+
+    private void validarCamposBloqueadosNaEdicao(TipoMateriaPrima tipo, TipoMateriaPrimaRequestDTO requestDTO) {
+        Map<String, String> camposBloqueados = resolverCamposBloqueados(tipo);
+        Set<String> tentativaCamposSensveis = new LinkedHashSet<>();
+
+        if (requestDTO.getUnidadeDeConsumo() != null && camposBloqueados.containsKey("unidadeDeConsumo")) {
+            tentativaCamposSensveis.add("unidadeDeConsumo");
+        }
+
+        if (!tentativaCamposSensveis.isEmpty()) {
+            throw new TipoMateriaPrimaCamposBloqueadosException(tipo.getId(), tentativaCamposSensveis, camposBloqueados);
+        }
+    }
+
+    private Map<String, String> resolverCamposBloqueados(TipoMateriaPrima tipo) {
+        if (!tipoMateriaPrimaPossuiUsoOperacional(tipo)) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> bloqueios = new LinkedHashMap<>();
+        String motivoPadrao = "Tipo de matéria-prima já utilizado por produtos ou lotes.";
+        CAMPOS_SENSIVEIS_TIPO_MATERIA_PRIMA.forEach(campo -> bloqueios.put(campo, motivoPadrao));
+        return bloqueios;
+    }
+
+    private boolean tipoMateriaPrimaPossuiUsoOperacional(TipoMateriaPrima tipo) {
+        return produtoRepository.existsByTipoMateriaPrima(tipo)
+                || loteMateriaPrimaRepository.existsByTipoMateriaPrima(tipo);
     }
 }

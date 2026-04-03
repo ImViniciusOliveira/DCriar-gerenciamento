@@ -1,6 +1,7 @@
 package com.dcriar.domain.product.repository;
 
 import com.dcriar.domain.product.entity.Produto;
+import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -46,5 +47,7 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long>, JpaSpec
      * @return true se o SKU já existe, false caso contrário.
      */
     boolean existsBySku(String sku);
+
+    boolean existsByTipoMateriaPrima(TipoMateriaPrima tipoMateriaPrima);
 
 }

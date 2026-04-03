@@ -37,6 +37,8 @@ public interface LoteMateriaPrimaRepository extends JpaRepository<LoteMateriaPri
      */
     List<LoteMateriaPrima> findAllByTipoMateriaPrima(TipoMateriaPrima tipoMateriaPrima);
 
+    boolean existsByTipoMateriaPrima(TipoMateriaPrima tipoMateriaPrima);
+
     /**
      * Busca lotes (retalhos) gerados por uma ordem de produção específica.
      *

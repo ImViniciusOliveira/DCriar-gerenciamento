@@ -10,6 +10,8 @@ import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Modelo de representação HATEOAS para um Tipo de Matéria-Prima.
@@ -41,4 +43,10 @@ public class TipoMateriaPrimaModel extends RepresentationModel<TipoMateriaPrimaM
 
     @Schema(description = "Data e hora da última atualização do tipo de matéria-prima.")
     private LocalDateTime dataAtualizacao;
+
+    @Schema(description = "Campos atualmente bloqueados para edição no frontend.", example = "[\"unidadeDeConsumo\"]")
+    private Set<String> camposBloqueados;
+
+    @Schema(description = "Motivos por campo bloqueado, para orientar a UI.", example = "{\"unidadeDeConsumo\":\"Tipo de matéria-prima já utilizado por produtos ou lotes.\"}")
+    private Map<String, String> motivosBloqueio;
 }

@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Data Transfer Object (DTO) que representa a resposta de um Tipo de Matéria-Prima.
@@ -54,4 +56,10 @@ public class TipoMateriaPrimaResponseDTO {
      */
     @Schema(description = "Data e hora da última atualização do tipo de matéria-prima.")
     private LocalDateTime dataAtualizacao;
+
+    @Schema(description = "Campos atualmente bloqueados para edição no frontend.", example = "[\"unidadeDeConsumo\"]")
+    private Set<String> camposBloqueados;
+
+    @Schema(description = "Motivos por campo bloqueado, para orientar a UI.", example = "{\"unidadeDeConsumo\":\"Tipo de matéria-prima já utilizado por produtos ou lotes.\"}")
+    private Map<String, String> motivosBloqueio;
 }
