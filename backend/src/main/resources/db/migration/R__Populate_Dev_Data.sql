@@ -196,10 +196,12 @@ INSERT INTO itens_venda (venda_id, produto_id, quantidade, preco_comercial_origi
 -- - vendas preenchem venda_origem_id para alimentar a auditoria do histórico consolidado
 -- - cargas iniciais de produtos sem OP foram convertidas para AJUSTE_MANUAL, que descreve melhor a origem do saldo
 INSERT INTO movimentacoes_estoque_produto (
-    produto_id, data, tipo, quantidade, motivo, ordem_producao_id, ordem_producao_origem_id, venda_origem_id
+    produto_id, produto_nome_snapshot, produto_sku_snapshot, data, tipo, quantidade, motivo, ordem_producao_id, ordem_producao_origem_id, venda_origem_id
 ) VALUES
     (
         (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'),
+        (SELECT nome FROM produtos WHERE sku = 'CV-PREM-9X5'),
+        (SELECT sku FROM produtos WHERE sku = 'CV-PREM-9X5'),
         NOW() - INTERVAL '5 day',
         'ENTRADA_PRODUCAO',
         5000,
@@ -210,6 +212,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'),
+        (SELECT nome FROM produtos WHERE sku = 'BNR-COM-120X80'),
+        (SELECT sku FROM produtos WHERE sku = 'BNR-COM-120X80'),
         NOW() - INTERVAL '4 day',
         'ENTRADA_PRODUCAO',
         50,
@@ -220,6 +224,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'),
+        (SELECT nome FROM produtos WHERE sku = 'ADSV-RD-5'),
+        (SELECT sku FROM produtos WHERE sku = 'ADSV-RD-5'),
         NOW() - INTERVAL '3 day',
         'AJUSTE_MANUAL',
         1000,
@@ -230,6 +236,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'ROT-CERV-LN'),
+        (SELECT nome FROM produtos WHERE sku = 'ROT-CERV-LN'),
+        (SELECT sku FROM produtos WHERE sku = 'ROT-CERV-LN'),
         NOW() - INTERVAL '2 day',
         'AJUSTE_MANUAL',
         250,
@@ -240,6 +248,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'TAG-KFT-4X9'),
+        (SELECT nome FROM produtos WHERE sku = 'TAG-KFT-4X9'),
+        (SELECT sku FROM produtos WHERE sku = 'TAG-KFT-4X9'),
         NOW() - INTERVAL '1 day',
         'AJUSTE_MANUAL',
         500,
@@ -250,6 +260,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'TIN-PRE-ES-1L'),
+        (SELECT nome FROM produtos WHERE sku = 'TIN-PRE-ES-1L'),
+        (SELECT sku FROM produtos WHERE sku = 'TIN-PRE-ES-1L'),
         NOW() - INTERVAL '1 day',
         'AJUSTE_MANUAL',
         10,
@@ -260,6 +272,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'FITA-DF-25MM'),
+        (SELECT nome FROM produtos WHERE sku = 'FITA-DF-25MM'),
+        (SELECT sku FROM produtos WHERE sku = 'FITA-DF-25MM'),
         NOW() - INTERVAL '1 day',
         'AJUSTE_MANUAL',
         5,
@@ -270,6 +284,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'ILHOS-BNR-100'),
+        (SELECT nome FROM produtos WHERE sku = 'ILHOS-BNR-100'),
+        (SELECT sku FROM produtos WHERE sku = 'ILHOS-BNR-100'),
         NOW() - INTERVAL '1 day',
         'AJUSTE_MANUAL',
         20,
@@ -280,6 +296,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'),
+        (SELECT nome FROM produtos WHERE sku = 'RES-EPX-2KG'),
+        (SELECT sku FROM produtos WHERE sku = 'RES-EPX-2KG'),
         NOW() - INTERVAL '20 hour',
         'ENTRADA_PRODUCAO',
         8,
@@ -290,6 +308,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'),
+        (SELECT nome FROM produtos WHERE sku = 'PO-ADT-500G'),
+        (SELECT sku FROM produtos WHERE sku = 'PO-ADT-500G'),
         NOW() - INTERVAL '18 hour',
         'ENTRADA_PRODUCAO',
         15,
@@ -300,6 +320,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'VERN-UV-250'),
+        (SELECT nome FROM produtos WHERE sku = 'VERN-UV-250'),
+        (SELECT sku FROM produtos WHERE sku = 'VERN-UV-250'),
         NOW() - INTERVAL '16 hour',
         'ENTRADA_PRODUCAO',
         12,
@@ -310,6 +332,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'PAP-SEDA-A4-100'),
+        (SELECT nome FROM produtos WHERE sku = 'PAP-SEDA-A4-100'),
+        (SELECT sku FROM produtos WHERE sku = 'PAP-SEDA-A4-100'),
         NOW() - INTERVAL '14 hour',
         'ENTRADA_PRODUCAO',
         20,
@@ -320,6 +344,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'),
+        (SELECT nome FROM produtos WHERE sku = 'ADSV-RD-5'),
+        (SELECT sku FROM produtos WHERE sku = 'ADSV-RD-5'),
         NOW() - INTERVAL '3 hour',
         'ENTRADA_PRODUCAO',
         50,
@@ -330,6 +356,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'),
+        (SELECT nome FROM produtos WHERE sku = 'CV-PREM-9X5'),
+        (SELECT sku FROM produtos WHERE sku = 'CV-PREM-9X5'),
         NOW() - INTERVAL '2 hour',
         'ENTRADA_PRODUCAO',
         1000,
@@ -340,6 +368,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'),
+        (SELECT nome FROM produtos WHERE sku = 'CV-PREM-9X5'),
+        (SELECT sku FROM produtos WHERE sku = 'CV-PREM-9X5'),
         NOW() - INTERVAL '1 hour',
         'SAIDA_VENDA',
         -200,
@@ -350,6 +380,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'),
+        (SELECT nome FROM produtos WHERE sku = 'BNR-COM-120X80'),
+        (SELECT sku FROM produtos WHERE sku = 'BNR-COM-120X80'),
         NOW() - INTERVAL '1 hour',
         'ENTRADA_PRODUCAO',
         20,
@@ -360,6 +392,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'),
+        (SELECT nome FROM produtos WHERE sku = 'RES-EPX-2KG'),
+        (SELECT sku FROM produtos WHERE sku = 'RES-EPX-2KG'),
         NOW() - INTERVAL '10 hour',
         'SAIDA_VENDA',
         -1,
@@ -370,6 +404,8 @@ INSERT INTO movimentacoes_estoque_produto (
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'),
+        (SELECT nome FROM produtos WHERE sku = 'PO-ADT-500G'),
+        (SELECT sku FROM produtos WHERE sku = 'PO-ADT-500G'),
         NOW() - INTERVAL '8 hour',
         'SAIDA_VENDA',
         -2,

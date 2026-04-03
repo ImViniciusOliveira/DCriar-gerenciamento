@@ -18,6 +18,8 @@ public interface HistoricoEstoqueConsolidadoMapper {
     @Mapping(source = "produto.id", target = "produtoId")
     @Mapping(source = "produto.nome", target = "produtoNome")
     @Mapping(source = "produto.sku", target = "produtoSku")
+    @Mapping(source = "produtoNomeSnapshot", target = "produtoNomeSnapshot")
+    @Mapping(source = "produtoSkuSnapshot", target = "produtoSkuSnapshot")
     @Mapping(source = "ordemProducaoOrigemId", target = "ordemProducaoId")
     @Mapping(source = "vendaOrigemId", target = "vendaId")
     @Mapping(source = "tipo", target = "tipoDescricao", qualifiedByName = "tipoToDescricao")

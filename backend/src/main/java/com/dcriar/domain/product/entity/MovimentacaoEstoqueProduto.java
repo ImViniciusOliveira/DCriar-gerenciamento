@@ -44,6 +44,20 @@ public class MovimentacaoEstoqueProduto {
     private Produto produto;
 
     /**
+     * Nome do produto no momento em que a movimentação foi registrada.
+     * Preservado para auditoria mesmo que o cadastro do produto mude depois.
+     */
+    @Column(name = "produto_nome_snapshot", nullable = false, length = 255)
+    private String produtoNomeSnapshot;
+
+    /**
+     * SKU do produto no momento em que a movimentação foi registrada.
+     * Preservado para auditoria mesmo que o cadastro do produto mude depois.
+     */
+    @Column(name = "produto_sku_snapshot", nullable = false, length = 100)
+    private String produtoSkuSnapshot;
+
+    /**
      * A ordem de produção que originou esta movimentação (se aplicável).
      */
     @ManyToOne(fetch = FetchType.LAZY)
@@ -103,6 +117,8 @@ public class MovimentacaoEstoqueProduto {
     public static MovimentacaoEstoqueProduto from(MovimentacaoEstoqueProdutoRequestDTO dto, Produto produto) {
         return MovimentacaoEstoqueProduto.builder()
                 .produto(produto)
+                .produtoNomeSnapshot(produto.getNome())
+                .produtoSkuSnapshot(produto.getSku())
                 .tipo(TipoMovimentacaoProduto.valueOf(dto.getTipo()))
                 .quantidade(dto.getQuantidade())
                 .motivo(dto.getMotivo())
@@ -119,6 +135,8 @@ public class MovimentacaoEstoqueProduto {
      */
     public void updateFrom(MovimentacaoEstoqueProdutoRequestDTO dto, Produto produto) {
         this.produto = produto;
+        this.produtoNomeSnapshot = produto.getNome();
+        this.produtoSkuSnapshot = produto.getSku();
         this.tipo = TipoMovimentacaoProduto.valueOf(dto.getTipo());
         this.quantidade = dto.getQuantidade();
         this.motivo = dto.getMotivo();

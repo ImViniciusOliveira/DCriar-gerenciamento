@@ -42,6 +42,8 @@ public interface TipoMateriaPrimaMapper {
      * @return O DTO de resposta correspondente.
      */
     @Mapping(source = "unidadeDeConsumo.descricao", target = "unidadeDescricao")
+    @Mapping(target = "camposBloqueados", ignore = true)
+    @Mapping(target = "motivosBloqueio", ignore = true)
     TipoMateriaPrimaResponseDTO toResponseDTO(TipoMateriaPrima tipoMateriaPrima);
 
     /**
@@ -51,5 +53,7 @@ public interface TipoMateriaPrimaMapper {
      * @param dto O DTO de origem.
      * @param model O Modelo HATEOAS de destino a ser atualizado.
      */
+    @Mapping(target = "camposBloqueados", ignore = true)
+    @Mapping(target = "motivosBloqueio", ignore = true)
     void updateModelFromDto(TipoMateriaPrimaResponseDTO dto, @MappingTarget TipoMateriaPrimaModel model);
 }

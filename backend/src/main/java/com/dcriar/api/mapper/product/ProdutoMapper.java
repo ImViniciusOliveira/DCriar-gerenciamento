@@ -44,12 +44,16 @@ public interface ProdutoMapper {
 
     @Mapping(target = "estoqueDistribuidoTotal", ignore = true)
     @Mapping(target = "estoqueDisponivelParaAlocar", ignore = true)
+    @Mapping(target = "camposBloqueados", ignore = true)
+    @Mapping(target = "motivosBloqueio", ignore = true)
     @Mapping(source = "tipoMateriaPrima", target = "materiaPrima")
     @Mapping(target = "tipoProduto", constant = "CORTE")
     ProdutoDeCorteResponseDTO toCorteResponseDTO(ProdutoDeCorte produto);
 
     @Mapping(target = "estoqueDistribuidoTotal", ignore = true)
     @Mapping(target = "estoqueDisponivelParaAlocar", ignore = true)
+    @Mapping(target = "camposBloqueados", ignore = true)
+    @Mapping(target = "motivosBloqueio", ignore = true)
     @Mapping(source = "tipoMateriaPrima", target = "materiaPrima")
     @Mapping(target = "tipoProduto", constant = "CONSUMO")
     ProdutoDeConsumoResponseDTO toConsumoResponseDTO(ProdutoDeConsumo produto);

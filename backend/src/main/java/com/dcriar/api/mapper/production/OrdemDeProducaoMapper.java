@@ -39,6 +39,10 @@ public interface OrdemDeProducaoMapper {
     @Mapping(source = "cortesRealizados", target = "cortesRealizados")
     @Mapping(source = "dataCriacao", target = "dataCriacao")
     @Mapping(source = "margens", target = "margens")
+    @Mapping(target = "larguraBlocoProdutosCm", ignore = true)
+    @Mapping(target = "comprimentoBlocoProdutosCm", ignore = true)
+    @Mapping(target = "simulacaoInicialCorte", ignore = true)
+    @Mapping(target = "simulacaoInicialConsumo", ignore = true)
     OrdemDeProducaoResponseDTO toDto(OrdemDeProducao ordem);
 
     /**

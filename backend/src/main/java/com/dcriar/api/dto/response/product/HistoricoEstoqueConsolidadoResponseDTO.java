@@ -49,6 +49,12 @@ public class HistoricoEstoqueConsolidadoResponseDTO {
     @Schema(description = "SKU do produto associado.", example = "ADH-10X10-HOLO")
     private String produtoSku;
 
+    @Schema(description = "Nome do produto registrado no momento da movimentação.", example = "Adesivo Holográfico 10x10cm")
+    private String produtoNomeSnapshot;
+
+    @Schema(description = "SKU do produto registrado no momento da movimentação.", example = "ADH-10X10-HOLO")
+    private String produtoSkuSnapshot;
+
     @Schema(description = "ID da ordem de produção de origem, quando aplicável.", example = "11")
     private Long ordemProducaoId;
 

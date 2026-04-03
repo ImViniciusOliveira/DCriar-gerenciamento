@@ -33,6 +33,14 @@ public interface LoteMateriaPrimaMapper {
     @Mapping(source = "loteDeOrigem.id", target = "loteDeOrigemId")
     @Mapping(source = "unidadeDeEstoque.simbolo", target = "unidadeSimbolo")
     @Mapping(target = "saldoEstoque", ignore = true)
+    @Mapping(target = "saldoInternoAtual", ignore = true)
+    @Mapping(target = "valorAtualLote", ignore = true)
+    @Mapping(target = "custoUnitarioAtual", ignore = true)
+    @Mapping(target = "identificadorPublico", ignore = true)
+    @Mapping(target = "identificadorOrigemPublico", ignore = true)
+    @Mapping(target = "tipoEstrutural", ignore = true)
+    @Mapping(target = "camposBloqueados", ignore = true)
+    @Mapping(target = "motivosBloqueio", ignore = true)
     LoteMateriaPrimaResponseDTO toResponseDTO(LoteMateriaPrima lote);
 
     /**
@@ -42,5 +50,13 @@ public interface LoteMateriaPrimaMapper {
      * @param dto O DTO de origem.
      * @param model O Modelo HATEOAS de destino a ser atualizado.
      */
+    @Mapping(target = "saldoInternoAtual", ignore = true)
+    @Mapping(target = "valorAtualLote", ignore = true)
+    @Mapping(target = "custoUnitarioAtual", ignore = true)
+    @Mapping(target = "identificadorPublico", ignore = true)
+    @Mapping(target = "identificadorOrigemPublico", ignore = true)
+    @Mapping(target = "tipoEstrutural", ignore = true)
+    @Mapping(target = "camposBloqueados", ignore = true)
+    @Mapping(target = "motivosBloqueio", ignore = true)
     void updateModelFromDto(LoteMateriaPrimaResponseDTO dto, @MappingTarget LoteMateriaPrimaModel model);
 }
