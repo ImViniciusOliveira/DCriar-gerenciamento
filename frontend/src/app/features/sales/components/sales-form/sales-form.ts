@@ -18,6 +18,7 @@ import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { ProductSearch } from '../../../../shared/components/product-search/product-search';
 import { Product } from '../../../products/models/product.model';
 import { ProductService } from '../../../products/services/product.service';
+import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN, POSITIVE_MONEY_2_PATTERN } from '../../../../shared/utils/number-patterns';
 
 type SalePriceType = 'PRECO_PADRAO' | 'PRECO_ALTERADO' | 'DESCONTO_TOTAL';
 
@@ -266,15 +267,15 @@ export class SalesForm implements OnInit {
       produtoNome: ['', Validators.required],
       estoqueDisponivel: [null],
       precoComercialOriginal: [null],
-      precoAplicado: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+([.,]\d{1,4})?$/)]],
-      precoTotal: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+([.,]\d{1,2})?$/)]],
+      precoAplicado: [null, [Validators.required, Validators.min(0), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
+      precoTotal: [null, [Validators.required, Validators.min(0), Validators.pattern(POSITIVE_MONEY_2_PATTERN)]],
       tipoPrecoAplicado: ['PRECO_PADRAO' as SalePriceType, Validators.required],
       motivoAlteracaoPreco: ['', Validators.maxLength(100)],
       quantidade: [1, [
         Validators.required,
         Validators.min(1),
         maxIntegerDigits(15),
-        Validators.pattern(/^-?\d*([.,]\d+)?$/)
+        Validators.pattern(POSITIVE_INTEGER_PATTERN)
       ]]
     });
 

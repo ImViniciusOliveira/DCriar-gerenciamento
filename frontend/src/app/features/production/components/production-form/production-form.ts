@@ -26,9 +26,7 @@ import { ProductService } from '../../../products/services/product.service';
 import { BatchService } from '../../../stock/services/batch.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
-
-const POSITIVE_DECIMAL_PATTERN = /^\d+([.,]\d+)?$/;
-const SIGNED_DECIMAL_PATTERN = /^-?\d+([.,]\d+)?$/;
+import { POSITIVE_DECIMAL_4_PATTERN, SIGNED_DECIMAL_4_PATTERN } from '../../../../shared/utils/number-patterns';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -277,7 +275,7 @@ export class ProductionForm implements OnInit {
       // ETAPA 1: SELEÇÃO
       tipoProducao: [''],
       produtoId: [null, Validators.required],
-      quantidade: [null, [Validators.required, Validators.pattern(POSITIVE_DECIMAL_PATTERN), Validators.min(1)]],
+      quantidade: [null, [Validators.required, Validators.pattern(POSITIVE_DECIMAL_4_PATTERN), Validators.min(1)]],
       loteId: [null],
 
       // ETAPA 3: FORMULÁRIO REAL
@@ -285,10 +283,10 @@ export class ProductionForm implements OnInit {
       larguraBlocoProdutosCm: [{ value: null, disabled: true }],
       comprimentoBlocoProdutosCm: [{ value: null, disabled: true }],
       margens: this.fb.group({
-        superior: [null, Validators.pattern(SIGNED_DECIMAL_PATTERN)],
-        inferior: [null, Validators.pattern(SIGNED_DECIMAL_PATTERN)],
-        esquerda: [null, Validators.pattern(SIGNED_DECIMAL_PATTERN)],
-        direita: [null, Validators.pattern(SIGNED_DECIMAL_PATTERN)]
+        superior: [null, Validators.pattern(SIGNED_DECIMAL_4_PATTERN)],
+        inferior: [null, Validators.pattern(SIGNED_DECIMAL_4_PATTERN)],
+        esquerda: [null, Validators.pattern(SIGNED_DECIMAL_4_PATTERN)],
+        direita: [null, Validators.pattern(SIGNED_DECIMAL_4_PATTERN)]
       }),
       canalVendaId: [''],
       motivo: ['', Validators.maxLength(100)]
@@ -717,8 +715,8 @@ export class ProductionForm implements OnInit {
       // Modo MANUAL: habilita os campos e adiciona validadores
       larguraControl.enable();
       comprimentoControl.enable();
-      larguraControl.setValidators([Validators.required, Validators.pattern(POSITIVE_DECIMAL_PATTERN), Validators.min(0.1)]);
-      comprimentoControl.setValidators([Validators.required, Validators.pattern(POSITIVE_DECIMAL_PATTERN), Validators.min(0.1)]);
+      larguraControl.setValidators([Validators.required, Validators.pattern(POSITIVE_DECIMAL_4_PATTERN), Validators.min(0.1)]);
+      comprimentoControl.setValidators([Validators.required, Validators.pattern(POSITIVE_DECIMAL_4_PATTERN), Validators.min(0.1)]);
       // Restaura os valores do manual
       const dimensoesManualAtual = this.manualDimensoes();
       this.form.patchValue({

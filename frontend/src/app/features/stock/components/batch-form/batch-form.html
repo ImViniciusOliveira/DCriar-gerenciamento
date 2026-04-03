@@ -12,6 +12,9 @@
             [unitsUrl]="unitsUrl()"
             (selectionChange)="onMaterialTypeChange($event)">
           </app-material-type-search>
+          @if (shouldShowControlError(materialTypeControl)) {
+            <div class="field-error">Selecione uma matéria-prima.</div>
+          }
         </div>
 
         <div class="form-row">
@@ -36,7 +39,7 @@
             @if (form.get('quantidadeInicial')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (form.get('quantidadeInicial')?.hasError('pattern')) {
-              <mat-error>Apenas números.</mat-error>
+              <mat-error>Use até 4 casas decimais.</mat-error>
             } @else if (form.get('quantidadeInicial')?.hasError('min')) {
               <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (form.get('quantidadeInicial')?.hasError('maxIntegerDigits')) {
@@ -51,7 +54,7 @@
             @if (form.get('custoTotalLote')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (form.get('custoTotalLote')?.hasError('pattern')) {
-              <mat-error>Apenas números.</mat-error>
+              <mat-error>Use até 4 casas decimais.</mat-error>
             } @else if (form.get('custoTotalLote')?.hasError('min')) {
               <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (form.get('custoTotalLote')?.hasError('maxIntegerDigits')) {
@@ -82,7 +85,7 @@
               @if (form.get('larguraMm')?.hasError('required')) {
                 <mat-error>O campo é obrigatório.</mat-error>
               } @else if (form.get('larguraMm')?.hasError('pattern')) {
-                <mat-error>Apenas números.</mat-error>
+                <mat-error>Use até 4 casas decimais.</mat-error>
               } @else if (form.get('larguraMm')?.hasError('min')) {
                 <mat-error>O valor deve ser maior que zero.</mat-error>
               } @else if (form.get('larguraMm')?.hasError('maxIntegerDigits')) {

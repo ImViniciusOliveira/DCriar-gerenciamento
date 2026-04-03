@@ -96,6 +96,9 @@ export class EnumService {
         return items.map(item => ({
           value: item.name,
           viewValue: item.descricao,
+          pluralViewValue: item.descricaoPlural,
+          simbolo: item.simbolo,
+          displayQuantityWithSymbol: item.exibirQuantidadeComSimbolo,
           compatibleInputUnit: item.unidadeCadastroCompativel,
           compatibleInputFactor: item.fatorConversaoCadastroCompativel
         }));

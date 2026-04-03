@@ -137,6 +137,13 @@
   margin-top: 8px;
 }
 
+.field-error {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--danger-color);
+}
+
 fieldset.photo-fieldset {
   flex: 1;
   width: 100%;

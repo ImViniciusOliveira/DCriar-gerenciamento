@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, Signal, effect, computed } from '@angular/core';
 import { CommonModule, CurrencyPipe, TitleCasePipe } from '@angular/common';
-import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormGroupDirective, NgForm, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,7 +9,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { lastValueFrom } from 'rxjs';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, switchMap } from 'rxjs/operators';
-import { ErrorStateMatcher } from '@angular/material/core';
 
 import { Batch, BatchMovement, BatchRequest } from '../../models/batch.model';
 import { MaterialType } from '../../models/material-type.model';
@@ -21,6 +20,8 @@ import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
 import { BatchAdjustmentForm } from '../batch-adjustment-form/batch-adjustment-form';
+import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
+import { POSITIVE_DECIMAL_4_PATTERN } from '../../../../shared/utils/number-patterns';
 
 /**
  * Validador que verifica se a parte inteira de um número excede um máximo de dígitos.
@@ -38,16 +39,6 @@ export function maxIntegerDigits(maxDigits: number): ValidatorFn {
     }
     return null;
   };
-}
-
-/**
- * Define quando os erros de um campo de formulário devem ser exibidos.
- * A regra é: mostrar o erro se o campo for inválido E (o usuário já digitou nele OU já saiu dele).
- */
-export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
-  isErrorState(control: FormControl | null, _form: FormGroupDirective | NgForm | null): boolean {
-    return !!(control && control.invalid && (control.dirty || control.touched));
-  }
 }
 
 export interface BatchFormData {
@@ -94,7 +85,7 @@ export class BatchForm implements OnInit {
   isEditMode = signal(false);
   isViewMode = signal(false);
   requiresWidth: Signal<boolean>;
-  matcher = new ImmediateErrorStateMatcher();
+  matcher = new InstantErrorStateMatcher();
 
   readonly batch = signal<Batch>(this.data.template);
   readonly movements = signal<BatchMovement[]>([]);
@@ -113,6 +104,7 @@ export class BatchForm implements OnInit {
     SAVE_SUCCESS_CREATE: 'Lote cadastrado com sucesso!',
     SAVE_SUCCESS_UPDATE: 'Lote atualizado com sucesso!',
     SAVE_ERROR: 'Falha ao salvar. Verifique os dados e tente novamente.',
+    FORM_VALIDATION_ERROR: 'Corrija os campos inválidos antes de continuar.',
     LOAD_ERROR: 'Não foi possível carregar os dados do lote.',
     UNITS_URL_ERROR: "URL para 'unidades-de-medida' não encontrada no template do lote."
   };
@@ -128,8 +120,8 @@ export class BatchForm implements OnInit {
     this.form = this.fb.group({
       materiaPrima: [null, Validators.required],
       unidadeDeEstoque: [null, Validators.required],
-      quantidadeInicial: [{ value: this.data.template?.saldoEstoque || '', disabled: this.isEditMode() }, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(/^-?\d*(\.\d+)?$/)]],
-      custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(/^-?\d*(\.\d+)?$/)]],
+      quantidadeInicial: [{ value: this.data.template?.saldoEstoque || '', disabled: this.isEditMode() }, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
+      custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       motivo: [this.data.template?.motivo || '', [Validators.required, Validators.maxLength(100)]],
       larguraMm: [null],
       atributos: this.fb.array([])
@@ -250,6 +242,10 @@ export class BatchForm implements OnInit {
     return this.form.get('materiaPrima') as FormControl;
   }
 
+  protected shouldShowControlError(control: FormControl | null): boolean {
+    return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+
   onMaterialTypeChange(event: MatSelectChange): void {
     const materialType = event.value as MaterialType;
     this.materialType.set(materialType);
@@ -331,7 +327,7 @@ export class BatchForm implements OnInit {
   private updateWidthValidation(unidade: string | null): void {
     const widthControl = this.form.get('larguraMm');
     if (unidade && BatchForm.GEOMETRIC_UNITS.has(unidade)) {
-      widthControl?.setValidators([Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
+      widthControl?.setValidators([Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]);
     } else {
       widthControl?.clearValidators();
       widthControl?.reset();
@@ -384,6 +380,8 @@ export class BatchForm implements OnInit {
 
   onSave(): void {
     if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.entityDialog.showErrorSnackbar(BatchForm.Texts.FORM_VALIDATION_ERROR);
       return;
     }
 
@@ -398,16 +396,15 @@ export class BatchForm implements OnInit {
     });
 
     if (this.requiresWidth()) {
-      // Converte para número para garantir tipo correto
-      attributesMap['larguraMm'] = formValue.larguraMm ? Number(formValue.larguraMm) : null;
+      attributesMap['larguraMm'] = formValue.larguraMm ? this.parseDecimal(formValue.larguraMm) : null;
     }
 
     const request: BatchRequest = {
       tipoMateriaPrimaId: materialType.id,
       unidadeDeEstoque: formValue.unidadeDeEstoque,
       unidadeCadastroEstoque: formValue.unidadeDeEstoque,
-      quantidadeInicial: formValue.quantidadeInicial,
-      custoTotalLote: formValue.custoTotalLote,
+      quantidadeInicial: this.parseDecimal(formValue.quantidadeInicial),
+      custoTotalLote: this.parseDecimal(formValue.custoTotalLote),
       motivo: formValue.motivo,
       atributos: attributesMap
     };
@@ -429,5 +426,11 @@ export class BatchForm implements OnInit {
 
   onCancel(): void {
     this.dialogRef.close(false);
+  }
+
+  private parseDecimal(value: unknown): number {
+    const normalized = String(value ?? '0').trim().replace(',', '.');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 }

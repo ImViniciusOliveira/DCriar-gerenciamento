@@ -153,6 +153,7 @@ export class MaterialTypeSearch implements OnInit {
       const selectedMaterial = this.control().value;
       if (selectedMaterial && typeof selectedMaterial !== 'string' && selectedMaterial.unidadeDeConsumo !== selectedUnit) {
         this.control().setValue(null);
+        this.searchControl.setValue('', { emitEvent: false });
       }
       this.applyFilters(typeof this.searchControl.value === 'string' ? this.searchControl.value : '');
     });

@@ -25,7 +25,7 @@
           @if (form.get('quantidade')?.hasError('required')) {
             <mat-error>Informe a quantidade.</mat-error>
           } @else if (form.get('quantidade')?.hasError('pattern')) {
-            <mat-error>Informe apenas numeros.</mat-error>
+            <mat-error>Use até 4 casas decimais.</mat-error>
           } @else if (form.get('quantidade')?.hasError('min')) {
             <mat-error>A quantidade deve ser maior que zero.</mat-error>
           }
@@ -102,7 +102,7 @@
                     @if (larguraBlocoProdutosCmControl.hasError('required')) {
                       <mat-error>Informe a largura.</mat-error>
                     } @else if (larguraBlocoProdutosCmControl.hasError('pattern')) {
-                      <mat-error>Informe apenas numeros.</mat-error>
+                      <mat-error>Use até 4 casas decimais.</mat-error>
                     } @else if (larguraBlocoProdutosCmControl.hasError('min')) {
                       <mat-error>A largura deve ser maior que zero.</mat-error>
                     }
@@ -114,7 +114,7 @@
                     @if (comprimentoBlocoProdutosCmControl.hasError('required')) {
                       <mat-error>Informe o comprimento.</mat-error>
                     } @else if (comprimentoBlocoProdutosCmControl.hasError('pattern')) {
-                      <mat-error>Informe apenas numeros.</mat-error>
+                      <mat-error>Use até 4 casas decimais.</mat-error>
                     } @else if (comprimentoBlocoProdutosCmControl.hasError('min')) {
                       <mat-error>O comprimento deve ser maior que zero.</mat-error>
                     }
@@ -131,7 +131,7 @@
                       <mat-label>Margem Superior</mat-label>
                       <input matInput type="text" formControlName="superior" [errorStateMatcher]="matcher">
                       @if (form.get('margens.superior')?.hasError('pattern')) {
-                        <mat-error>Informe apenas numeros.</mat-error>
+                        <mat-error>Use até 4 casas decimais.</mat-error>
                       }
                     </mat-form-field>
                   </div>
@@ -140,14 +140,14 @@
                       <mat-label>Margem Esquerda</mat-label>
                       <input matInput type="text" formControlName="esquerda" [errorStateMatcher]="matcher">
                       @if (form.get('margens.esquerda')?.hasError('pattern')) {
-                        <mat-error>Informe apenas numeros.</mat-error>
+                        <mat-error>Use até 4 casas decimais.</mat-error>
                       }
                     </mat-form-field>
                     <mat-form-field appearance="outline" class="numeric-input">
                       <mat-label>Margem Direita</mat-label>
                       <input matInput type="text" formControlName="direita" [errorStateMatcher]="matcher">
                       @if (form.get('margens.direita')?.hasError('pattern')) {
-                        <mat-error>Informe apenas numeros.</mat-error>
+                        <mat-error>Use até 4 casas decimais.</mat-error>
                       }
                     </mat-form-field>
                   </div>
@@ -156,7 +156,7 @@
                       <mat-label>Margem Inferior</mat-label>
                       <input matInput type="text" formControlName="inferior" [errorStateMatcher]="matcher">
                       @if (form.get('margens.inferior')?.hasError('pattern')) {
-                        <mat-error>Informe apenas numeros.</mat-error>
+                        <mat-error>Use até 4 casas decimais.</mat-error>
                       }
                     </mat-form-field>
                   </div>

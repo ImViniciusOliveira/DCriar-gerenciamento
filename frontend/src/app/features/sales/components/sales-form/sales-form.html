@@ -41,7 +41,7 @@
                   @if (itemGroup.get('quantidade')?.hasError('required')) {
                     <mat-error>O campo é obrigatório.</mat-error>
                   } @else if (itemGroup.get('quantidade')?.hasError('pattern')) {
-                    <mat-error>Apenas números.</mat-error>
+                    <mat-error>Use apenas números inteiros.</mat-error>
                   } @else if (itemGroup.get('quantidade')?.hasError('min')) {
                     <mat-error>O valor deve ser maior que zero.</mat-error>
                   } @else if (itemGroup.get('quantidade')?.hasError('maxIntegerDigits')) {

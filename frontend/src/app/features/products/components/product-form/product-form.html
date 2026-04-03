@@ -41,10 +41,11 @@
           <mat-form-field class="price-field" appearance="outline">
             <mat-label>Preço Comercial</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="precoComercial" [errorStateMatcher]="matcher" required>
+            <span matTextSuffix>&nbsp;R$</span>
             @if (productForm.get('precoComercial')?.hasError('required')) {
               <mat-error>O preço é obrigatório.</mat-error>
             } @else if (productForm.get('precoComercial')?.hasError('pattern')) {
-              <mat-error>Apenas números.</mat-error>
+              <mat-error>Use até 4 casas decimais.</mat-error>
             } @else if (productForm.get('precoComercial')?.hasError('min')) {
               <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (productForm.get('precoComercial')?.hasError('maxIntegerDigits')) {
@@ -55,10 +56,13 @@
           <mat-form-field class="units-field" appearance="outline">
             <mat-label>Quantidade por Produto</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="unidadesPorProduto" [errorStateMatcher]="matcher" required>
+            @if (getProductQuantityUnitLabel()) {
+              <span matTextSuffix>{{ getProductQuantityUnitLabel() }}</span>
+            }
             @if (productForm.get('unidadesPorProduto')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (productForm.get('unidadesPorProduto')?.hasError('pattern')) {
-              <mat-error>Apenas números.</mat-error>
+              <mat-error>{{ productForm.get('tipoProduto')?.value === 'CORTE' ? 'Use apenas números inteiros.' : 'Use até 4 casas decimais.' }}</mat-error>
             } @else if (productForm.get('unidadesPorProduto')?.hasError('min')) {
               <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (productForm.get('unidadesPorProduto')?.hasError('maxIntegerDigits')) {
@@ -103,6 +107,9 @@
           </mat-form-field>
         }
       </app-material-type-search>
+      @if (shouldShowControlError(materialTypeControl)) {
+        <div class="field-error">Selecione uma matéria-prima.</div>
+      }
 
       @if (productForm.get('dimensoes')?.enabled) {
         <div class="form-grid two-columns dimensions-grid" formGroupName="dimensoes">
@@ -112,7 +119,7 @@
              @if (productForm.get('dimensoes.larguraCm')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (productForm.get('dimensoes.larguraCm')?.hasError('pattern')) {
-              <mat-error>Apenas números.</mat-error>
+              <mat-error>Use até 4 casas decimais.</mat-error>
             } @else if (productForm.get('dimensoes.larguraCm')?.hasError('min')) {
               <mat-error>O valor deve ser maior que 0.1.</mat-error>
             } @else if (productForm.get('dimensoes.larguraCm')?.hasError('maxIntegerDigits')) {
@@ -125,7 +132,7 @@
              @if (productForm.get('dimensoes.comprimentoCm')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('pattern')) {
-              <mat-error>Apenas números.</mat-error>
+              <mat-error>Use até 4 casas decimais.</mat-error>
             } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('min')) {
               <mat-error>O valor deve ser maior que 0.1.</mat-error>
             } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('maxIntegerDigits')) {

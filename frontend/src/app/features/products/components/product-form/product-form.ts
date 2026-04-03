@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Product } from '../../models/product.model';
-import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormGroupDirective, NgForm, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule, MatSelectChange } from '@angular/material/select';
@@ -19,6 +19,8 @@ import { MaterialType } from '../../../stock/models/material-type.model';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
 import { startWith, take } from 'rxjs/operators';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
+import { EntityDialogService } from '../../../../shared/services/entity-dialog';
+import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN } from '../../../../shared/utils/number-patterns';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -55,6 +57,7 @@ export class ProductFormComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
+  private readonly entityDialog = inject(EntityDialogService);
   public readonly dialogRef = inject(MatDialogRef<ProductFormComponent>);
   public readonly data: ProductFormData = inject(MAT_DIALOG_DATA);
 
@@ -90,7 +93,8 @@ export class ProductFormComponent implements OnInit {
     CONFIRM_DELETE_SPEC_MESSAGE: (key: string) => `Deseja realmente remover a característica "${key}"?`,
     LOAD_ERROR: 'Falha ao buscar detalhes completos do produto:',
     SUBMIT_ERROR: 'Falha no envio do formulário:',
-    UPDATE_ERROR: 'ID do produto não encontrado, não é possível atualizar.'
+    UPDATE_ERROR: 'ID do produto não encontrado, não é possível atualizar.',
+    FORM_VALIDATION_ERROR: 'Corrija os campos inválidos antes de continuar.'
   };
 
   constructor() {
@@ -105,16 +109,16 @@ export class ProductFormComponent implements OnInit {
       tipoProduto: [currentProduct.tipoProduto || 'CORTE', Validators.required],
       nome: [currentProduct.nome, [Validators.required, Validators.maxLength(100)]],
       sku: [currentProduct.sku, [Validators.required, Validators.maxLength(50)]],
-      precoComercial: [currentProduct.precoComercial, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(/^-?\d*(\.\d+)?$/)]],
+      precoComercial: [currentProduct.precoComercial, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       descricao: [currentProduct.descricao, Validators.maxLength(100)],
-      unidadesPorProduto: [currentProduct.unidadesPorProduto, [Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]],
+      unidadesPorProduto: [currentProduct.unidadesPorProduto, [Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       unidadeCadastroConsumo: [currentProduct.unidadeCadastroConsumo ?? currentProduct.materiaPrima?.unidadeDeConsumo ?? null],
       ativo: [currentProduct.ativo],
       materiaPrima: [currentProduct.materiaPrima, Validators.required],
       cor: [currentProduct.cor, Validators.maxLength(50)],
       dimensoes: this.fb.group({
-        larguraCm: [currentProduct.dimensoes?.larguraCm, [Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]],
-        comprimentoCm: [currentProduct.dimensoes?.comprimentoCm, [Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]]
+        larguraCm: [currentProduct.dimensoes?.larguraCm, [Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
+        comprimentoCm: [currentProduct.dimensoes?.comprimentoCm, [Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]]
       }),
       codigoFabricante: [currentProduct.codigoFabricante, Validators.maxLength(50)],
       especificacoes: this.fb.array([])
@@ -234,6 +238,10 @@ export class ProductFormComponent implements OnInit {
     return this.productForm.get('materiaPrima') as FormControl;
   }
 
+  protected shouldShowControlError(control: FormControl | null): boolean {
+    return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+
   /**
    * Adiciona uma nova linha de especificação técnica ao formulário.
    */
@@ -295,12 +303,12 @@ export class ProductFormComponent implements OnInit {
     const unidadesControl = this.productForm.get('unidadesPorProduto');
 
     if (type === 'CORTE') {
-      unidadesControl?.setValidators([Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
+      unidadesControl?.setValidators([Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(POSITIVE_INTEGER_PATTERN)]);
       corteControls.forEach(name => {
         this.productForm.get(name)?.enable();
         if (name === 'dimensoes') {
-          this.productForm.get('dimensoes.larguraCm')?.setValidators([Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
-          this.productForm.get('dimensoes.comprimentoCm')?.setValidators([Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
+          this.productForm.get('dimensoes.larguraCm')?.setValidators([Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]);
+          this.productForm.get('dimensoes.comprimentoCm')?.setValidators([Validators.required, Validators.min(0.1), maxIntegerDigits(10), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]);
         }
       });
       corControl?.setValidators([Validators.required, Validators.maxLength(50)]);
@@ -317,7 +325,7 @@ export class ProductFormComponent implements OnInit {
         }
       });
     } else { // CONSUMO
-      unidadesControl?.setValidators([Validators.required, Validators.min(0.0001), maxIntegerDigits(10), Validators.pattern(/^-?\d*(\.\d+)?$/)]);
+      unidadesControl?.setValidators([Validators.required, Validators.min(0.0001), maxIntegerDigits(10), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]);
       consumoControls.forEach(name => this.productForm.get(name)?.enable());
       corControl?.clearValidators();
 
@@ -345,6 +353,8 @@ export class ProductFormComponent implements OnInit {
    */
   async onSubmit(): Promise<void> {
     if (this.productForm.invalid) {
+      this.productForm.markAllAsTouched();
+      this.entityDialog.showErrorSnackbar(ProductFormComponent.Texts.FORM_VALIDATION_ERROR);
       return;
     }
 
@@ -387,7 +397,7 @@ export class ProductFormComponent implements OnInit {
       delete formValue.dimensoes;
     }
 
-    return formValue;
+    return this.normalizeNumericFields(formValue);
   }
 
   /**
@@ -464,7 +474,7 @@ export class ProductFormComponent implements OnInit {
       });
       dirtyValues['especificacoes'] = specsPayload;
     }
-    return dirtyValues;
+    return this.normalizeNumericFields(dirtyValues);
   }
 
   /**
@@ -557,6 +567,27 @@ export class ProductFormComponent implements OnInit {
     return option?.viewValue ?? '';
   }
 
+  getProductQuantityUnitLabel(): string {
+    const selectedUnit = this.productForm.get('unidadeCadastroConsumo')?.value
+      ?? this.materialTypeControl.value?.unidadeDeConsumo
+      ?? null;
+
+    if (!selectedUnit) {
+      return '';
+    }
+
+    const availableOption = this.availableProductUnits().find(option => option.value === selectedUnit);
+    if (availableOption?.simbolo) {
+      return availableOption.simbolo;
+    }
+
+    if (availableOption?.viewValue) {
+      return availableOption.viewValue;
+    }
+
+    return this.getConsumptionUnitLabel(selectedUnit) || selectedUnit;
+  }
+
   private syncConsumptionUnitWithSelectedMaterial(forceBaseUnit = false): void {
     if (this.productForm.get('tipoProduto')?.value !== 'CONSUMO') {
       return;
@@ -619,6 +650,33 @@ export class ProductFormComponent implements OnInit {
       this.availableProductUnits.set(options);
       this.refreshConsumptionUnitOptions();
     });
+  }
+
+  private normalizeNumericFields(payload: any): any {
+    if (payload.precoComercial != null && payload.precoComercial !== '') {
+      payload.precoComercial = this.parseDecimal(payload.precoComercial);
+    }
+
+    if (payload.unidadesPorProduto != null && payload.unidadesPorProduto !== '') {
+      payload.unidadesPorProduto = this.parseDecimal(payload.unidadesPorProduto);
+    }
+
+    if (payload.dimensoes) {
+      if (payload.dimensoes.larguraCm != null && payload.dimensoes.larguraCm !== '') {
+        payload.dimensoes.larguraCm = this.parseDecimal(payload.dimensoes.larguraCm);
+      }
+      if (payload.dimensoes.comprimentoCm != null && payload.dimensoes.comprimentoCm !== '') {
+        payload.dimensoes.comprimentoCm = this.parseDecimal(payload.dimensoes.comprimentoCm);
+      }
+    }
+
+    return payload;
+  }
+
+  private parseDecimal(value: unknown): number {
+    const normalized = String(value ?? '0').trim().replace(',', '.');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 }
 
