@@ -158,23 +158,28 @@ public class GlobalExceptionHandler {
         else if (ex instanceof ProdutoSkuDuplicadoException e) { details.put("sku", e.getSku()); }
         else if (ex instanceof ExclusaoLoteBloqueadaException e) { details.put("info", e.getMessage()); }
         else if (ex instanceof ProdutoCamposBloqueadosException e) {
-            details.put("produtoId", String.valueOf(e.getProdutoId()));
-            details.put("camposBloqueados", e.getCamposBloqueados().toString());
-            e.getMotivosBloqueio().forEach((campo, motivo) -> details.put("motivo." + campo, motivo));
+            preencherDetalhesCamposBloqueados(details, "produtoId", e.getProdutoId(), e);
         }
         else if (ex instanceof TipoMateriaPrimaCamposBloqueadosException e) {
-            details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId()));
-            details.put("camposBloqueados", e.getCamposBloqueados().toString());
-            e.getMotivosBloqueio().forEach((campo, motivo) -> details.put("motivo." + campo, motivo));
+            preencherDetalhesCamposBloqueados(details, "tipoMateriaPrimaId", e.getTipoMateriaPrimaId(), e);
         }
         else if (ex instanceof LoteCamposBloqueadosException e) {
-            details.put("loteId", String.valueOf(e.getLoteId()));
-            details.put("camposBloqueados", e.getCamposBloqueados().toString());
-            e.getMotivosBloqueio().forEach((campo, motivo) -> details.put("motivo." + campo, motivo));
+            preencherDetalhesCamposBloqueados(details, "loteId", e.getLoteId(), e);
         }
 
         log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);
+    }
+
+    private void preencherDetalhesCamposBloqueados(
+            Map<String, String> details,
+            String idKey,
+            Long idValue,
+            AbstractCamposBloqueadosException ex
+    ) {
+        details.put(idKey, String.valueOf(idValue));
+        details.put("camposBloqueados", ex.getCamposBloqueados().toString());
+        ex.getMotivosBloqueio().forEach((campo, motivo) -> details.put("motivo." + campo, motivo));
     }
 
     /**

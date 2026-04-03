@@ -4,6 +4,8 @@ import com.dcriar.api.dto.request.product.ProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.ProdutoDeConsumoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
+import com.dcriar.domain.common.model.CamposBloqueadosInfo;
+import com.dcriar.domain.common.util.CamposBloqueadosUtils;
 import com.dcriar.domain.product.entity.*;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
@@ -29,10 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,6 +58,7 @@ public class ProdutoServiceImpl implements ProdutoService {
             "dimensoes",
             "unidadeCadastroConsumo"
     );
+    private static final String MOTIVO_BLOQUEIO_PRODUTO_EM_USO = "Produto já utilizado em produção ou venda.";
 
     @Override
     @Transactional(readOnly = true)
@@ -386,8 +386,9 @@ public class ProdutoServiceImpl implements ProdutoService {
         dto.setEstoqueFisicoTotal(estoqueFisicoTotal);
         dto.setEstoqueDistribuidoTotal(estoqueDistribuidoTotal);
         dto.setEstoqueDisponivelParaAlocar(estoqueFisicoTotal - estoqueDistribuidoTotal);
-        dto.setCamposBloqueados(resolverCamposBloqueados(produto).keySet());
-        dto.setMotivosBloqueio(resolverCamposBloqueados(produto));
+        CamposBloqueadosInfo camposBloqueados = resolverCamposBloqueados(produto);
+        dto.setCamposBloqueados(camposBloqueados.camposBloqueados());
+        dto.setMotivosBloqueio(camposBloqueados.motivosBloqueio());
         return dto;
     }
 
@@ -444,26 +445,30 @@ public class ProdutoServiceImpl implements ProdutoService {
     }
 
     private void validarCamposBloqueadosNaEdicao(Produto produto, Map<String, Object> fields) {
-        Map<String, String> camposBloqueados = resolverCamposBloqueados(produto);
-        Set<String> tentativaCamposSensveis = fields.keySet().stream()
-                .filter(CAMPOS_SENSIVEIS_PRODUTO::contains)
-                .filter(camposBloqueados::containsKey)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        CamposBloqueadosInfo camposBloqueados = resolverCamposBloqueados(produto);
+        Set<String> tentativaCamposSensveis = CamposBloqueadosUtils.intersectarTentativas(
+                camposBloqueados,
+                fields.keySet().stream().filter(CAMPOS_SENSIVEIS_PRODUTO::contains)
+        );
 
         if (!tentativaCamposSensveis.isEmpty()) {
-            throw new ProdutoCamposBloqueadosException(produto.getId(), tentativaCamposSensveis, camposBloqueados);
+            throw new ProdutoCamposBloqueadosException(
+                    produto.getId(),
+                    tentativaCamposSensveis,
+                    camposBloqueados.motivosBloqueio()
+            );
         }
     }
 
-    private Map<String, String> resolverCamposBloqueados(Produto produto) {
+    private CamposBloqueadosInfo resolverCamposBloqueados(Produto produto) {
         if (!produtoPossuiUsoOperacional(produto)) {
-            return Collections.emptyMap();
+            return CamposBloqueadosInfo.vazio();
         }
 
-        Map<String, String> bloqueios = new LinkedHashMap<>();
-        String motivoPadrao = "Produto já utilizado em produção ou venda.";
-        CAMPOS_SENSIVEIS_PRODUTO.forEach(campo -> bloqueios.put(campo, motivoPadrao));
-        return bloqueios;
+        return CamposBloqueadosUtils.bloquearTodos(
+                CAMPOS_SENSIVEIS_PRODUTO,
+                MOTIVO_BLOQUEIO_PRODUTO_EM_USO
+        );
     }
 
     private boolean produtoPossuiUsoOperacional(Produto produto) {

@@ -10,20 +10,16 @@ import java.util.Set;
  * que já possui uso operacional e, portanto, não deve mais ter esses dados modificados.
  */
 @Getter
-public class ProdutoCamposBloqueadosException extends RuntimeException {
+public class ProdutoCamposBloqueadosException extends AbstractCamposBloqueadosException {
 
     private final Long produtoId;
-    private final Set<String> camposBloqueados;
-    private final Map<String, String> motivosBloqueio;
 
     public ProdutoCamposBloqueadosException(Long produtoId, Set<String> camposBloqueados, Map<String, String> motivosBloqueio) {
         super(String.format(
                 "O produto com id %d possui campos bloqueados para edição: %s",
                 produtoId,
                 camposBloqueados
-        ));
+        ), camposBloqueados, motivosBloqueio);
         this.produtoId = produtoId;
-        this.camposBloqueados = camposBloqueados;
-        this.motivosBloqueio = motivosBloqueio;
     }
 }

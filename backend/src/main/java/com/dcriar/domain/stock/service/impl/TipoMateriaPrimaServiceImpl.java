@@ -3,6 +3,8 @@ package com.dcriar.domain.stock.service.impl;
 import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
 import com.dcriar.api.mapper.stock.TipoMateriaPrimaMapper;
+import com.dcriar.domain.common.model.CamposBloqueadosInfo;
+import com.dcriar.domain.common.util.CamposBloqueadosUtils;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
@@ -24,10 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -50,6 +48,8 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     private final ProdutoRepository produtoRepository;
 
     private static final Set<String> CAMPOS_SENSIVEIS_TIPO_MATERIA_PRIMA = Set.of("unidadeDeConsumo");
+    private static final String MOTIVO_BLOQUEIO_TIPO_MATERIA_PRIMA_EM_USO =
+            "Tipo de matéria-prima já utilizado por produtos ou lotes.";
 
     @Override
     @Transactional(readOnly = true)
@@ -127,9 +127,9 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
 
     private TipoMateriaPrimaResponseDTO mapAndEnrichTipo(TipoMateriaPrima tipo) {
         TipoMateriaPrimaResponseDTO dto = tipoMateriaPrimaMapper.toResponseDTO(tipo);
-        Map<String, String> camposBloqueados = resolverCamposBloqueados(tipo);
-        dto.setCamposBloqueados(camposBloqueados.keySet());
-        dto.setMotivosBloqueio(camposBloqueados);
+        CamposBloqueadosInfo camposBloqueados = resolverCamposBloqueados(tipo);
+        dto.setCamposBloqueados(camposBloqueados.camposBloqueados());
+        dto.setMotivosBloqueio(camposBloqueados.motivosBloqueio());
         return dto;
     }
 
@@ -150,27 +150,31 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     }
 
     private void validarCamposBloqueadosNaEdicao(TipoMateriaPrima tipo, TipoMateriaPrimaRequestDTO requestDTO) {
-        Map<String, String> camposBloqueados = resolverCamposBloqueados(tipo);
-        Set<String> tentativaCamposSensveis = new LinkedHashSet<>();
-
-        if (requestDTO.getUnidadeDeConsumo() != null && camposBloqueados.containsKey("unidadeDeConsumo")) {
-            tentativaCamposSensveis.add("unidadeDeConsumo");
-        }
+        CamposBloqueadosInfo camposBloqueados = resolverCamposBloqueados(tipo);
+        Set<String> tentativaCamposSensveis = CamposBloqueadosUtils.intersectarTentativas(
+                camposBloqueados,
+                Stream.of(requestDTO.getUnidadeDeConsumo() != null ? "unidadeDeConsumo" : null)
+                        .filter(Objects::nonNull)
+        );
 
         if (!tentativaCamposSensveis.isEmpty()) {
-            throw new TipoMateriaPrimaCamposBloqueadosException(tipo.getId(), tentativaCamposSensveis, camposBloqueados);
+            throw new TipoMateriaPrimaCamposBloqueadosException(
+                    tipo.getId(),
+                    tentativaCamposSensveis,
+                    camposBloqueados.motivosBloqueio()
+            );
         }
     }
 
-    private Map<String, String> resolverCamposBloqueados(TipoMateriaPrima tipo) {
+    private CamposBloqueadosInfo resolverCamposBloqueados(TipoMateriaPrima tipo) {
         if (!tipoMateriaPrimaPossuiUsoOperacional(tipo)) {
-            return Collections.emptyMap();
+            return CamposBloqueadosInfo.vazio();
         }
 
-        Map<String, String> bloqueios = new LinkedHashMap<>();
-        String motivoPadrao = "Tipo de matéria-prima já utilizado por produtos ou lotes.";
-        CAMPOS_SENSIVEIS_TIPO_MATERIA_PRIMA.forEach(campo -> bloqueios.put(campo, motivoPadrao));
-        return bloqueios;
+        return CamposBloqueadosUtils.bloquearTodos(
+                CAMPOS_SENSIVEIS_TIPO_MATERIA_PRIMA,
+                MOTIVO_BLOQUEIO_TIPO_MATERIA_PRIMA_EM_USO
+        );
     }
 
     private boolean tipoMateriaPrimaPossuiUsoOperacional(TipoMateriaPrima tipo) {

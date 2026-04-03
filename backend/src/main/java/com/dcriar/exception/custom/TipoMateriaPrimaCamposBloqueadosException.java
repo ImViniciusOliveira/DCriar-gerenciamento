@@ -10,20 +10,16 @@ import java.util.Set;
  * que já possui uso operacional e, por isso, não deve mais ser modificado livremente.
  */
 @Getter
-public class TipoMateriaPrimaCamposBloqueadosException extends RuntimeException {
+public class TipoMateriaPrimaCamposBloqueadosException extends AbstractCamposBloqueadosException {
 
     private final Long tipoMateriaPrimaId;
-    private final Set<String> camposBloqueados;
-    private final Map<String, String> motivosBloqueio;
 
     public TipoMateriaPrimaCamposBloqueadosException(Long tipoMateriaPrimaId, Set<String> camposBloqueados, Map<String, String> motivosBloqueio) {
         super(String.format(
                 "O tipo de matéria-prima com id %d possui campos bloqueados para edição: %s",
                 tipoMateriaPrimaId,
                 camposBloqueados
-        ));
+        ), camposBloqueados, motivosBloqueio);
         this.tipoMateriaPrimaId = tipoMateriaPrimaId;
-        this.camposBloqueados = camposBloqueados;
-        this.motivosBloqueio = motivosBloqueio;
     }
 }

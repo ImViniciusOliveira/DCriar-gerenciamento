@@ -190,26 +190,194 @@ INSERT INTO itens_venda (venda_id, produto_id, quantidade, preco_comercial_origi
     ((SELECT id FROM vendas WHERE valor_total = 189.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Loja Física')), (SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'), 1, 189.90, 189.90, 189.90, 'PRECO_PADRAO', NULL),
     ((SELECT id FROM vendas WHERE valor_total = 159.80 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio')), (SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'), 2, 79.90, 79.90, 159.80, 'PRECO_PADRAO', NULL);
 
--- Histórico de Movimentações de Estoque de Produto (dependem de Produtos e Ordens de Produção)
-INSERT INTO movimentacoes_estoque_produto (produto_id, data, tipo, quantidade, motivo, ordem_producao_id) VALUES
-    ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), NOW() - INTERVAL '5 day', 'ENTRADA_PRODUCAO', 5000, 'Ordem de Produção #P101', (SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-SHP-101')),
-    ((SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), NOW() - INTERVAL '4 day', 'ENTRADA_PRODUCAO', 10, 'Ordem de Produção #P102', (SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-LJA-205')),
-    ((SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), NOW() - INTERVAL '3 day', 'ENTRADA_PRODUCAO', 1000, 'Ordem de Produção #P103', null),
-    ((SELECT id FROM produtos WHERE sku = 'ROT-CERV-LN'), NOW() - INTERVAL '2 day', 'ENTRADA_PRODUCAO', 250, 'Ordem de Produção #P104', null),
-    ((SELECT id FROM produtos WHERE sku = 'TAG-KFT-4X9'), NOW() - INTERVAL '1 day', 'ENTRADA_PRODUCAO', 500, 'Ordem de Produção #P105', null),
-    ((SELECT id FROM produtos WHERE sku = 'TIN-PRE-ES-1L'), NOW() - INTERVAL '1 day', 'ENTRADA_PRODUCAO', 10, 'Entrada de estoque inicial', null),
-    ((SELECT id FROM produtos WHERE sku = 'FITA-DF-25MM'), NOW() - INTERVAL '1 day', 'ENTRADA_PRODUCAO', 5, 'Entrada de estoque inicial', null),
-    ((SELECT id FROM produtos WHERE sku = 'ILHOS-BNR-100'), NOW() - INTERVAL '1 day', 'ENTRADA_PRODUCAO', 20, 'Entrada de estoque inicial', null),
-    ((SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'), NOW() - INTERVAL '20 hour', 'ENTRADA_PRODUCAO', 8, 'Produzido pela Ordem LOTE-INT-RESINA-201', (SELECT id FROM ordens_de_producao WHERE motivo = 'LOTE-INT-RESINA-201')),
-    ((SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'), NOW() - INTERVAL '18 hour', 'ENTRADA_PRODUCAO', 15, 'Produzido pela Ordem REPOSICAO-DTF-305', (SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-DTF-305')),
-    ((SELECT id FROM produtos WHERE sku = 'VERN-UV-250'), NOW() - INTERVAL '16 hour', 'ENTRADA_PRODUCAO', 12, 'Produzido pela Ordem REPOSICAO-UV-410', (SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-UV-410')),
-    ((SELECT id FROM produtos WHERE sku = 'PAP-SEDA-A4-100'), NOW() - INTERVAL '14 hour', 'ENTRADA_PRODUCAO', 20, 'Produzido pela Ordem ESTOQUE-PAPEL-SEDA-112', (SELECT id FROM ordens_de_producao WHERE motivo = 'ESTOQUE-PAPEL-SEDA-112')),
-    ((SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), NOW() - INTERVAL '3 hour', 'ENTRADA_PRODUCAO', 50, 'Produzido pela Ordem #3', (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido')),
-    ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), NOW() - INTERVAL '2 hour', 'ENTRADA_PRODUCAO', 1000, 'Produzido pela Ordem #4', (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Venda')),
-    ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), NOW() - INTERVAL '1 hour', 'SAIDA_VENDA', -200, 'Venda #V555', null),
-    ((SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), NOW() - INTERVAL '1 hour', 'ENTRADA_PRODUCAO', 20, 'Produzido pela Ordem #5', (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora')),
-    ((SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'), NOW() - INTERVAL '10 hour', 'SAIDA_VENDA', -1, 'Venda de balcão #RES-201', null),
-    ((SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'), NOW() - INTERVAL '8 hour', 'SAIDA_VENDA', -2, 'Pedido e-commerce #DTF-887', null);
+-- Histórico de Movimentações de Estoque de Produto (dependem de Produtos, Ordens de Produção e Vendas)
+-- Observação:
+-- - ordens de produção reais preenchem ordem_producao_id e ordem_producao_origem_id
+-- - vendas preenchem venda_origem_id para alimentar a auditoria do histórico consolidado
+-- - cargas iniciais de produtos sem OP foram convertidas para AJUSTE_MANUAL, que descreve melhor a origem do saldo
+INSERT INTO movimentacoes_estoque_produto (
+    produto_id, data, tipo, quantidade, motivo, ordem_producao_id, ordem_producao_origem_id, venda_origem_id
+) VALUES
+    (
+        (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'),
+        NOW() - INTERVAL '5 day',
+        'ENTRADA_PRODUCAO',
+        5000,
+        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-SHP-101')),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-SHP-101'),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-SHP-101'),
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'),
+        NOW() - INTERVAL '4 day',
+        'ENTRADA_PRODUCAO',
+        50,
+        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-LJA-205')),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-LJA-205'),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-LJA-205'),
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'),
+        NOW() - INTERVAL '3 day',
+        'AJUSTE_MANUAL',
+        1000,
+        'Ajuste inicial do estoque para carga de dados',
+        NULL,
+        NULL,
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'ROT-CERV-LN'),
+        NOW() - INTERVAL '2 day',
+        'AJUSTE_MANUAL',
+        250,
+        'Ajuste inicial do estoque para carga de dados',
+        NULL,
+        NULL,
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'TAG-KFT-4X9'),
+        NOW() - INTERVAL '1 day',
+        'AJUSTE_MANUAL',
+        500,
+        'Ajuste inicial do estoque para carga de dados',
+        NULL,
+        NULL,
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'TIN-PRE-ES-1L'),
+        NOW() - INTERVAL '1 day',
+        'AJUSTE_MANUAL',
+        10,
+        'Ajuste inicial do estoque para carga de dados',
+        NULL,
+        NULL,
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'FITA-DF-25MM'),
+        NOW() - INTERVAL '1 day',
+        'AJUSTE_MANUAL',
+        5,
+        'Ajuste inicial do estoque para carga de dados',
+        NULL,
+        NULL,
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'ILHOS-BNR-100'),
+        NOW() - INTERVAL '1 day',
+        'AJUSTE_MANUAL',
+        20,
+        'Ajuste inicial do estoque para carga de dados',
+        NULL,
+        NULL,
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'),
+        NOW() - INTERVAL '20 hour',
+        'ENTRADA_PRODUCAO',
+        8,
+        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'LOTE-INT-RESINA-201')),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'LOTE-INT-RESINA-201'),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'LOTE-INT-RESINA-201'),
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'),
+        NOW() - INTERVAL '18 hour',
+        'ENTRADA_PRODUCAO',
+        15,
+        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-DTF-305')),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-DTF-305'),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-DTF-305'),
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'VERN-UV-250'),
+        NOW() - INTERVAL '16 hour',
+        'ENTRADA_PRODUCAO',
+        12,
+        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-UV-410')),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-UV-410'),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-UV-410'),
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'PAP-SEDA-A4-100'),
+        NOW() - INTERVAL '14 hour',
+        'ENTRADA_PRODUCAO',
+        20,
+        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'ESTOQUE-PAPEL-SEDA-112')),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'ESTOQUE-PAPEL-SEDA-112'),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'ESTOQUE-PAPEL-SEDA-112'),
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'),
+        NOW() - INTERVAL '3 hour',
+        'ENTRADA_PRODUCAO',
+        50,
+        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido')),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'),
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'),
+        NOW() - INTERVAL '2 hour',
+        'ENTRADA_PRODUCAO',
+        1000,
+        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Venda')),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Venda'),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Venda'),
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'),
+        NOW() - INTERVAL '1 hour',
+        'SAIDA_VENDA',
+        -200,
+        CONCAT('Venda #', (SELECT id FROM vendas WHERE valor_total = 99.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'))),
+        NULL,
+        NULL,
+        (SELECT id FROM vendas WHERE valor_total = 99.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'))
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'),
+        NOW() - INTERVAL '1 hour',
+        'ENTRADA_PRODUCAO',
+        20,
+        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora')),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'),
+        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'),
+        NULL
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'),
+        NOW() - INTERVAL '10 hour',
+        'SAIDA_VENDA',
+        -1,
+        CONCAT('Venda #', (SELECT id FROM vendas WHERE valor_total = 189.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Loja Física'))),
+        NULL,
+        NULL,
+        (SELECT id FROM vendas WHERE valor_total = 189.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Loja Física'))
+    ),
+    (
+        (SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'),
+        NOW() - INTERVAL '8 hour',
+        'SAIDA_VENDA',
+        -2,
+        CONCAT('Venda #', (SELECT id FROM vendas WHERE valor_total = 159.80 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'))),
+        NULL,
+        NULL,
+        (SELECT id FROM vendas WHERE valor_total = 159.80 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'))
+    );
 
 -- Histórico de Movimentações de Estoque de Lote (dependem de Lotes e Ordens de Produção)
 INSERT INTO movimentacoes_estoque_lote (lote_id, ordem_producao_id, data, tipo, quantidade, motivo) VALUES

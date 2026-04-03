@@ -10,20 +10,16 @@ import java.util.Set;
  * que já possui uso operacional e, por isso, não deve mais ser modificado livremente.
  */
 @Getter
-public class LoteCamposBloqueadosException extends RuntimeException {
+public class LoteCamposBloqueadosException extends AbstractCamposBloqueadosException {
 
     private final Long loteId;
-    private final Set<String> camposBloqueados;
-    private final Map<String, String> motivosBloqueio;
 
     public LoteCamposBloqueadosException(Long loteId, Set<String> camposBloqueados, Map<String, String> motivosBloqueio) {
         super(String.format(
                 "O lote com id %d possui campos bloqueados para edição: %s",
                 loteId,
                 camposBloqueados
-        ));
+        ), camposBloqueados, motivosBloqueio);
         this.loteId = loteId;
-        this.camposBloqueados = camposBloqueados;
-        this.motivosBloqueio = motivosBloqueio;
     }
 }
