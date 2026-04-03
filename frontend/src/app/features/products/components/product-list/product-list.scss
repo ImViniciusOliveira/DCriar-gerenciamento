@@ -24,3 +24,10 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
+
+.product-list__active-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}

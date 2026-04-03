@@ -40,9 +40,11 @@
 
 <!-- Template para a coluna Ativo, exibindo um ícone de status -->
 <ng-template #ativoTemplate let-product>
-  <mat-icon [color]="product.ativo ? 'primary' : 'warn'">
-    {{ product.ativo ? 'check_circle' : 'cancel' }}
-  </mat-icon>
+  <div class="product-list__active-indicator">
+    <mat-icon [color]="product.ativo ? 'primary' : 'warn'">
+      {{ product.ativo ? 'check_circle' : 'cancel' }}
+    </mat-icon>
+  </div>
 </ng-template>
 
 <ng-template #priceTemplate let-product>
