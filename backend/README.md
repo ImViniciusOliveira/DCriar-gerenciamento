@@ -72,6 +72,8 @@ mvn spring-boot:run
 ```
 A API estará disponível em `http://localhost:8080`.
 
+Em desenvolvimento com o frontend Angular, as chamadas do navegador devem ser feitas via `/api`, usando o proxy configurado no `ng serve`.
+
 ---
 
 ## Documentação Javadoc

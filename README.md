@@ -73,7 +73,9 @@ sudo bash scripts/lib/compose-run.sh --mode prod --env-file /etc/dcriar/.env.pro
 
 ## Acesso pela rede local
 
-Se o host em que você subiu o stack estiver na mesma rede local (e as portas estiverem mapeadas no `docker-compose` para o host, como `80:80` e `8080:8080`), outros computadores na mesma rede poderão acessar o frontend via `http://<IP_DO_HOST>/` e a API via `http://<IP_DO_HOST>:8080`.
+Se o host em que você subiu o stack estiver na mesma rede local (e a porta `80:80` estiver mapeada para o host), outros computadores na mesma rede poderão acessar o sistema via `http://<IP_DO_HOST>/`.
+
+O frontend encaminha `/api` para o backend internamente pelo nginx, então o backend não precisa ficar exposto publicamente no host.
 
 Exemplo para descobrir o IP do host (Linux):
 
@@ -83,7 +85,7 @@ hostname -I | awk '{print $1}'
 
 Observações de segurança:
 - Em produção, configure firewalls e regras de rede apropriadas.
-- Não exponha portas desnecessárias para a internet pública sem proteção (TLS, autenticação, WAF etc.).
+- Exponha apenas o frontend; mantenha o backend acessível só pela rede interna do compose sempre que possível.
 
 ---
 

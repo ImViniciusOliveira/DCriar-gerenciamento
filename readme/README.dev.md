@@ -73,7 +73,7 @@ docker run --rm -p 8080:8080 --env-file ./.env.dev.local dcriar-api:local
 ```
 
 1) Testar a integração
-- Acesse o frontend (http://localhost:4200) e verifique chamadas à API local (que deve apontar para `http://localhost:8080` se o backend estiver exposto).
+- Acesse o frontend (http://localhost:4200) e verifique chamadas à API local via `/api` (o proxy do Angular encaminha para `http://localhost:8080`).
 - Verifique o MinIO console em `http://localhost:9001` (user/pass conforme `.env.dev.local`).
 
 1) Dicas para IDE (IntelliJ)

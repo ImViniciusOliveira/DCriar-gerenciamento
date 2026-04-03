@@ -90,22 +90,35 @@ Conteúdo de exemplo (preencha valores reais):
 
 ```dotenv
 # /etc/dcriar/.env.prod
-APP_PORT=8080
 FRONTEND_PORT=80
 
 # Imagens (ajuste para a tag desejada)
-BACKEND_IMAGE=imviniciusoliveira/dcriar-backend:1.0.0
-FRONTEND_IMAGE=imviniciusoliveira/dcriar-frontend:1.0.0
+DOCKER_REGISTRY_USER=imviniciusoliveira
+BACKEND_IMAGE_NAME=dcriar-api
+FRONTEND_IMAGE_NAME=dcriar-frontend
+APP_VERSION=1.0.0
 
 # PostgreSQL
-POSTGRES_DB=dcriar
-POSTGRES_USER=dcriar_user
+POSTGRES_DB=dcriar_prod_db
+POSTGRES_USER=dcriar_prod_user
 POSTGRES_PASSWORD=SENHA_REAL_DO_BANCO_DE_PRODUCAO
 
 # MinIO
-MINIO_ROOT_USER=minio_admin
+MINIO_ROOT_USER=minio_prod_user
 MINIO_ROOT_PASSWORD=SENHA_REAL_DO_MINIO_DE_PRODUCAO
-MINIO_BUCKET_NAME=dcriar-bucket
+MINIO_BUCKET_NAME=dcriar-prod-bucket
+
+# Backend interno no compose
+SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-prod:5432/dcriar_prod_db
+SPRING_DATASOURCE_USERNAME=dcriar_prod_user
+SPRING_DATASOURCE_PASSWORD=SENHA_REAL_DO_BANCO_DE_PRODUCAO
+MINIO_URL=http://minio-prod:9000
+MINIO_ACCESS_KEY=minio_prod_user
+MINIO_SECRET_KEY=SENHA_REAL_DO_MINIO_DE_PRODUCAO
+
+# Use o domínio/host público do frontend.
+# Em testes locais na rede, pode ser localhost e/ou o IP do host.
+CORS_ALLOWED_ORIGIN=https://seu-frontend.exemplo.com
 ```
 
 Proteja o arquivo:
@@ -136,6 +149,10 @@ PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose
 ```bash
 PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml up -d
 ```
+
+Observação:
+- Apenas o frontend deve ficar exposto no host.
+- O backend atende internamente e recebe chamadas via `/api` através do nginx do frontend.
 
 3) Logs e status
 
