@@ -16,9 +16,9 @@ import { lastValueFrom } from 'rxjs';
 import { provideNgxMask } from 'ngx-mask';
 import { MaterialTypeSearch } from '../../../../shared/components/material-type-search/material-type-search';
 import { MaterialType } from '../../../stock/models/material-type.model';
-import { ErrorStateMatcher } from '@angular/material/core';
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
 import { startWith, take } from 'rxjs/operators';
+import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -33,12 +33,6 @@ export function maxIntegerDigits(maxDigits: number): ValidatorFn {
     }
     return null;
   };
-}
-
-export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
-  isErrorState(control: FormControl | null, _form: FormGroupDirective | NgForm | null): boolean {
-    return !!(control && control.invalid && (control.dirty || control.touched));
-  }
 }
 
 /**
@@ -70,7 +64,7 @@ export class ProductFormComponent implements OnInit {
   readonly unitsUrl = computed(() =>
     this.product()?._links?.['unidades-de-medida']?.href?.split('{')[0] ?? null
   );
-  matcher = new ImmediateErrorStateMatcher();
+  matcher = new InstantErrorStateMatcher();
   readonly consumptionUnitOptions = signal<EnumOption[]>([]);
   readonly availableProductUnits = signal<EnumOption[]>([]);
 
