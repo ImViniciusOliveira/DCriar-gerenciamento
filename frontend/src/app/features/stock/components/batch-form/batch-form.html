@@ -63,7 +63,8 @@
         <!-- Motivo -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Motivo da Entrada</mat-label>
-          <textarea matInput formControlName="motivo" [errorStateMatcher]="matcher" required></textarea>
+          <textarea matInput formControlName="motivo" [errorStateMatcher]="matcher" maxlength="100" required></textarea>
+          <mat-hint align="end">{{ form.get('motivo')?.value?.length || 0 }}/100</mat-hint>
           @if (form.get('motivo')?.hasError('required')) {
             <mat-error>O campo é obrigatório.</mat-error>
           } @else if (form.get('motivo')?.hasError('maxlength')) {

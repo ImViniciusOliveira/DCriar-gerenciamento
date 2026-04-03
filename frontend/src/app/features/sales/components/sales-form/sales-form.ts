@@ -269,7 +269,7 @@ export class SalesForm implements OnInit {
       precoAplicado: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+([.,]\d{1,4})?$/)]],
       precoTotal: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+([.,]\d{1,2})?$/)]],
       tipoPrecoAplicado: ['PRECO_PADRAO' as SalePriceType, Validators.required],
-      motivoAlteracaoPreco: [''],
+      motivoAlteracaoPreco: ['', Validators.maxLength(100)],
       quantidade: [1, [
         Validators.required,
         Validators.min(1),

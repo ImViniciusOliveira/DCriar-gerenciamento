@@ -14,16 +14,26 @@
             [productType]="tipoProducaoControl.value || null"
             (selectionChange)="onProdutoChange($event)">
           </app-product-stock-search>
+          @if (shouldShowControlError(produtoControl)) {
+            <div class="field-error">Selecione um produto.</div>
+          }
         </div>
 
         <mat-form-field appearance="outline" class="quantity-field">
           <mat-label>Qtd.</mat-label>
-          <input matInput type="text" formControlName="quantidade" required>
+          <input matInput type="text" formControlName="quantidade" required [errorStateMatcher]="matcher">
+          @if (form.get('quantidade')?.hasError('required')) {
+            <mat-error>Informe a quantidade.</mat-error>
+          } @else if (form.get('quantidade')?.hasError('pattern')) {
+            <mat-error>Informe apenas numeros.</mat-error>
+          } @else if (form.get('quantidade')?.hasError('min')) {
+            <mat-error>A quantidade deve ser maior que zero.</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="production-type-field">
           <mat-label>Tipo de Produção</mat-label>
-          <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()" required>
+          <mat-select formControlName="tipoProducao" (selectionChange)="onTipoProducaoManualChange()" [errorStateMatcher]="matcher">
             <mat-select-trigger>
               @switch (tipoProducaoControl.value) {
                 @case ('') { Todos }
@@ -48,6 +58,9 @@
               [tipoMateriaPrimaId]="produto()?.materiaPrima?.id || null"
               (selectionChange)="onLoteChange($event)">
             </app-batch-search>
+            @if (shouldShowControlError(loteIdControl)) {
+              <div class="field-error">Selecione um lote.</div>
+            }
           </div>
         </div>
       }
@@ -85,12 +98,26 @@
                 } @else {
                   <mat-form-field appearance="outline" class="dimensao-input">
                     <mat-label>Largura</mat-label>
-                    <input matInput type="text" formControlName="larguraBlocoProdutosCm" required>
+                    <input matInput type="text" formControlName="larguraBlocoProdutosCm" required [errorStateMatcher]="matcher">
+                    @if (larguraBlocoProdutosCmControl.hasError('required')) {
+                      <mat-error>Informe a largura.</mat-error>
+                    } @else if (larguraBlocoProdutosCmControl.hasError('pattern')) {
+                      <mat-error>Informe apenas numeros.</mat-error>
+                    } @else if (larguraBlocoProdutosCmControl.hasError('min')) {
+                      <mat-error>A largura deve ser maior que zero.</mat-error>
+                    }
                   </mat-form-field>
                   <span class="dimensao-separator">×</span>
                   <mat-form-field appearance="outline" class="dimensao-input">
                     <mat-label>Comprimento</mat-label>
-                    <input matInput type="text" formControlName="comprimentoBlocoProdutosCm" required>
+                    <input matInput type="text" formControlName="comprimentoBlocoProdutosCm" required [errorStateMatcher]="matcher">
+                    @if (comprimentoBlocoProdutosCmControl.hasError('required')) {
+                      <mat-error>Informe o comprimento.</mat-error>
+                    } @else if (comprimentoBlocoProdutosCmControl.hasError('pattern')) {
+                      <mat-error>Informe apenas numeros.</mat-error>
+                    } @else if (comprimentoBlocoProdutosCmControl.hasError('min')) {
+                      <mat-error>O comprimento deve ser maior que zero.</mat-error>
+                    }
                   </mat-form-field>
                   <span class="dimensao-unit">cm</span>
                 }
@@ -102,23 +129,35 @@
                   <div>
                     <mat-form-field appearance="outline" class="numeric-input">
                       <mat-label>Margem Superior</mat-label>
-                      <input matInput type="text" formControlName="superior">
+                      <input matInput type="text" formControlName="superior" [errorStateMatcher]="matcher">
+                      @if (form.get('margens.superior')?.hasError('pattern')) {
+                        <mat-error>Informe apenas numeros.</mat-error>
+                      }
                     </mat-form-field>
                   </div>
                   <div class="form-row">
                     <mat-form-field appearance="outline" class="numeric-input">
                       <mat-label>Margem Esquerda</mat-label>
-                      <input matInput type="text" formControlName="esquerda">
+                      <input matInput type="text" formControlName="esquerda" [errorStateMatcher]="matcher">
+                      @if (form.get('margens.esquerda')?.hasError('pattern')) {
+                        <mat-error>Informe apenas numeros.</mat-error>
+                      }
                     </mat-form-field>
                     <mat-form-field appearance="outline" class="numeric-input">
                       <mat-label>Margem Direita</mat-label>
-                      <input matInput type="text" formControlName="direita">
+                      <input matInput type="text" formControlName="direita" [errorStateMatcher]="matcher">
+                      @if (form.get('margens.direita')?.hasError('pattern')) {
+                        <mat-error>Informe apenas numeros.</mat-error>
+                      }
                     </mat-form-field>
                   </div>
                   <div>
                     <mat-form-field appearance="outline" class="numeric-input">
                       <mat-label>Margem Inferior</mat-label>
-                      <input matInput type="text" formControlName="inferior">
+                      <input matInput type="text" formControlName="inferior" [errorStateMatcher]="matcher">
+                      @if (form.get('margens.inferior')?.hasError('pattern')) {
+                        <mat-error>Informe apenas numeros.</mat-error>
+                      }
                     </mat-form-field>
                   </div>
                 </div>
@@ -127,8 +166,11 @@
               <!-- LINHA 5: Motivo -->
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Motivo/Referência</mat-label>
-                <textarea matInput formControlName="motivo" rows="3" maxlength="255" placeholder="Ex: Pedido Cliente #456"></textarea>
-                <mat-hint align="end">{{ motivoControl.value?.length || 0 }}/255</mat-hint>
+                <textarea matInput formControlName="motivo" rows="3" maxlength="100" placeholder="Ex: Pedido Cliente #456" [errorStateMatcher]="matcher"></textarea>
+                <mat-hint align="end">{{ motivoControl.value?.length || 0 }}/100</mat-hint>
+                @if (motivoControl.hasError('maxlength')) {
+                  <mat-error>O motivo deve ter no máximo 100 caracteres.</mat-error>
+                }
               </mat-form-field>
 
               @if (result.rotacionado) {
@@ -146,7 +188,7 @@
               <div class="form-right-row">
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Canal de Venda</mat-label>
-                  <mat-select formControlName="canalVendaId">
+                  <mat-select formControlName="canalVendaId" [errorStateMatcher]="matcher">
                     <mat-select-trigger>{{ selectedChannelName() || 'Nenhum' }}</mat-select-trigger>
                     <mat-option value="">Nenhum</mat-option>
                     @for (channel of channels(); track channel.id) {
@@ -157,11 +199,14 @@
 
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Modo de Cálculo</mat-label>
-                  <mat-select formControlName="modoCalculo" (selectionChange)="onModoCalculoChange()" required>
+                  <mat-select formControlName="modoCalculo" (selectionChange)="onModoCalculoChange()" required [errorStateMatcher]="matcher">
                     <mat-select-trigger>{{ modoCalculoControl.value }}</mat-select-trigger>
                     <mat-option value="AUTOMATICO">AUTOMATICO</mat-option>
                     <mat-option value="MANUAL">MANUAL</mat-option>
                   </mat-select>
+                  @if (modoCalculoControl.hasError('required')) {
+                    <mat-error>Selecione o modo de cálculo.</mat-error>
+                  }
                 </mat-form-field>
               </div>
             </div>
@@ -341,8 +386,11 @@
             <div class="form-left">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Motivo/Referência</mat-label>
-                <textarea matInput formControlName="motivo" rows="3" maxlength="255" placeholder="Ex: Pedido Cliente #456"></textarea>
-                <mat-hint align="end">{{ motivoControl.value?.length || 0 }}/255</mat-hint>
+                <textarea matInput formControlName="motivo" rows="3" maxlength="100" placeholder="Ex: Pedido Cliente #456" [errorStateMatcher]="matcher"></textarea>
+                <mat-hint align="end">{{ motivoControl.value?.length || 0 }}/100</mat-hint>
+                @if (motivoControl.hasError('maxlength')) {
+                  <mat-error>O motivo deve ter no máximo 100 caracteres.</mat-error>
+                }
               </mat-form-field>
             </div>
 

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, NonNullableFormBuilder } from '@angular/forms';
+import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -75,7 +75,7 @@ export class BatchAdjustmentForm {
     tipoOperacao: this.fb.control<BatchAdjustmentOperation>('AJUSTE'),
     direcao: this.fb.control<BatchAdjustmentDirection | null>('RETIRAR'),
     quantidade: this.fb.control(''),
-    motivo: this.fb.control('')
+    motivo: this.fb.control('', Validators.maxLength(100))
   });
 
   protected readonly isCalculating = signal(false);
@@ -217,6 +217,11 @@ export class BatchAdjustmentForm {
   }
 
   protected calculateAdjustment(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
     const calculateUrl = this.batch()._links?.['calcular-ajuste']?.href;
     if (!calculateUrl) {
       this.entityDialog.showErrorSnackbar(BatchAdjustmentForm.Texts.MISSING_LINK);

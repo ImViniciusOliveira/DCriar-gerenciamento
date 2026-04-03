@@ -25,6 +25,10 @@ import { EnumService } from '../../../../core/services/enum.service';
 import { ProductService } from '../../../products/services/product.service';
 import { BatchService } from '../../../stock/services/batch.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
+import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
+
+const POSITIVE_DECIMAL_PATTERN = /^\d+([.,]\d+)?$/;
+const SIGNED_DECIMAL_PATTERN = /^-?\d+([.,]\d+)?$/;
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -74,6 +78,7 @@ export class ProductionForm implements OnInit {
   isSaving = signal(false);
   isSimulating = signal(false);
   isVerifying = signal(false);
+  matcher = new InstantErrorStateMatcher();
 
   produto = signal<Product | null>(null);
   loteSelecionado = signal<Batch | null>(null);
@@ -115,8 +120,8 @@ export class ProductionForm implements OnInit {
     const comprimentoBase = Number(result.comprimentoBlocoProdutosCm ?? 0);
     const margens = this.form.getRawValue().margens ?? {};
 
-    const larguraFinal = larguraBase + Number(margens.esquerda || 0) + Number(margens.direita || 0);
-    const comprimentoFinal = comprimentoBase + Number(margens.superior || 0) + Number(margens.inferior || 0);
+    const larguraFinal = larguraBase + this.parseDecimal(margens.esquerda) + this.parseDecimal(margens.direita);
+    const comprimentoFinal = comprimentoBase + this.parseDecimal(margens.superior) + this.parseDecimal(margens.inferior);
 
     return `${larguraFinal}cm x ${comprimentoFinal}cm`;
   });
@@ -263,7 +268,8 @@ export class ProductionForm implements OnInit {
   private static readonly Texts = {
     LOAD_ERROR: 'Não foi possível carregar os dados da ordem de produção.',
     SAVE_ERROR: 'Falha ao salvar a ordem de produção. Verifique os dados e tente novamente.',
-    AUTOMATIC_RESTORE_ERROR: 'Não foi possível restaurar o modo automático com o estado atual do lote.'
+    AUTOMATIC_RESTORE_ERROR: 'Não foi possível restaurar o modo automático com o estado atual do lote.',
+    FORM_VALIDATION_ERROR: 'Corrija os campos inválidos antes de continuar.'
   };
 
   constructor() {
@@ -271,7 +277,7 @@ export class ProductionForm implements OnInit {
       // ETAPA 1: SELEÇÃO
       tipoProducao: [''],
       produtoId: [null, Validators.required],
-      quantidade: [null, [Validators.required, Validators.min(1)]],
+      quantidade: [null, [Validators.required, Validators.pattern(POSITIVE_DECIMAL_PATTERN), Validators.min(1)]],
       loteId: [null],
 
       // ETAPA 3: FORMULÁRIO REAL
@@ -279,13 +285,13 @@ export class ProductionForm implements OnInit {
       larguraBlocoProdutosCm: [{ value: null, disabled: true }],
       comprimentoBlocoProdutosCm: [{ value: null, disabled: true }],
       margens: this.fb.group({
-        superior: [null],
-        inferior: [null],
-        esquerda: [null],
-        direita: [null]
+        superior: [null, Validators.pattern(SIGNED_DECIMAL_PATTERN)],
+        inferior: [null, Validators.pattern(SIGNED_DECIMAL_PATTERN)],
+        esquerda: [null, Validators.pattern(SIGNED_DECIMAL_PATTERN)],
+        direita: [null, Validators.pattern(SIGNED_DECIMAL_PATTERN)]
       }),
       canalVendaId: [''],
-      motivo: ['', Validators.maxLength(255)]
+      motivo: ['', Validators.maxLength(100)]
     });
 
     // Inicializa o signal reativo após a criação do formulário
@@ -307,16 +313,16 @@ export class ProductionForm implements OnInit {
     this.larguraBlocoProdutosCmControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(val => {
       if (this.modoCalculoControl.value === 'MANUAL' && !this.ignoreDimensoesUpdate) {
         this.manualDimensoes.set({
-          largura: val !== null ? Number(val) : null,
-          comprimento: this.comprimentoBlocoProdutosCmControl.value !== null ? Number(this.comprimentoBlocoProdutosCmControl.value) : null
+          largura: val !== null ? this.parseDecimal(val) : null,
+          comprimento: this.comprimentoBlocoProdutosCmControl.value !== null ? this.parseDecimal(this.comprimentoBlocoProdutosCmControl.value) : null
         });
       }
     });
     this.comprimentoBlocoProdutosCmControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(val => {
       if (this.modoCalculoControl.value === 'MANUAL' && !this.ignoreDimensoesUpdate) {
         this.manualDimensoes.set({
-          largura: this.larguraBlocoProdutosCmControl.value !== null ? Number(this.larguraBlocoProdutosCmControl.value) : null,
-          comprimento: val !== null ? Number(val) : null
+          largura: this.larguraBlocoProdutosCmControl.value !== null ? this.parseDecimal(this.larguraBlocoProdutosCmControl.value) : null,
+          comprimento: val !== null ? this.parseDecimal(val) : null
         });
       }
     });
@@ -332,10 +338,10 @@ export class ProductionForm implements OnInit {
 
   getBlockMarginsUsageLabel(): string {
     const margens = this.form.getRawValue().margens ?? {};
-    const hasMargins = Number(margens.superior || 0) > 0
-      || Number(margens.inferior || 0) > 0
-      || Number(margens.esquerda || 0) > 0
-      || Number(margens.direita || 0) > 0;
+    const hasMargins = this.parseDecimal(margens.superior) > 0
+      || this.parseDecimal(margens.inferior) > 0
+      || this.parseDecimal(margens.esquerda) > 0
+      || this.parseDecimal(margens.direita) > 0;
 
     return hasMargins ? 'com margens do usuário' : 'usuário não usou margens';
   }
@@ -510,7 +516,7 @@ export class ProductionForm implements OnInit {
     const snapshot = this.formSnapshot;
 
     // 1. Quantidade é crítica em ambos os modos
-    if (Number(current.quantidade || 0) !== Number(snapshot.quantidade || 0)) return true;
+    if (this.parseDecimal(current.quantidade) !== this.parseDecimal(snapshot.quantidade)) return true;
     if (String(current.modoCalculo || '') !== String(snapshot.modoCalculo || '')) return true;
 
     // 2. Validação específica por modo
@@ -518,15 +524,15 @@ export class ProductionForm implements OnInit {
       const m1 = current.margens;
       const m2 = snapshot.margens;
       return (
-        Number(m1.superior || 0) !== Number(m2.superior || 0) ||
-        Number(m1.inferior || 0) !== Number(m2.inferior || 0) ||
-        Number(m1.esquerda || 0) !== Number(m2.esquerda || 0) ||
-        Number(m1.direita || 0) !== Number(m2.direita || 0)
+        this.parseDecimal(m1.superior) !== this.parseDecimal(m2.superior) ||
+        this.parseDecimal(m1.inferior) !== this.parseDecimal(m2.inferior) ||
+        this.parseDecimal(m1.esquerda) !== this.parseDecimal(m2.esquerda) ||
+        this.parseDecimal(m1.direita) !== this.parseDecimal(m2.direita)
       );
     } else {
       return (
-        Number(current.larguraBlocoProdutosCm || 0) !== Number(snapshot.larguraBlocoProdutosCm || 0) ||
-        Number(current.comprimentoBlocoProdutosCm || 0) !== Number(snapshot.comprimentoBlocoProdutosCm || 0)
+        this.parseDecimal(current.larguraBlocoProdutosCm) !== this.parseDecimal(snapshot.larguraBlocoProdutosCm) ||
+        this.parseDecimal(current.comprimentoBlocoProdutosCm) !== this.parseDecimal(snapshot.comprimentoBlocoProdutosCm)
       );
     }
   }
@@ -539,7 +545,7 @@ export class ProductionForm implements OnInit {
     const current = this.form.getRawValue();
     const snapshot = this.persistedSnapshot;
 
-    if (Number(current.quantidade || 0) !== Number(snapshot.quantidade || 0)) return true;
+    if (this.parseDecimal(current.quantidade) !== this.parseDecimal(snapshot.quantidade)) return true;
     if (String(current.modoCalculo || '') !== String(snapshot.modoCalculo || '')) return true;
     if (String(current.canalVendaId ?? '') !== String(snapshot.canalVendaId ?? '')) return true;
     if (String(current.motivo ?? '') !== String(snapshot.motivo ?? '')) return true;
@@ -548,16 +554,16 @@ export class ProductionForm implements OnInit {
       const m1 = current.margens ?? {};
       const m2 = snapshot.margens ?? {};
       return (
-        Number(m1.superior || 0) !== Number(m2.superior || 0) ||
-        Number(m1.inferior || 0) !== Number(m2.inferior || 0) ||
-        Number(m1.esquerda || 0) !== Number(m2.esquerda || 0) ||
-        Number(m1.direita || 0) !== Number(m2.direita || 0)
+        this.parseDecimal(m1.superior) !== this.parseDecimal(m2.superior) ||
+        this.parseDecimal(m1.inferior) !== this.parseDecimal(m2.inferior) ||
+        this.parseDecimal(m1.esquerda) !== this.parseDecimal(m2.esquerda) ||
+        this.parseDecimal(m1.direita) !== this.parseDecimal(m2.direita)
       );
     }
 
     return (
-      Number(current.larguraBlocoProdutosCm || 0) !== Number(snapshot.larguraBlocoProdutosCm || 0) ||
-      Number(current.comprimentoBlocoProdutosCm || 0) !== Number(snapshot.comprimentoBlocoProdutosCm || 0)
+      this.parseDecimal(current.larguraBlocoProdutosCm) !== this.parseDecimal(snapshot.larguraBlocoProdutosCm) ||
+      this.parseDecimal(current.comprimentoBlocoProdutosCm) !== this.parseDecimal(snapshot.comprimentoBlocoProdutosCm)
     );
   }
 
@@ -625,6 +631,10 @@ export class ProductionForm implements OnInit {
    */
   get motivoControl(): FormControl {
     return this.form.get('motivo') as FormControl;
+  }
+
+  protected shouldShowControlError(control: FormControl | null): boolean {
+    return !!(control && control.invalid && (control.dirty || control.touched));
   }
 
   /**
@@ -707,8 +717,8 @@ export class ProductionForm implements OnInit {
       // Modo MANUAL: habilita os campos e adiciona validadores
       larguraControl.enable();
       comprimentoControl.enable();
-      larguraControl.setValidators([Validators.required, Validators.min(0.1)]);
-      comprimentoControl.setValidators([Validators.required, Validators.min(0.1)]);
+      larguraControl.setValidators([Validators.required, Validators.pattern(POSITIVE_DECIMAL_PATTERN), Validators.min(0.1)]);
+      comprimentoControl.setValidators([Validators.required, Validators.pattern(POSITIVE_DECIMAL_PATTERN), Validators.min(0.1)]);
       // Restaura os valores do manual
       const dimensoesManualAtual = this.manualDimensoes();
       this.form.patchValue({
@@ -812,6 +822,7 @@ export class ProductionForm implements OnInit {
    */
   onSimulate(): void {
     if (!this.produto() || this.form.get('quantidade')?.invalid || this.form.get('loteId')?.invalid) {
+      this.handleInvalidFormAttempt();
       return;
     }
 
@@ -822,7 +833,7 @@ export class ProductionForm implements OnInit {
     }
 
     const produto = this.produto()!;
-    const quantidade = Number(this.form.value.quantidade);
+    const quantidade = this.parseDecimal(this.form.value.quantidade);
     const loteId = Number(this.form.value.loteId);
 
     this.isSimulating.set(true);
@@ -923,10 +934,10 @@ export class ProductionForm implements OnInit {
     }
 
     return {
-      superior: formValue.margens.superior ? Number(formValue.margens.superior) : 0,
-      inferior: formValue.margens.inferior ? Number(formValue.margens.inferior) : 0,
-      esquerda: formValue.margens.esquerda ? Number(formValue.margens.esquerda) : 0,
-      direita: formValue.margens.direita ? Number(formValue.margens.direita) : 0
+      superior: this.parseDecimal(formValue.margens.superior),
+      inferior: this.parseDecimal(formValue.margens.inferior),
+      esquerda: this.parseDecimal(formValue.margens.esquerda),
+      direita: this.parseDecimal(formValue.margens.direita)
     };
   }
 
@@ -934,6 +945,11 @@ export class ProductionForm implements OnInit {
    * Executa a verificação dos dados (re-simulação).
    */
   onVerify(): void {
+    if (this.form.invalid || !this.produto() || this.loteIdControl.invalid) {
+      this.handleInvalidFormAttempt();
+      return;
+    }
+
     const formValue = this.form.getRawValue();
     const currentResult = this.simulationResult();
 
@@ -951,7 +967,7 @@ export class ProductionForm implements OnInit {
 
       const payload: SimulationRequest = {
         produtoId: Number(formValue.produtoId),
-        quantidade: Number(formValue.quantidade),
+        quantidade: this.parseDecimal(formValue.quantidade),
         loteId: Number(formValue.loteId),
         ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined
       };
@@ -963,7 +979,7 @@ export class ProductionForm implements OnInit {
             this.simulationResult.set(response);
             this.stableSimulationResult.set(response);
             this.consumptionSimulationSnapshot.set({
-              quantidade: Number(formValue.quantidade),
+              quantidade: this.parseDecimal(formValue.quantidade),
               unidadesPorProduto: Number(produto.unidadesPorProduto || 1)
             });
             this.formSnapshot = this.form.getRawValue();
@@ -988,17 +1004,17 @@ export class ProductionForm implements OnInit {
       payload = {
         produtoId: Number(formValue.produtoId),
         loteId: Number(formValue.loteId),
-        quantidade: Number(formValue.quantidade),
+        quantidade: this.parseDecimal(formValue.quantidade),
         modoCalculo: formValue.modoCalculo,
         ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined,
-        larguraBlocoProdutosCm: Number(formValue.larguraBlocoProdutosCm),
-        comprimentoBlocoProdutosCm: Number(formValue.comprimentoBlocoProdutosCm)
+        larguraBlocoProdutosCm: this.parseDecimal(formValue.larguraBlocoProdutosCm),
+        comprimentoBlocoProdutosCm: this.parseDecimal(formValue.comprimentoBlocoProdutosCm)
       };
     } else {
       payload = {
         produtoId: Number(formValue.produtoId),
         loteId: Number(formValue.loteId),
-        quantidade: Number(formValue.quantidade),
+        quantidade: this.parseDecimal(formValue.quantidade),
         modoCalculo: formValue.modoCalculo,
         ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined
       };
@@ -1221,7 +1237,7 @@ export class ProductionForm implements OnInit {
     }
 
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      this.handleInvalidFormAttempt();
       return;
     }
 
@@ -1232,10 +1248,10 @@ export class ProductionForm implements OnInit {
       const payload: CreateCutOrderRequest = {
         produtoId: Number(formValue.produtoId),
         loteId: Number(formValue.loteId),
-        quantidadeProduzida: Number(formValue.quantidade),
+        quantidadeProduzida: this.parseDecimal(formValue.quantidade),
         modoCalculo: formValue.modoCalculo,
-        larguraBlocoProdutosCm: Number(formValue.larguraBlocoProdutosCm),
-        comprimentoBlocoProdutosCm: Number(formValue.comprimentoBlocoProdutosCm),
+        larguraBlocoProdutosCm: this.parseDecimal(formValue.larguraBlocoProdutosCm),
+        comprimentoBlocoProdutosCm: this.parseDecimal(formValue.comprimentoBlocoProdutosCm),
         canalVendaDestinoId: formValue.canalVendaId ? Number(formValue.canalVendaId) : null,
         motivo: formValue.motivo || null,
         margens: this.buildMargensPayload(formValue)
@@ -1266,7 +1282,7 @@ export class ProductionForm implements OnInit {
       const payload: CreateConsumptionOrderRequest = {
         produtoId: Number(formValue.produtoId),
         loteId: Number(formValue.loteId),
-        quantidadeProduzida: Number(formValue.quantidade),
+        quantidadeProduzida: this.parseDecimal(formValue.quantidade),
         canalVendaDestinoId: formValue.canalVendaId ? Number(formValue.canalVendaId) : null,
         motivo: formValue.motivo || null
       };
@@ -1294,5 +1310,16 @@ export class ProductionForm implements OnInit {
 
   onCancel(): void {
     this.dialogRef.close(false);
+  }
+
+  private handleInvalidFormAttempt(): void {
+    this.form.markAllAsTouched();
+    this.entityDialog.showErrorSnackbar(ProductionForm.Texts.FORM_VALIDATION_ERROR);
+  }
+
+  private parseDecimal(value: unknown): number {
+    const normalized = String(value ?? '0').trim().replace(',', '.');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 }

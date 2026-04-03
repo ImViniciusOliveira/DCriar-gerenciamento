@@ -42,7 +42,11 @@
 
       <mat-form-field appearance="outline" class="adjustment-form__full adjustment-form__motivo">
         <mat-label>Motivo</mat-label>
-        <textarea matInput rows="3" formControlName="motivo"></textarea>
+        <textarea matInput rows="3" maxlength="100" formControlName="motivo"></textarea>
+        <mat-hint align="end">{{ form.controls.motivo.value.length || 0 }}/100</mat-hint>
+        @if (form.controls.motivo.hasError('maxlength')) {
+          <mat-error>O motivo deve ter no máximo 100 caracteres.</mat-error>
+        }
       </mat-form-field>
 
       <div class="metrics-grid adjustment-form__full adjustment-form__metrics">

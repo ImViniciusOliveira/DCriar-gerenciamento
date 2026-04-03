@@ -182,7 +182,8 @@
       <div class="row-group description-photo-row">
         <mat-form-field class="description-field" appearance="outline">
           <mat-label>Descrição</mat-label>
-          <textarea matInput formControlName="descricao" [errorStateMatcher]="matcher"></textarea>
+          <textarea matInput formControlName="descricao" maxlength="100" [errorStateMatcher]="matcher"></textarea>
+          <mat-hint align="end">{{ productForm.get('descricao')?.value?.length || 0 }}/100</mat-hint>
           @if (productForm.get('descricao')?.hasError('maxlength')) {
             <mat-error>A descrição não pode exceder 100 caracteres.</mat-error>
           }

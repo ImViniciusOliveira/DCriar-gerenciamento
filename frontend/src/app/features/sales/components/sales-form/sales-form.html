@@ -130,6 +130,7 @@
                       matInput
                       rows="5"
                       formControlName="motivoAlteracaoPreco"
+                      maxlength="100"
                       [readonly]="!isMotivoRequired(itemGroup)"
                       [attr.tabindex]="!isMotivoRequired(itemGroup) ? -1 : 0"
                       [placeholder]="isMotivoRequired(itemGroup) ? 'Explique por que o preço padrão não foi usado' : 'Não é necessário quando o item usa o preço padrão'"></textarea>
@@ -138,8 +139,11 @@
                     } @else {
                       <mat-hint>Sem justificativa quando o item usa o preço padrão.</mat-hint>
                     }
+                    <mat-hint align="end">{{ itemGroup.get('motivoAlteracaoPreco')?.value?.length || 0 }}/100</mat-hint>
                     @if (itemGroup.get('motivoAlteracaoPreco')?.hasError('required')) {
                       <mat-error>Informe o motivo da alteração.</mat-error>
+                    } @else if (itemGroup.get('motivoAlteracaoPreco')?.hasError('maxlength')) {
+                      <mat-error>O motivo deve ter no máximo 100 caracteres.</mat-error>
                     }
                   </mat-form-field>
                 </div>
