@@ -45,7 +45,7 @@
             @if (productForm.get('precoComercial')?.hasError('required')) {
               <mat-error>O preço é obrigatório.</mat-error>
             } @else if (productForm.get('precoComercial')?.hasError('pattern')) {
-              <mat-error>Use até 4 casas decimais.</mat-error>
+              <mat-error>Use até 2 casas decimais.</mat-error>
             } @else if (productForm.get('precoComercial')?.hasError('min')) {
               <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (productForm.get('precoComercial')?.hasError('maxIntegerDigits')) {
@@ -179,7 +179,7 @@
             </div>
           }
         </div>
-        <button mat-stroked-button type="button" class="action-button" (click)="addSpecification()">
+        <button mat-stroked-button type="button" class="action-button add-specification-button" (click)="addSpecification()">
           <mat-icon>add</mat-icon>
           Adicionar Especificação
         </button>

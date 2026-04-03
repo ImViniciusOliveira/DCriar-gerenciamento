@@ -20,7 +20,7 @@ import { EnumOption, EnumService } from '../../../../core/services/enum.service'
 import { startWith, take } from 'rxjs/operators';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
-import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN } from '../../../../shared/utils/number-patterns';
+import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN, POSITIVE_MONEY_2_PATTERN } from '../../../../shared/utils/number-patterns';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -109,7 +109,7 @@ export class ProductFormComponent implements OnInit {
       tipoProduto: [currentProduct.tipoProduto || 'CORTE', Validators.required],
       nome: [currentProduct.nome, [Validators.required, Validators.maxLength(100)]],
       sku: [currentProduct.sku, [Validators.required, Validators.maxLength(50)]],
-      precoComercial: [currentProduct.precoComercial, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
+      precoComercial: [currentProduct.precoComercial, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_MONEY_2_PATTERN)]],
       descricao: [currentProduct.descricao, Validators.maxLength(100)],
       unidadesPorProduto: [currentProduct.unidadesPorProduto, [Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       unidadeCadastroConsumo: [currentProduct.unidadeCadastroConsumo ?? currentProduct.materiaPrima?.unidadeDeConsumo ?? null],
