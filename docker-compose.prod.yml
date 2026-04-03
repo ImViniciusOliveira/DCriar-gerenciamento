@@ -10,6 +10,12 @@ services:
       - postgres_data_prod:/var/lib/postgresql/data
     networks:
       - dcriar-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
     restart: always
 
   minio-prod:
@@ -23,13 +29,24 @@ services:
       - minio_data_prod:/data
     networks:
       - dcriar-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:9000/minio/health/ready >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
     restart: always
 
   minio-setup:
     image: minio/mc
     container_name: minio-setup
     depends_on:
-      - minio-prod
+      minio-prod:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
     networks:
       - dcriar-net
     entrypoint:
@@ -52,8 +69,10 @@ services:
     image: ${DOCKER_REGISTRY_USER}/${BACKEND_IMAGE_NAME}:${APP_VERSION}
     container_name: backend-api
     depends_on:
-      - postgres-prod
-      - minio-setup
+      postgres-prod:
+        condition: service_healthy
+      minio-setup:
+        condition: service_completed_successfully
     expose:
       - "8080"
     environment:

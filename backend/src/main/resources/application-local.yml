@@ -37,7 +37,7 @@ spring:
   # --- FLYWAY ---
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration,classpath:db/dev-data
     clean-disabled: false
 
 server:

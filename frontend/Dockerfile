@@ -37,6 +37,8 @@ server {
     listen 80;
     server_name _;
 
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
     root ${ROOT_DIR};
     index index.html;
 
@@ -57,12 +59,15 @@ server {
 
     # O frontend fala com /api e o nginx encaminha para o backend na rede interna do compose.
     location /api/ {
-        proxy_pass http://backend:8080/api/;
+        set \$backend_upstream backend:8080;
+        proxy_pass http://\$backend_upstream/api/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
     }
 
     # Cache longo para arquivos estáticos versionados (hash no nome)
