@@ -189,11 +189,11 @@ export class StockHome implements AfterViewInit {
   ngAfterViewInit(): void {
     this.tableColumns = [
       { key: 'data', header: 'Data da movimentação', sortable: true, className: 'col-created', cellTemplate: this.dataTemplate },
-      { key: 'produtoNome', header: 'Produto', sortable: true, sortKey: 'produto.nome', className: 'col-wide', cellTemplate: this.produtoTemplate },
-      { key: 'produtoSku', header: 'SKU', sortable: true, cellTemplate: this.skuTemplate },
-      { key: 'tipo', header: 'Movimentação', sortable: false, cellTemplate: this.movementTemplate },
-      { key: 'quantidade', header: 'Quantidade', sortable: true, cellTemplate: this.quantityTemplate },
-      { key: 'motivo', header: 'Motivo', sortable: false, cellTemplate: this.reasonTemplate },
+      { key: 'produtoNome', header: 'Produto', sortable: true, sortKey: 'produto.nome', className: 'col-product-history', cellTemplate: this.produtoTemplate },
+      { key: 'produtoSku', header: 'SKU', sortable: true, className: 'col-sku-history', cellTemplate: this.skuTemplate },
+      { key: 'tipo', header: 'Movimentação', sortable: false, className: 'col-movement-history', cellTemplate: this.movementTemplate },
+      { key: 'quantidade', header: 'Quantidade', sortable: true, className: 'col-quantity-history', cellTemplate: this.quantityTemplate },
+      { key: 'motivo', header: 'Motivo', sortable: false, className: 'col-reason-history', cellTemplate: this.reasonTemplate },
       { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions', cellTemplate: this.actionsTemplate }
     ];
     this.cdr.detectChanges();
@@ -219,6 +219,14 @@ export class StockHome implements AfterViewInit {
     this.pagination.handleSortChange(sort);
   }
 
+  protected hasProductNameChanged(item: StockHistoryItem): boolean {
+    return item.produtoNome !== item.produtoNomeSnapshot;
+  }
+
+  protected hasProductSkuChanged(item: StockHistoryItem): boolean {
+    return item.produtoSku !== item.produtoSkuSnapshot;
+  }
+
   protected formatSignedQuantity(quantidade: number): string {
     return `${quantidade > 0 ? '+' : '-'}${Math.abs(quantidade)}`;
   }
@@ -237,7 +245,12 @@ export class StockHome implements AfterViewInit {
 
   protected openReasonDetails(item: StockHistoryItem): void {
     const details = [
-      { label: 'Produto', value: item.produtoNome },
+      this.hasProductNameChanged(item)
+        ? { label: 'Nome registrado', value: `${item.produtoNomeSnapshot} -> Nome atual: ${item.produtoNome}` }
+        : { label: 'Nome atual', value: item.produtoNome },
+      this.hasProductSkuChanged(item)
+        ? { label: 'SKU registrado', value: `${item.produtoSkuSnapshot} -> SKU atual: ${item.produtoSku}` }
+        : { label: 'SKU atual', value: item.produtoSku },
       { label: 'Movimentação', value: item.tipoDescricao || item.tipo },
       { label: 'Quantidade', value: this.formatSignedQuantity(item.quantidade) },
       { label: 'Data da movimentação', value: new Intl.DateTimeFormat('pt-BR', {

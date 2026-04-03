@@ -84,11 +84,37 @@
 </ng-template>
 
 <ng-template #produtoTemplate let-item>
-  {{ item.produtoNome }}
+  <div class="stock-home__history-compare">
+    <span class="stock-home__history-primary">
+      @if (hasProductNameChanged(item)) {
+        <span class="stock-home__history-label">Atual:</span>
+      }
+      {{ item.produtoNome }}
+    </span>
+    @if (hasProductNameChanged(item)) {
+      <span class="stock-home__history-secondary">
+        <span class="stock-home__history-label">Antigo:</span>
+        {{ item.produtoNomeSnapshot }}
+      </span>
+    }
+  </div>
 </ng-template>
 
 <ng-template #skuTemplate let-item>
-  {{ item.produtoSku }}
+  <div class="stock-home__history-compare">
+    <span class="stock-home__history-primary">
+      @if (hasProductSkuChanged(item)) {
+        <span class="stock-home__history-label">Atual:</span>
+      }
+      {{ item.produtoSku }}
+    </span>
+    @if (hasProductSkuChanged(item)) {
+      <span class="stock-home__history-secondary">
+        <span class="stock-home__history-label">Antigo:</span>
+        {{ item.produtoSkuSnapshot }}
+      </span>
+    }
+  </div>
 </ng-template>
 
 <ng-template #movementTemplate let-item>

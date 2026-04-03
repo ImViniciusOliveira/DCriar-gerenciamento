@@ -10,6 +10,8 @@ export interface StockHistoryItem {
   produtoId: number;
   produtoNome: string;
   produtoSku: string;
+  produtoNomeSnapshot: string;
+  produtoSkuSnapshot: string;
   ordemProducaoId: number | null;
   vendaId: number | null;
 }
