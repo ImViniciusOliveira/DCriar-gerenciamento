@@ -26,8 +26,10 @@ import com.dcriar.domain.product.repository.spec.MovimentacaoEstoqueProdutoSpeci
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -171,8 +173,25 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         spec = spec.and(MovimentacaoEstoqueProdutoSpecifications.comNomeProduto(nomeProduto));
         spec = spec.and(MovimentacaoEstoqueProdutoSpecifications.comTipo(tipoMovimentacao));
 
-        return movimentacaoEstoqueProdutoRepository.findAll(spec, pageable)
+        Pageable pageableComDesempate = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                adicionarDesempateEstavel(pageable.getSort())
+        );
+
+        return movimentacaoEstoqueProdutoRepository.findAll(spec, pageableComDesempate)
                 .map(historicoEstoqueConsolidadoMapper::toResponseDTO);
+    }
+
+    private Sort adicionarDesempateEstavel(Sort sort) {
+        Sort sortBase = sort.isSorted() ? sort : Sort.by(Sort.Order.desc("data"));
+        boolean possuiId = sortBase.getOrderFor("id") != null;
+
+        if (possuiId) {
+            return sortBase;
+        }
+
+        return sortBase.and(Sort.by(Sort.Order.desc("id")));
     }
 
     @Override
