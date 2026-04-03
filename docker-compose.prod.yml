@@ -29,20 +29,13 @@ services:
       - minio_data_prod:/data
     networks:
       - dcriar-net
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:9000/minio/health/ready >/dev/null 2>&1 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 5s
     restart: always
 
   minio-setup:
     image: minio/mc
     container_name: minio-setup
     depends_on:
-      minio-prod:
-        condition: service_healthy
+      - minio-prod
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -60,7 +53,7 @@ services:
         echo 'MinIO está online. Configurando bucket...';
         /usr/bin/mc mb dcriar-minio/$${MINIO_BUCKET_NAME} --ignore-existing;
         echo 'Bucket criado ou já existente.';
-        /usr/bin/mc policy set public dcriar-minio/$${MINIO_BUCKET_NAME};
+        /usr/bin/mc anonymous set download dcriar-minio/$${MINIO_BUCKET_NAME};
         echo 'Política do bucket definida como public (leitura pública).';
         exit 0;
 

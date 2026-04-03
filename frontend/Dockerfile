@@ -60,7 +60,7 @@ server {
     # O frontend fala com /api e o nginx encaminha para o backend na rede interna do compose.
     location /api/ {
         set \$backend_upstream backend:8080;
-        proxy_pass http://\$backend_upstream/api/;
+        proxy_pass http://\$backend_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
