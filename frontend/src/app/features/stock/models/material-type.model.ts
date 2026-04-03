@@ -1,10 +1,11 @@
 import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
+import { FieldLockMetadata } from '../../../shared/utils/field-locks';
 
 /**
  * Representa a entidade Tipo de Matéria-Prima no sistema.
  * Mapeia a estrutura de dados retornada pela API, incluindo links HATEOAS para navegação.
  */
-export interface MaterialType {
+export interface MaterialType extends FieldLockMetadata {
   id: number;
   nome: string;
   unidadeDeConsumo: string;

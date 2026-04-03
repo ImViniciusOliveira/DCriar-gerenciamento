@@ -5,7 +5,8 @@
            matInput
            [formControl]="searchControl"
            [matAutocomplete]="auto"
-           placeholder="Busque por nome...">
+           placeholder="Busque por nome..."
+           [disabled]="disabled()">
 
     <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="onOptionSelected($event)">
       @for (materialType of materialTypes(); track materialType.id) {
@@ -16,11 +17,14 @@
     </mat-autocomplete>
 
     <mat-icon matSuffix>search</mat-icon>
+    @if (lockReason()) {
+      <mat-hint>{{ lockReason() }}</mat-hint>
+    }
   </mat-form-field>
 
   <mat-form-field appearance="outline" class="unit-filter">
     <mat-label>Unidade da Matéria-Prima</mat-label>
-    <mat-select [formControl]="consumptionUnitControl">
+    <mat-select [formControl]="consumptionUnitControl" [disabled]="disabled()">
       @for (unit of unitOptions(); track unit.value) {
         <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
       }
@@ -30,7 +34,7 @@
   @if (!fixedProductType()) {
     <mat-form-field appearance="outline" class="unit-filter">
       <mat-label>Categoria</mat-label>
-      <mat-select [formControl]="productTypeControl">
+      <mat-select [formControl]="productTypeControl" [disabled]="disabled()">
         @for (option of productTypeOptions; track option.value) {
           <mat-option [value]="option.value">{{ option.label }}</mat-option>
         }

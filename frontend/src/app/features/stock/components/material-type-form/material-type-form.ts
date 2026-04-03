@@ -6,7 +6,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { ErrorStateMatcher } from '@angular/material/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { startWith } from 'rxjs/operators';
 
@@ -14,6 +13,8 @@ import { MaterialType, MaterialTypeRequest } from '../../models/material-type.mo
 import { MaterialTypeService } from '../../services/material-type.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { EnumService } from '../../../../core/services/enum.service';
+import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
+import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
 
 export interface MaterialTypeFormData {
   template: MaterialType;
@@ -23,17 +24,6 @@ export interface MaterialTypeFormData {
 export interface UnitOption {
   name: string;
   descricao: string;
-}
-
-/**
- * Define quando os erros de um campo de formulário devem ser exibidos.
- * A regra é: mostrar o erro se o campo for inválido E (o usuário já digitou nele OU já saiu dele).
- * Permite que a validação apareça imediatamente ao digitar (dirty).
- */
-export class ImmediateErrorStateMatcher implements ErrorStateMatcher {
-  isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
-    return !!(control && control.invalid && (control.dirty || control.touched));
-  }
 }
 
 /**
@@ -80,7 +70,7 @@ export class MaterialTypeForm implements OnInit {
   };
 
   form: FormGroup;
-  matcher = new ImmediateErrorStateMatcher();
+  matcher = new InstantErrorStateMatcher();
 
   allUnits = signal<UnitOption[]>([]);
   filterValue = signal<string>('');
@@ -113,6 +103,8 @@ export class MaterialTypeForm implements OnInit {
       const stringValue = typeof value === 'string' ? value : '';
       this.filterValue.set(stringValue);
     });
+
+    this.applyFieldLocks();
   }
 
   ngOnInit(): void {
@@ -145,6 +137,7 @@ export class MaterialTypeForm implements OnInit {
         }
 
         this.form.get('unidadeDeConsumo')?.updateValueAndValidity();
+        this.applyFieldLocks();
         this.cdr.markForCheck();
       }
     });
@@ -162,6 +155,14 @@ export class MaterialTypeForm implements OnInit {
     if (typeof currentValue !== 'string') {
         this.filterValue.set('');
     }
+  }
+
+  protected isFieldLocked(field: string): boolean {
+    return hasLockedField(this.data.template, field);
+  }
+
+  protected getFieldLockReason(field: string): string | null {
+    return getLockedFieldReason(this.data.template, field);
   }
 
   /**
@@ -188,5 +189,15 @@ export class MaterialTypeForm implements OnInit {
 
   onCancel(): void {
     this.dialogRef.close(false);
+  }
+
+  private applyFieldLocks(): void {
+    if (!this.isEditMode()) {
+      return;
+    }
+
+    if (this.isFieldLocked('unidadeDeConsumo')) {
+      this.form.get('unidadeDeConsumo')?.disable({ emitEvent: false });
+    }
   }
 }

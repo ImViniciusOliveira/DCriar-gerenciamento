@@ -1,25 +1,13 @@
 @use '../../../../shared/styles/form-layout';
+@use '../../../../shared/styles/validation-state' as vs;
 
 mat-form-field {
   width: 100%;
 }
 
-// --- Validação Visual para Campos com Erro ---
-// Aplica feedback visual imediato quando o usuário digita valores inválidos.
-// Quando um campo tem erro (invalid) e foi modificado (dirty),
-// a borda do Material Design fica vermelha com 3px de espessura para destaque.
-:host ::ng-deep {
-  mat-form-field.ng-invalid.ng-dirty {
-    &.mdc-text-field--invalid .mdc-notched-outline,
-    .mdc-notched-outline {
-      .mdc-notched-outline__leading,
-      .mdc-notched-outline__notch,
-      .mdc-notched-outline__trailing {
-        border-color: var(--danger-color);
-        border-width: 3px !important;
-      }
-    }
-  }
+@include vs.strong-invalid-outline;
+
+// Mesmo padrão visual de campos desabilitados usado no restante do projeto.
+:host ::ng-deep .mat-mdc-form-field.mat-form-field-disabled .mat-mdc-text-field-wrapper {
+  background-color: #f5f5f5 !important;
 }
-
-

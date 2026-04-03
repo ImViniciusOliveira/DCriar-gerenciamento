@@ -21,6 +21,7 @@ import { startWith, take } from 'rxjs/operators';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN, POSITIVE_MONEY_2_PATTERN } from '../../../../shared/utils/number-patterns';
+import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -160,6 +161,7 @@ export class ProductFormComponent implements OnInit {
     ).subscribe(() => this.refreshConsumptionUnitOptions());
 
     this.loadAvailableProductUnits(currentProduct.tipoProduto || 'CORTE');
+    this.applyFieldLocks();
   }
 
   ngOnInit(): void {
@@ -207,6 +209,7 @@ export class ProductFormComponent implements OnInit {
           this.setupFormControlsBasedOnProductType(fullProduct.tipoProduto || 'CORTE', false);
           this.refreshConsumptionUnitOptions();
           this.syncConsumptionUnitWithSelectedMaterial();
+          this.applyFieldLocks();
 
           this.specifications.clear();
           const specs = fullProduct.especificacoes;
@@ -240,6 +243,22 @@ export class ProductFormComponent implements OnInit {
 
   protected shouldShowControlError(control: FormControl | null): boolean {
     return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+
+  protected isFieldLocked(...fields: string[]): boolean {
+    return fields.some(field => hasLockedField(this.product(), field));
+  }
+
+  protected getFieldLockReason(...fields: string[]): string | null {
+    return getLockedFieldReason(this.product(), ...fields);
+  }
+
+  protected isCorteProductType(): boolean {
+    return this.productForm.get('tipoProduto')?.value === 'CORTE';
+  }
+
+  protected isConsumoProductType(): boolean {
+    return this.productForm.get('tipoProduto')?.value === 'CONSUMO';
   }
 
   /**
@@ -346,6 +365,7 @@ export class ProductFormComponent implements OnInit {
     unidadesControl?.updateValueAndValidity();
     this.productForm.get('dimensoes.larguraCm')?.updateValueAndValidity();
     this.productForm.get('dimensoes.comprimentoCm')?.updateValueAndValidity();
+    this.applyFieldLocks();
   }
 
   /**
@@ -650,6 +670,29 @@ export class ProductFormComponent implements OnInit {
       this.availableProductUnits.set(options);
       this.refreshConsumptionUnitOptions();
     });
+  }
+
+  private applyFieldLocks(): void {
+    if (!this.isEditMode()) {
+      return;
+    }
+
+    if (this.isFieldLocked('tipoMateriaPrimaId')) {
+      this.materialTypeControl.disable({ emitEvent: false });
+    }
+
+    if (this.isFieldLocked('unidadeCadastroConsumo')) {
+      this.productForm.get('unidadeCadastroConsumo')?.disable({ emitEvent: false });
+    }
+
+    if (this.isFieldLocked('unidadesPorProduto')) {
+      this.productForm.get('unidadesPorProduto')?.disable({ emitEvent: false });
+    }
+
+    if (this.isFieldLocked('dimensoes')) {
+      this.productForm.get('dimensoes.larguraCm')?.disable({ emitEvent: false });
+      this.productForm.get('dimensoes.comprimentoCm')?.disable({ emitEvent: false });
+    }
   }
 
   private normalizeNumericFields(payload: any): any {

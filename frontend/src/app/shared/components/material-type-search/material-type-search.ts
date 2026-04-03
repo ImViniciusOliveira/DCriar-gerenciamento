@@ -42,6 +42,10 @@ export class MaterialTypeSearch implements OnInit {
   fixedProductType = input<'CORTE' | 'CONSUMO' | null>(null);
   /** URL da coleção de unidades para complementar as opções faltantes. */
   unitsUrl = input<string | null>(null);
+  /** Desabilita toda a busca e filtros auxiliares quando o campo estrutural está bloqueado. */
+  disabled = input(false);
+  /** Motivo do bloqueio estrutural, exibido na área padrão de hint/validação do campo principal. */
+  lockReason = input<string | null>(null);
   /** Emite o evento de seleção para o componente pai. */
   selectionChange = output<MatSelectChange>();
 
@@ -89,6 +93,18 @@ export class MaterialTypeSearch implements OnInit {
 
       if (this.hasInitialized && previousProductType && previousProductType !== productType) {
         this.resetSelection();
+      }
+    });
+
+    effect(() => {
+      const shouldDisable = this.disabled();
+      const method = shouldDisable ? 'disable' : 'enable';
+
+      this.searchControl[method]({ emitEvent: false });
+      this.consumptionUnitControl[method]({ emitEvent: false });
+
+      if (!this.fixedProductType()) {
+        this.productTypeControl[method]({ emitEvent: false });
       }
     });
   }

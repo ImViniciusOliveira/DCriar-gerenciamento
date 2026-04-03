@@ -59,6 +59,9 @@
             @if (getProductQuantityUnitLabel()) {
               <span matTextSuffix>{{ getProductQuantityUnitLabel() }}</span>
             }
+            @if (getFieldLockReason('unidadesPorProduto')) {
+              <mat-hint>{{ getFieldLockReason('unidadesPorProduto') }}</mat-hint>
+            }
             @if (productForm.get('unidadesPorProduto')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (productForm.get('unidadesPorProduto')?.hasError('pattern')) {
@@ -95,8 +98,10 @@
         [isEditMode]="isEditMode()"
         [fixedProductType]="productForm.get('tipoProduto')?.value"
         [unitsUrl]="unitsUrl()"
+        [disabled]="isFieldLocked('tipoMateriaPrimaId')"
+        [lockReason]="getFieldLockReason('tipoMateriaPrimaId')"
         (selectionChange)="onMaterialTypeChange($event)">
-        @if (productForm.get('unidadeCadastroConsumo')?.enabled && materialTypeControl.value) {
+        @if (isConsumoProductType() && materialTypeControl.value) {
           <mat-form-field after-unit-field appearance="outline" class="unit-filter">
             <mat-label>Unidade do Produto</mat-label>
             <mat-select formControlName="unidadeCadastroConsumo">
@@ -104,6 +109,9 @@
                 <mat-option [value]="unit.value">{{ getConsumptionUnitLabel(unit.value) }}</mat-option>
               }
             </mat-select>
+            @if (getFieldLockReason('unidadeCadastroConsumo')) {
+              <mat-hint>{{ getFieldLockReason('unidadeCadastroConsumo') }}</mat-hint>
+            }
           </mat-form-field>
         }
       </app-material-type-search>
@@ -111,11 +119,14 @@
         <div class="field-error">Selecione uma matéria-prima.</div>
       }
 
-      @if (productForm.get('dimensoes')?.enabled) {
+      @if (isCorteProductType()) {
         <div class="form-grid two-columns dimensions-grid" formGroupName="dimensoes">
           <mat-form-field appearance="outline">
             <mat-label>Largura (cm)</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="larguraCm" [errorStateMatcher]="matcher" required>
+            @if (getFieldLockReason('dimensoes')) {
+              <mat-hint>{{ getFieldLockReason('dimensoes') }}</mat-hint>
+            }
              @if (productForm.get('dimensoes.larguraCm')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (productForm.get('dimensoes.larguraCm')?.hasError('pattern')) {
@@ -129,6 +140,9 @@
           <mat-form-field appearance="outline">
             <mat-label>Comprimento (cm)</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="comprimentoCm" [errorStateMatcher]="matcher" required>
+            @if (getFieldLockReason('dimensoes')) {
+              <mat-hint>{{ getFieldLockReason('dimensoes') }}</mat-hint>
+            }
              @if (productForm.get('dimensoes.comprimentoCm')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('pattern')) {

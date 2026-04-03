@@ -10,6 +10,8 @@
             [control]="materialTypeControl"
             [isEditMode]="isEditMode()"
             [unitsUrl]="unitsUrl()"
+            [disabled]="isFieldLocked('tipoMateriaPrimaId')"
+            [lockReason]="getFieldLockReason('tipoMateriaPrimaId')"
             (selectionChange)="onMaterialTypeChange($event)">
           </app-material-type-search>
           @if (shouldShowControlError(materialTypeControl)) {
@@ -26,7 +28,7 @@
                 <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
               }
             </mat-select>
-            <mat-hint>Como este lote será medido.</mat-hint>
+            <mat-hint>{{ getFieldLockReason('unidadeDeEstoque', 'unidadeCadastroEstoque') || 'Como este lote será medido.' }}</mat-hint>
             @if (form.get('unidadeDeEstoque')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             }
@@ -51,6 +53,9 @@
           <mat-form-field appearance="outline">
             <mat-label>Custo Total do Lote</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="custoTotalLote" [errorStateMatcher]="matcher" required>
+            @if (getFieldLockReason('custoTotalLote')) {
+              <mat-hint>{{ getFieldLockReason('custoTotalLote') }}</mat-hint>
+            }
             @if (form.get('custoTotalLote')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
             } @else if (form.get('custoTotalLote')?.hasError('pattern')) {
@@ -81,7 +86,7 @@
             <mat-form-field appearance="outline">
               <mat-label>Largura (mm)</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="larguraMm" [errorStateMatcher]="matcher" required>
-              <mat-hint>Obrigatório para unidades geométricas.</mat-hint>
+              <mat-hint>{{ getFieldLockReason('atributos.larguraMm') || 'Obrigatório para unidades geométricas.' }}</mat-hint>
               @if (form.get('larguraMm')?.hasError('required')) {
                 <mat-error>O campo é obrigatório.</mat-error>
               } @else if (form.get('larguraMm')?.hasError('pattern')) {

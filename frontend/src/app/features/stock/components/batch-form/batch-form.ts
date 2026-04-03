@@ -22,6 +22,7 @@ import { EnumOption, EnumService } from '../../../../core/services/enum.service'
 import { BatchAdjustmentForm } from '../batch-adjustment-form/batch-adjustment-form';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { POSITIVE_DECIMAL_4_PATTERN } from '../../../../shared/utils/number-patterns';
+import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
 
 /**
  * Validador que verifica se a parte inteira de um número excede um máximo de dígitos.
@@ -174,6 +175,8 @@ export class BatchForm implements OnInit {
     unidadeEstoque$.pipe(takeUntilDestroyed()).subscribe(unidade => {
       this.updateWidthValidation(unidade);
     });
+
+    this.applyFieldLocks();
   }
 
   ngOnInit(): void {
@@ -217,6 +220,7 @@ export class BatchForm implements OnInit {
           });
         }
         await this.loadMovements(fullBatch);
+        this.applyFieldLocks();
         this.cdr.markForCheck();
       } catch {
         this.entityDialog.showErrorSnackbar(BatchForm.Texts.LOAD_ERROR);
@@ -244,6 +248,14 @@ export class BatchForm implements OnInit {
 
   protected shouldShowControlError(control: FormControl | null): boolean {
     return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+
+  protected isFieldLocked(...fields: string[]): boolean {
+    return fields.some(field => hasLockedField(this.batch(), field));
+  }
+
+  protected getFieldLockReason(...fields: string[]): string | null {
+    return getLockedFieldReason(this.batch(), ...fields);
   }
 
   onMaterialTypeChange(event: MatSelectChange): void {
@@ -432,5 +444,27 @@ export class BatchForm implements OnInit {
     const normalized = String(value ?? '0').trim().replace(',', '.');
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private applyFieldLocks(): void {
+    if (!this.isEditMode()) {
+      return;
+    }
+
+    if (this.isFieldLocked('tipoMateriaPrimaId')) {
+      this.materialTypeControl.disable({ emitEvent: false });
+    }
+
+    if (this.isFieldLocked('unidadeDeEstoque', 'unidadeCadastroEstoque')) {
+      this.form.get('unidadeDeEstoque')?.disable({ emitEvent: false });
+    }
+
+    if (this.isFieldLocked('custoTotalLote')) {
+      this.form.get('custoTotalLote')?.disable({ emitEvent: false });
+    }
+
+    if (this.isFieldLocked('atributos.larguraMm')) {
+      this.form.get('larguraMm')?.disable({ emitEvent: false });
+    }
   }
 }

@@ -60,7 +60,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
             CAMPO_LARGURA_MM
     );
     private static final String MOTIVO_BLOQUEIO_LOTE_EM_USO =
-            "Lote já utilizado em produção ou ajuste operacional.";
+            "Lote já utilizado em produção ou ajuste.";
 
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;

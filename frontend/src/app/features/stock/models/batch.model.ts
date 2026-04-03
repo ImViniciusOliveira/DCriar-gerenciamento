@@ -1,4 +1,5 @@
 import { Hateoas, PageInfo } from "../../../core/models/hateoas.model";
+import { FieldLockMetadata } from "../../../shared/utils/field-locks";
 
 export type BatchAdjustmentOperation = 'AJUSTE' | 'PERDA_DESCARTE';
 
@@ -73,7 +74,7 @@ export interface ApiResponseBatchMovements extends Hateoas {
  * Representa a entidade Lote de Matéria-Prima no sistema.
  * Mapeia a estrutura de dados retornada pela API, incluindo links HATEOAS para navegação.
  */
-export interface Batch {
+export interface Batch extends FieldLockMetadata {
   id: string | number;
   tipoMateriaPrimaId: number;
   nomeTipoMateriaPrima: string;

@@ -1,5 +1,6 @@
 import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
 import { MaterialType } from '../../stock/models/material-type.model';
+import { FieldLockMetadata } from '../../../shared/utils/field-locks';
 
 /**
  * Representa as dimensões físicas de um produto, aplicável a produtos de corte.
@@ -19,7 +20,7 @@ export type Specifications = Record<string, string>;
  * Mapeia a estrutura de dados retornada pela API, unificando as propriedades
  * dos tipos 'CORTE' e 'CONSUMO' e incluindo links HATEOAS.
  */
-export interface Product {
+export interface Product extends FieldLockMetadata {
   id: number;
   tipoProduto: 'CORTE' | 'CONSUMO';
   nome: string;

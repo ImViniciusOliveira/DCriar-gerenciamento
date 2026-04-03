@@ -82,6 +82,6 @@ public class LoteMateriaPrimaResponseDTO {
     @Schema(description = "Campos atualmente bloqueados para edição no frontend.", example = "[\"tipoMateriaPrimaId\", \"custoTotalLote\", \"atributos.larguraMm\"]")
     private Set<String> camposBloqueados;
 
-    @Schema(description = "Motivos por campo bloqueado, para orientar a UI.", example = "{\"custoTotalLote\":\"Lote já utilizado em produção ou ajuste operacional.\"}")
+    @Schema(description = "Motivos por campo bloqueado, para orientar a UI.", example = "{\"custoTotalLote\":\"Lote já utilizado em produção ou ajuste.\"}")
     private Map<String, String> motivosBloqueio;
 }

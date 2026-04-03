@@ -34,6 +34,9 @@
             </mat-option>
           }
         </mat-autocomplete>
+        @if (getFieldLockReason('unidadeDeConsumo')) {
+          <mat-hint>{{ getFieldLockReason('unidadeDeConsumo') }}</mat-hint>
+        }
         @if (form.get('unidadeDeConsumo')?.hasError('required')) {
           <mat-error>O campo é obrigatório.</mat-error>
         } @else if (form.get('unidadeDeConsumo')?.hasError('requireMatch')) {
