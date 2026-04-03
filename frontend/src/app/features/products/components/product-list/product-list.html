@@ -19,6 +19,8 @@
     [totalElements]="pagination.totalElements()"
     [pageSize]="pagination.pageSize()"
     [pageIndex]="pagination.pageIndex()"
+    [sortActive]="pagination.sortActive()"
+    [sortDirection]="pagination.sortDirection()"
     (pageChange)="onPageChange($event)"
     (sortChange)="onSortChange($event)">
   </app-base-table>
@@ -53,9 +55,10 @@
 
 <!-- Template para a coluna Estoque, exibindo total e unidades -->
 <ng-template #estoqueTemplate let-product>
-  {{ product.estoqueFisicoTotal }} pacotes
-  <br />
-  <small>({{ product.unidadesPorProduto }} unidades cada)</small>
+  <div class="product-list__stock-lines">
+    {{ product.estoqueFisicoTotal }} pacotes<br>
+    ({{ product.unidadesPorProduto }} unidades cada)
+  </div>
 </ng-template>
 
 <!-- Template para a coluna Detalhes, usando um popover para exibir informações adicionais -->

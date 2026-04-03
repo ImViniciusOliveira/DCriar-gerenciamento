@@ -1,24 +1,61 @@
 @use '../../../../shared/styles/page-layout';
 
-/* --- Ajustes de largura das colunas da tabela --- */
-
-/* Coluna de detalhes (popover) precisa de mais espaço */
-.mat-column-detalhes {
-  width: 250px;
+:host ::ng-deep .col-product-name {
+  width: 18rem;
+  min-width: 18rem;
+  max-width: 18rem;
 }
 
-/* Coluna de status (ícone ativo/inativo) pode ser estreita */
-.mat-column-ativo {
-  width: 65px;
+:host ::ng-deep .col-product-sku {
+  width: 9rem;
+  min-width: 9rem;
+  max-width: 9rem;
 }
 
-/* Coluna de ações (botões) precisa acomodar 3 ícones */
-.mat-column-acoes {
-  width: 160px;
+:host ::ng-deep .col-product-stock {
+  width: 10rem;
+  min-width: 10rem;
+  max-width: 10rem;
 }
 
-/* Centraliza o conteúdo das colunas de status e ações */
-.mat-column-ativo .mat-mdc-cell,
-.mat-column-acoes .mat-mdc-cell {
+:host ::ng-deep .col-product-trigger {
+  width: 7rem;
+  min-width: 7rem;
+  max-width: 7rem;
+}
+
+:host ::ng-deep td.col-product-trigger .cell-content,
+:host ::ng-deep td.col-product-stock .cell-content {
+  min-height: auto;
+  max-height: none;
+  display: flex;
+  align-items: center;
+}
+
+:host ::ng-deep td.col-product-stock .cell-content {
   justify-content: center;
+  white-space: normal;
+  text-overflow: initial;
+}
+
+:host ::ng-deep td.col-product-trigger .cell-content {
+  justify-content: center;
+}
+
+:host ::ng-deep td.col-product-trigger button {
+  white-space: nowrap;
+  min-width: 0;
+  padding-inline: 6px;
+}
+
+.product-list__stock-lines {
+  display: -webkit-box;
+  width: 100%;
+  overflow: hidden;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }

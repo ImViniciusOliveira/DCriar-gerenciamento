@@ -2,7 +2,7 @@ import { Component, computed, effect, EventEmitter, input, Output, TemplateRef, 
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatSort, MatSortModule, Sort } from '@angular/material/sort';
+import { MatSort, MatSortModule, Sort, SortDirection } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -45,6 +45,8 @@ export class BaseTable<T> {
   totalElements = input.required<number>();
   pageSize = input(10);
   pageIndex = input(0);
+  sortActive = input('');
+  sortDirection = input<SortDirection>('');
 
   // --- Saídas (Outputs) ---
   @Output() pageChange = new EventEmitter<PageEvent>();
@@ -83,8 +85,20 @@ export class BaseTable<T> {
       }
       if (currentSort) {
         this.dataSource.sort = currentSort;
+        currentSort.active = this.sortActive();
+        currentSort.direction = this.sortDirection();
       }
     });
+  }
+
+  getSortIcon(column: TableColumn<T>): string {
+    const sortKey = column.sortKey || column.key;
+
+    if (this.sortActive() !== sortKey || !this.sortDirection()) {
+      return 'unfold_more';
+    }
+
+    return this.sortDirection() === 'asc' ? 'keyboard_arrow_up' : 'keyboard_arrow_down';
   }
 
   onPageChange(event: PageEvent): void {

@@ -139,6 +139,16 @@
   max-width: 13rem;
 }
 
+:host ::ng-deep td.col-product-history .cell-content,
+:host ::ng-deep td.col-sku-history .cell-content {
+  min-height: auto;
+  max-height: none;
+  display: flex;
+  align-items: center;
+  white-space: normal;
+  text-overflow: initial;
+}
+
 .stock-home__history-quantity {
   font-weight: 700;
 }

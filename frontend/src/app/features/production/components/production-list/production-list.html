@@ -18,6 +18,8 @@
     [totalElements]="pagination.totalElements()"
     [pageSize]="pagination.pageSize()"
     [pageIndex]="pagination.pageIndex()"
+    [sortActive]="pagination.sortActive()"
+    [sortDirection]="pagination.sortDirection()"
     (pageChange)="onPageChange($event)"
     (sortChange)="onSortChange($event)">
   </app-base-table>

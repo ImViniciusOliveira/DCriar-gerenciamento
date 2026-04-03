@@ -64,9 +64,9 @@ th, td {
   min-height: 2.5rem;
   max-height: 2.5rem;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 // Remove a borda da última linha da tabela para um acabamento visual mais limpo.
@@ -82,6 +82,23 @@ tbody tr:last-child td {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   background-color: var(--mat-sys-surface-container-high);
+}
+
+.sort-header-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sort-state-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  line-height: 18px;
+}
+
+:host ::ng-deep .mat-sort-header-arrow {
+  display: none;
 }
 
 // Garante que o paginador não seja "espremido" ou encolhido pelo conteúdo da tabela.
