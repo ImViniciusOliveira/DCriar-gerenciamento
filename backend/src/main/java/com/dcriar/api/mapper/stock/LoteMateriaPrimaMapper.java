@@ -53,9 +53,6 @@ public interface LoteMateriaPrimaMapper {
     @Mapping(target = "saldoInternoAtual", ignore = true)
     @Mapping(target = "valorAtualLote", ignore = true)
     @Mapping(target = "custoUnitarioAtual", ignore = true)
-    @Mapping(target = "identificadorPublico", ignore = true)
-    @Mapping(target = "identificadorOrigemPublico", ignore = true)
-    @Mapping(target = "tipoEstrutural", ignore = true)
     @Mapping(target = "camposBloqueados", ignore = true)
     @Mapping(target = "motivosBloqueio", ignore = true)
     void updateModelFromDto(LoteMateriaPrimaResponseDTO dto, @MappingTarget LoteMateriaPrimaModel model);
