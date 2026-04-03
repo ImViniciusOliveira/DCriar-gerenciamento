@@ -85,10 +85,10 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
   ngAfterViewInit(): void {
     this.tableColumns = [
       { key: 'nomeProduto', header: 'Produto', sortable: true, sortKey: 'produto.nome', sortType: 'text', className: 'col-production-product', cellTemplate: this.produtoTemplate },
-      { key: 'tipoProduto', header: 'Tipo', sortable: true, sortKey: 'produto.tipoProdutoPersistido', sortType: 'text', className: 'col-text-sm', widthPx: 130, cellTemplate: this.tipoTemplate },
-      { key: 'quantidadeProduzida', header: 'Qtd', sortable: true, className: 'col-quantity', widthPx: 90, cellTemplate: this.quantidadeTemplate },
-      { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', widthPx: 132, cellTemplate: this.dataTemplate },
-      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions col-actions-main', widthPx: 125, cellTemplate: this.acoesTemplate },
+      { key: 'tipoProduto', header: 'Tipo', sortable: true, sortKey: 'produto.tipoProdutoPersistido', sortType: 'text', className: 'col-text-sm', widthPx: 200, cellTemplate: this.tipoTemplate },
+      { key: 'quantidadeProduzida', header: 'Qtd', sortable: true, className: 'col-quantity', widthPx: 200, cellTemplate: this.quantidadeTemplate },
+      { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', widthPx: 150, cellTemplate: this.dataTemplate },
+      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions col-actions-main', widthPx: 150, cellTemplate: this.acoesTemplate },
     ];
     this.cdr.detectChanges();
   }

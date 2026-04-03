@@ -88,10 +88,10 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
   ngAfterViewInit(): void {
     this.tableColumns = [
       { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', cellTemplate: this.dataTemplate },
-      { key: 'valorTotal', header: 'Total', sortable: true, className: 'col-price', widthPx: 110, cellTemplate: this.valorTemplate },
-      { key: 'nomeCanalVenda', header: 'Canal', sortable: false, className: 'col-sales-channel', widthPx: 170, cellTemplate: this.canalTemplate },
-      { key: 'itens', header: 'Itens', sortable: false, className: 'col-trigger col-fit-center', widthPx: 117, cellTemplate: this.itensTemplate },
-      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions col-actions-main', widthPx: 125, cellTemplate: this.acoesTemplate },
+      { key: 'valorTotal', header: 'Total', sortable: true, className: 'col-price', widthPx: 200, cellTemplate: this.valorTemplate },
+      { key: 'nomeCanalVenda', header: 'Canal', sortable: false, className: 'col-sales-channel', widthPx: 200, cellTemplate: this.canalTemplate },
+      { key: 'itens', header: 'Itens', sortable: false, className: 'col-trigger col-fit-center', widthPx: 150, cellTemplate: this.itensTemplate },
+      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions col-actions-main', widthPx: 150, cellTemplate: this.acoesTemplate },
     ];
     this.cdr.detectChanges();
   }
@@ -208,15 +208,5 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
 
   hasItems(sale: Sale): boolean {
     return sale.itens.length > 0;
-  }
-
-  /**
-   * Formata os detalhes dos itens para exibição no popover.
-   */
-  getSaleItemsDetails(sale: Sale): { key: string, value: string }[] {
-    return sale.itens.map(item => ({
-      key: `${item.quantidade}x ${item.nomeProduto}`,
-      value: `R$ ${item.precoTotal.toFixed(2)}`
-    }));
   }
 }

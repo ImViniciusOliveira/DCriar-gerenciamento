@@ -87,14 +87,14 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
   ngAfterViewInit(): void {
     this.tableColumns = [
       { key: 'nome', header: 'Produto', sortable: true, sortType: 'text', className: 'col-product-name', cellTemplate: this.nomeTemplate },
-      { key: 'sku', header: 'SKU', sortable: true, sortType: 'text', className: 'col-product-sku', widthPx: 260, cellTemplate: this.skuTemplate },
-      { key: 'precoComercial', header: 'Preço', sortable: true, className: 'col-price', widthPx: 160, cellTemplate: this.priceTemplate },
-      { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', widthPx: 160, cellTemplate: this.createdAtTemplate },
+      { key: 'sku', header: 'SKU', sortable: true, sortType: 'text', className: 'col-product-sku', widthPx: 250, cellTemplate: this.skuTemplate },
+      { key: 'precoComercial', header: 'Preço', sortable: true, className: 'col-price', widthPx: 150, cellTemplate: this.priceTemplate },
+      { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', widthPx: 150, cellTemplate: this.createdAtTemplate },
       { key: 'ativo', header: 'Ativo', sortable: true, className: 'col-active', widthPx: 75, cellTemplate: this.ativoTemplate },
       { key: 'estoque', header: 'Estoque Total', sortable: true, sortKey: 'estoqueFisicoTotal', className: 'col-product-stock col-fit-center', widthPx: 150, cellTemplate: this.estoqueTemplate },
-      { key: 'detalhes', header: 'Detalhes', sortable: false, className: 'col-trigger col-fit-center', widthPx: 117, cellTemplate: this.detalhesTemplate },
-      { key: 'estoquePorCanal', header: 'Canais', sortable: false, className: 'col-trigger col-fit-center', widthPx: 117, cellTemplate: this.estoquePorCanalTemplate },
-      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions col-actions-main', widthPx: 125, cellTemplate: this.acoesTemplate },
+      { key: 'detalhes', header: 'Detalhes', sortable: false, className: 'col-trigger col-fit-center', widthPx: 150, cellTemplate: this.detalhesTemplate },
+      { key: 'estoquePorCanal', header: 'Canais', sortable: false, className: 'col-trigger col-fit-center', widthPx: 150, cellTemplate: this.estoquePorCanalTemplate },
+      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions col-actions-main', widthPx: 150, cellTemplate: this.acoesTemplate },
     ];
     this.cdr.detectChanges();
   }

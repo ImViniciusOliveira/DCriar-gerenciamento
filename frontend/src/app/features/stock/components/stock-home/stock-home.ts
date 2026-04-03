@@ -188,13 +188,13 @@ export class StockHome implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'data', header: 'Data da movimentação', sortable: true, className: 'col-created', widthPx: 132, cellTemplate: this.dataTemplate },
+      { key: 'data', header: 'Data da movimentação', sortable: true, className: 'col-created', widthPx: 150, cellTemplate: this.dataTemplate },
       { key: 'produtoNome', header: 'Produto', sortable: true, sortKey: 'produto.nome', sortType: 'text', className: 'col-product-history', cellTemplate: this.produtoTemplate },
-      { key: 'produtoSku', header: 'SKU', sortable: true, sortType: 'text', className: 'col-sku-history', widthPx: 190, cellTemplate: this.skuTemplate },
-      { key: 'tipo', header: 'Movimentação', sortable: false, className: 'col-movement-history', widthPx: 150, cellTemplate: this.movementTemplate },
-      { key: 'quantidade', header: 'Quantidade', sortable: true, className: 'col-quantity-history', widthPx: 95, cellTemplate: this.quantityTemplate },
-      { key: 'motivo', header: 'Motivo', sortable: false, className: 'col-reason-history', widthPx: 220, cellTemplate: this.reasonTemplate },
-      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions', widthPx: 125, cellTemplate: this.actionsTemplate }
+      { key: 'produtoSku', header: 'SKU', sortable: true, sortType: 'text', className: 'col-sku-history', widthPx: 250, cellTemplate: this.skuTemplate },
+      { key: 'tipo', header: 'Movimentação', sortable: false, className: 'col-movement-history', widthPx: 200, cellTemplate: this.movementTemplate },
+      { key: 'quantidade', header: 'Quantidade', sortable: true, className: 'col-quantity-history', widthPx: 200, cellTemplate: this.quantityTemplate },
+      { key: 'motivo', header: 'Motivo', sortable: false, className: 'col-reason-history', widthPx: 250, cellTemplate: this.reasonTemplate },
+      { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions', widthPx: 75, cellTemplate: this.actionsTemplate }
     ];
     this.cdr.detectChanges();
   }

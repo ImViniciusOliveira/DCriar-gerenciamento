@@ -94,12 +94,12 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit, OnInit 
   ngAfterViewInit(): void {
     this.tableColumns = [
       { key: 'tipoMateriaPrima.nome', header: 'Matéria-Prima', sortable: true, sortType: 'text', className: 'col-batch-name', cellTemplate: this.typeTemplate },
-      { key: 'tipoEstrutural', header: 'Tipo', sortable: false, className: 'col-batch-type', widthPx: 130, cellTemplate: this.structureTemplate },
-      { key: 'saldoEstoque', header: 'Quantidade', sortable: false, className: 'col-batch-quantity', widthPx: 90, cellTemplate: this.balanceTemplate },
-      { key: 'custoTotalLote', header: 'Custo do Lote', sortable: true, className: 'col-batch-cost', widthPx: 110, cellTemplate: this.costTemplate },
-      { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', widthPx: 132, cellTemplate: this.createdAtTemplate },
-      { key: 'atributos', header: 'Atributos', sortable: false, className: 'col-trigger col-fit-center', widthPx: 117, cellTemplate: this.attributesTemplate },
-      { key: 'acoes', header: 'Ações', className: 'col-actions col-actions-main', widthPx: 125, cellTemplate: this.actionsTemplate }
+      { key: 'tipoEstrutural', header: 'Tipo', sortable: false, className: 'col-batch-type', widthPx: 250, cellTemplate: this.structureTemplate },
+      { key: 'saldoEstoque', header: 'Quantidade', sortable: false, className: 'col-batch-quantity', widthPx: 200, cellTemplate: this.balanceTemplate },
+      { key: 'custoTotalLote', header: 'Custo do Lote', sortable: true, className: 'col-batch-cost', widthPx: 200, cellTemplate: this.costTemplate },
+      { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', widthPx: 200, cellTemplate: this.createdAtTemplate },
+      { key: 'atributos', header: 'Atributos', sortable: false, className: 'col-trigger col-fit-center', widthPx: 150, cellTemplate: this.attributesTemplate },
+      { key: 'acoes', header: 'Ações', className: 'col-actions col-actions-main', widthPx: 150, cellTemplate: this.actionsTemplate }
     ];
     this.cdr.detectChanges();
   }
