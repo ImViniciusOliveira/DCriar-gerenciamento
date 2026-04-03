@@ -12,6 +12,7 @@ import org.springframework.hateoas.server.core.Relation;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Modelo de representação HATEOAS para um Lote de Matéria-Prima.
@@ -83,4 +84,10 @@ public class LoteMateriaPrimaModel extends RepresentationModel<LoteMateriaPrimaM
 
     @Schema(description = "Data e hora da última atualização do lote.")
     private LocalDateTime dataAtualizacao;
+
+    @Schema(description = "Campos atualmente bloqueados para edição no frontend.", example = "[\"tipoMateriaPrimaId\", \"custoTotalLote\", \"atributos.larguraMm\"]")
+    private Set<String> camposBloqueados;
+
+    @Schema(description = "Motivos por campo bloqueado, para orientar a UI.", example = "{\"custoTotalLote\":\"Lote já utilizado em produção ou ajuste operacional.\"}")
+    private Map<String, String> motivosBloqueio;
 }

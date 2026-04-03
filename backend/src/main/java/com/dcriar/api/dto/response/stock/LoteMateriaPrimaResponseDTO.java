@@ -7,6 +7,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Data Transfer Object (DTO) para a resposta detalhada de um Lote de Matéria-Prima.
@@ -77,4 +78,10 @@ public class LoteMateriaPrimaResponseDTO {
 
     @Schema(description = "Data e hora da última atualização do lote.")
     private LocalDateTime dataAtualizacao;
+
+    @Schema(description = "Campos atualmente bloqueados para edição no frontend.", example = "[\"tipoMateriaPrimaId\", \"custoTotalLote\", \"atributos.larguraMm\"]")
+    private Set<String> camposBloqueados;
+
+    @Schema(description = "Motivos por campo bloqueado, para orientar a UI.", example = "{\"custoTotalLote\":\"Lote já utilizado em produção ou ajuste operacional.\"}")
+    private Map<String, String> motivosBloqueio;
 }

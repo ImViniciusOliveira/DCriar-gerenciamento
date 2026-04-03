@@ -31,7 +31,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -46,6 +52,14 @@ import java.util.stream.Collectors;
 public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
 
     private static final int MAX_INTEGER_DIGITS_SUPPORTED = 19;
+    private static final String CAMPO_LARGURA_MM = "atributos.larguraMm";
+    private static final Set<String> CAMPOS_SENSIVEIS_LOTE = Set.of(
+            "tipoMateriaPrimaId",
+            "unidadeDeEstoque",
+            "unidadeCadastroEstoque",
+            "custoTotalLote",
+            CAMPO_LARGURA_MM
+    );
 
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
@@ -119,6 +133,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     @Transactional
     public LoteMateriaPrimaResponseDTO update(Long id, LoteMateriaPrimaRequestDTO requestDTO) {
         LoteMateriaPrima lote = findLoteById(id);
+        validarCamposBloqueadosNaEdicao(lote, requestDTO);
         TipoMateriaPrima tipoMateriaPrima = lote.getTipoMateriaPrima();
         if (requestDTO.getTipoMateriaPrimaId() != null) {
             tipoMateriaPrima = tipoMateriaPrimaRepository.findById(requestDTO.getTipoMateriaPrimaId())
@@ -375,5 +390,87 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 ? LotePublicIdentifierFormatter.format(lote.getLoteDeOrigem())
                 : null);
         responseDTO.setTipoEstrutural(LotePublicIdentifierFormatter.resolverTipoEstrutural(lote));
+        Map<String, String> camposBloqueados = resolverCamposBloqueados(lote);
+        responseDTO.setCamposBloqueados(camposBloqueados.keySet());
+        responseDTO.setMotivosBloqueio(camposBloqueados);
+    }
+
+    private void validarCamposBloqueadosNaEdicao(LoteMateriaPrima lote, LoteMateriaPrimaRequestDTO requestDTO) {
+        Map<String, String> camposBloqueados = resolverCamposBloqueados(lote);
+        if (camposBloqueados.isEmpty()) {
+            return;
+        }
+
+        Set<String> tentativaCamposSensveis = new LinkedHashSet<>();
+
+        if (requestDTO.getTipoMateriaPrimaId() != null
+                && !Objects.equals(requestDTO.getTipoMateriaPrimaId(), lote.getTipoMateriaPrima().getId())
+                && camposBloqueados.containsKey("tipoMateriaPrimaId")) {
+            tentativaCamposSensveis.add("tipoMateriaPrimaId");
+        }
+
+        if (requestDTO.getUnidadeDeEstoque() != null
+                && requestDTO.getUnidadeDeEstoque() != lote.getUnidadeDeEstoque()
+                && camposBloqueados.containsKey("unidadeDeEstoque")) {
+            tentativaCamposSensveis.add("unidadeDeEstoque");
+        }
+
+        if (requestDTO.getUnidadeCadastroEstoque() != null
+                && requestDTO.getUnidadeCadastroEstoque() != lote.getUnidadeCadastroEstoque()
+                && camposBloqueados.containsKey("unidadeCadastroEstoque")) {
+            tentativaCamposSensveis.add("unidadeCadastroEstoque");
+        }
+
+        if (requestDTO.getCustoTotalLote() != null
+                && requestDTO.getCustoTotalLote().compareTo(lote.getCustoTotalLote()) != 0
+                && camposBloqueados.containsKey("custoTotalLote")) {
+            tentativaCamposSensveis.add("custoTotalLote");
+        }
+
+        if (larguraMmFoiAlterada(lote, requestDTO) && camposBloqueados.containsKey(CAMPO_LARGURA_MM)) {
+            tentativaCamposSensveis.add(CAMPO_LARGURA_MM);
+        }
+
+        if (!tentativaCamposSensveis.isEmpty()) {
+            throw new LoteCamposBloqueadosException(lote.getId(), tentativaCamposSensveis, camposBloqueados);
+        }
+    }
+
+    private Map<String, String> resolverCamposBloqueados(LoteMateriaPrima lote) {
+        if (!lotePossuiUsoOperacional(lote)) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> bloqueios = new LinkedHashMap<>();
+        String motivoPadrao = "Lote já utilizado em produção ou ajuste operacional.";
+        CAMPOS_SENSIVEIS_LOTE.forEach(campo -> bloqueios.put(campo, motivoPadrao));
+        return bloqueios;
+    }
+
+    private boolean lotePossuiUsoOperacional(LoteMateriaPrima lote) {
+        return lote.getLoteDeOrigem() != null
+                || lote.getOrdemDeProducaoOrigem() != null
+                || loteRetalhoHierarchyService.possuiAlteracaoAtivaNoEstadoAtual(lote)
+                || !loteRetalhoHierarchyService.listarOrdensRelacionadasIds(lote).isEmpty();
+    }
+
+    private boolean larguraMmFoiAlterada(LoteMateriaPrima lote, LoteMateriaPrimaRequestDTO requestDTO) {
+        if (requestDTO.getAtributos() == null) {
+            return false;
+        }
+
+        Object larguraAtual = lote.getAtributos() != null ? lote.getAtributos().get("larguraMm") : null;
+        Object larguraNova = requestDTO.getAtributos().get("larguraMm");
+        return !Objects.equals(normalizarNumeroLargura(larguraAtual), normalizarNumeroLargura(larguraNova));
+    }
+
+    private BigDecimal normalizarNumeroLargura(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof BigDecimal decimal) {
+            return decimal;
+        }
+        return new BigDecimal(value.toString());
     }
 }
