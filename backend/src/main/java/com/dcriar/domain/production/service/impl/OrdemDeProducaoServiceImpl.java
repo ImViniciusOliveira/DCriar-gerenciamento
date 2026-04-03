@@ -12,6 +12,7 @@ import com.dcriar.api.dto.response.production.SimulacaoConsumoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
 import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
 import com.dcriar.api.mapper.production.PlanoDeConsumoMapper;
+import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.ProdutoDeCorte;
@@ -72,6 +73,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
+    private static final Map<String, String> STABLE_SORTS = Map.of("dataCriacao", "id");
 
     private final OrdemDeProducaoRepository ordemDeProducaoRepository;
     private final ProdutoRepository produtoRepository;
@@ -545,7 +547,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Override
     @Transactional(readOnly = true)
     public Page<OrdemDeProducaoResponseDTO> listarPaginado(Pageable pageable) {
-        Page<OrdemDeProducao> ordensPage = ordemDeProducaoRepository.findAll(pageable);
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, STABLE_SORTS);
+        Page<OrdemDeProducao> ordensPage = ordemDeProducaoRepository.findAll(pageableComDesempate);
         return ordensPage.map(this::toDetailedDto);
     }
 

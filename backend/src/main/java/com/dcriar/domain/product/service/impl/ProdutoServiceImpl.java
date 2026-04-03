@@ -6,6 +6,7 @@ import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
 import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
+import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.product.entity.*;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ProdutoServiceImpl implements ProdutoService {
+    private static final Map<String, String> STABLE_SORTS = Map.of("nome", "id");
 
     private final ProdutoRepository produtoRepository;
     private final ProdutoDeConsumoRepository produtoDeConsumoRepository;
@@ -68,7 +70,8 @@ public class ProdutoServiceImpl implements ProdutoService {
             spec = spec.and(ProdutoSpecifications.comNomeLike(nome));
         }
 
-        Page<Produto> produtoPage = produtoRepository.findAll(spec, pageable);
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, STABLE_SORTS);
+        Page<Produto> produtoPage = produtoRepository.findAll(spec, pageableComDesempate);
         return produtoPage.map(this::mapAndEnrichProduto);
     }
 
@@ -105,7 +108,8 @@ public class ProdutoServiceImpl implements ProdutoService {
         }
 
         // Executa a busca no banco de dados com os filtros aplicados.
-        Page<Produto> produtoPage = produtoRepository.findAll(spec, pageable);
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, STABLE_SORTS);
+        Page<Produto> produtoPage = produtoRepository.findAll(spec, pageableComDesempate);
 
         // Mapeia e enriquece a página de resultados para o DTO de resposta.
         return produtoPage.map(this::mapAndEnrichProduto);

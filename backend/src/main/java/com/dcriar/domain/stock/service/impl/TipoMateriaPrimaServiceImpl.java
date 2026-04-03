@@ -5,6 +5,7 @@ import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
 import com.dcriar.api.mapper.stock.TipoMateriaPrimaMapper;
 import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
+import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -41,6 +43,7 @@ import java.util.stream.Stream;
 @Service
 @RequiredArgsConstructor
 public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
+    private static final Map<String, String> STABLE_SORTS = Map.of("nome", "id");
 
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
     private final TipoMateriaPrimaMapper tipoMateriaPrimaMapper;
@@ -65,7 +68,8 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         .reduce(Specification::and)
         .orElse(null);
 
-        Page<TipoMateriaPrima> paginaDeEntidades = tipoMateriaPrimaRepository.findAll(spec, pageable);
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, STABLE_SORTS);
+        Page<TipoMateriaPrima> paginaDeEntidades = tipoMateriaPrimaRepository.findAll(spec, pageableComDesempate);
 
         return paginaDeEntidades.map(this::mapAndEnrichTipo);
     }

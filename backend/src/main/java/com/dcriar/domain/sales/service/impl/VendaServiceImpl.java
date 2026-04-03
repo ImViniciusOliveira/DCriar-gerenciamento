@@ -11,6 +11,7 @@ import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Preco;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
+import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.PrecoRepository;
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class VendaServiceImpl implements VendaService {
+    private static final Map<String, String> STABLE_SORTS = Map.of("dataCriacao", "id");
 
     private final VendaRepository vendaRepository;
     private final ProdutoRepository produtoRepository;
@@ -98,7 +100,8 @@ public class VendaServiceImpl implements VendaService {
     @Override
     @Transactional(readOnly = true)
     public Page<VendaResponseDTO> findAll(Pageable pageable) {
-        return vendaRepository.findAll(pageable)
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, STABLE_SORTS);
+        return vendaRepository.findAll(pageableComDesempate)
                 .map(vendaMapper::toResponseDTO);
     }
 

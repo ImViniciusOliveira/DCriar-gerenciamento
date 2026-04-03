@@ -13,6 +13,7 @@ import com.dcriar.api.mapper.product.EstoqueMapper;
 import com.dcriar.api.mapper.product.HistoricoEstoqueConsolidadoMapper;
 import com.dcriar.api.mapper.product.MovimentacaoProdutoMapper;
 import com.dcriar.api.mapper.product.ProdutoEstoqueDTOMapper;
+import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
@@ -26,10 +27,8 @@ import com.dcriar.domain.product.repository.spec.MovimentacaoEstoqueProdutoSpeci
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +49,8 @@ import static java.util.stream.Collectors.groupingBy;
 @Service
 @RequiredArgsConstructor
 public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
+    private static final Map<String, String> HISTORICO_STABLE_SORTS = Map.of("data", "id");
+    private static final Map<String, String> RESUMO_STABLE_SORTS = Map.of("produto.nome", "produto.id");
 
     private final EstoqueRepository estoqueRepository;
     private final ProdutoRepository produtoRepository;
@@ -145,7 +146,8 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         if (!canalVendaRepository.existsById(canalId)) {
             throw new CanalVendaNaoEncontradoException(canalId);
         }
-        return estoqueRepository.buscarEstoqueResumido(canalId, nomeProduto, apenasComSaldo, pageable);
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, RESUMO_STABLE_SORTS);
+        return estoqueRepository.buscarEstoqueResumido(canalId, nomeProduto, apenasComSaldo, pageableComDesempate);
     }
 
     @Override
@@ -173,25 +175,10 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         spec = spec.and(MovimentacaoEstoqueProdutoSpecifications.comNomeProduto(nomeProduto));
         spec = spec.and(MovimentacaoEstoqueProdutoSpecifications.comTipo(tipoMovimentacao));
 
-        Pageable pageableComDesempate = PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                adicionarDesempateEstavel(pageable.getSort())
-        );
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, HISTORICO_STABLE_SORTS);
 
         return movimentacaoEstoqueProdutoRepository.findAll(spec, pageableComDesempate)
                 .map(historicoEstoqueConsolidadoMapper::toResponseDTO);
-    }
-
-    private Sort adicionarDesempateEstavel(Sort sort) {
-        Sort sortBase = sort.isSorted() ? sort : Sort.by(Sort.Order.desc("data"));
-        boolean possuiId = sortBase.getOrderFor("id") != null;
-
-        if (possuiId) {
-            return sortBase;
-        }
-
-        return sortBase.and(Sort.by(Sort.Order.desc("id")));
     }
 
     @Override

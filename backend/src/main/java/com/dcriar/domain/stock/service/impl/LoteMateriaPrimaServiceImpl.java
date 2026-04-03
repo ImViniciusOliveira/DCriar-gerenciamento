@@ -8,6 +8,7 @@ import com.dcriar.api.mapper.stock.LoteMateriaPrimaMapper;
 import com.dcriar.api.mapper.stock.MovimentacaoMapper;
 import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
+import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
@@ -49,6 +50,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
+    private static final Map<String, String> STABLE_SORTS = Map.of("tipoMateriaPrima.nome", "id");
 
     private static final int MAX_INTEGER_DIGITS_SUPPORTED = 19;
     private static final String CAMPO_LARGURA_MM = "atributos.larguraMm";
@@ -245,7 +247,8 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     public Page<LoteMateriaPrimaResponseDTO> findAll(Long tipoMateriaPrimaId, Boolean apenasLotesPrincipais, Pageable pageable) {
         Specification<LoteMateriaPrima> spec = LoteMateriaPrimaSpecification.comFiltros(tipoMateriaPrimaId, apenasLotesPrincipais);
 
-        Page<LoteMateriaPrima> lotesPage = loteMateriaPrimaRepository.findAll(spec, pageable);
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, STABLE_SORTS);
+        Page<LoteMateriaPrima> lotesPage = loteMateriaPrimaRepository.findAll(spec, pageableComDesempate);
 
         // Mapeia a Page de entidades para uma Page de DTOs
         return lotesPage.map(lote -> {
