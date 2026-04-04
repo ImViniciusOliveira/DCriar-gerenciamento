@@ -24,6 +24,7 @@ import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN, POSITIVE_MONEY_2_
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
 import { analyzeLogicalMapKeys } from '../../../../shared/utils/logical-map-key';
 import { toggleControlError } from '../../../../shared/utils/control-errors';
+import { scrollDialogToElement } from '../../../../shared/utils/dialog-scroll';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -283,15 +284,7 @@ export class ProductFormComponent implements OnInit {
       isNew: [true]
     }));
     this.specifications.updateValueAndValidity();
-
-    setTimeout(() => {
-      const dialogContent = (this.dialogRef as any)._containerInstance._elementRef.nativeElement.querySelector('mat-dialog-content');
-      const addButton = dialogContent?.querySelector('.add-specification-button') as HTMLElement | null;
-
-      if (addButton) {
-        addButton.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }
-    }, 100);
+    scrollDialogToElement(this.dialogRef, '.add-specification-button');
   }
 
   /**

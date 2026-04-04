@@ -25,6 +25,7 @@ import { POSITIVE_DECIMAL_4_PATTERN } from '../../../../shared/utils/number-patt
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
 import { analyzeLogicalMapKeys, normalizeLogicalMapKey } from '../../../../shared/utils/logical-map-key';
 import { toggleControlError } from '../../../../shared/utils/control-errors';
+import { scrollDialogToElement } from '../../../../shared/utils/dialog-scroll';
 
 /**
  * Validador que verifica se a parte inteira de um número excede um máximo de dígitos.
@@ -382,14 +383,7 @@ export class BatchForm implements OnInit {
     this.attributes.updateValueAndValidity();
 
     if (isNew) {
-      setTimeout(() => {
-        const dialogContent = (this.dialogRef as any)._containerInstance._elementRef.nativeElement.querySelector('mat-dialog-content');
-        const addButton = dialogContent?.querySelector('.add-attribute-button') as HTMLElement | null;
-
-        if (addButton) {
-          addButton.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }
-      }, 100);
+      scrollDialogToElement(this.dialogRef, '.add-attribute-button');
     }
   }
 

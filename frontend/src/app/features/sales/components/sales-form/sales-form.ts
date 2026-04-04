@@ -19,6 +19,7 @@ import { ProductSearch } from '../../../../shared/components/product-search/prod
 import { Product } from '../../../products/models/product.model';
 import { ProductService } from '../../../products/services/product.service';
 import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN, POSITIVE_MONEY_2_PATTERN } from '../../../../shared/utils/number-patterns';
+import { scrollDialogToElement } from '../../../../shared/utils/dialog-scroll';
 
 type SalePriceType = 'PRECO_PADRAO' | 'PRECO_ALTERADO' | 'DESCONTO_TOTAL';
 
@@ -300,14 +301,7 @@ export class SalesForm implements OnInit {
       return;
     }
 
-    setTimeout(() => {
-      const dialogContent = (this.dialogRef as any)._containerInstance._elementRef.nativeElement.querySelector('mat-dialog-content');
-      const addButton = dialogContent?.querySelector('.add-item-button') as HTMLElement | null;
-
-      if (addButton) {
-        addButton.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }
-    }, 100);
+    scrollDialogToElement(this.dialogRef, '.add-item-button');
   }
 
   /**
