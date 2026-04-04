@@ -106,6 +106,9 @@
 
         <!-- Atributos Adicionais -->
         <div formArrayName="atributos">
+          @if (attributes.hasError('logicalDuplicateKey')) {
+            <div class="field-error">{{ getAttributeKeyErrorMessage() }}</div>
+          }
           @for (attrGroup of attributesControls; track $index) {
             <div class="attribute-row" [formGroup]="attrGroup">
               <mat-form-field appearance="outline">

@@ -167,6 +167,9 @@
           </mat-form-field>
         </div>
         <div formArrayName="especificacoes">
+          @if (specifications.hasError('logicalDuplicateKey')) {
+            <div class="field-error">{{ getSpecificationKeyErrorMessage() }}</div>
+          }
           @for (specGroup of specificationsControls; track $index) {
             <div class="spec-row" [formGroup]="specGroup">
               <mat-form-field appearance="outline">

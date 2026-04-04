@@ -22,6 +22,7 @@ import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-m
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN, POSITIVE_MONEY_2_PATTERN } from '../../../../shared/utils/number-patterns';
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
+import { findLogicalMapKeyConflict } from '../../../../shared/utils/logical-map-key';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -95,7 +96,9 @@ export class ProductFormComponent implements OnInit {
     LOAD_ERROR: 'Falha ao buscar detalhes completos do produto:',
     SUBMIT_ERROR: 'Falha no envio do formulário:',
     UPDATE_ERROR: 'ID do produto não encontrado, não é possível atualizar.',
-    FORM_VALIDATION_ERROR: 'Corrija os campos inválidos antes de continuar.'
+    FORM_VALIDATION_ERROR: 'Corrija os campos inválidos antes de continuar.',
+    DUPLICATE_SPECIFICATION_KEY_ERROR: (firstKey: string, secondKey: string) =>
+      `As características "${firstKey}" e "${secondKey}" são equivalentes e não podem coexistir.`
   };
 
   constructor() {
@@ -124,6 +127,7 @@ export class ProductFormComponent implements OnInit {
       codigoFabricante: [currentProduct.codigoFabricante, Validators.maxLength(50)],
       especificacoes: this.fb.array([])
     });
+    this.specifications.addValidators(this.validateSpecificationKeys.bind(this));
 
     if (this.isEditMode()) {
       this.productForm.get('tipoProduto')?.disable({ emitEvent: false });
@@ -237,6 +241,15 @@ export class ProductFormComponent implements OnInit {
     return (this.productForm.get('especificacoes') as FormArray).controls as FormGroup[];
   }
 
+  protected getSpecificationKeyErrorMessage(): string | null {
+    const error = this.specifications.errors?.['logicalDuplicateKey'];
+    if (!error) {
+      return null;
+    }
+
+    return ProductFormComponent.Texts.DUPLICATE_SPECIFICATION_KEY_ERROR(error.firstKey, error.secondKey);
+  }
+
   get materialTypeControl(): FormControl {
     return this.productForm.get('materiaPrima') as FormControl;
   }
@@ -270,6 +283,7 @@ export class ProductFormComponent implements OnInit {
       valor: ['', [Validators.required, Validators.maxLength(100)]],
       isNew: [true]
     }));
+    this.specifications.updateValueAndValidity();
 
     // Scroll automático para o novo item, melhorando a experiência do usuário.
     setTimeout(() => {
@@ -291,6 +305,7 @@ export class ProductFormComponent implements OnInit {
     if (isNew) {
       this.specifications.removeAt(index);
       this.productForm.get('especificacoes')?.markAsDirty();
+      this.specifications.updateValueAndValidity();
       return;
     }
 
@@ -307,6 +322,7 @@ export class ProductFormComponent implements OnInit {
     if (confirmed) {
       this.specifications.removeAt(index);
       this.productForm.get('especificacoes')?.markAsDirty();
+      this.specifications.updateValueAndValidity();
       this.cdr.markForCheck();
     }
   }
@@ -720,6 +736,19 @@ export class ProductFormComponent implements OnInit {
     const normalized = String(value ?? '0').trim().replace(',', '.');
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private validateSpecificationKeys(control: AbstractControl): ValidationErrors | null {
+    const entries = Array.isArray(control.value) ? control.value : [];
+    const conflict = findLogicalMapKeyConflict(entries);
+
+    if (!conflict) {
+      return null;
+    }
+
+    return {
+      logicalDuplicateKey: conflict
+    };
   }
 }
 

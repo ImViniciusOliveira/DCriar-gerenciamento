@@ -24,3 +24,47 @@ export function getLogicalMapValue<T>(
 
   return undefined;
 }
+
+export interface LogicalMapKeyEntry {
+  chave: unknown;
+}
+
+export interface LogicalMapKeyConflict {
+  firstKey: string;
+  secondKey: string;
+}
+
+export function findLogicalMapKeyConflict(
+  entries: LogicalMapKeyEntry[],
+  reservedKeys: string[] = []
+): LogicalMapKeyConflict | null {
+  const seenKeys = new Map<string, string>();
+
+  for (const reservedKey of reservedKeys) {
+    const normalizedReservedKey = normalizeLogicalMapKey(reservedKey);
+    if (normalizedReservedKey) {
+      seenKeys.set(normalizedReservedKey, reservedKey);
+    }
+  }
+
+  for (const entry of entries) {
+    const originalKey = String(entry.chave ?? '').trim();
+    const normalizedKey = normalizeLogicalMapKey(entry.chave);
+
+    if (!normalizedKey) {
+      continue;
+    }
+
+    const firstSeenKey = seenKeys.get(normalizedKey);
+    if (firstSeenKey) {
+      return {
+        firstKey: firstSeenKey,
+        secondKey: originalKey || String(entry.chave ?? '')
+      };
+    }
+
+    seenKeys.set(normalizedKey, originalKey);
+  }
+
+  return null;
+}

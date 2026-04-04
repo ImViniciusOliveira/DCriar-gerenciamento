@@ -23,7 +23,7 @@ import { BatchAdjustmentForm } from '../batch-adjustment-form/batch-adjustment-f
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { POSITIVE_DECIMAL_4_PATTERN } from '../../../../shared/utils/number-patterns';
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
-import { normalizeLogicalMapKey } from '../../../../shared/utils/logical-map-key';
+import { findLogicalMapKeyConflict, normalizeLogicalMapKey } from '../../../../shared/utils/logical-map-key';
 
 /**
  * Validador que verifica se a parte inteira de um número excede um máximo de dígitos.
@@ -128,6 +128,7 @@ export class BatchForm implements OnInit {
       larguraMm: [null],
       atributos: this.fb.array([])
     });
+    this.attributes.addValidators(this.validateAttributeKeys.bind(this));
 
     const unidadeEstoque$ = this.form.get('unidadeDeEstoque')!.valueChanges;
     this.requiresWidth = toSignal(
@@ -175,6 +176,7 @@ export class BatchForm implements OnInit {
 
     unidadeEstoque$.pipe(takeUntilDestroyed()).subscribe(unidade => {
       this.updateWidthValidation(unidade);
+      this.attributes.updateValueAndValidity();
     });
 
     this.syncStockUnitControlState();
@@ -253,6 +255,15 @@ export class BatchForm implements OnInit {
 
   get attributesControls(): FormGroup[] {
     return (this.form.get('atributos') as FormArray).controls as FormGroup[];
+  }
+
+  protected getAttributeKeyErrorMessage(): string | null {
+    const error = this.attributes.errors?.['logicalDuplicateKey'];
+    if (!error) {
+      return null;
+    }
+
+    return `Os atributos "${error.firstKey}" e "${error.secondKey}" são equivalentes e não podem coexistir.`;
   }
 
   get materialTypeControl(): FormControl {
@@ -367,6 +378,7 @@ export class BatchForm implements OnInit {
       valor: [value, [Validators.required, Validators.maxLength(50)]],
       isNew: [isNew]
     }));
+    this.attributes.updateValueAndValidity();
 
     if (isNew) {
       setTimeout(() => {
@@ -385,6 +397,7 @@ export class BatchForm implements OnInit {
     if (isNew) {
       this.attributes.removeAt(index);
       this.form.get('atributos')?.markAsDirty();
+      this.attributes.updateValueAndValidity();
       return;
     }
 
@@ -400,6 +413,7 @@ export class BatchForm implements OnInit {
     if (confirmed) {
       this.attributes.removeAt(index);
       this.form.get('atributos')?.markAsDirty();
+      this.attributes.updateValueAndValidity();
       this.cdr.markForCheck();
     }
   }
@@ -500,5 +514,19 @@ export class BatchForm implements OnInit {
     }
 
     stockUnitControl.enable({ emitEvent: false });
+  }
+
+  private validateAttributeKeys(control: AbstractControl): ValidationErrors | null {
+    const entries = Array.isArray(control.value) ? control.value : [];
+    const reservedKeys = this.requiresWidth && this.requiresWidth() ? ['larguraMm'] : [];
+    const conflict = findLogicalMapKeyConflict(entries, reservedKeys);
+
+    if (!conflict) {
+      return null;
+    }
+
+    return {
+      logicalDuplicateKey: conflict
+    };
   }
 }
