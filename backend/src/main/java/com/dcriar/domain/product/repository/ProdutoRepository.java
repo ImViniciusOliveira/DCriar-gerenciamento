@@ -2,8 +2,6 @@ package com.dcriar.domain.product.repository;
 
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -33,66 +31,6 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long>, JpaSpec
      */
     @Query("SELECT p FROM Produto p JOIN FETCH p.tipoMateriaPrima WHERE p.id = :id")
     Optional<Produto> findByIdWithTipoMateriaPrima(@Param("id") Long id);
-
-    /**
-     * Verifica se já existe um produto com o mesmo nome.
-     * @param nome O nome a ser verificado.
-     * @return true se o nome já existe, false caso contrário.
-     */
-    @Query(
-            value = """
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM produtos p
-                        WHERE dcriar_normalize_catalog_key(p.nome) = dcriar_normalize_catalog_key(:nome)
-                    )
-                    """,
-            nativeQuery = true
-    )
-    boolean existsByNomeNormalized(@Param("nome") String nome);
-
-    @Query(
-            value = """
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM produtos p
-                        WHERE p.id <> :id
-                          AND dcriar_normalize_catalog_key(p.nome) = dcriar_normalize_catalog_key(:nome)
-                    )
-                    """,
-            nativeQuery = true
-    )
-    boolean existsByNomeNormalizedAndIdNot(@Param("nome") String nome, @Param("id") Long id);
-
-    /**
-     * Verifica se já existe um produto com o mesmo SKU.
-     * @param sku O SKU a ser verificado.
-     * @return true se o SKU já existe, false caso contrário.
-     */
-    @Query(
-            value = """
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM produtos p
-                        WHERE dcriar_normalize_trimmed_key(p.sku) = dcriar_normalize_trimmed_key(:sku)
-                    )
-                    """,
-            nativeQuery = true
-    )
-    boolean existsBySkuNormalized(@Param("sku") String sku);
-
-    @Query(
-            value = """
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM produtos p
-                        WHERE p.id <> :id
-                          AND dcriar_normalize_trimmed_key(p.sku) = dcriar_normalize_trimmed_key(:sku)
-                    )
-                    """,
-            nativeQuery = true
-    )
-    boolean existsBySkuNormalizedAndIdNot(@Param("sku") String sku, @Param("id") Long id);
 
     boolean existsByTipoMateriaPrima(TipoMateriaPrima tipoMateriaPrima);
 

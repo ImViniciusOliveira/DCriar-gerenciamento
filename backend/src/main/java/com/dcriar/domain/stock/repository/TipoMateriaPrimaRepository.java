@@ -3,8 +3,6 @@ package com.dcriar.domain.stock.repository;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -16,34 +14,4 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface TipoMateriaPrimaRepository extends JpaRepository<TipoMateriaPrima, Long>, JpaSpecificationExecutor<TipoMateriaPrima> {
-    /**
-     * Verifica se já existe um tipo de matéria-prima com o mesmo nome.
-     *
-     * @param nome Nome do tipo de matéria-prima.
-     * @return true se existir, false caso contrário.
-     */
-    @Query(
-            value = """
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM tipos_materia_prima t
-                        WHERE dcriar_normalize_catalog_key(t.nome) = dcriar_normalize_catalog_key(:nome)
-                    )
-                    """,
-            nativeQuery = true
-    )
-    boolean existsByNomeNormalized(@Param("nome") String nome);
-
-    @Query(
-            value = """
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM tipos_materia_prima t
-                        WHERE t.id <> :id
-                          AND dcriar_normalize_catalog_key(t.nome) = dcriar_normalize_catalog_key(:nome)
-                    )
-                    """,
-            nativeQuery = true
-    )
-    boolean existsByNomeNormalizedAndIdNot(@Param("nome") String nome, @Param("id") Long id);
 }

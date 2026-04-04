@@ -3,6 +3,7 @@ package com.dcriar.domain.product.service.impl;
 import com.dcriar.api.dto.request.product.CanalVendaRequestDTO;
 import com.dcriar.api.dto.response.product.CanalVendaResponseDTO;
 import com.dcriar.api.mapper.product.CanalVendaMapper;
+import com.dcriar.domain.common.persistence.NormalizedUniquenessChecker;
 import com.dcriar.domain.common.util.HumanTextNormalizer;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.Estoque;
@@ -32,6 +33,7 @@ public class CanalVendaServiceImpl implements CanalVendaService {
 
     private final CanalVendaRepository canalVendaRepository;
     private final CanalVendaMapper canalVendaMapper;
+    private final NormalizedUniquenessChecker normalizedUniquenessChecker;
     private final EstoqueRepository estoqueRepository;
     private final VendaRepository vendaRepository;
     private final OrdemDeProducaoRepository ordemDeProducaoRepository;
@@ -96,14 +98,14 @@ public class CanalVendaServiceImpl implements CanalVendaService {
 
     private void validarNomeDisponivelParaCriacao(String nome) {
         String normalizedNome = HumanTextNormalizer.normalize(nome);
-        if (normalizedNome != null && canalVendaRepository.existsByNomeNormalized(normalizedNome)) {
+        if (normalizedNome != null && normalizedUniquenessChecker.existsCanalVendaNome(normalizedNome)) {
             throw new CanalVendaNomeDuplicadoException(normalizedNome);
         }
     }
 
     private void validarNomeDisponivelParaAtualizacao(Long id, String nome) {
         String normalizedNome = HumanTextNormalizer.normalize(nome);
-        if (normalizedNome != null && canalVendaRepository.existsByNomeNormalizedAndIdNot(normalizedNome, id)) {
+        if (normalizedNome != null && normalizedUniquenessChecker.existsCanalVendaNome(id, normalizedNome)) {
             throw new CanalVendaNomeDuplicadoException(normalizedNome);
         }
     }

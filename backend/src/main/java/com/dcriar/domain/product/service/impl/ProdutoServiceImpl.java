@@ -5,6 +5,7 @@ import com.dcriar.api.dto.response.product.ProdutoDeConsumoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
 import com.dcriar.domain.common.model.CamposBloqueadosInfo;
+import com.dcriar.domain.common.persistence.NormalizedUniquenessChecker;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
 import com.dcriar.domain.common.util.HumanTextNormalizer;
 import com.dcriar.domain.common.util.MapStringValueTrimmer;
@@ -57,6 +58,7 @@ public class ProdutoServiceImpl implements ProdutoService {
     private final ItemVendaRepository itemVendaRepository;
     private final ProdutoMapper produtoMapper;
     private final FileStorageService fileStorageService;
+    private final NormalizedUniquenessChecker normalizedUniquenessChecker;
 
     private static final Set<String> CAMPOS_SENSIVEIS_PRODUTO = Set.of(
             "tipoMateriaPrimaId",
@@ -365,7 +367,7 @@ public class ProdutoServiceImpl implements ProdutoService {
             String nomeNormalizado = HumanTextNormalizer.normalize((String) fields.get("nome"));
             if (nomeNormalizado != null
                     && !UniqueComparisonNormalizer.equalsCatalogKey(produto.getNome(), nomeNormalizado)
-                    && produtoRepository.existsByNomeNormalizedAndIdNot(nomeNormalizado, produto.getId())) {
+                    && normalizedUniquenessChecker.existsProdutoNome(produto.getId(), nomeNormalizado)) {
                 throw new ProdutoNomeDuplicadoException(nomeNormalizado);
             }
         }
@@ -374,7 +376,7 @@ public class ProdutoServiceImpl implements ProdutoService {
             String skuNormalizado = TrimTextNormalizer.trimToNull((String) fields.get("sku"));
             if (skuNormalizado != null
                     && !UniqueComparisonNormalizer.equalsTrimmedKey(produto.getSku(), skuNormalizado)
-                    && produtoRepository.existsBySkuNormalizedAndIdNot(skuNormalizado, produto.getId())) {
+                    && normalizedUniquenessChecker.existsProdutoSku(produto.getId(), skuNormalizado)) {
                 throw new ProdutoSkuDuplicadoException(skuNormalizado);
             }
         }
@@ -474,10 +476,10 @@ public class ProdutoServiceImpl implements ProdutoService {
     }
 
     private void validarRegrasDeNegocio(ProdutoRequestDTO requestDTO) {
-        if (produtoRepository.existsByNomeNormalized(requestDTO.getNome())) {
+        if (normalizedUniquenessChecker.existsProdutoNome(requestDTO.getNome())) {
             throw new ProdutoNomeDuplicadoException(requestDTO.getNome());
         }
-        if (produtoRepository.existsBySkuNormalized(requestDTO.getSku())) {
+        if (normalizedUniquenessChecker.existsProdutoSku(requestDTO.getSku())) {
             throw new ProdutoSkuDuplicadoException(requestDTO.getSku());
         }
     }
