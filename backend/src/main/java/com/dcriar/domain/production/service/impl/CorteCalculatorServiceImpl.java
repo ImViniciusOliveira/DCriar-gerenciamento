@@ -2,6 +2,7 @@ package com.dcriar.domain.production.service.impl;
 
 import com.dcriar.api.dto.request.production.MargensRequestDTO;
 import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
+import com.dcriar.domain.common.util.LogicalMapKeySupport;
 import com.dcriar.domain.product.entity.Dimensoes;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.ProdutoDeCorte;
@@ -358,7 +359,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
     // --- Métodos Auxiliares de Cálculo Base ---
 
     private BigDecimal getLarguraEmCm(Map<String, Object> atributos) {
-        Object larguraMmObj = atributos.get("larguraMm");
+        Object larguraMmObj = LogicalMapKeySupport.getLogicalValue(atributos, "larguraMm");
         if (!(larguraMmObj instanceof Number)) {
             throw AtributoLoteInvalidoException.larguraMmInvalidaOuAusente();
         }
@@ -374,7 +375,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
      */
     private Optional<BigDecimal> getComprimentoFisicoDisponivelEmCm(LoteMateriaPrima lote, BigDecimal larguraTotalLoteCm) {
         Map<String, Object> atributos = lote.getAtributos();
-        Object comprimentoMmObj = atributos.get("comprimentoMm");
+        Object comprimentoMmObj = LogicalMapKeySupport.getLogicalValue(atributos, "comprimentoMm");
         if (!(comprimentoMmObj instanceof Number)) {
             return getComprimentoAPartirDoSaldo(lote, larguraTotalLoteCm);
         }

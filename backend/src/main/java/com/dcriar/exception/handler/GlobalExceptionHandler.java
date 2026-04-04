@@ -109,7 +109,7 @@ public class GlobalExceptionHandler {
             TipoProdutoInvalidoException.class, OperadorEstoqueInvalidoException.class,
             IncompatibilidadeMaterialException.class, QuantidadeExcedeCapacidadeLoteException.class,
             UnidadeCadastroConsumoInvalidaException.class, UnidadeEstoqueLoteInvalidaException.class,
-            UnidadeEstoqueCorteInvalidaException.class
+            UnidadeEstoqueCorteInvalidaException.class, LogicalMapKeyInvalidaException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
@@ -123,6 +123,9 @@ public class GlobalExceptionHandler {
             details.put("operadoresValidos", "GTE (≥), LTE (≤)");
         } else if (ex instanceof AjusteLoteInvalidoException e) {
             details.put("campo", e.getDetalhe());
+        } else if (ex instanceof LogicalMapKeyInvalidaException e) {
+            details.put("campo", e.getFieldPath());
+            details.put("info", e.getMessage());
         } else {
             details.put("info", ex.getMessage());
         }

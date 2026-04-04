@@ -2,7 +2,9 @@ package com.dcriar.api.validation.validator;
 
 import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.api.validation.annotation.ValidLoteMateriaPrimaRequest;
+import com.dcriar.domain.common.util.LogicalMapKeySupport;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
+import com.dcriar.exception.custom.LogicalMapKeyInvalidaException;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -37,17 +39,25 @@ public class LoteMateriaPrimaRequestValidator extends BaseValidator<ValidLoteMat
         validateBigDecimal(dto.getQuantidadeInicial(), "quantidadeInicial", "A quantidade inicial");
         validateBigDecimal(dto.getCustoTotalLote(), "custoTotalLote", "O custo total do lote");
 
+        try {
+            LogicalMapKeySupport.validateNoLogicalDuplicates(dto.getAtributos(), "atributos");
+        } catch (LogicalMapKeyInvalidaException ex) {
+            addViolationIf(true, ex.getMessage(), ex.getFieldPath());
+        }
+
         // Validação condicional para unidades geométricas
         if (unidadeDeEstoque != null && unidadeDeEstoque.exigeLarguraMmNoLote()) {
             Map<String, Object> atributos = dto.getAtributos();
             addViolationIf(
-                    atributos == null || !atributos.containsKey("larguraMm") || atributos.get("larguraMm") == null,
+                    atributos == null || !LogicalMapKeySupport.containsLogicalKey(atributos, "larguraMm")
+                            || LogicalMapKeySupport.getLogicalValue(atributos, "larguraMm") == null,
                     String.format("Para a unidade de estoque %s, o atributo 'larguraMm' é obrigatório.", unidadeDeEstoque.name()),
                     "atributos"
             );
 
-            if (atributos != null && atributos.containsKey("larguraMm") && atributos.get("larguraMm") != null) {
-                Object larguraValue = atributos.get("larguraMm");
+            if (atributos != null && LogicalMapKeySupport.containsLogicalKey(atributos, "larguraMm")
+                    && LogicalMapKeySupport.getLogicalValue(atributos, "larguraMm") != null) {
+                Object larguraValue = LogicalMapKeySupport.getLogicalValue(atributos, "larguraMm");
                 boolean isInvalidNumber = true;
                 
                 if (larguraValue instanceof Number) {

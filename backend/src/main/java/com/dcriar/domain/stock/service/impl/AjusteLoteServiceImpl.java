@@ -6,6 +6,7 @@ import com.dcriar.api.dto.response.stock.CalcularAjusteLoteResponseDTO;
 import com.dcriar.api.dto.response.stock.ItemImpactadoAjusteLoteDTO;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
 import com.dcriar.api.mapper.stock.LoteMateriaPrimaMapper;
+import com.dcriar.domain.common.util.LogicalMapKeySupport;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import com.dcriar.domain.stock.entity.enums.DirecaoAjusteLote;
@@ -385,11 +386,11 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
     }
 
     private BigDecimal extrairLarguraMm(LoteMateriaPrima lote) {
-        if (lote.getAtributos() == null || lote.getAtributos().get("larguraMm") == null) {
+        Object larguraValue = LogicalMapKeySupport.getLogicalValue(lote.getAtributos(), "larguraMm");
+        if (larguraValue == null) {
             return null;
         }
 
-        Object larguraValue = lote.getAtributos().get("larguraMm");
         if (larguraValue instanceof Number number) {
             return BigDecimal.valueOf(number.doubleValue()).setScale(2, RoundingMode.HALF_UP);
         }

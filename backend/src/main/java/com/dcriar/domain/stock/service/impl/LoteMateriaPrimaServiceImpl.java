@@ -8,6 +8,7 @@ import com.dcriar.api.mapper.stock.LoteMateriaPrimaMapper;
 import com.dcriar.api.mapper.stock.MovimentacaoMapper;
 import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
+import com.dcriar.domain.common.util.LogicalMapKeySupport;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
@@ -449,8 +450,8 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
             return false;
         }
 
-        Object larguraAtual = lote.getAtributos() != null ? lote.getAtributos().get("larguraMm") : null;
-        Object larguraNova = requestDTO.getAtributos().get("larguraMm");
+        Object larguraAtual = LogicalMapKeySupport.getLogicalValue(lote.getAtributos(), "larguraMm");
+        Object larguraNova = LogicalMapKeySupport.getLogicalValue(requestDTO.getAtributos(), "larguraMm");
         return !Objects.equals(normalizarNumeroLargura(larguraAtual), normalizarNumeroLargura(larguraNova));
     }
 

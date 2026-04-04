@@ -8,6 +8,7 @@ import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.persistence.NormalizedUniquenessChecker;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
 import com.dcriar.domain.common.util.HumanTextNormalizer;
+import com.dcriar.domain.common.util.LogicalMapKeySupport;
 import com.dcriar.domain.common.util.MapStringValueTrimmer;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.common.util.TrimTextNormalizer;
@@ -357,6 +358,14 @@ public class ProdutoServiceImpl implements ProdutoService {
             errors.put("codigoFabricante", "O código do fabricante é obrigatório.");
         }
 
+        if (produto instanceof ProdutoDeConsumo && fields.containsKey("especificacoes") && fields.get("especificacoes") instanceof Map<?, ?> specs) {
+            try {
+                LogicalMapKeySupport.validateNoLogicalDuplicates(specs, "especificacoes");
+            } catch (LogicalMapKeyInvalidaException ex) {
+                errors.put(ex.getFieldPath(), ex.getMessage());
+            }
+        }
+
         if (!errors.isEmpty()) {
             throw new ProdutoInvalidoException("Dados do produto inválidos.", errors);
         }
@@ -476,6 +485,12 @@ public class ProdutoServiceImpl implements ProdutoService {
     }
 
     private void validarRegrasDeNegocio(ProdutoRequestDTO requestDTO) {
+        try {
+            LogicalMapKeySupport.validateNoLogicalDuplicates(requestDTO.getEspecificacoes(), "especificacoes");
+        } catch (LogicalMapKeyInvalidaException ex) {
+            throw new ProdutoInvalidoException("Dados do produto inválidos.", Map.of(ex.getFieldPath(), ex.getMessage()));
+        }
+
         if (normalizedUniquenessChecker.existsProdutoNome(requestDTO.getNome())) {
             throw new ProdutoNomeDuplicadoException(requestDTO.getNome());
         }
