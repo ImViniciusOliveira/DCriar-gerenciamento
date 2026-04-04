@@ -38,7 +38,6 @@ public final class MapStringValueTrimmer {
         return normalized;
     }
 
-    @SuppressWarnings("unchecked")
     private static Object normalizeObject(Object value) {
         if (value instanceof String stringValue) {
             return TrimTextNormalizer.trimToNull(stringValue);

@@ -27,6 +27,7 @@ import { BatchService } from '../../../stock/services/batch.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { POSITIVE_DECIMAL_4_PATTERN, SIGNED_DECIMAL_4_PATTERN } from '../../../../shared/utils/number-patterns';
+import { getLogicalMapValue } from '../../../../shared/utils/logical-map-key';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -242,6 +243,23 @@ export class ProductionForm implements OnInit {
   // Toggle para expandir/ocultar linhas
   public toggleLinhasOcultas() {
     this.linhasOcultasExpandido.set(!this.linhasOcultasExpandido());
+  }
+
+  public getBatchWidthMm(batch: Batch | null | undefined): number {
+    const rawWidth = getLogicalMapValue(batch?.atributos, 'larguraMm');
+    const width = Number(rawWidth);
+    return Number.isFinite(width) ? width : 0;
+  }
+
+  public getBatchLengthMm(batch: Batch | null | undefined): number {
+    const widthMm = this.getBatchWidthMm(batch);
+    const balance = Number(batch?.saldoEstoque);
+
+    if (!widthMm || !Number.isFinite(balance) || balance <= 0) {
+      return 0;
+    }
+
+    return (balance * 1000000) / widthMm;
   }
 
   // Índice da linha onde o resumo (+N) deve aparecer no preview compactado.

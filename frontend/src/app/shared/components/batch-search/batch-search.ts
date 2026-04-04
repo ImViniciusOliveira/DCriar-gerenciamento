@@ -13,6 +13,7 @@ import { Subject, of, EMPTY } from 'rxjs';
 import { EnumService } from '../../../core/services/enum.service';
 import { ApiResponseBatches, Batch } from '../../../features/stock/models/batch.model';
 import { BatchService } from '../../../features/stock/services/batch.service';
+import { getLogicalMapValue } from '../../utils/logical-map-key';
 
 /**
  * Componente genérico para busca e seleção de Lotes de Matéria-Prima.
@@ -246,7 +247,8 @@ export class BatchSearch {
       // Saldo em cm²
       const saldoCm2 = batch.unidadeSimbolo === 'm²' && typeof batch.saldoEstoque === 'number' ? nf.format(batch.saldoEstoque * 10000) : '';
       // Largura em mm e cm
-      const larguraMmVal = batch.atributos?.['larguraMm'] ? Number(batch.atributos['larguraMm']) : 0;
+      const larguraMmValue = getLogicalMapValue(batch.atributos, 'larguraMm');
+      const larguraMmVal = larguraMmValue !== undefined && larguraMmValue !== null ? Number(larguraMmValue) : 0;
       const larguraMm = larguraMmVal ? nf.format(larguraMmVal) : '';
       const larguraCm = larguraMmVal ? nf.format(larguraMmVal / 10) : '';
       // Comprimento calculado a partir do saldo e largura

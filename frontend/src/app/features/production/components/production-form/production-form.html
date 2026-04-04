@@ -226,8 +226,8 @@
                       <p class="feedback-item">
                         Saldo:
                         <strong>
-                          Largura: {{ +lote.atributos?.['larguraMm'] | number:'1.0-0' }}mm ({{ +(lote.atributos?.['larguraMm'] || 0) / 10 | number:'1.0-0' }}cm) |
-                          Comprimento: {{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / +lote.atributos?.['larguraMm'] | number:'1.0-0') : '0' }}mm ({{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / +lote.atributos?.['larguraMm'] / 10 | number:'1.0-0') : '0' }}cm)
+                          Largura: {{ getBatchWidthMm(lote) | number:'1.0-0' }}mm ({{ getBatchWidthMm(lote) / 10 | number:'1.0-0' }}cm) |
+                          Comprimento: {{ getBatchLengthMm(lote) | number:'1.0-0' }}mm ({{ getBatchLengthMm(lote) / 10 | number:'1.0-0' }}cm)
                         </strong>
                       </p>
                     }
@@ -284,8 +284,8 @@
                     @if(loteSelecionado(); as lote) {
                       <p class="feedback-item">
                         <strong>
-                          Largura: {{ lote.atributos?.['larguraMm'] | number:'1.0-0' }}mm ({{ (lote.atributos?.['larguraMm'] || 0) / 10 | number:'1.0-0' }}cm) |
-                          Comprimento: {{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / lote.atributos?.['larguraMm'] | number:'1.0-0') : '0' }}mm ({{ lote.saldoEstoque && lote.atributos?.['larguraMm'] ? ((lote.saldoEstoque * 1000000) / lote.atributos?.['larguraMm'] / 10 | number:'1.0-0') : '0' }}cm)
+                          Largura: {{ getBatchWidthMm(lote) | number:'1.0-0' }}mm ({{ getBatchWidthMm(lote) / 10 | number:'1.0-0' }}cm) |
+                          Comprimento: {{ getBatchLengthMm(lote) | number:'1.0-0' }}mm ({{ getBatchLengthMm(lote) / 10 | number:'1.0-0' }}cm)
                         </strong>
                       </p>
                     }

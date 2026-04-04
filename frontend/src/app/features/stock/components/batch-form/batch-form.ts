@@ -23,6 +23,7 @@ import { BatchAdjustmentForm } from '../batch-adjustment-form/batch-adjustment-f
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { POSITIVE_DECIMAL_4_PATTERN } from '../../../../shared/utils/number-patterns';
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
+import { normalizeLogicalMapKey } from '../../../../shared/utils/logical-map-key';
 
 /**
  * Validador que verifica se a parte inteira de um número excede um máximo de dígitos.
@@ -213,7 +214,7 @@ export class BatchForm implements OnInit {
         if (fullBatch.atributos) {
           this.attributes.clear();
           Object.entries(fullBatch.atributos).forEach(([key, value]) => {
-            if (key === 'larguraMm') {
+            if (normalizeLogicalMapKey(key) === 'larguramm') {
               this.form.get('larguraMm')?.setValue(value);
             } else {
               this.addAttribute(key, value as string, false);
