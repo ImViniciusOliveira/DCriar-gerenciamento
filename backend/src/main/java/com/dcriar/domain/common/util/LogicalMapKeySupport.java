@@ -39,19 +39,13 @@ public final class LogicalMapKeySupport {
             String rawKey = entry.getKey() != null ? String.valueOf(entry.getKey()) : null;
             String trimmedKey = TrimTextNormalizer.trimToNull(rawKey);
             if (trimmedKey == null) {
-                throw new LogicalMapKeyInvalidaException(
-                        currentPath,
-                        "As chaves do campo '" + currentPath + "' nao podem ser vazias."
-                );
+                throw LogicalMapKeyInvalidaException.chaveVazia(currentPath);
             }
 
             String logicalKey = UniqueComparisonNormalizer.normalizeTrimmedKey(trimmedKey);
             String previousKey = seenKeys.putIfAbsent(logicalKey, trimmedKey);
             if (previousKey != null) {
-                throw new LogicalMapKeyInvalidaException(
-                        currentPath,
-                        "As chaves '" + previousKey + "' e '" + trimmedKey + "' sao equivalentes e nao podem coexistir."
-                );
+                throw LogicalMapKeyInvalidaException.chavesEquivalentes(currentPath, previousKey, trimmedKey);
             }
 
             Object value = entry.getValue();
