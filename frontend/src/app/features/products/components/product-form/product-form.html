@@ -167,9 +167,6 @@
           </mat-form-field>
         </div>
         <div formArrayName="especificacoes">
-          @if (specifications.hasError('logicalDuplicateKey')) {
-            <div class="field-error">{{ getSpecificationKeyErrorMessage() }}</div>
-          }
           @for (specGroup of specificationsControls; track $index) {
             <div class="spec-row" [formGroup]="specGroup">
               <mat-form-field appearance="outline">
@@ -177,6 +174,8 @@
                 <input matInput formControlName="chave" [errorStateMatcher]="matcher">
                  @if (specGroup.get('chave')?.hasError('required')) {
                   <mat-error>O campo é obrigatório.</mat-error>
+                } @else if (specGroup.get('chave')?.hasError('logicalDuplicateKey')) {
+                  <mat-error>{{ getSpecificationInlineError(specGroup.get('chave')) }}</mat-error>
                 } @else if (specGroup.get('chave')?.hasError('maxlength')) {
                   <mat-error>Máximo de 50 caracteres.</mat-error>
                 }

@@ -23,7 +23,8 @@ import { BatchAdjustmentForm } from '../batch-adjustment-form/batch-adjustment-f
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { POSITIVE_DECIMAL_4_PATTERN } from '../../../../shared/utils/number-patterns';
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
-import { findLogicalMapKeyConflict, normalizeLogicalMapKey } from '../../../../shared/utils/logical-map-key';
+import { analyzeLogicalMapKeys, normalizeLogicalMapKey } from '../../../../shared/utils/logical-map-key';
+import { toggleControlError } from '../../../../shared/utils/control-errors';
 
 /**
  * Validador que verifica se a parte inteira de um número excede um máximo de dígitos.
@@ -108,7 +109,8 @@ export class BatchForm implements OnInit {
     SAVE_ERROR: 'Falha ao salvar. Verifique os dados e tente novamente.',
     FORM_VALIDATION_ERROR: 'Corrija os campos inválidos antes de continuar.',
     LOAD_ERROR: 'Não foi possível carregar os dados do lote.',
-    UNITS_URL_ERROR: "URL para 'unidades-de-medida' não encontrada no template do lote."
+    UNITS_URL_ERROR: "URL para 'unidades-de-medida' não encontrada no template do lote.",
+    DUPLICATE_ATTRIBUTE_KEY_INLINE_ERROR: 'Existe outro atributo equivalente preenchido.',
   };
 
   constructor() {
@@ -257,13 +259,12 @@ export class BatchForm implements OnInit {
     return (this.form.get('atributos') as FormArray).controls as FormGroup[];
   }
 
-  protected getAttributeKeyErrorMessage(): string | null {
-    const error = this.attributes.errors?.['logicalDuplicateKey'];
-    if (!error) {
+  protected getAttributeInlineError(control: AbstractControl | null): string | null {
+    if (!control?.hasError('logicalDuplicateKey')) {
       return null;
     }
 
-    return `Os atributos "${error.firstKey}" e "${error.secondKey}" são equivalentes e não podem coexistir.`;
+    return BatchForm.Texts.DUPLICATE_ATTRIBUTE_KEY_INLINE_ERROR;
   }
 
   get materialTypeControl(): FormControl {
@@ -383,8 +384,10 @@ export class BatchForm implements OnInit {
     if (isNew) {
       setTimeout(() => {
         const dialogContent = (this.dialogRef as any)._containerInstance._elementRef.nativeElement.querySelector('mat-dialog-content');
-        if (dialogContent) {
-          dialogContent.scrollTop = dialogContent.scrollHeight;
+        const addButton = dialogContent?.querySelector('.add-attribute-button') as HTMLElement | null;
+
+        if (addButton) {
+          addButton.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
       }, 100);
     }
@@ -519,14 +522,23 @@ export class BatchForm implements OnInit {
   private validateAttributeKeys(control: AbstractControl): ValidationErrors | null {
     const entries = Array.isArray(control.value) ? control.value : [];
     const reservedKeys = this.requiresWidth && this.requiresWidth() ? ['larguraMm'] : [];
-    const conflict = findLogicalMapKeyConflict(entries, reservedKeys);
+    const analysis = analyzeLogicalMapKeys(entries, reservedKeys);
 
-    if (!conflict) {
+    this.attributesControls.forEach((attrGroup, index) => {
+      toggleControlError(attrGroup.get('chave'), 'logicalDuplicateKey', analysis.duplicateIndexes.has(index));
+    });
+    toggleControlError(
+      this.form.get('larguraMm'),
+      'logicalDuplicateKey',
+      analysis.conflictingReservedKeys.has('larguraMm')
+    );
+
+    if (!analysis.conflict) {
       return null;
     }
 
     return {
-      logicalDuplicateKey: conflict
+      logicalDuplicateKey: analysis.conflict
     };
   }
 }

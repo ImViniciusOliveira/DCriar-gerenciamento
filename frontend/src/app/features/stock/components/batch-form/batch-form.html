@@ -93,6 +93,8 @@
               <mat-hint>{{ getFieldLockReason('atributos.larguraMm') || 'Obrigatório para unidades geométricas.' }}</mat-hint>
               @if (form.get('larguraMm')?.hasError('required')) {
                 <mat-error>O campo é obrigatório.</mat-error>
+              } @else if (form.get('larguraMm')?.hasError('logicalDuplicateKey')) {
+                <mat-error>A largura já é informada nos atributos e não pode ser repetida.</mat-error>
               } @else if (form.get('larguraMm')?.hasError('pattern')) {
                 <mat-error>Use até 4 casas decimais.</mat-error>
               } @else if (form.get('larguraMm')?.hasError('min')) {
@@ -106,9 +108,6 @@
 
         <!-- Atributos Adicionais -->
         <div formArrayName="atributos">
-          @if (attributes.hasError('logicalDuplicateKey')) {
-            <div class="field-error">{{ getAttributeKeyErrorMessage() }}</div>
-          }
           @for (attrGroup of attributesControls; track $index) {
             <div class="attribute-row" [formGroup]="attrGroup">
               <mat-form-field appearance="outline">
@@ -116,6 +115,8 @@
                 <input matInput formControlName="chave" [errorStateMatcher]="matcher" placeholder="Ex: Fornecedor" required>
                 @if (attrGroup.get('chave')?.hasError('required')) {
                   <mat-error>O campo é obrigatório.</mat-error>
+                } @else if (attrGroup.get('chave')?.hasError('logicalDuplicateKey')) {
+                  <mat-error>{{ getAttributeInlineError(attrGroup.get('chave')) }}</mat-error>
                 } @else if (attrGroup.get('chave')?.hasError('maxlength')) {
                   <mat-error>Máximo de 50 caracteres.</mat-error>
                 }
@@ -135,7 +136,7 @@
             </div>
           }
         </div>
-        <button mat-stroked-button type="button" class="action-button" (click)="addAttribute()">
+        <button mat-stroked-button type="button" class="action-button add-attribute-button" (click)="addAttribute()">
           <mat-icon>add</mat-icon>
           Adicionar Atributo
         </button>

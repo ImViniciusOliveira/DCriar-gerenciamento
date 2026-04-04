@@ -34,37 +34,70 @@ export interface LogicalMapKeyConflict {
   secondKey: string;
 }
 
-export function findLogicalMapKeyConflict(
+export interface LogicalMapKeyAnalysis {
+  conflict: LogicalMapKeyConflict | null;
+  duplicateIndexes: Set<number>;
+  conflictingReservedKeys: Set<string>;
+}
+
+export function analyzeLogicalMapKeys(
   entries: LogicalMapKeyEntry[],
   reservedKeys: string[] = []
-): LogicalMapKeyConflict | null {
-  const seenKeys = new Map<string, string>();
+): LogicalMapKeyAnalysis {
+  const duplicateIndexes = new Set<number>();
+  const conflictingReservedKeys = new Set<string>();
+  const seenIndexesByKey = new Map<string, number[]>();
+  const reservedKeysByNormalizedValue = new Map<string, string>();
+  let conflict: LogicalMapKeyConflict | null = null;
 
   for (const reservedKey of reservedKeys) {
     const normalizedReservedKey = normalizeLogicalMapKey(reservedKey);
     if (normalizedReservedKey) {
-      seenKeys.set(normalizedReservedKey, reservedKey);
+      reservedKeysByNormalizedValue.set(normalizedReservedKey, reservedKey);
     }
   }
 
-  for (const entry of entries) {
+  entries.forEach((entry, index) => {
     const originalKey = String(entry.chave ?? '').trim();
     const normalizedKey = normalizeLogicalMapKey(entry.chave);
-
     if (!normalizedKey) {
-      continue;
+      return;
     }
 
-    const firstSeenKey = seenKeys.get(normalizedKey);
-    if (firstSeenKey) {
-      return {
-        firstKey: firstSeenKey,
+    const conflictingReservedKey = reservedKeysByNormalizedValue.get(normalizedKey);
+    if (conflictingReservedKey) {
+      if (!conflict) {
+        conflict = {
+          firstKey: conflictingReservedKey,
+          secondKey: originalKey || String(entry.chave ?? '')
+        };
+      }
+      duplicateIndexes.add(index);
+      conflictingReservedKeys.add(conflictingReservedKey);
+    }
+
+    const seenIndexes = seenIndexesByKey.get(normalizedKey) ?? [];
+    if (!conflict && seenIndexes.length > 0) {
+      const firstDuplicateIndex = seenIndexes[0];
+      const firstDuplicateKey = String(entries[firstDuplicateIndex]?.chave ?? '').trim();
+      conflict = {
+        firstKey: firstDuplicateKey || String(entries[firstDuplicateIndex]?.chave ?? ''),
         secondKey: originalKey || String(entry.chave ?? '')
       };
     }
+    seenIndexes.push(index);
+    seenIndexesByKey.set(normalizedKey, seenIndexes);
+  });
 
-    seenKeys.set(normalizedKey, originalKey);
+  for (const indexes of seenIndexesByKey.values()) {
+    if (indexes.length > 1) {
+      indexes.forEach(index => duplicateIndexes.add(index));
+    }
   }
 
-  return null;
+  return {
+    conflict,
+    duplicateIndexes,
+    conflictingReservedKeys
+  };
 }

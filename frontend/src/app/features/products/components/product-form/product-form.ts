@@ -22,7 +22,8 @@ import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-m
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN, POSITIVE_MONEY_2_PATTERN } from '../../../../shared/utils/number-patterns';
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
-import { findLogicalMapKeyConflict } from '../../../../shared/utils/logical-map-key';
+import { analyzeLogicalMapKeys } from '../../../../shared/utils/logical-map-key';
+import { toggleControlError } from '../../../../shared/utils/control-errors';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -97,8 +98,7 @@ export class ProductFormComponent implements OnInit {
     SUBMIT_ERROR: 'Falha no envio do formulário:',
     UPDATE_ERROR: 'ID do produto não encontrado, não é possível atualizar.',
     FORM_VALIDATION_ERROR: 'Corrija os campos inválidos antes de continuar.',
-    DUPLICATE_SPECIFICATION_KEY_ERROR: (firstKey: string, secondKey: string) =>
-      `As características "${firstKey}" e "${secondKey}" são equivalentes e não podem coexistir.`
+    DUPLICATE_SPECIFICATION_KEY_INLINE_ERROR: 'Existe outra característica equivalente preenchida.'
   };
 
   constructor() {
@@ -241,13 +241,12 @@ export class ProductFormComponent implements OnInit {
     return (this.productForm.get('especificacoes') as FormArray).controls as FormGroup[];
   }
 
-  protected getSpecificationKeyErrorMessage(): string | null {
-    const error = this.specifications.errors?.['logicalDuplicateKey'];
-    if (!error) {
+  protected getSpecificationInlineError(control: AbstractControl | null): string | null {
+    if (!control?.hasError('logicalDuplicateKey')) {
       return null;
     }
 
-    return ProductFormComponent.Texts.DUPLICATE_SPECIFICATION_KEY_ERROR(error.firstKey, error.secondKey);
+    return ProductFormComponent.Texts.DUPLICATE_SPECIFICATION_KEY_INLINE_ERROR;
   }
 
   get materialTypeControl(): FormControl {
@@ -285,11 +284,12 @@ export class ProductFormComponent implements OnInit {
     }));
     this.specifications.updateValueAndValidity();
 
-    // Scroll automático para o novo item, melhorando a experiência do usuário.
     setTimeout(() => {
       const dialogContent = (this.dialogRef as any)._containerInstance._elementRef.nativeElement.querySelector('mat-dialog-content');
-      if (dialogContent) {
-        dialogContent.scrollTop = dialogContent.scrollHeight;
+      const addButton = dialogContent?.querySelector('.add-specification-button') as HTMLElement | null;
+
+      if (addButton) {
+        addButton.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
     }, 100);
   }
@@ -740,14 +740,18 @@ export class ProductFormComponent implements OnInit {
 
   private validateSpecificationKeys(control: AbstractControl): ValidationErrors | null {
     const entries = Array.isArray(control.value) ? control.value : [];
-    const conflict = findLogicalMapKeyConflict(entries);
+    const analysis = analyzeLogicalMapKeys(entries);
 
-    if (!conflict) {
+    this.specificationsControls.forEach((specGroup, index) => {
+      toggleControlError(specGroup.get('chave'), 'logicalDuplicateKey', analysis.duplicateIndexes.has(index));
+    });
+
+    if (!analysis.conflict) {
       return null;
     }
 
     return {
-      logicalDuplicateKey: conflict
+      logicalDuplicateKey: analysis.conflict
     };
   }
 }

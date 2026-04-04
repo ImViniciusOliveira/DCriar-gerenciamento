@@ -182,10 +182,10 @@ export class SalesForm implements OnInit {
         if (this.form.get('canalVendaId')?.dirty) {
            this.items.clear();
            if (this.form.get('canalVendaId')?.valid) {
-             this.addItem();
+             this.addItem(false);
            }
         } else if (!this.isEditMode() && this.items.length === 0 && this.form.get('canalVendaId')?.value) {
-             this.addItem();
+             this.addItem(false);
         }
       });
   }
@@ -293,8 +293,21 @@ export class SalesForm implements OnInit {
   /**
    * Adiciona uma nova linha de item ao formulário.
    */
-  addItem(): void {
+  addItem(shouldScrollToButton = true): void {
     this.items.push(this.createItemControl());
+
+    if (!shouldScrollToButton) {
+      return;
+    }
+
+    setTimeout(() => {
+      const dialogContent = (this.dialogRef as any)._containerInstance._elementRef.nativeElement.querySelector('mat-dialog-content');
+      const addButton = dialogContent?.querySelector('.add-item-button') as HTMLElement | null;
+
+      if (addButton) {
+        addButton.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }, 100);
   }
 
   /**
