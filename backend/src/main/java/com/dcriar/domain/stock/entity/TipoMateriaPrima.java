@@ -2,6 +2,7 @@ package com.dcriar.domain.stock.entity;
 
 import com.dcriar.api.dto.request.stock.TipoMateriaPrimaRequestDTO;
 import com.dcriar.domain.common.entity.AuditableEntity;
+import com.dcriar.domain.common.util.HumanTextNormalizer;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import jakarta.persistence.*;
 import lombok.*;
@@ -55,7 +56,7 @@ public class TipoMateriaPrima extends AuditableEntity {
     public static TipoMateriaPrima from(TipoMateriaPrimaRequestDTO dto) {
         // Centralize regras de negócio aqui (ex: normalização, validação extra)
         return TipoMateriaPrima.builder()
-                .nome(dto.getNome() != null ? dto.getNome().trim() : null)
+                .nome(HumanTextNormalizer.normalize(dto.getNome()))
                 .unidadeDeConsumo(dto.getUnidadeDeConsumo())
                 .build();
     }
@@ -71,7 +72,7 @@ public class TipoMateriaPrima extends AuditableEntity {
     public void updateFrom(TipoMateriaPrimaRequestDTO dto) {
         // Centralize regras de negócio para atualização
         if (dto.getNome() != null) {
-            this.nome = dto.getNome().trim();
+            this.nome = HumanTextNormalizer.normalize(dto.getNome());
         }
         if (dto.getUnidadeDeConsumo() != null) {
             this.unidadeDeConsumo = dto.getUnidadeDeConsumo();

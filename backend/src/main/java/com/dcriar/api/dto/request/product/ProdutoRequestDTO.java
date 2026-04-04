@@ -1,7 +1,9 @@
 package com.dcriar.api.dto.request.product;
 
+import com.dcriar.api.jackson.HumanTextDeserializer;
 import com.dcriar.api.validation.annotation.ValidProdutoRequest;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.*;
@@ -28,6 +30,7 @@ public class ProdutoRequestDTO {
     private String tipoProduto;
 
     @Schema(description = "Nome descritivo e único do produto.", example = "Refil de Tinta Eco-Solvente Preta 1500ml", requiredMode = Schema.RequiredMode.REQUIRED)
+    @JsonDeserialize(using = HumanTextDeserializer.class)
     private String nome;
 
     @Schema(description = "Código único de produto (Stock Keeping Unit).", example = "TIN-BLK-ES-1500ML", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -53,6 +56,7 @@ public class ProdutoRequestDTO {
 
     // --- Campos para ProdutoDeCorte ---
     @Schema(description = "Cor principal do produto (apenas para produtos de corte).", example = "Branco")
+    @JsonDeserialize(using = HumanTextDeserializer.class)
     private String cor;
 
     @Valid
@@ -61,6 +65,7 @@ public class ProdutoRequestDTO {
 
     // --- Campos para ProdutoDeConsumo ---
     @Schema(description = "Código do produto fornecido pelo fabricante (apenas para produtos de consumo).", example = "INK-BLK-ES-1500ML")
+    @JsonDeserialize(using = HumanTextDeserializer.class)
     private String codigoFabricante;
 
     @Schema(description = "Unidade usada para informar 'unidadesPorProduto' no cadastro de consumo. Se não for enviada, o backend assume a unidade da matéria-prima. Exemplos compatíveis: LITRO/MILILITRO, QUILOGRAMA/GRAMA.", example = "MILILITRO")

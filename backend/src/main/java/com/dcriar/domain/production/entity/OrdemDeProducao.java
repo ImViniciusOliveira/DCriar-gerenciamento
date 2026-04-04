@@ -2,6 +2,7 @@ package com.dcriar.domain.production.entity;
 
 import com.dcriar.api.dto.request.production.OrdemDeProducaoRequestDTO;
 import com.dcriar.domain.common.entity.AuditableEntity;
+import com.dcriar.domain.common.util.TrimTextNormalizer;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.production.enums.ModoCalculo;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
@@ -129,7 +130,7 @@ public class OrdemDeProducao extends AuditableEntity {
                 .lotesConsumidos(lotesConsumidos)
                 .canalVendaDestinoId(dto.getCanalVendaDestinoId())
                 .quantidadeProduzida(dto.getQuantidadeProduzida())
-                .motivo(dto.getMotivo());
+                .motivo(TrimTextNormalizer.trimToNull(dto.getMotivo()));
 
         // Atribui campos específicos de CORTE apenas se existirem no DTO
         if (dto.getModoCalculo() != null) {
@@ -171,7 +172,7 @@ public class OrdemDeProducao extends AuditableEntity {
         this.margens = margens;
         this.larguraFinalCm = dto.getLarguraFinalCm();
         this.comprimentoFinalCm = dto.getComprimentoFinalCm();
-        this.motivo = dto.getMotivo();
+        this.motivo = TrimTextNormalizer.trimToNull(dto.getMotivo());
         this.rotacionado = dto.getModoCalculo() != null && dto.isRotacionado();
     }
 

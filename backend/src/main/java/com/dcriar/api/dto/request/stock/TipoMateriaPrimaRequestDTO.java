@@ -1,6 +1,8 @@
 package com.dcriar.api.dto.request.stock;
 
+import com.dcriar.api.jackson.HumanTextDeserializer;
 import com.dcriar.api.validation.annotation.ValidTipoMateriaPrimaRequest;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -24,6 +26,7 @@ public class TipoMateriaPrimaRequestDTO {
      * O nome único do tipo de matéria-prima.
      */
     @Schema(description = "Nome único do tipo de matéria-prima.", example = "Tinta Eco-Solvente Magenta", requiredMode = Schema.RequiredMode.REQUIRED)
+    @JsonDeserialize(using = HumanTextDeserializer.class)
     private String nome;
 
     /**

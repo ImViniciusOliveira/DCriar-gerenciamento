@@ -5,6 +5,7 @@ import com.dcriar.api.dto.response.stock.TipoMateriaPrimaResponseDTO;
 import com.dcriar.api.mapper.stock.TipoMateriaPrimaMapper;
 import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
+import com.dcriar.domain.common.util.HumanTextNormalizer;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
@@ -138,8 +139,9 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     }
 
     private void validateNomeDisponivel(String nome) {
-        if (tipoMateriaPrimaRepository.existsByNome(nome)) {
-            throw new TipoMateriaPrimaJaExisteException(nome);
+        String normalizedNome = HumanTextNormalizer.normalize(nome);
+        if (normalizedNome != null && tipoMateriaPrimaRepository.existsByNome(normalizedNome)) {
+            throw new TipoMateriaPrimaJaExisteException(normalizedNome);
         }
     }
 

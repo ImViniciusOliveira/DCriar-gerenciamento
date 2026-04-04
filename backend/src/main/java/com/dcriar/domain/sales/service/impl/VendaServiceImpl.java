@@ -6,6 +6,7 @@ import com.dcriar.api.dto.request.sales.ItemVendaRequestDTO;
 import com.dcriar.api.dto.request.sales.VendaRequestDTO;
 import com.dcriar.api.dto.response.sales.VendaResponseDTO;
 import com.dcriar.api.mapper.sales.VendaMapper;
+import com.dcriar.domain.common.util.TrimTextNormalizer;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Preco;
@@ -219,10 +220,7 @@ public class VendaServiceImpl implements VendaService {
     }
 
     private String normalizarMotivo(String motivo) {
-        if (motivo == null || motivo.isBlank()) {
-            return null;
-        }
-        return motivo.trim();
+        return TrimTextNormalizer.trimToNull(motivo);
     }
 
     private void performStockReduction(Produto produto, CanalVenda canalVenda, int quantity, Long vendaId) {

@@ -6,7 +6,10 @@ import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
 import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
+import com.dcriar.domain.common.util.HumanTextNormalizer;
+import com.dcriar.domain.common.util.MapStringValueTrimmer;
 import com.dcriar.domain.common.util.PageableSortUtils;
+import com.dcriar.domain.common.util.TrimTextNormalizer;
 import com.dcriar.domain.product.entity.*;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
@@ -160,8 +163,8 @@ public class ProdutoServiceImpl implements ProdutoService {
 
         return ProdutoDeCorte.builder()
                 .nome(requestDTO.getNome())
-                .sku(requestDTO.getSku())
-                .descricao(requestDTO.getDescricao())
+                .sku(TrimTextNormalizer.trimToNull(requestDTO.getSku()))
+                .descricao(TrimTextNormalizer.trimToNull(requestDTO.getDescricao()))
                 .unidadesPorProduto(requestDTO.getUnidadesPorProduto())
                 .fotoPrincipalUrl(requestDTO.getFotoPrincipalUrl())
                 .ativo(requestDTO.getAtivo() != null ? requestDTO.getAtivo() : true)
@@ -178,8 +181,8 @@ public class ProdutoServiceImpl implements ProdutoService {
         );
         return ProdutoDeConsumo.builder()
                 .nome(requestDTO.getNome())
-                .sku(requestDTO.getSku())
-                .descricao(requestDTO.getDescricao())
+                .sku(TrimTextNormalizer.trimToNull(requestDTO.getSku()))
+                .descricao(TrimTextNormalizer.trimToNull(requestDTO.getDescricao()))
                 .unidadesPorProduto(converterUnidadesPorProdutoParaUnidadeInterna(
                         requestDTO.getUnidadesPorProduto(),
                         tipoMateriaPrima.getUnidadeDeConsumo(),
@@ -190,7 +193,7 @@ public class ProdutoServiceImpl implements ProdutoService {
                 .tipoMateriaPrima(tipoMateriaPrima)
                 .codigoFabricante(requestDTO.getCodigoFabricante())
                 .unidadeCadastroConsumo(unidadeCadastro)
-                .especificacoes(requestDTO.getEspecificacoes())
+                .especificacoes(MapStringValueTrimmer.trimStringValues(requestDTO.getEspecificacoes()))
                 .build();
     }
 
@@ -212,14 +215,15 @@ public class ProdutoServiceImpl implements ProdutoService {
         }
 
         Produto produto = findProdutoById(id);
+        validarCamposPatch(produto, fields);
         validarCamposBloqueadosNaEdicao(produto, fields);
 
         // Mapeamento Manual de Alta Performance
         fields.forEach((key, value) -> {
             switch (key) {
-                case "nome" -> produto.setNome((String) value);
-                case "sku" -> produto.setSku((String) value);
-                case "descricao" -> produto.setDescricao((String) value);
+                case "nome" -> produto.setNome(HumanTextNormalizer.normalize((String) value));
+                case "sku" -> produto.setSku(TrimTextNormalizer.trimToNull((String) value));
+                case "descricao" -> produto.setDescricao(TrimTextNormalizer.trimToNull((String) value));
                 case "ativo" -> produto.setAtivo((Boolean) value);
                 case "fotoPrincipalUrl" -> {
                     // Lógica para exclusão segura da foto
@@ -239,7 +243,7 @@ public class ProdutoServiceImpl implements ProdutoService {
                 }
                 // Campos específicos de ProdutoDeCorte
                 case "cor" -> {
-                    if (produto instanceof ProdutoDeCorte p) p.setCor((String) value);
+                    if (produto instanceof ProdutoDeCorte p) p.setCor(HumanTextNormalizer.normalize((String) value));
                 }
                 case "dimensoes" -> {
                     if (produto instanceof ProdutoDeCorte p && value instanceof Map) {
@@ -259,7 +263,7 @@ public class ProdutoServiceImpl implements ProdutoService {
                 }
                 // Campos específicos de ProdutoDeConsumo
                 case "codigoFabricante" -> {
-                    if (produto instanceof ProdutoDeConsumo p) p.setCodigoFabricante((String) value);
+                    if (produto instanceof ProdutoDeConsumo p) p.setCodigoFabricante(HumanTextNormalizer.normalize((String) value));
                 }
                 case "unidadeCadastroConsumo" -> {
                     if (produto instanceof ProdutoDeConsumo p && value != null) {
@@ -279,7 +283,7 @@ public class ProdutoServiceImpl implements ProdutoService {
                             if (specValue == null) {
                                 p.getEspecificacoes().remove(specKey);
                             } else {
-                                p.getEspecificacoes().put(specKey, specValue);
+                                p.getEspecificacoes().put(specKey, TrimTextNormalizer.trimToNull(specValue));
                             }
                         });
                     }
@@ -320,6 +324,38 @@ public class ProdutoServiceImpl implements ProdutoService {
             syncPrecoComercial(produtoAtualizado, new BigDecimal(fields.get("precoComercial").toString()));
         }
         return mapAndEnrichProduto(produtoAtualizado);
+    }
+
+    private void validarCamposPatch(Produto produto, Map<String, Object> fields) {
+        Map<String, String> errors = new HashMap<>();
+
+        if (fields.containsKey("nome")) {
+            String nomeNormalizado = HumanTextNormalizer.normalize((String) fields.get("nome"));
+            if (nomeNormalizado == null) {
+                errors.put("nome", "O nome do produto é obrigatório.");
+            }
+        }
+
+        if (fields.containsKey("sku")) {
+            String sku = TrimTextNormalizer.trimToNull((String) fields.get("sku"));
+            if (sku == null) {
+                errors.put("sku", "O SKU do produto é obrigatório.");
+            }
+        }
+
+        if (produto instanceof ProdutoDeCorte && fields.containsKey("cor")
+                && HumanTextNormalizer.normalize((String) fields.get("cor")) == null) {
+            errors.put("cor", "A cor do produto é obrigatória.");
+        }
+
+        if (produto instanceof ProdutoDeConsumo && fields.containsKey("codigoFabricante")
+                && HumanTextNormalizer.normalize((String) fields.get("codigoFabricante")) == null) {
+            errors.put("codigoFabricante", "O código do fabricante é obrigatório.");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new ProdutoInvalidoException("Dados do produto inválidos.", errors);
+        }
     }
 
     private BigDecimal converterUnidadesPorProdutoParaUnidadeInterna(

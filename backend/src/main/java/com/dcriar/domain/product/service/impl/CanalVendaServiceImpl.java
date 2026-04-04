@@ -3,6 +3,7 @@ package com.dcriar.domain.product.service.impl;
 import com.dcriar.api.dto.request.product.CanalVendaRequestDTO;
 import com.dcriar.api.dto.response.product.CanalVendaResponseDTO;
 import com.dcriar.api.mapper.product.CanalVendaMapper;
+import com.dcriar.domain.common.util.HumanTextNormalizer;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
@@ -94,14 +95,16 @@ public class CanalVendaServiceImpl implements CanalVendaService {
     }
 
     private void validarNomeDisponivelParaCriacao(String nome) {
-        if (nome != null && canalVendaRepository.existsByNomeIgnoreCase(nome.trim())) {
-            throw new CanalVendaNomeDuplicadoException(nome.trim());
+        String normalizedNome = HumanTextNormalizer.normalize(nome);
+        if (normalizedNome != null && canalVendaRepository.existsByNomeIgnoreCase(normalizedNome)) {
+            throw new CanalVendaNomeDuplicadoException(normalizedNome);
         }
     }
 
     private void validarNomeDisponivelParaAtualizacao(Long id, String nome) {
-        if (nome != null && canalVendaRepository.existsByNomeIgnoreCaseAndIdNot(nome.trim(), id)) {
-            throw new CanalVendaNomeDuplicadoException(nome.trim());
+        String normalizedNome = HumanTextNormalizer.normalize(nome);
+        if (normalizedNome != null && canalVendaRepository.existsByNomeIgnoreCaseAndIdNot(normalizedNome, id)) {
+            throw new CanalVendaNomeDuplicadoException(normalizedNome);
         }
     }
 }

@@ -2,6 +2,8 @@ package com.dcriar.domain.stock.entity;
 
 import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.domain.common.entity.AuditableEntity;
+import com.dcriar.domain.common.util.MapStringValueTrimmer;
+import com.dcriar.domain.common.util.TrimTextNormalizer;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
@@ -146,9 +148,9 @@ public class LoteMateriaPrima extends AuditableEntity {
                 .tipoMateriaPrima(tipoMateriaPrima)
                 .unidadeDeEstoque(dto.getUnidadeDeEstoque())
                 .unidadeCadastroEstoque(dto.getUnidadeCadastroEstoque() != null ? dto.getUnidadeCadastroEstoque() : dto.getUnidadeDeEstoque())
-                .atributos(dto.getAtributos())
+                .atributos(MapStringValueTrimmer.trimObjectStringValues(dto.getAtributos()))
                 .custoTotalLote(dto.getCustoTotalLote())
-                .motivo(dto.getMotivo())
+                .motivo(TrimTextNormalizer.trimToNull(dto.getMotivo()))
                 // Adicione outros campos conforme necessário
                 .build();
     }
@@ -174,13 +176,13 @@ public class LoteMateriaPrima extends AuditableEntity {
             this.unidadeCadastroEstoque = dto.getUnidadeCadastroEstoque();
         }
         if (dto.getAtributos() != null) {
-            this.atributos = dto.getAtributos();
+            this.atributos = MapStringValueTrimmer.trimObjectStringValues(dto.getAtributos());
         }
         if (dto.getCustoTotalLote() != null) {
             this.custoTotalLote = dto.getCustoTotalLote();
         }
         if (dto.getMotivo() != null) {
-            this.motivo = dto.getMotivo();
+            this.motivo = TrimTextNormalizer.trimToNull(dto.getMotivo());
         }
     }
 }

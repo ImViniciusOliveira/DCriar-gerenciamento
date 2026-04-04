@@ -2,6 +2,7 @@ package com.dcriar.domain.product.entity;
 
 import com.dcriar.api.dto.request.product.CanalVendaRequestDTO;
 import com.dcriar.domain.common.entity.AuditableEntity;
+import com.dcriar.domain.common.util.HumanTextNormalizer;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -44,7 +45,7 @@ public class CanalVenda extends AuditableEntity {
      */
     public static CanalVenda from(CanalVendaRequestDTO dto) {
         return CanalVenda.builder()
-                .nome(dto.getNome() != null ? dto.getNome().trim() : null)
+                .nome(HumanTextNormalizer.normalize(dto.getNome()))
                 .build();
     }
 
@@ -59,7 +60,7 @@ public class CanalVenda extends AuditableEntity {
      */
     public void updateFrom(CanalVendaRequestDTO dto) {
         if (dto.getNome() != null) {
-            this.nome = dto.getNome().trim();
+            this.nome = HumanTextNormalizer.normalize(dto.getNome());
         }
     }
 }

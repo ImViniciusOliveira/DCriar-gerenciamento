@@ -1,6 +1,7 @@
 package com.dcriar.domain.product.entity;
 
 import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
+import com.dcriar.domain.common.util.TrimTextNormalizer;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import jakarta.persistence.*;
@@ -121,7 +122,7 @@ public class MovimentacaoEstoqueProduto {
                 .produtoSkuSnapshot(produto.getSku())
                 .tipo(TipoMovimentacaoProduto.valueOf(dto.getTipo()))
                 .quantidade(dto.getQuantidade())
-                .motivo(dto.getMotivo())
+                .motivo(TrimTextNormalizer.trimToNull(dto.getMotivo()))
                 .build();
     }
 
@@ -139,6 +140,6 @@ public class MovimentacaoEstoqueProduto {
         this.produtoSkuSnapshot = produto.getSku();
         this.tipo = TipoMovimentacaoProduto.valueOf(dto.getTipo());
         this.quantidade = dto.getQuantidade();
-        this.motivo = dto.getMotivo();
+        this.motivo = TrimTextNormalizer.trimToNull(dto.getMotivo());
     }
 }

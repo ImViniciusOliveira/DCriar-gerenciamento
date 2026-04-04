@@ -1,6 +1,8 @@
 package com.dcriar.api.dto.request.product;
 
+import com.dcriar.api.jackson.HumanTextDeserializer;
 import com.dcriar.api.validation.annotation.ValidCanalVendaRequest;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -20,5 +22,6 @@ public class CanalVendaRequestDTO {
      * O nome único do canal de venda (ex: "SHOPEE", "MERCADO_LIVRE", "LOJA_FISICA").
      */
     @Schema(description = "O nome único do canal de venda.", example = "Instagram Shop", requiredMode = Schema.RequiredMode.REQUIRED)
+    @JsonDeserialize(using = HumanTextDeserializer.class)
     private String nome;
 }
