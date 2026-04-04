@@ -96,14 +96,14 @@ public class CanalVendaServiceImpl implements CanalVendaService {
 
     private void validarNomeDisponivelParaCriacao(String nome) {
         String normalizedNome = HumanTextNormalizer.normalize(nome);
-        if (normalizedNome != null && canalVendaRepository.existsByNomeIgnoreCase(normalizedNome)) {
+        if (normalizedNome != null && canalVendaRepository.existsByNomeNormalized(normalizedNome)) {
             throw new CanalVendaNomeDuplicadoException(normalizedNome);
         }
     }
 
     private void validarNomeDisponivelParaAtualizacao(Long id, String nome) {
         String normalizedNome = HumanTextNormalizer.normalize(nome);
-        if (normalizedNome != null && canalVendaRepository.existsByNomeIgnoreCaseAndIdNot(normalizedNome, id)) {
+        if (normalizedNome != null && canalVendaRepository.existsByNomeNormalizedAndIdNot(normalizedNome, id)) {
             throw new CanalVendaNomeDuplicadoException(normalizedNome);
         }
     }

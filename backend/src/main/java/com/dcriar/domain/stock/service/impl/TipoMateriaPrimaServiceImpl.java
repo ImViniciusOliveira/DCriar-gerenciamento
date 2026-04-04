@@ -7,6 +7,7 @@ import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
 import com.dcriar.domain.common.util.HumanTextNormalizer;
 import com.dcriar.domain.common.util.PageableSortUtils;
+import com.dcriar.domain.common.util.UniqueComparisonNormalizer;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
@@ -99,7 +100,8 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     public TipoMateriaPrimaResponseDTO update(Long id, TipoMateriaPrimaRequestDTO requestDTO) {
         TipoMateriaPrima tipo = findTipoById(id);
         validarCamposBloqueadosNaEdicao(tipo, requestDTO);
-        if (requestDTO.getNome() != null && !tipo.getNome().equalsIgnoreCase(requestDTO.getNome())) {
+        if (requestDTO.getNome() != null
+                && !UniqueComparisonNormalizer.equalsCatalogKey(tipo.getNome(), requestDTO.getNome())) {
             validateNomeDisponivel(requestDTO.getNome());
         }
         
@@ -140,7 +142,7 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
 
     private void validateNomeDisponivel(String nome) {
         String normalizedNome = HumanTextNormalizer.normalize(nome);
-        if (normalizedNome != null && tipoMateriaPrimaRepository.existsByNome(normalizedNome)) {
+        if (normalizedNome != null && tipoMateriaPrimaRepository.existsByNomeNormalized(normalizedNome)) {
             throw new TipoMateriaPrimaJaExisteException(normalizedNome);
         }
     }

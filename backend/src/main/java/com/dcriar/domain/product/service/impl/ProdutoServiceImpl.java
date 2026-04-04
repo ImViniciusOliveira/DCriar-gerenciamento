@@ -10,6 +10,7 @@ import com.dcriar.domain.common.util.HumanTextNormalizer;
 import com.dcriar.domain.common.util.MapStringValueTrimmer;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.common.util.TrimTextNormalizer;
+import com.dcriar.domain.common.util.UniqueComparisonNormalizer;
 import com.dcriar.domain.product.entity.*;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
@@ -216,6 +217,7 @@ public class ProdutoServiceImpl implements ProdutoService {
 
         Produto produto = findProdutoById(id);
         validarCamposPatch(produto, fields);
+        validarDuplicidadeCamposPatch(produto, fields);
         validarCamposBloqueadosNaEdicao(produto, fields);
 
         // Mapeamento Manual de Alta Performance
@@ -358,6 +360,26 @@ public class ProdutoServiceImpl implements ProdutoService {
         }
     }
 
+    private void validarDuplicidadeCamposPatch(Produto produto, Map<String, Object> fields) {
+        if (fields.containsKey("nome")) {
+            String nomeNormalizado = HumanTextNormalizer.normalize((String) fields.get("nome"));
+            if (nomeNormalizado != null
+                    && !UniqueComparisonNormalizer.equalsCatalogKey(produto.getNome(), nomeNormalizado)
+                    && produtoRepository.existsByNomeNormalizedAndIdNot(nomeNormalizado, produto.getId())) {
+                throw new ProdutoNomeDuplicadoException(nomeNormalizado);
+            }
+        }
+
+        if (fields.containsKey("sku")) {
+            String skuNormalizado = TrimTextNormalizer.trimToNull((String) fields.get("sku"));
+            if (skuNormalizado != null
+                    && !UniqueComparisonNormalizer.equalsTrimmedKey(produto.getSku(), skuNormalizado)
+                    && produtoRepository.existsBySkuNormalizedAndIdNot(skuNormalizado, produto.getId())) {
+                throw new ProdutoSkuDuplicadoException(skuNormalizado);
+            }
+        }
+    }
+
     private BigDecimal converterUnidadesPorProdutoParaUnidadeInterna(
             BigDecimal quantidadeInformada,
             UnidadeDeMedida unidadePrincipal,
@@ -452,10 +474,10 @@ public class ProdutoServiceImpl implements ProdutoService {
     }
 
     private void validarRegrasDeNegocio(ProdutoRequestDTO requestDTO) {
-        if (produtoRepository.existsByNome(requestDTO.getNome())) {
+        if (produtoRepository.existsByNomeNormalized(requestDTO.getNome())) {
             throw new ProdutoNomeDuplicadoException(requestDTO.getNome());
         }
-        if (produtoRepository.existsBySku(requestDTO.getSku())) {
+        if (produtoRepository.existsBySkuNormalized(requestDTO.getSku())) {
             throw new ProdutoSkuDuplicadoException(requestDTO.getSku());
         }
     }
