@@ -47,7 +47,7 @@ public class UploadController {
             String fileName = fileStorageService.storeFile(file);
 
             String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/v1/uploads/")
+                    .path("/api/v1/uploads/download/")
                     .pathSegment(fileName)
                     .toUriString();
 
@@ -59,7 +59,7 @@ public class UploadController {
         }
     }
 
-    @GetMapping("/{fileName:.+}")
+    @GetMapping({"/download/{fileName:.+}", "/{fileName:.+}"})
     @Operation(summary = "Baixar um arquivo")
     public ResponseEntity<Resource> downloadFile(
             @Parameter(description = "Nome do arquivo a ser baixado.", example = "exemplo.png")

@@ -95,7 +95,7 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
             
             if (fileName != null && !fileName.isBlank()) {
                 String fullUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                        .path("/api/v1/uploads/")
+                        .path("/api/v1/uploads/download/")
                         .path(fileName)
                         .toUriString();
                 model.setFotoPrincipalUrl(fullUrl);

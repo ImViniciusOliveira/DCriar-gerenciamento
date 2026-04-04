@@ -21,6 +21,6 @@ public class UploadResponseDTO {
     /**
      * A URL completa a partir da qual o arquivo pode ser baixado.
      */
-    @Schema(description = "A URL completa a partir da qual o arquivo pode ser baixado.", example = "http://localhost:8080/api/v1/uploads/download/my-image.jpg")
+    @Schema(description = "A URL completa a partir da qual o arquivo pode ser baixado.", example = "http://localhost/api/v1/uploads/download/my-image.jpg")
     private String fileDownloadUri;
 }
