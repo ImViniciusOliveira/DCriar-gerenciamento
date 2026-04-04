@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Utilitário para aplicar trim lateral apenas em valores string dentro de estruturas de mapa.
+ * Utilitário para aplicar trim lateral em chaves e valores string dentro de estruturas de mapa.
  */
 public final class MapStringValueTrimmer {
 
@@ -18,7 +18,10 @@ public final class MapStringValueTrimmer {
         }
 
         Map<String, String> normalized = new LinkedHashMap<>();
-        source.forEach((key, value) -> normalized.put(key, TrimTextNormalizer.trimToNull(value)));
+        source.forEach((key, value) -> normalized.put(
+                TrimTextNormalizer.trimToNull(key),
+                TrimTextNormalizer.trimToNull(value)
+        ));
         return normalized;
     }
 
@@ -28,7 +31,10 @@ public final class MapStringValueTrimmer {
         }
 
         Map<String, Object> normalized = new LinkedHashMap<>();
-        source.forEach((key, value) -> normalized.put(key, normalizeObject(value)));
+        source.forEach((key, value) -> normalized.put(
+                TrimTextNormalizer.trimToNull(key),
+                normalizeObject(value)
+        ));
         return normalized;
     }
 
@@ -39,7 +45,10 @@ public final class MapStringValueTrimmer {
         }
         if (value instanceof Map<?, ?> mapValue) {
             Map<String, Object> normalized = new LinkedHashMap<>();
-            mapValue.forEach((entryKey, entryValue) -> normalized.put(String.valueOf(entryKey), normalizeObject(entryValue)));
+            mapValue.forEach((entryKey, entryValue) -> normalized.put(
+                    TrimTextNormalizer.trimToNull(String.valueOf(entryKey)),
+                    normalizeObject(entryValue)
+            ));
             return normalized;
         }
         if (value instanceof List<?> listValue) {

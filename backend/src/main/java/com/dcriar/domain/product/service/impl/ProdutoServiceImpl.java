@@ -273,7 +273,7 @@ public class ProdutoServiceImpl implements ProdutoService {
                 case "especificacoes" -> {
                     if (produto instanceof ProdutoDeConsumo p && value instanceof Map) {
                         @SuppressWarnings("unchecked")
-                        Map<String, String> incomingSpecs = (Map<String, String>) value;
+                        Map<String, String> incomingSpecs = MapStringValueTrimmer.trimStringValues((Map<String, String>) value);
 
                         if (p.getEspecificacoes() == null) {
                             p.setEspecificacoes(new HashMap<>());
