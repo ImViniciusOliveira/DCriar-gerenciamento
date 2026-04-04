@@ -136,7 +136,8 @@ public class GlobalExceptionHandler {
      * Intercepta {@link TipoMateriaPrimaJaExisteException}, {@link ProdutoEmUsoException},
      * {@link TipoMateriaPrimaEmUsoException}, {@link ProdutoNomeDuplicadoException},
      * {@link ProdutoSkuDuplicadoException}, {@link ExclusaoLoteBloqueadaException},
-     * {@link ProdutoCamposBloqueadosException}, {@link TipoMateriaPrimaCamposBloqueadosException}
+     * {@link ProdutoCamposBloqueadosException}, {@link TipoMateriaPrimaCamposBloqueadosException},
+     * {@link CanalVendaEmUsoException}, {@link CanalVendaNomeDuplicadoException}
      * e {@link LoteCamposBloqueadosException}.
      *
      * @param ex A exceção de conflito lançada.
@@ -147,13 +148,21 @@ public class GlobalExceptionHandler {
             TipoMateriaPrimaEmUsoException.class, ProdutoNomeDuplicadoException.class,
             ProdutoSkuDuplicadoException.class, ExclusaoLoteBloqueadaException.class,
             ProdutoCamposBloqueadosException.class, TipoMateriaPrimaCamposBloqueadosException.class,
-            LoteCamposBloqueadosException.class
+            LoteCamposBloqueadosException.class, CanalVendaEmUsoException.class,
+            CanalVendaNomeDuplicadoException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
         if (ex instanceof TipoMateriaPrimaJaExisteException e) { details.put("nome", e.getNome()); }
-        else if (ex instanceof ProdutoEmUsoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("entidadesEmUso", e.getEntidadeIds().toString()); }
-        else if (ex instanceof TipoMateriaPrimaEmUsoException e) { details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId())); details.put("lotesEmUso", e.getLoteIds().toString()); }
+        else if (ex instanceof ProdutoEmUsoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("entidadesEmUso", formatarColecao(e.getEntidadeIds())); }
+        else if (ex instanceof TipoMateriaPrimaEmUsoException e) { details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId())); details.put("lotesEmUso", formatarColecao(e.getLoteIds())); }
+        else if (ex instanceof CanalVendaNomeDuplicadoException e) { details.put("nome", e.getNome()); }
+        else if (ex instanceof CanalVendaEmUsoException e) {
+            details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
+            details.put("estoquesEmUso", formatarColecao(e.getEstoqueIds()));
+            details.put("vendasEmUso", formatarColecao(e.getVendaIds()));
+            details.put("ordensDeProducaoEmUso", formatarColecao(e.getOrdemDeProducaoIds()));
+        }
         else if (ex instanceof ProdutoNomeDuplicadoException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof ProdutoSkuDuplicadoException e) { details.put("sku", e.getSku()); }
         else if (ex instanceof ExclusaoLoteBloqueadaException e) { details.put("info", e.getMessage()); }
@@ -178,8 +187,21 @@ public class GlobalExceptionHandler {
             AbstractCamposBloqueadosException ex
     ) {
         details.put(idKey, String.valueOf(idValue));
-        details.put("camposBloqueados", ex.getCamposBloqueados().toString());
+        details.put("camposBloqueados", formatarColecao(ex.getCamposBloqueados()));
         ex.getMotivosBloqueio().forEach((campo, motivo) -> details.put("motivo." + campo, motivo));
+    }
+
+    private String formatarColecao(Iterable<?> itens) {
+        StringBuilder builder = new StringBuilder();
+
+        for (Object item : itens) {
+            if (builder.length() > 0) {
+                builder.append(", ");
+            }
+            builder.append(item);
+        }
+
+        return builder.toString();
     }
 
     /**

@@ -15,6 +15,7 @@ import { SalesService } from '../../services/sales.service';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 import { SalesForm, SalesFormData } from '../sales-form/sales-form';
 import { DetailsDialog, DetailsDialogData } from '../../../../shared/components/details-dialog/details-dialog';
+import { ChannelForm, ChannelFormData } from '../../../stock/components/channel-form/channel-form';
 
 /**
  * Componente de listagem para Vendas.
@@ -49,9 +50,11 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
     deleteError: 'Falha ao excluir a venda.',
     loadError: 'Falha ao carregar a lista de vendas.',
     createError: 'Não foi possível iniciar o registro de uma nova venda.',
+    createChannelSuccess: 'Canal de venda cadastrado com sucesso!',
     resourceError: 'Não foi possível encontrar o recurso.',
     createTitle: 'Nova Venda',
-    editTitle: 'Editar Venda'
+    editTitle: 'Editar Venda',
+    createChannelTitle: 'Novo Canal de Venda'
   };
 
   tableColumns: TableColumn<Sale>[] = [];
@@ -121,6 +124,24 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
         title: SalesList.Texts.createTitle
       }, SalesList.Texts.createSuccess);
     }
+  }
+
+  onCreateChannel(): void {
+    const dialogData: ChannelFormData = {
+      title: SalesList.Texts.createChannelTitle
+    };
+
+    this.entityDialog.openFormDialog({
+      component: ChannelForm,
+      formData: dialogData,
+      title: dialogData.title,
+      width: '460px',
+      maxWidth: '95vw'
+    }).subscribe(saved => {
+      if (saved) {
+        this.entityDialog.showSuccessSnackbar(SalesList.Texts.createChannelSuccess);
+      }
+    });
   }
 
   /**

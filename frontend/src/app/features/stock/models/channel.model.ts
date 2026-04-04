@@ -10,6 +10,10 @@ export interface Channel {
   _links?: Hateoas['_links'];
 }
 
+export interface ChannelRequest {
+  nome: string;
+}
+
 /**
  * Estrutura de resposta da API para listagem de canais.
  */

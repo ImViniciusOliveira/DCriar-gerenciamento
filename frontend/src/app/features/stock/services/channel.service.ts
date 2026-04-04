@@ -1,10 +1,10 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, shareReplay, switchMap, of, catchError } from 'rxjs';
+import { Observable, map, shareReplay, switchMap, of, catchError, combineLatest, tap, filter, take } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
-import { ApiResponseChannels, Channel } from '../models/channel.model';
+import { ApiResponseChannels, Channel, ChannelRequest } from '../models/channel.model';
 
 /**
  * Serviço responsável pelo gerenciamento de Canais de Venda.
@@ -16,8 +16,12 @@ import { ApiResponseChannels, Channel } from '../models/channel.model';
 export class ChannelService {
   private readonly http = inject(HttpClient);
   private readonly apiRoot = inject(ApiRoot);
+  private readonly refreshTrigger = signal<void>(undefined, { equal: () => false });
+
+  private readonly refresh$ = toObservable(this.refreshTrigger);
 
   private readonly endpoints$ = toObservable(this.apiRoot.endpoints).pipe(
+    filter((endpoints): endpoints is NonNullable<typeof endpoints> => !!endpoints),
     shareReplay(1)
   );
 
@@ -36,12 +40,30 @@ export class ChannelService {
 
         const cleanUrl = url.split('{')[0];
 
-        return this.http.get<ApiResponseChannels>(cleanUrl).pipe(
-          map(response => response._embedded?.['canais-venda'] || []),
-          catchError(() => of([]))
+        return combineLatest([this.refresh$]).pipe(
+          switchMap(() =>
+            this.http.get<ApiResponseChannels>(cleanUrl).pipe(
+              map(response => response._embedded?.['canais-venda'] || []),
+              catchError(() => of([]))
+            )
+          )
         );
       }),
       shareReplay(1)
+    );
+  }
+
+  create(request: ChannelRequest): Observable<Channel> {
+    return this.getBaseUrl().pipe(
+      switchMap(baseUrl => this.http.post<Channel>(baseUrl, request)),
+      tap(() => this.refreshTrigger.set(undefined))
+    );
+  }
+
+  private getBaseUrl(): Observable<string> {
+    return this.endpoints$.pipe(
+      take(1),
+      map(endpoints => endpoints._links?.['canais-venda']?.href?.split('{')[0] || '')
     );
   }
 }

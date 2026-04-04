@@ -12,4 +12,7 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface CanalVendaRepository extends JpaRepository<CanalVenda, Long> {
+    boolean existsByNomeIgnoreCase(String nome);
+
+    boolean existsByNomeIgnoreCaseAndIdNot(String nome, Long id);
 }

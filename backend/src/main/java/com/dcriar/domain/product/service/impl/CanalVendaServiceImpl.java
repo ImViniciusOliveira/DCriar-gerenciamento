@@ -4,8 +4,16 @@ import com.dcriar.api.dto.request.product.CanalVendaRequestDTO;
 import com.dcriar.api.dto.response.product.CanalVendaResponseDTO;
 import com.dcriar.api.mapper.product.CanalVendaMapper;
 import com.dcriar.domain.product.entity.CanalVenda;
+import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
+import com.dcriar.domain.product.repository.EstoqueRepository;
+import com.dcriar.domain.production.entity.OrdemDeProducao;
+import com.dcriar.domain.production.repository.OrdemDeProducaoRepository;
 import com.dcriar.domain.product.service.CanalVendaService;
+import com.dcriar.domain.sales.entity.Venda;
+import com.dcriar.domain.sales.repository.VendaRepository;
+import com.dcriar.exception.custom.CanalVendaEmUsoException;
+import com.dcriar.exception.custom.CanalVendaNomeDuplicadoException;
 import com.dcriar.exception.custom.CanalVendaNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,10 +31,14 @@ public class CanalVendaServiceImpl implements CanalVendaService {
 
     private final CanalVendaRepository canalVendaRepository;
     private final CanalVendaMapper canalVendaMapper;
+    private final EstoqueRepository estoqueRepository;
+    private final VendaRepository vendaRepository;
+    private final OrdemDeProducaoRepository ordemDeProducaoRepository;
 
     @Override
     @Transactional
     public CanalVendaResponseDTO create(CanalVendaRequestDTO requestDTO) {
+        validarNomeDisponivelParaCriacao(requestDTO.getNome());
         CanalVenda canal = CanalVenda.from(requestDTO);
         CanalVenda salvo = canalVendaRepository.save(canal);
         return canalVendaMapper.toResponseDTO(salvo);
@@ -37,6 +49,7 @@ public class CanalVendaServiceImpl implements CanalVendaService {
     public CanalVendaResponseDTO update(Long id, CanalVendaRequestDTO requestDTO) {
         CanalVenda canal = canalVendaRepository.findById(id)
                 .orElseThrow(() -> new CanalVendaNaoEncontradoException(id));
+        validarNomeDisponivelParaAtualizacao(id, requestDTO.getNome());
         canal.updateFrom(requestDTO);
         CanalVenda atualizado = canalVendaRepository.save(canal);
         return canalVendaMapper.toResponseDTO(atualizado);
@@ -61,10 +74,34 @@ public class CanalVendaServiceImpl implements CanalVendaService {
     @Override
     @Transactional
     public void deleteById(Long id) {
-        if (!canalVendaRepository.existsById(id)) {
-            throw new CanalVendaNaoEncontradoException(id);
+        CanalVenda canal = canalVendaRepository.findById(id)
+                .orElseThrow(() -> new CanalVendaNaoEncontradoException(id));
+
+        List<Estoque> estoques = estoqueRepository.findAllByCanalVenda(canal);
+        List<Venda> vendas = vendaRepository.findAllByCanalVenda(canal);
+        List<OrdemDeProducao> ordens = ordemDeProducaoRepository.findAllByCanalVendaDestinoId(id);
+
+        if (!estoques.isEmpty() || !vendas.isEmpty() || !ordens.isEmpty()) {
+            throw new CanalVendaEmUsoException(
+                    id,
+                    estoques.stream().map(Estoque::getId).collect(Collectors.toSet()),
+                    vendas.stream().map(Venda::getId).collect(Collectors.toSet()),
+                    ordens.stream().map(OrdemDeProducao::getId).collect(Collectors.toSet())
+            );
         }
-        // TODO: Adicionar validação para impedir exclusão se o canal estiver em uso (ex: em Estoques)
-        canalVendaRepository.deleteById(id);
+
+        canalVendaRepository.delete(canal);
+    }
+
+    private void validarNomeDisponivelParaCriacao(String nome) {
+        if (nome != null && canalVendaRepository.existsByNomeIgnoreCase(nome.trim())) {
+            throw new CanalVendaNomeDuplicadoException(nome.trim());
+        }
+    }
+
+    private void validarNomeDisponivelParaAtualizacao(Long id, String nome) {
+        if (nome != null && canalVendaRepository.existsByNomeIgnoreCaseAndIdNot(nome.trim(), id)) {
+            throw new CanalVendaNomeDuplicadoException(nome.trim());
+        }
     }
 }

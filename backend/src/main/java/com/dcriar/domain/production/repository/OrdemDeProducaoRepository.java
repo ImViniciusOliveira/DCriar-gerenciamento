@@ -27,6 +27,14 @@ public interface OrdemDeProducaoRepository extends JpaRepository<OrdemDeProducao
      */
     List<OrdemDeProducao> findAllByProduto(Produto produto);
 
+    /**
+     * Encontra todas as ordens de produção destinadas a um canal de venda específico.
+     *
+     * @param canalVendaDestinoId ID do canal de venda destino.
+     * @return Lista de ordens de produção vinculadas ao canal.
+     */
+    List<OrdemDeProducao> findAllByCanalVendaDestinoId(Long canalVendaDestinoId);
+
     boolean existsByProduto(Produto produto);
 
     /**

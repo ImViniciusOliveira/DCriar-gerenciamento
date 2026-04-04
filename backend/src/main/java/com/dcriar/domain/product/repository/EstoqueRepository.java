@@ -32,6 +32,14 @@ public interface EstoqueRepository extends JpaRepository<Estoque, Long> {
     Optional<Estoque> findByProdutoAndCanalVenda(Produto produto, CanalVenda canalVenda);
 
     /**
+     * Busca todos os registros de estoque associados a um canal de venda.
+     *
+     * @param canalVenda O canal de venda.
+     * @return Uma lista com todos os estoques vinculados ao canal.
+     */
+    List<Estoque> findAllByCanalVenda(CanalVenda canalVenda);
+
+    /**
      * Busca todos os registros de estoque para um determinado produto, em todos os canais de venda.
      *
      * @param produto O produto cujos estoques serão buscados.

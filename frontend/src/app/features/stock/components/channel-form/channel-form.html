@@ -1,0 +1,30 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="onSave()">
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nome do canal</mat-label>
+      <input
+        matInput
+        formControlName="nome"
+        maxlength="150"
+        placeholder="Ex: Loja fisica, Instagram, Shopee"
+        [errorStateMatcher]="matcher">
+
+      @if (form.controls.nome.hasError('required')) {
+        <mat-error>Informe o nome do canal.</mat-error>
+      }
+
+      @if (form.controls.nome.hasError('maxlength')) {
+        <mat-error>O nome deve ter no maximo 150 caracteres.</mat-error>
+      }
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="onCancel()">Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="isSaving()">
+      Criar canal
+    </button>
+  </mat-dialog-actions>
+</form>

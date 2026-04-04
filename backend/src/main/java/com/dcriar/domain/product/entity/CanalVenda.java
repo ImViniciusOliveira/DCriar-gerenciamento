@@ -28,7 +28,7 @@ public class CanalVenda extends AuditableEntity {
     private Long id;
 
     /**
-     * O nome único do canal de venda (ex: "SHOPEE", "MERCADO_LIVRE", "LOJA_FISICA").
+     * O nome único do canal de venda (ex: "Shopee", "Mercado Livre", "Loja Fisica").
      */
     @Column(nullable = false, unique = true, length = 50)
     private String nome;
@@ -43,9 +43,8 @@ public class CanalVenda extends AuditableEntity {
      * @return Nova instância de {@link CanalVenda} pronta para persistência
      */
     public static CanalVenda from(CanalVendaRequestDTO dto) {
-        // Centralize regras de negócio aqui (ex: normalização, validação extra)
         return CanalVenda.builder()
-                .nome(dto.getNome() != null ? dto.getNome().trim().toUpperCase() : null)
+                .nome(dto.getNome() != null ? dto.getNome().trim() : null)
                 .build();
     }
 
@@ -59,9 +58,8 @@ public class CanalVenda extends AuditableEntity {
      * @param dto DTO de request contendo os dados para atualização
      */
     public void updateFrom(CanalVendaRequestDTO dto) {
-        // Centralize regras de negócio para atualização
         if (dto.getNome() != null) {
-            this.nome = dto.getNome().trim().toUpperCase();
+            this.nome = dto.getNome().trim();
         }
     }
 }
