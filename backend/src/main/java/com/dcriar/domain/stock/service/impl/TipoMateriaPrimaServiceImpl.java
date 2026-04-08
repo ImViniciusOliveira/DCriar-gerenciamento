@@ -131,7 +131,7 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         List<LoteMateriaPrima> lotes = loteMateriaPrimaRepository.findAllByTipoMateriaPrima(tipo);
         if (!lotes.isEmpty()) {
             Set<Long> loteIds = lotes.stream().map(LoteMateriaPrima::getId).collect(Collectors.toSet());
-            throw new TipoMateriaPrimaEmUsoException(id, loteIds);
+            throw new TipoMateriaPrimaEmUsoException(id, tipo.getNome(), loteIds);
         }
 
         tipoMateriaPrimaRepository.delete(tipo);
@@ -178,6 +178,7 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         if (!tentativaCamposSensveis.isEmpty()) {
             throw new TipoMateriaPrimaCamposBloqueadosException(
                     tipo.getId(),
+                    tipo.getNome(),
                     tentativaCamposSensveis,
                     camposBloqueados.motivosBloqueio()
             );

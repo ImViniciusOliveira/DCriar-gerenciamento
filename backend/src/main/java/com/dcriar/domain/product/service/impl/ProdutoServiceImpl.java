@@ -538,7 +538,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         List<OrdemDeProducao> ordens = ordemDeProducaoRepository.findAllByProduto(produto);
         if (!ordens.isEmpty()) {
             Set<Long> ordemIds = ordens.stream().map(OrdemDeProducao::getId).collect(Collectors.toSet());
-            throw new ProdutoEmUsoException(id, ordemIds);
+            throw new ProdutoEmUsoException(id, produto.getNome(), ordemIds);
         }
         if (produto.getFotoPrincipalUrl() != null && !produto.getFotoPrincipalUrl().isBlank()) {
             fileStorageService.deleteFile(produto.getFotoPrincipalUrl());
@@ -640,6 +640,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         if (!tentativaCamposSensveis.isEmpty()) {
             throw new ProdutoCamposBloqueadosException(
                     produto.getId(),
+                    produto.getNome(),
                     tentativaCamposSensveis,
                     camposBloqueados.motivosBloqueio()
             );

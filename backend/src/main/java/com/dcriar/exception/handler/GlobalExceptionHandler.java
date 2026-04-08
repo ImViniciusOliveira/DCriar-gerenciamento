@@ -158,11 +158,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
         if (ex instanceof TipoMateriaPrimaJaExisteException e) { details.put("nome", e.getNome()); }
-        else if (ex instanceof ProdutoEmUsoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("entidadesEmUso", formatarColecao(e.getEntidadeIds())); }
-        else if (ex instanceof TipoMateriaPrimaEmUsoException e) { details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId())); details.put("lotesEmUso", formatarColecao(e.getLoteIds())); }
+        else if (ex instanceof ProdutoEmUsoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("nomeProduto", e.getNomeProduto()); details.put("entidadesEmUso", formatarColecao(e.getEntidadeIds())); }
+        else if (ex instanceof TipoMateriaPrimaEmUsoException e) { details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId())); details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima()); details.put("lotesEmUso", formatarColecao(e.getLoteIds())); }
         else if (ex instanceof CanalVendaNomeDuplicadoException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof CanalVendaEmUsoException e) {
             details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
+            details.put("nomeCanalVenda", e.getNomeCanalVenda());
             details.put("estoquesEmUso", formatarColecao(e.getEstoqueIds()));
             details.put("vendasEmUso", formatarColecao(e.getVendaIds()));
             details.put("ordensDeProducaoEmUso", formatarColecao(e.getOrdemDeProducaoIds()));
@@ -172,12 +173,15 @@ public class GlobalExceptionHandler {
         else if (ex instanceof ExclusaoLoteBloqueadaException e) { details.put("info", e.getMessage()); }
         else if (ex instanceof ProdutoCamposBloqueadosException e) {
             preencherDetalhesCamposBloqueados(details, "produtoId", e.getProdutoId(), e);
+            details.put("nomeProduto", e.getNomeProduto());
         }
         else if (ex instanceof TipoMateriaPrimaCamposBloqueadosException e) {
             preencherDetalhesCamposBloqueados(details, "tipoMateriaPrimaId", e.getTipoMateriaPrimaId(), e);
+            details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima());
         }
         else if (ex instanceof LoteCamposBloqueadosException e) {
             preencherDetalhesCamposBloqueados(details, "loteId", e.getLoteId(), e);
+            details.put("identificadorPublico", e.getIdentificadorPublico());
         }
         else if (ex instanceof AtualizacaoSemAlteracoesException e) {
             details.put("recurso", e.getRecurso());
@@ -334,10 +338,6 @@ public class GlobalExceptionHandler {
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
      */
     @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
-    public ResponseEntity<ErrorResponseDTO> handleMissingRequestParameter(org.springframework.web.bind.MissingServletRequestParameterException ex) {
-        return handleMissingRequestParameter(ex, null);
-    }
-
     public ResponseEntity<ErrorResponseDTO> handleMissingRequestParameter(
             org.springframework.web.bind.MissingServletRequestParameterException ex,
             HttpServletRequest request

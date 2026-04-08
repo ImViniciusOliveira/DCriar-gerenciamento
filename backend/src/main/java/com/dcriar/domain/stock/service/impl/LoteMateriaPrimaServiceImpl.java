@@ -488,6 +488,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         if (!tentativaCamposSensveis.isEmpty()) {
             throw new LoteCamposBloqueadosException(
                     lote.getId(),
+                    LotePublicIdentifierFormatter.format(lote),
                     tentativaCamposSensveis,
                     camposBloqueados.motivosBloqueio()
             );

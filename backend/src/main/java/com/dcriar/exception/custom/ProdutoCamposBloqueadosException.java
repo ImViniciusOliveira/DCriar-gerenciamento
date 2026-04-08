@@ -13,14 +13,16 @@ import java.util.Set;
 public class ProdutoCamposBloqueadosException extends AbstractCamposBloqueadosException {
 
     private final Long produtoId;
+    private final String nomeProduto;
 
-    public ProdutoCamposBloqueadosException(Long produtoId, Set<String> camposBloqueados, Map<String, String> motivosBloqueio) {
+    public ProdutoCamposBloqueadosException(Long produtoId, String nomeProduto, Set<String> camposBloqueados, Map<String, String> motivosBloqueio) {
         super(String.format(
-                "Não é possível alterar os campos estruturais do produto #%d (%s). Motivos: %s",
-                produtoId,
+                "Não é possível alterar os campos estruturais do produto '%s' (%s). Motivos: %s",
+                nomeProduto,
                 formatarCampos(camposBloqueados),
                 formatarMotivos(motivosBloqueio, camposBloqueados)
         ), camposBloqueados, motivosBloqueio);
         this.produtoId = produtoId;
+        this.nomeProduto = nomeProduto;
     }
 }

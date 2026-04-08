@@ -96,6 +96,7 @@ public class CanalVendaServiceImpl implements CanalVendaService {
         if (!estoques.isEmpty() || !vendas.isEmpty() || !ordens.isEmpty()) {
             throw new CanalVendaEmUsoException(
                     id,
+                    canal.getNome(),
                     estoques.stream().map(Estoque::getId).collect(Collectors.toSet()),
                     vendas.stream().map(Venda::getId).collect(Collectors.toSet()),
                     ordens.stream().map(OrdemDeProducao::getId).collect(Collectors.toSet())

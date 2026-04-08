@@ -13,14 +13,16 @@ import java.util.Set;
 public class LoteCamposBloqueadosException extends AbstractCamposBloqueadosException {
 
     private final Long loteId;
+    private final String identificadorPublico;
 
-    public LoteCamposBloqueadosException(Long loteId, Set<String> camposBloqueados, Map<String, String> motivosBloqueio) {
+    public LoteCamposBloqueadosException(Long loteId, String identificadorPublico, Set<String> camposBloqueados, Map<String, String> motivosBloqueio) {
         super(String.format(
-                "Não é possível alterar os campos estruturais do lote #%d (%s). Motivos: %s",
-                loteId,
+                "Não é possível alterar os campos estruturais do lote '%s' (%s). Motivos: %s",
+                identificadorPublico,
                 formatarCampos(camposBloqueados),
                 formatarMotivos(motivosBloqueio, camposBloqueados)
         ), camposBloqueados, motivosBloqueio);
         this.loteId = loteId;
+        this.identificadorPublico = identificadorPublico;
     }
 }
