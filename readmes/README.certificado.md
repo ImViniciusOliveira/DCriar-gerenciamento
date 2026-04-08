@@ -5,16 +5,16 @@ Este guia mostra como gerar os dois arquivos usados pelo frontend/nginx para sub
 ## Arquivos Esperados
 
 ```text
-/etc/seu-projeto/tls/fullchain.crt
-/etc/seu-projeto/tls/private.key
+/etc/nome-do-projeto/tls/fullchain.crt
+/etc/nome-do-projeto/tls/private.key
 ```
 
 ## 1. Criar A Pasta
 
 ```bash
-sudo mkdir -p /etc/seu-projeto/tls
-sudo chmod 700 /etc/seu-projeto/tls
-sudo chown root:root /etc/seu-projeto/tls
+sudo mkdir -p /etc/nome-do-projeto/tls
+sudo chmod 700 /etc/nome-do-projeto/tls
+sudo chown root:root /etc/nome-do-projeto/tls
 ```
 
 ## 2. Gerar O Certificado E A Chave
@@ -23,30 +23,30 @@ Exemplo para um servidor acessado por IP local:
 
 ```bash
 sudo openssl req -x509 -nodes -newkey rsa:2048 \
-  -keyout /etc/seu-projeto/tls/private.key \
-  -out /etc/seu-projeto/tls/fullchain.crt \
+  -keyout /etc/nome-do-projeto/tls/private.key \
+  -out /etc/nome-do-projeto/tls/fullchain.crt \
   -days 365 \
-  -subj "/CN=SEU_IP_DO_SERVIDOR" \
-  -addext "subjectAltName=IP:SEU_IP_DO_SERVIDOR,IP:127.0.0.1,DNS:localhost"
+  -subj "/CN=<ip-ou-host-do-servidor>" \
+  -addext "subjectAltName=IP:<ip-do-servidor>,IP:127.0.0.1,DNS:localhost"
 ```
 
-Se o IP do servidor for outro, troque:
-- `CN=SEU_IP_DO_SERVIDOR`
-- `IP:SEU_IP_DO_SERVIDOR`
+Se o valor do servidor for outro, troque:
+- `<ip-ou-host-do-servidor>`
+- `<ip-do-servidor>`
 
 ## 3. Proteger Os Arquivos
 
 ```bash
-sudo chmod 600 /etc/seu-projeto/tls/fullchain.crt
-sudo chmod 600 /etc/seu-projeto/tls/private.key
-sudo chown root:root /etc/seu-projeto/tls/fullchain.crt
-sudo chown root:root /etc/seu-projeto/tls/private.key
+sudo chmod 600 /etc/nome-do-projeto/tls/fullchain.crt
+sudo chmod 600 /etc/nome-do-projeto/tls/private.key
+sudo chown root:root /etc/nome-do-projeto/tls/fullchain.crt
+sudo chown root:root /etc/nome-do-projeto/tls/private.key
 ```
 
 ## 4. Conferir
 
 ```bash
-ls -l /etc/seu-projeto/tls
+ls -l /etc/nome-do-projeto/tls
 ```
 
 Esperado:
@@ -58,8 +58,8 @@ Esperado:
 No `.env.prod`:
 
 ```dotenv
-TLS_CERT_FILE=/etc/seu-projeto/tls/fullchain.crt
-TLS_KEY_FILE=/etc/seu-projeto/tls/private.key
+TLS_CERT_FILE=/etc/nome-do-projeto/tls/fullchain.crt
+TLS_KEY_FILE=/etc/nome-do-projeto/tls/private.key
 ```
 
 No `docker-compose.prod.yml`, o frontend monta esses arquivos no container para abrir a porta `443`.
@@ -73,5 +73,5 @@ Se `FRONTEND_TLS_ENABLED=true` e os arquivos não existirem:
 Para verificar:
 
 ```bash
-docker compose --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml logs -f frontend
+docker compose --env-file /etc/nome-do-projeto/.env.prod -f /opt/nome-do-projeto/docker-compose.prod.yml logs -f frontend
 ```

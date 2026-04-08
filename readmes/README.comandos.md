@@ -9,52 +9,52 @@ Este arquivo reúne comandos diretos para rodar, inspecionar, publicar e limpar 
 Use este modo quando o backend vai rodar pela IDE e o frontend vai rodar fora do Docker.
 
 ```bash
-docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml up -d
+docker compose --project-name nome-do-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/projeto/docker-compose.dev.yml up -d
 ```
 
 Depois rode o backend:
 
 ```bash
-cd backend
+cd /caminho/do/projeto/backend
 mvn spring-boot:run
 ```
 
 E o frontend:
 
 ```bash
-cd frontend
+cd /caminho/do/projeto/frontend
 npm start
 ```
 
 ### 2. Subir infraestrutura + backend no Docker
 
 ```bash
-docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml -f /caminho/do/seu-projeto/docker-compose.override.yml up -d
+docker compose --project-name nome-do-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/projeto/docker-compose.dev.yml -f /caminho/do/projeto/docker-compose.override.yml up -d
 ```
 
 O frontend continua rodando fora do Docker:
 
 ```bash
-cd frontend
+cd /caminho/do/projeto/frontend
 npm start
 ```
 
 ### 3. Ver status da stack de desenvolvimento
 
 ```bash
-docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml ps
+docker compose --project-name nome-do-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/projeto/docker-compose.dev.yml ps
 ```
 
 ### 4. Ver logs da infraestrutura em desenvolvimento
 
 ```bash
-docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml logs -f
+docker compose --project-name nome-do-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/projeto/docker-compose.dev.yml logs -f
 ```
 
 ### 5. Parar a stack de desenvolvimento
 
 ```bash
-docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml down
+docker compose --project-name nome-do-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/projeto/docker-compose.dev.yml down
 ```
 
 ---
@@ -66,13 +66,13 @@ docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo
 Exemplo com tag `1.0.0`:
 
 ```bash
-docker build -t SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_BACKEND:1.0.0 backend/
+docker build -t seu-usuario-docker-hub/nome-da-imagem-backend:1.0.0 /caminho/do/projeto/backend/
 ```
 
 Exemplo com tag `latest`:
 
 ```bash
-docker build -t SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_BACKEND:latest backend/
+docker build -t seu-usuario-docker-hub/nome-da-imagem-backend:latest /caminho/do/projeto/backend/
 ```
 
 ### Frontend
@@ -80,13 +80,13 @@ docker build -t SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_BACKEND:latest backend/
 Exemplo com tag `1.0.0`:
 
 ```bash
-docker build -t SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:1.0.0 frontend/
+docker build -t seu-usuario-docker-hub/nome-da-imagem-frontend:1.0.0 /caminho/do/projeto/frontend/
 ```
 
 Exemplo com tag `latest`:
 
 ```bash
-docker build -t SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:latest frontend/
+docker build -t seu-usuario-docker-hub/nome-da-imagem-frontend:latest /caminho/do/projeto/frontend/
 ```
 
 ---
@@ -96,21 +96,21 @@ docker build -t SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:latest frontend/
 ### Login
 
 ```bash
-docker login -u SEU_USUARIO_DOCKER_HUB
+docker login -u seu-usuario-docker-hub
 ```
 
 ### Enviar backend
 
 ```bash
-docker push SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_BACKEND:1.0.0
-docker push SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_BACKEND:latest
+docker push seu-usuario-docker-hub/nome-da-imagem-backend:1.0.0
+docker push seu-usuario-docker-hub/nome-da-imagem-backend:latest
 ```
 
 ### Enviar frontend
 
 ```bash
-docker push SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:1.0.0
-docker push SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:latest
+docker push seu-usuario-docker-hub/nome-da-imagem-frontend:1.0.0
+docker push seu-usuario-docker-hub/nome-da-imagem-frontend:latest
 ```
 
 ---
@@ -121,34 +121,34 @@ docker push SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:latest
 
 Os arquivos abaixo precisam existir:
 
-- `/etc/seu-projeto/.env.prod`
-- `/opt/seu-projeto/docker-compose.prod.yml`
+- `/etc/nome-do-projeto/.env.prod`
+- `/opt/nome-do-projeto/docker-compose.prod.yml`
 
-No `/etc/seu-projeto/.env.prod`, a versão precisa bater com a tag publicada:
+No `/etc/nome-do-projeto/.env.prod`, a versão precisa bater com a tag publicada:
 
 ```dotenv
 APP_VERSION=1.0.0
-DOCKER_REGISTRY_USER=SEU_USUARIO_DOCKER_HUB
-BACKEND_IMAGE_NAME=NOME_DA_IMAGEM_BACKEND
-FRONTEND_IMAGE_NAME=NOME_DA_IMAGEM_FRONTEND
+DOCKER_REGISTRY_USER=seu-usuario-docker-hub
+BACKEND_IMAGE_NAME=nome-da-imagem-backend
+FRONTEND_IMAGE_NAME=nome-da-imagem-frontend
 ```
 
 ### Baixar as imagens
 
 ```bash
-docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml pull
+docker compose --project-name nome-do-projeto-prod --env-file /etc/nome-do-projeto/.env.prod -f /opt/nome-do-projeto/docker-compose.prod.yml pull
 ```
 
 ### Subir a produção
 
 ```bash
-docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml up -d
+docker compose --project-name nome-do-projeto-prod --env-file /etc/nome-do-projeto/.env.prod -f /opt/nome-do-projeto/docker-compose.prod.yml up -d
 ```
 
 ### Ver status
 
 ```bash
-docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml ps
+docker compose --project-name nome-do-projeto-prod --env-file /etc/nome-do-projeto/.env.prod -f /opt/nome-do-projeto/docker-compose.prod.yml ps
 ```
 
 ### Ver logs
@@ -156,25 +156,25 @@ docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.
 Todos os serviços:
 
 ```bash
-docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml logs -f
+docker compose --project-name nome-do-projeto-prod --env-file /etc/nome-do-projeto/.env.prod -f /opt/nome-do-projeto/docker-compose.prod.yml logs -f
 ```
 
 Só backend:
 
 ```bash
-docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml logs -f backend
+docker compose --project-name nome-do-projeto-prod --env-file /etc/nome-do-projeto/.env.prod -f /opt/nome-do-projeto/docker-compose.prod.yml logs -f backend
 ```
 
 Só frontend:
 
 ```bash
-docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml logs -f frontend
+docker compose --project-name nome-do-projeto-prod --env-file /etc/nome-do-projeto/.env.prod -f /opt/nome-do-projeto/docker-compose.prod.yml logs -f frontend
 ```
 
 ### Parar a produção
 
 ```bash
-docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml down
+docker compose --project-name nome-do-projeto-prod --env-file /etc/nome-do-projeto/.env.prod -f /opt/nome-do-projeto/docker-compose.prod.yml down
 ```
 
 ---
@@ -196,14 +196,14 @@ docker images
 ### Remover imagens locais
 
 ```bash
-docker rmi SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_BACKEND:1.0.0
-docker rmi SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:1.0.0
+docker rmi seu-usuario-docker-hub/nome-da-imagem-backend:1.0.0
+docker rmi seu-usuario-docker-hub/nome-da-imagem-frontend:1.0.0
 ```
 
 ### Testar a aplicação em produção
 
 ```bash
-curl -k -I https://IP_DO_SERVIDOR/health
-curl -I http://IP_DO_SERVIDOR/
-curl -k -I https://IP_DO_SERVIDOR/
+curl -k -I https://seu-ip-do-servidor/health
+curl -I http://seu-ip-do-servidor/
+curl -k -I https://seu-ip-do-servidor/
 ```
