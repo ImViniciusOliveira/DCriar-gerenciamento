@@ -171,13 +171,13 @@ B) Deploy / Atualização
 1) Puxar imagens (opcional, recomendado)
 
 ```bash
-PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml pull
+docker compose --env-file /etc/dcriar/.env.prod -f /opt/dcriar/docker-compose.prod.yml pull
 ```
 
 2) Subir
 
 ```bash
-PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml up -d
+docker compose --env-file /etc/dcriar/.env.prod -f /opt/dcriar/docker-compose.prod.yml up -d
 ```
 
 Observação:
@@ -188,14 +188,14 @@ Observação:
 3) Logs e status
 
 ```bash
-PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml ps
-PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml logs -f
+docker compose --env-file /etc/dcriar/.env.prod -f /opt/dcriar/docker-compose.prod.yml ps
+docker compose --env-file /etc/dcriar/.env.prod -f /opt/dcriar/docker-compose.prod.yml logs -f
 ```
 
 4) Parar
 
 ```bash
-PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose.prod.yml down
+docker compose --env-file /etc/dcriar/.env.prod -f /opt/dcriar/docker-compose.prod.yml down
 ```
 
 ---
