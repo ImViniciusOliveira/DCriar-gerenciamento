@@ -24,6 +24,7 @@ public class TipoMateriaPrimaEmUsoException extends RuntimeException {
      * Um conjunto de IDs dos lotes que estão utilizando o tipo de matéria-prima.
      */
     private final Set<Long> loteIds;
+    private final Set<String> loteLabels;
 
     /**
      * Constrói a exceção com os detalhes da violação.
@@ -31,14 +32,19 @@ public class TipoMateriaPrimaEmUsoException extends RuntimeException {
      * @param tipoMateriaPrimaId O ID do tipo de matéria-prima que se tentou excluir.
      * @param loteIds O conjunto de IDs dos lotes que impedem a exclusão.
      */
-    public TipoMateriaPrimaEmUsoException(Long tipoMateriaPrimaId, String nomeTipoMateriaPrima, Set<Long> loteIds) {
+    public TipoMateriaPrimaEmUsoException(Long tipoMateriaPrimaId, String nomeTipoMateriaPrima, Set<Long> loteIds, Set<String> loteLabels) {
         super(String.format(
-                "Não é possível excluir o tipo de matéria-prima '%s' porque ele ainda está em uso em %d lote(s). Remova ou ajuste esses vínculos antes de tentar excluir o cadastro.",
+                "Não é possível excluir o tipo de matéria-prima '%s' porque ele ainda está em uso em %s. Remova ou ajuste esses vínculos antes de tentar excluir o cadastro.",
                 nomeTipoMateriaPrima,
-                loteIds.size()
+                descreverQuantidade(loteIds.size(), "lote", "lotes")
         ));
         this.tipoMateriaPrimaId = tipoMateriaPrimaId;
         this.nomeTipoMateriaPrima = nomeTipoMateriaPrima;
         this.loteIds = loteIds;
+        this.loteLabels = loteLabels;
+    }
+
+    private static String descreverQuantidade(int quantidade, String singular, String plural) {
+        return quantidade + " " + (quantidade == 1 ? singular : plural);
     }
 }

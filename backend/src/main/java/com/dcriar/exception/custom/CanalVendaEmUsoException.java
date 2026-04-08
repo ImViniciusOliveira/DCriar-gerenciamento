@@ -14,27 +14,40 @@ public class CanalVendaEmUsoException extends RuntimeException {
     private final Long canalVendaId;
     private final String nomeCanalVenda;
     private final Set<Long> estoqueIds;
+    private final Set<String> estoqueLabels;
     private final Set<Long> vendaIds;
+    private final Set<String> vendaLabels;
     private final Set<Long> ordemDeProducaoIds;
+    private final Set<String> ordemDeProducaoLabels;
 
     public CanalVendaEmUsoException(
             Long canalVendaId,
             String nomeCanalVenda,
             Set<Long> estoqueIds,
+            Set<String> estoqueLabels,
             Set<Long> vendaIds,
-            Set<Long> ordemDeProducaoIds
+            Set<String> vendaLabels,
+            Set<Long> ordemDeProducaoIds,
+            Set<String> ordemDeProducaoLabels
     ) {
         super(String.format(
-                "Não é possível excluir o canal de venda '%s' porque ele ainda está em uso em %d estoque(s), %d venda(s) e %d ordem(ns) de produção. Remova ou ajuste esses vínculos antes de excluir o canal.",
+                "Não é possível excluir o canal de venda '%s' porque ele ainda está em uso em %s, %s e %s. Remova ou ajuste esses vínculos antes de excluir o canal.",
                 nomeCanalVenda,
-                estoqueIds.size(),
-                vendaIds.size(),
-                ordemDeProducaoIds.size()
+                descreverQuantidade(estoqueIds.size(), "estoque", "estoques"),
+                descreverQuantidade(vendaIds.size(), "venda", "vendas"),
+                descreverQuantidade(ordemDeProducaoIds.size(), "ordem de produção", "ordens de produção")
         ));
         this.canalVendaId = canalVendaId;
         this.nomeCanalVenda = nomeCanalVenda;
         this.estoqueIds = estoqueIds;
+        this.estoqueLabels = estoqueLabels;
         this.vendaIds = vendaIds;
+        this.vendaLabels = vendaLabels;
         this.ordemDeProducaoIds = ordemDeProducaoIds;
+        this.ordemDeProducaoLabels = ordemDeProducaoLabels;
+    }
+
+    private static String descreverQuantidade(int quantidade, String singular, String plural) {
+        return quantidade + " " + (quantidade == 1 ? singular : plural);
     }
 }

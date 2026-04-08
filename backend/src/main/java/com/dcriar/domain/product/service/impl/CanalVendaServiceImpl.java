@@ -98,8 +98,11 @@ public class CanalVendaServiceImpl implements CanalVendaService {
                     id,
                     canal.getNome(),
                     estoques.stream().map(Estoque::getId).collect(Collectors.toSet()),
+                    estoques.stream().map(this::formatarLabelEstoque).collect(Collectors.toSet()),
                     vendas.stream().map(Venda::getId).collect(Collectors.toSet()),
-                    ordens.stream().map(OrdemDeProducao::getId).collect(Collectors.toSet())
+                    vendas.stream().map(this::formatarLabelVenda).collect(Collectors.toSet()),
+                    ordens.stream().map(OrdemDeProducao::getId).collect(Collectors.toSet()),
+                    ordens.stream().map(this::formatarLabelOrdemProducao).collect(Collectors.toSet())
             );
         }
 
@@ -118,5 +121,21 @@ public class CanalVendaServiceImpl implements CanalVendaService {
         if (normalizedNome != null && normalizedUniquenessChecker.existsCanalVendaNome(id, normalizedNome)) {
             throw new CanalVendaNomeDuplicadoException(normalizedNome);
         }
+    }
+
+    private String formatarLabelEstoque(Estoque estoque) {
+        return estoque.getProduto().getSku() + " - " + estoque.getProduto().getNome();
+    }
+
+    private String formatarLabelVenda(Venda venda) {
+        String apelido = venda.getApelido();
+        if (apelido != null && !apelido.isBlank()) {
+            return "Venda #" + venda.getId() + " (" + apelido + ")";
+        }
+        return "Venda #" + venda.getId();
+    }
+
+    private String formatarLabelOrdemProducao(OrdemDeProducao ordem) {
+        return "OP #" + ordem.getId();
     }
 }

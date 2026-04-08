@@ -158,15 +158,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
         if (ex instanceof TipoMateriaPrimaJaExisteException e) { details.put("nome", e.getNome()); }
-        else if (ex instanceof ProdutoEmUsoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("nomeProduto", e.getNomeProduto()); details.put("entidadesEmUso", formatarColecao(e.getEntidadeIds())); }
-        else if (ex instanceof TipoMateriaPrimaEmUsoException e) { details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId())); details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima()); details.put("lotesEmUso", formatarColecao(e.getLoteIds())); }
+        else if (ex instanceof ProdutoEmUsoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("nomeProduto", e.getNomeProduto()); details.put("entidadesEmUso", formatarColecao(e.getEntidadeIds())); details.put("entidadesEmUsoLabels", formatarColecao(e.getEntidadeLabels())); }
+        else if (ex instanceof TipoMateriaPrimaEmUsoException e) { details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId())); details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima()); details.put("lotesEmUso", formatarColecao(e.getLoteIds())); details.put("lotesEmUsoLabels", formatarColecao(e.getLoteLabels())); }
         else if (ex instanceof CanalVendaNomeDuplicadoException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof CanalVendaEmUsoException e) {
             details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
             details.put("nomeCanalVenda", e.getNomeCanalVenda());
             details.put("estoquesEmUso", formatarColecao(e.getEstoqueIds()));
+            details.put("estoquesEmUsoLabels", formatarColecao(e.getEstoqueLabels()));
             details.put("vendasEmUso", formatarColecao(e.getVendaIds()));
+            details.put("vendasEmUsoLabels", formatarColecao(e.getVendaLabels()));
             details.put("ordensDeProducaoEmUso", formatarColecao(e.getOrdemDeProducaoIds()));
+            details.put("ordensDeProducaoEmUsoLabels", formatarColecao(e.getOrdemDeProducaoLabels()));
         }
         else if (ex instanceof ProdutoNomeDuplicadoException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof ProdutoSkuDuplicadoException e) { details.put("sku", e.getSku()); }

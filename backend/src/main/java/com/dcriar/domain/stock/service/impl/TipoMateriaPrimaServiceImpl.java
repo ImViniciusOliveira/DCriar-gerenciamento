@@ -15,6 +15,7 @@ import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
+import com.dcriar.domain.stock.util.LotePublicIdentifierFormatter;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaSpecification;
 import com.dcriar.domain.stock.service.TipoMateriaPrimaService;
 import com.dcriar.exception.custom.TipoMateriaPrimaJaExisteException;
@@ -131,7 +132,10 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
         List<LoteMateriaPrima> lotes = loteMateriaPrimaRepository.findAllByTipoMateriaPrima(tipo);
         if (!lotes.isEmpty()) {
             Set<Long> loteIds = lotes.stream().map(LoteMateriaPrima::getId).collect(Collectors.toSet());
-            throw new TipoMateriaPrimaEmUsoException(id, tipo.getNome(), loteIds);
+            Set<String> loteLabels = lotes.stream()
+                    .map(LotePublicIdentifierFormatter::format)
+                    .collect(Collectors.toSet());
+            throw new TipoMateriaPrimaEmUsoException(id, tipo.getNome(), loteIds, loteLabels);
         }
 
         tipoMateriaPrimaRepository.delete(tipo);

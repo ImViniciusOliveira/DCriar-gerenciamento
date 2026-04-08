@@ -25,6 +25,7 @@ public class ProdutoEmUsoException extends RuntimeException {
      * Um conjunto de IDs das entidades que estão utilizando o produto.
      */
     private final Set<Long> entidadeIds;
+    private final Set<String> entidadeLabels;
 
     /**
      * Constrói a exceção com os detalhes da violação.
@@ -32,14 +33,19 @@ public class ProdutoEmUsoException extends RuntimeException {
      * @param produtoId O ID do produto que se tentou excluir.
      * @param entidadeIds O conjunto de IDs das entidades que impedem a exclusão.
      */
-    public ProdutoEmUsoException(Long produtoId, String nomeProduto, Set<Long> entidadeIds) {
+    public ProdutoEmUsoException(Long produtoId, String nomeProduto, Set<Long> entidadeIds, Set<String> entidadeLabels) {
         super(String.format(
-                "Não é possível excluir o produto '%s' porque ele ainda está em uso em %d ordem(ns) de produção. Remova ou ajuste esses vínculos antes de tentar excluir o produto.",
+                "Não é possível excluir o produto '%s' porque ele ainda está em uso em %s. Remova ou ajuste esses vínculos antes de tentar excluir o produto.",
                 nomeProduto,
-                entidadeIds.size()
+                descreverQuantidade(entidadeIds.size(), "ordem de produção", "ordens de produção")
         ));
         this.produtoId = produtoId;
         this.nomeProduto = nomeProduto;
         this.entidadeIds = entidadeIds;
+        this.entidadeLabels = entidadeLabels;
+    }
+
+    private static String descreverQuantidade(int quantidade, String singular, String plural) {
+        return quantidade + " " + (quantidade == 1 ? singular : plural);
     }
 }
