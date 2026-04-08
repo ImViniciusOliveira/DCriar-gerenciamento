@@ -26,9 +26,6 @@
   box-shadow: 0 16px 38px rgba(15, 23, 42, 0.14);
   overflow: hidden;
   pointer-events: auto;
-  animation: notification-fade var(--notification-duration) linear forwards;
-  animation-delay: var(--notification-delay, 0ms);
-  animation-fill-mode: both;
   backdrop-filter: blur(10px);
 }
 
@@ -88,44 +85,6 @@
   height: 4px;
   background: color-mix(in srgb, var(--notification-color) 85%, white);
   transform-origin: left center;
-  animation: notification-life var(--notification-duration) linear forwards;
-  animation-delay: var(--notification-delay, 0ms);
-  animation-fill-mode: both;
-}
-
-.notification-card:hover,
-.notification-card--paused {
-  animation: none;
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.notification-card:hover .notification-card__life,
-.notification-card--paused .notification-card__life {
-  animation: none;
-}
-
-@keyframes notification-life {
-  from {
-    transform: scaleX(1);
-  }
-
-  to {
-    transform: scaleX(0);
-  }
-}
-
-@keyframes notification-fade {
-  0%,
-  74% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
 }
 
 @media (max-width: 640px) {

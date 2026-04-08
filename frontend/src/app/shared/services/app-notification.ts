@@ -23,10 +23,13 @@ export class AppNotificationService {
   private static readonly DEFAULT_INFO_DURATION_MS = 4200;
 
   private readonly items = signal<AppNotificationItem[]>([]);
+  private readonly clock = signal(Date.now());
   private readonly timers = new Map<number, ReturnType<typeof setTimeout>>();
+  private animationFrameId: number | null = null;
   private nextId = 1;
 
   readonly notifications = computed(() => this.items().filter(item => item.visible));
+  readonly now = this.clock.asReadonly();
 
   showSuccess(message: string, durationMs: number = AppNotificationService.DEFAULT_SUCCESS_DURATION_MS): void {
     this.enqueue('success', message, durationMs);
@@ -63,6 +66,7 @@ export class AppNotificationService {
         paused: true
       };
     }));
+    this.syncClockLoop();
   }
 
   resume(id: number): void {
@@ -92,6 +96,7 @@ export class AppNotificationService {
     if (removedItem.visible) {
       this.promoteQueuedItems();
     }
+    this.syncClockLoop();
   }
 
   private enqueue(type: AppNotificationType, message: string, durationMs: number): void {
@@ -110,6 +115,8 @@ export class AppNotificationService {
 
     if (item.visible) {
       this.startTimer(item);
+    } else {
+      this.syncClockLoop();
     }
   }
 
@@ -136,11 +143,13 @@ export class AppNotificationService {
     });
 
     promotedItems.forEach(item => this.startTimer(item));
+    this.syncClockLoop();
   }
 
   private startTimer(item: AppNotificationItem): void {
     this.clearTimer(item.id);
     const startedAt = Date.now();
+    this.clock.set(startedAt);
 
     this.items.update(items => items.map(currentItem => {
       if (currentItem.id !== item.id) {
@@ -158,6 +167,7 @@ export class AppNotificationService {
       item.id,
       setTimeout(() => this.dismiss(item.id), item.remainingMs)
     );
+    this.syncClockLoop();
   }
 
   private clearTimer(id: number): void {
@@ -170,5 +180,32 @@ export class AppNotificationService {
 
   private visibleCount(): number {
     return this.items().filter(item => item.visible).length;
+  }
+
+  private syncClockLoop(): void {
+    const hasRunningNotifications = this.items().some(item => item.visible && !item.paused);
+
+    if (!hasRunningNotifications) {
+      if (this.animationFrameId !== null) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
+      return;
+    }
+
+    if (this.animationFrameId !== null) {
+      return;
+    }
+
+    const tick = () => {
+      this.clock.set(Date.now());
+      if (!this.items().some(item => item.visible && !item.paused)) {
+        this.animationFrameId = null;
+        return;
+      }
+      this.animationFrameId = requestAnimationFrame(tick);
+    };
+
+    this.animationFrameId = requestAnimationFrame(tick);
   }
 }

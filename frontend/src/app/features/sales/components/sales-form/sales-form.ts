@@ -807,10 +807,46 @@ export class SalesForm implements OnInit {
       }
       control.setErrors({
         ...(control.errors || {}),
-        backend: message
+        backend: this.simplifyBackendFieldMessage(field, message)
       });
       control.markAsTouched();
     }
+  }
+
+  private simplifyBackendFieldMessage(field: string, message: string): string {
+    if (field === 'cpf' && message.startsWith('CPF inválido')) {
+      return 'CPF inválido.';
+    }
+    if (field === 'cep' && message.startsWith('CEP inválido')) {
+      return 'CEP inválido.';
+    }
+    if (field === 'estado' && message.startsWith('Estado inválido')) {
+      return 'Estado inválido.';
+    }
+
+    return message;
+  }
+
+  private resolveSaveErrorMessage(error: any): string {
+    const details = error?.details;
+    if (details && typeof details === 'object') {
+      const firstDetail = Object.values(details).find(value => typeof value === 'string' && value.trim().length > 0);
+      if (typeof firstDetail === 'string') {
+        return firstDetail;
+      }
+    }
+
+    const detail = error?.detail;
+    if (typeof detail === 'string' && detail.trim() && !detail.startsWith('Erro de validação')) {
+      return detail;
+    }
+
+    const message = error?.message;
+    if (typeof message === 'string' && message.trim() && !message.startsWith('Erro de validação')) {
+      return message;
+    }
+
+    return SalesForm.Texts.SAVE_ERROR;
   }
 
   private normalizeSearch(value?: string | null): string {
@@ -940,7 +976,7 @@ export class SalesForm implements OnInit {
       },
       error: (err) => {
         this.applyBackendValidationErrors(err.error?.details);
-        const errorMsg = err.error?.detail || SalesForm.Texts.SAVE_ERROR;
+        const errorMsg = this.resolveSaveErrorMessage(err.error);
         this.entityDialog.showErrorSnackbar(errorMsg);
         this.isSaving.set(false);
       }
