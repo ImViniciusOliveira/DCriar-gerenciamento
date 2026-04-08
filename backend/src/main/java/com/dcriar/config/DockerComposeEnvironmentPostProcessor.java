@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 public class DockerComposeEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
     private static final int SEARCH_LEVELS = 3;
-    private static final List<String> ENV_FILE_CANDIDATES = List.of(".env.dev.local", ".env.dev");
+    private static final String LOCAL_ENV_FILE_NAME = ".env.dev.local";
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
@@ -33,7 +33,7 @@ public class DockerComposeEnvironmentPostProcessor implements EnvironmentPostPro
 
         Path rootPath = findInParents(Paths.get("").toAbsolutePath(), composeFileName);
         Path baseDir = rootPath != null ? rootPath.getParent() : findBaseDir(Paths.get("").toAbsolutePath());
-        Path envPath = baseDir != null ? resolveEnvPath(baseDir) : null;
+        Path envPath = baseDir != null ? baseDir.resolve(LOCAL_ENV_FILE_NAME) : null;
 
         if (envPath != null && Files.exists(envPath)) {
             Map<String, String> fileVars = readEnvFile(envPath);
@@ -113,16 +113,6 @@ public class DockerComposeEnvironmentPostProcessor implements EnvironmentPostPro
 
     private String determineComposeFileName() {
         return "docker-compose.dev.yml";
-    }
-
-    private Path resolveEnvPath(Path baseDir) {
-        for (String candidate : ENV_FILE_CANDIDATES) {
-            Path envPath = baseDir.resolve(candidate);
-            if (Files.exists(envPath)) {
-                return envPath;
-            }
-        }
-        return baseDir.resolve(".env.dev");
     }
 
     private Path findInParents(Path start, String fileName) {
