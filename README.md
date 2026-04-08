@@ -95,7 +95,7 @@ No servidor, os arquivos esperados são:
 
 ## Guias
 
-- [Guia de Desenvolvimento](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.dev.md)
-- [Guia de Produção](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.deploy.md)
-- [Guia de Comandos](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.comandos.md)
-- [Guia de Certificado TLS](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.certificado.md)
+- [Guia de Desenvolvimento](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readmes/README.dev.md)
+- [Guia de Produção](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readmes/README.deploy.md)
+- [Guia de Comandos](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readmes/README.comandos.md)
+- [Guia de Certificado TLS](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readmes/README.certificado.md)

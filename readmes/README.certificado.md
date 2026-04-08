@@ -26,13 +26,13 @@ sudo openssl req -x509 -nodes -newkey rsa:2048 \
   -keyout /etc/seu-projeto/tls/private.key \
   -out /etc/seu-projeto/tls/fullchain.crt \
   -days 365 \
-  -subj "/CN=192.168.0.245" \
-  -addext "subjectAltName=IP:192.168.0.245,IP:127.0.0.1,DNS:localhost"
+  -subj "/CN=SEU_IP_DO_SERVIDOR" \
+  -addext "subjectAltName=IP:SEU_IP_DO_SERVIDOR,IP:127.0.0.1,DNS:localhost"
 ```
 
 Se o IP do servidor for outro, troque:
-- `CN=192.168.0.245`
-- `IP:192.168.0.245`
+- `CN=SEU_IP_DO_SERVIDOR`
+- `IP:SEU_IP_DO_SERVIDOR`
 
 ## 3. Proteger Os Arquivos
 
