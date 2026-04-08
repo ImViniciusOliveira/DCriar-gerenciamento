@@ -9,7 +9,7 @@ Este arquivo reúne comandos diretos para rodar, inspecionar, publicar e limpar 
 Use este modo quando o backend vai rodar pela IDE e o frontend vai rodar fora do Docker.
 
 ```bash
-docker compose --project-name seu-projeto-dev --env-file /caminho/do/seu-projeto/.env.dev.local -f /caminho/do/seu-projeto/docker-compose.dev.yml up -d
+docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml up -d
 ```
 
 Depois rode o backend:
@@ -29,7 +29,7 @@ npm start
 ### 2. Subir infraestrutura + backend no Docker
 
 ```bash
-docker compose --project-name seu-projeto-dev --env-file /caminho/do/seu-projeto/.env.dev.local -f /caminho/do/seu-projeto/docker-compose.dev.yml -f /caminho/do/seu-projeto/docker-compose.override.yml up -d
+docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml -f /caminho/do/seu-projeto/docker-compose.override.yml up -d
 ```
 
 O frontend continua rodando fora do Docker:
@@ -42,19 +42,19 @@ npm start
 ### 3. Ver status da stack de desenvolvimento
 
 ```bash
-docker compose --project-name seu-projeto-dev --env-file /caminho/do/seu-projeto/.env.dev.local -f /caminho/do/seu-projeto/docker-compose.dev.yml ps
+docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml ps
 ```
 
 ### 4. Ver logs da infraestrutura em desenvolvimento
 
 ```bash
-docker compose --project-name seu-projeto-dev --env-file /caminho/do/seu-projeto/.env.dev.local -f /caminho/do/seu-projeto/docker-compose.dev.yml logs -f
+docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml logs -f
 ```
 
 ### 5. Parar a stack de desenvolvimento
 
 ```bash
-docker compose --project-name seu-projeto-dev --env-file /caminho/do/seu-projeto/.env.dev.local -f /caminho/do/seu-projeto/docker-compose.dev.yml down
+docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml down
 ```
 
 ---

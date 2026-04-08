@@ -1,136 +1,114 @@
 # Guia De Desenvolvimento
 
-Este guia é para o fluxo rápido de desenvolvimento: frontend local, backend local e só a infraestrutura no Docker.
+Este guia cobre o fluxo mais comum de desenvolvimento:
+- infraestrutura no Docker
+- backend local pela IDE ou terminal
+- frontend local com Angular
 
-## Resumo
+## Endereços Locais
 
 - frontend: `http://localhost:4200`
 - backend: `http://localhost:8080`
-- banco: PostgreSQL via Docker
-- storage: MinIO via Docker
+- health check: `http://localhost:8080/actuator/health`
+- console do MinIO: `http://localhost:9001`
+
+Esses endereços são seguros para desenvolvimento local e são o padrão do projeto.
 
 ## Pré-Requisitos
 
 - Java 21
-- Node.js + npm
-- Docker + Docker Compose
+  - recomendado: Eclipse Temurin 21
+- Node.js `^20.19.0` ou `^22.12.0`
+- npm instalado junto com o Node.js compatível
+- Docker Engine 29.2.1
+- Docker Compose Plugin v2.40.3
 
-## 1. Criar O Arquivo Local
+Referencia do Node.js para Angular 21: [Version compatibility](https://angular.dev/reference/versions)
 
-O projeto usa `.env.dev.local` como arquivo real de desenvolvimento.  
-`.env.dev` é só esqueleto.
+## Arquivo De Ambiente
+
+Copie o esqueleto e preencha os dados reais do seu ambiente:
 
 ```bash
-cp .env.dev .env.dev.local
+cp /caminho/do/esqueleto/.env.dev /caminho/onde/o/arquivo/de/ambiente/.env.dev
 ```
 
-Preencha no `.env.dev.local`:
-- banco
-- MinIO
-- `CORS_ALLOWED_ORIGIN`
-- `DATA_ENCRYPTION_KEY`
-- `WAIT_TIMEOUT`
-- `WAIT_INTERVAL`
+Use o conteúdo do arquivo de esqueleto como base:
 
-## 2. Subir A Infraestrutura
+- [Arquivo de ambiente de desenvolvimento](/home/viniciusdev/dcriar/dcriar-sistema-inventario/.env.dev)
+
+## Subir Só A Infraestrutura
 
 ```bash
-./scripts/develop/up-dev.sh
+docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml up -d
 ```
 
 Isso sobe:
-- `postgres-dev`
-- `minio-dev`
-- `minio-setup-dev`
+- PostgreSQL
+- MinIO
+- setup inicial do bucket
 
-Para derrubar:
+Para parar:
 
 ```bash
-./scripts/develop/down-dev.sh
+docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml down
 ```
 
-## 3. Rodar O Backend
+## Rodar O Backend Pela IDE
 
-O backend deve rodar localmente, normalmente pela IDE.
+Se for usar a IDE, a configuração de execução do backend precisa subir com o profile `local`.
 
-Opção recomendada:
-- profile `local`
-- variáveis vindas do `.env.dev.local`
+Sem isso, a aplicação pode tentar subir com outro profile e carregar a configuração errada.
 
-Ou por Maven:
+Formas comuns de configurar isso:
+- em `Program arguments`: `--spring.profiles.active=local`
+- em variável de ambiente da execução: `SPRING_PROFILES_ACTIVE=local`
+
+O importante é a execução final do backend usar:
+
+```text
+spring.profiles.active=local
+```
+
+## Rodar O Backend Pelo Terminal
 
 ```bash
-cd backend
+cd /caminho/do/seu-projeto/backend
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-API:
-- `http://localhost:8080`
-- actuator: `http://localhost:8080/actuator/health`
-
-## 4. Rodar O Frontend
+## Rodar O Frontend
 
 ```bash
-cd frontend
+cd /caminho/do/seu-projeto/frontend
 npm install
 npm start
 ```
 
-Aplicação:
-- `http://localhost:4200`
+## O Que Validar
 
-## 5. O Que Validar
+- frontend abrindo em `http://localhost:4200`
+- backend respondendo em `http://localhost:8080`
+- `http://localhost:8080/actuator/health` retornando `UP`
+- frontend conseguindo chamar a API
+- MinIO abrindo em `http://localhost:9001`
 
-- frontend abre em `localhost:4200`
-- backend responde em `localhost:8080`
-- frontend consegue chamar `/api`
-- MinIO console abre em `http://localhost:9001`
-- a API sobe só se `DATA_ENCRYPTION_KEY` estiver configurada
+## Comandos Úteis
 
-## 6. Estrutura Do Fluxo Dev
-
-Em desenvolvimento:
-- Docker sobe só infraestrutura
-- backend roda localmente
-- frontend roda localmente
-
-Isso dá:
-- hot reload no Angular
-- depuração melhor no Spring Boot
-- menos atrito no ciclo de alteração
-
-## 7. Comandos Úteis
-
-Subir infra:
+Logs da infraestrutura:
 
 ```bash
-./scripts/develop/up-dev.sh
+docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml logs -f
 ```
 
-Derrubar infra:
+Status dos containers:
 
 ```bash
-./scripts/develop/down-dev.sh
+docker compose --project-name seu-projeto-dev --env-file /caminho/onde/o/arquivo/de/ambiente/.env.dev -f /caminho/do/seu-projeto/docker-compose.dev.yml ps
 ```
 
-Compilar backend:
+Se precisar só verificar se o backend subiu:
 
 ```bash
-cd backend
-./mvnw -DskipTests compile
+curl http://localhost:8080/actuator/health
 ```
-
-Build do frontend:
-
-```bash
-cd frontend
-npm run build
-```
-
-## 8. Se Precisar Entender Melhor
-
-Pontos importantes deste projeto em desenvolvimento:
-- `.env.dev.local` é o arquivo real
-- `.env.dev` não deve ser usado em runtime
-- dados sensíveis de venda dependem de `DATA_ENCRYPTION_KEY`
-- `docker-compose.dev.yml` não sobe backend nem frontend
