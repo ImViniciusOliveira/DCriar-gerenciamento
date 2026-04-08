@@ -19,38 +19,48 @@ import java.util.stream.Collectors;
 public class DockerComposeEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
     private static final int SEARCH_LEVELS = 3;
+    private static final List<String> ENV_FILE_CANDIDATES = List.of(".env.dev.local", ".env.dev");
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         String profile = resolveActiveProfile(environment);
-        if (!shouldAutoConfigureCompose(profile)) {
+        if (!shouldLoadLocalEnv(profile)) {
             return;
         }
 
         String composeFileName = determineComposeFileName();
-        String envFileName = determineEnvFileName();
-
-        Path composePath = findInParents(Paths.get("").toAbsolutePath(), composeFileName);
         Map<String, Object> props = new HashMap<>();
 
-        if (composePath != null) {
-            props.put("spring.docker.compose.file", composePath.toString());
-            Path envPath = composePath.getParent().resolve(envFileName);
-            if (Files.exists(envPath)) {
-                // Passa o argumento --env-file para o docker-compose (para os containers)
-                props.put("spring.docker.compose.arguments", List.of("--env-file=" + envPath));
-                // E também carrega as variáveis do .env.* para o Environment do Spring
-                Map<String, String> fileVars = readEnvFile(envPath);
-                // Promove todas as variáveis lidas para propriedades do Spring (ambient)
-                props.putAll(fileVars);
-            }
+        Path rootPath = findInParents(Paths.get("").toAbsolutePath(), composeFileName);
+        Path baseDir = rootPath != null ? rootPath.getParent() : findBaseDir(Paths.get("").toAbsolutePath());
+        Path envPath = baseDir != null ? resolveEnvPath(baseDir) : null;
+
+        if (envPath != null && Files.exists(envPath)) {
+            Map<String, String> fileVars = readEnvFile(envPath);
+            props.putAll(fileVars);
         }
-        else {
-            // Se não encontrou arquivo compose, desativa o recurso para evitar falhas
-            props.put("spring.docker.compose.enabled", "false");
+
+        if (shouldAutoConfigureCompose(profile)) {
+            if (rootPath != null) {
+                props.put("spring.docker.compose.file", rootPath.toString());
+                if (envPath != null && Files.exists(envPath)) {
+                    props.put("spring.docker.compose.arguments", List.of("--env-file=" + envPath));
+                }
+            } else {
+                props.put("spring.docker.compose.enabled", "false");
+            }
         }
 
         environment.getPropertySources().addFirst(new MapPropertySource("dockerComposeAuto", props));
+    }
+
+    private boolean shouldLoadLocalEnv(String profile) {
+        if (profile == null || profile.isBlank()) {
+            return true;
+        }
+
+        String normalized = profile.toLowerCase();
+        return normalized.contains("dev") || normalized.contains("local");
     }
 
     private boolean shouldAutoConfigureCompose(String profile) {
@@ -105,8 +115,14 @@ public class DockerComposeEnvironmentPostProcessor implements EnvironmentPostPro
         return "docker-compose.dev.yml";
     }
 
-    private String determineEnvFileName() {
-        return ".env.dev";
+    private Path resolveEnvPath(Path baseDir) {
+        for (String candidate : ENV_FILE_CANDIDATES) {
+            Path envPath = baseDir.resolve(candidate);
+            if (Files.exists(envPath)) {
+                return envPath;
+            }
+        }
+        return baseDir.resolve(".env.dev");
     }
 
     private Path findInParents(Path start, String fileName) {
@@ -119,5 +135,16 @@ public class DockerComposeEnvironmentPostProcessor implements EnvironmentPostPro
             current = current.getParent();
         }
         return null;
+    }
+
+    private Path findBaseDir(Path start) {
+        Path current = start;
+        for (int i = 0; i <= DockerComposeEnvironmentPostProcessor.SEARCH_LEVELS && current != null; i++) {
+            if (Files.exists(current.resolve("backend")) || Files.exists(current.resolve(".git"))) {
+                return current;
+            }
+            current = current.getParent();
+        }
+        return start;
     }
 }

@@ -20,6 +20,12 @@ public class DadosSensiveisCriptografiaException extends RuntimeException {
         );
     }
 
+    public static DadosSensiveisCriptografiaException chaveNaoConfigurada() {
+        return new DadosSensiveisCriptografiaException(
+                "A chave de criptografia dos dados sensíveis não foi configurada. Defina DATA_ENCRYPTION_KEY no ambiente."
+        );
+    }
+
     public static DadosSensiveisCriptografiaException falhaAoCriptografar(Throwable cause) {
         return new DadosSensiveisCriptografiaException(
                 "Falha ao criptografar um dado sensível da venda.",

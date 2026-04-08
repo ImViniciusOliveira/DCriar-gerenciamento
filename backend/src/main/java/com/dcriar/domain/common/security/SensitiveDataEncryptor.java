@@ -30,8 +30,13 @@ public class SensitiveDataEncryptor {
 
     @PostConstruct
     void init() {
+        String configuredKey = properties.getKey();
+        if (configuredKey == null || configuredKey.isBlank() || configuredKey.contains("${")) {
+            throw DadosSensiveisCriptografiaException.chaveNaoConfigurada();
+        }
+
         try {
-            byte[] decodedKey = Base64.getDecoder().decode(properties.getKey());
+            byte[] decodedKey = Base64.getDecoder().decode(configuredKey);
             if (decodedKey.length != 32) {
                 throw DadosSensiveisCriptografiaException.chaveInvalida();
             }
