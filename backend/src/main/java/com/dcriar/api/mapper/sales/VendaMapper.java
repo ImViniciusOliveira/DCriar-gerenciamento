@@ -31,6 +31,18 @@ public interface VendaMapper {
     @Mapping(source = "canalVenda.id", target = "canalVendaId")
     VendaResponseDTO toResponseDTO(Venda venda);
 
+    @Mapping(source = "canalVenda.nome", target = "nomeCanalVenda")
+    @Mapping(source = "canalVenda.id", target = "canalVendaId")
+    @Mapping(target = "nomeCompleto", ignore = true)
+    @Mapping(target = "endereco", ignore = true)
+    @Mapping(target = "numero", ignore = true)
+    @Mapping(target = "bairro", ignore = true)
+    @Mapping(target = "cep", ignore = true)
+    @Mapping(target = "cpf", ignore = true)
+    @Mapping(target = "observacao", ignore = true)
+    @Mapping(target = "itens", ignore = true)
+    VendaResponseDTO toSummaryResponseDTO(Venda venda);
+
     /**
      * Converte a entidade {@link ItemVenda} para seu DTO de resposta {@link ItemVendaResponseDTO}.
      * <p>

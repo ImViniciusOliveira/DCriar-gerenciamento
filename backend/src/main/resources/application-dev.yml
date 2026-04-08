@@ -46,7 +46,7 @@ cors:
 app:
   security:
     data-encryption:
-      key: ${DATA_ENCRYPTION_KEY:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+      key: ${DATA_ENCRYPTION_KEY}
 
 # Nível de log para desenvolvimento (ajustado para reduzir SQL no console)
 logging:

@@ -6,6 +6,8 @@ import com.dcriar.api.dto.request.sales.ItemVendaRequestDTO;
 import com.dcriar.api.dto.request.sales.VendaRequestDTO;
 import com.dcriar.api.dto.response.sales.VendaResponseDTO;
 import com.dcriar.api.mapper.sales.VendaMapper;
+import com.dcriar.domain.common.util.BrazilDocumentNormalizer;
+import com.dcriar.domain.common.util.BrazilStateSupport;
 import com.dcriar.domain.common.util.TrimTextNormalizer;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
@@ -59,6 +61,7 @@ public class VendaServiceImpl implements VendaService {
         List<ItemVenda> itemVendas = processarItensVenda(requestDTO.getItens(), canalVenda);
 
         Venda newVenda = Venda.from(canalVenda, itemVendas);
+        preencherDadosCliente(newVenda, requestDTO);
         newVenda.setValorTotal(calcularValorTotal(itemVendas));
         
         Venda savedVenda = vendaRepository.save(newVenda);
@@ -81,6 +84,7 @@ public class VendaServiceImpl implements VendaService {
 
         // 3. Atualiza a entidade existente (mantendo o ID)
         vendaExistente.updateFrom(novoCanal, novosItens);
+        preencherDadosCliente(vendaExistente, requestDTO);
         vendaExistente.setValorTotal(calcularValorTotal(novosItens));
 
         Venda savedVenda = vendaRepository.save(vendaExistente);
@@ -103,7 +107,7 @@ public class VendaServiceImpl implements VendaService {
     public Page<VendaResponseDTO> findAll(Pageable pageable) {
         Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, STABLE_SORTS);
         return vendaRepository.findAll(pageableComDesempate)
-                .map(vendaMapper::toResponseDTO);
+                .map(vendaMapper::toSummaryResponseDTO);
     }
 
     @Override
@@ -221,6 +225,19 @@ public class VendaServiceImpl implements VendaService {
 
     private String normalizarMotivo(String motivo) {
         return TrimTextNormalizer.trimToNull(motivo);
+    }
+
+    private void preencherDadosCliente(Venda venda, VendaRequestDTO requestDTO) {
+        venda.setNomeCompleto(requestDTO.getNomeCompleto());
+        venda.setApelido(requestDTO.getApelido());
+        venda.setEndereco(requestDTO.getEndereco());
+        venda.setNumero(requestDTO.getNumero());
+        venda.setBairro(requestDTO.getBairro());
+        venda.setCidade(requestDTO.getCidade());
+        venda.setEstado(BrazilStateSupport.normalize(requestDTO.getEstado()));
+        venda.setCep(BrazilDocumentNormalizer.normalizeCep(requestDTO.getCep()));
+        venda.setCpf(BrazilDocumentNormalizer.normalizeCpf(requestDTO.getCpf()));
+        venda.setObservacao(TrimTextNormalizer.trimToNull(requestDTO.getObservacao()));
     }
 
     private void performStockReduction(Produto produto, CanalVenda canalVenda, int quantity, Long vendaId) {

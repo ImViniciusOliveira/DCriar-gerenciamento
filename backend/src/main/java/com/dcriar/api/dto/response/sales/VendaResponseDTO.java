@@ -44,6 +44,36 @@ public class VendaResponseDTO {
     @Schema(description = "O valor total da venda.", example = "99.90")
     private BigDecimal valorTotal;
 
+    @Schema(description = "Nome completo do cliente associado à venda.", example = "Maria da Silva")
+    private String nomeCompleto;
+
+    @Schema(description = "Apelido ou nome curto do cliente.", example = "Maria")
+    private String apelido;
+
+    @Schema(description = "Endereço do cliente.", example = "Rua das Flores")
+    private String endereco;
+
+    @Schema(description = "Número do endereço.", example = "123A")
+    private String numero;
+
+    @Schema(description = "Bairro do cliente.", example = "Centro")
+    private String bairro;
+
+    @Schema(description = "Cidade do cliente.", example = "São Paulo")
+    private String cidade;
+
+    @Schema(description = "Estado do cliente.", example = "Sao Paulo")
+    private String estado;
+
+    @Schema(description = "CEP do cliente.", example = "01001000")
+    private String cep;
+
+    @Schema(description = "CPF do cliente.", example = "12345678909")
+    private String cpf;
+
+    @Schema(description = "Observação livre sobre a venda ou cliente.", example = "Entregar no período da tarde.")
+    private String observacao;
+
     /**
      * A lista de itens que compõem a venda.
      */

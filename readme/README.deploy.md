@@ -120,6 +120,7 @@ SPRING_DATASOURCE_PASSWORD=SENHA_REAL_DO_BANCO_DE_PRODUCAO
 MINIO_URL=http://minio-prod:9000
 MINIO_ACCESS_KEY=minio_prod_user
 MINIO_SECRET_KEY=SENHA_REAL_DO_MINIO_DE_PRODUCAO
+DATA_ENCRYPTION_KEY=CHAVE_AES_256_EM_BASE64
 
 # Use o domínio/host público do frontend.
 # Em testes locais na rede, pode ser localhost e/ou o IP do host.
@@ -163,6 +164,7 @@ Observações:
 - Em produção com domínio público, prefira certificado emitido por uma CA confiável.
 - Em rede local, use uma CA interna ou `mkcert` e instale a CA nas máquinas clientes.
 - O `FRONTEND_SERVER_NAME` deve bater com o nome presente no certificado.
+- O backend também precisa de `DATA_ENCRYPTION_KEY` no ambiente para criptografar os dados sensíveis das vendas.
 
 B) Deploy / Atualização
 

@@ -1,6 +1,7 @@
 package com.dcriar.domain.common.security;
 
 import com.dcriar.config.DataEncryptionProperties;
+import com.dcriar.exception.custom.DadosSensiveisCriptografiaException;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -29,11 +30,15 @@ public class SensitiveDataEncryptor {
 
     @PostConstruct
     void init() {
-        byte[] decodedKey = Base64.getDecoder().decode(properties.getKey());
-        if (decodedKey.length != 32) {
-            throw new IllegalStateException("A chave de criptografia deve ter 32 bytes em Base64 para AES-256.");
+        try {
+            byte[] decodedKey = Base64.getDecoder().decode(properties.getKey());
+            if (decodedKey.length != 32) {
+                throw DadosSensiveisCriptografiaException.chaveInvalida();
+            }
+            this.secretKey = new SecretKeySpec(decodedKey, ALGORITHM);
+        } catch (IllegalArgumentException ex) {
+            throw DadosSensiveisCriptografiaException.chaveInvalida();
         }
-        this.secretKey = new SecretKeySpec(decodedKey, ALGORITHM);
     }
 
     public String encrypt(String value) {
@@ -55,7 +60,7 @@ public class SensitiveDataEncryptor {
 
             return PREFIX + Base64.getEncoder().encodeToString(payload);
         } catch (Exception ex) {
-            throw new IllegalStateException("Falha ao criptografar dado sensível.", ex);
+            throw DadosSensiveisCriptografiaException.falhaAoCriptografar(ex);
         }
     }
 
@@ -79,7 +84,7 @@ public class SensitiveDataEncryptor {
             byte[] plainText = cipher.doFinal(cipherText);
             return new String(plainText, java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception ex) {
-            throw new IllegalStateException("Falha ao descriptografar dado sensível.", ex);
+            throw DadosSensiveisCriptografiaException.falhaAoDescriptografar(ex);
         }
     }
 }
