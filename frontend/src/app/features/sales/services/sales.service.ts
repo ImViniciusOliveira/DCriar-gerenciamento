@@ -4,7 +4,7 @@ import { Observable, filter, switchMap, shareReplay, take, map, combineLatest, o
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiRoot } from '../../../core/services/api-root';
-import { ApiResponseSales, Sale, SaleRequest } from '../models/sales.model';
+import { ApiResponseSales, Sale, SaleLocationConfig, SaleRequest } from '../models/sales.model';
 
 /**
  * Serviço para gerenciamento de Vendas.
@@ -86,6 +86,16 @@ export class SalesService {
   getNewTemplate(): Observable<Sale> {
     return this.getBaseUrl().pipe(
       switchMap(baseUrl => this.http.get<Sale>(`${baseUrl}/new`))
+    );
+  }
+
+  getLocationConfig(country?: string | null): Observable<SaleLocationConfig> {
+    return this.getBaseUrl().pipe(
+      switchMap(baseUrl => {
+        const pais = String(country ?? '').trim();
+        const params = pais ? new HttpParams().set('pais', pais) : undefined;
+        return this.http.get<SaleLocationConfig>(`${baseUrl}/localidade-config`, { params });
+      })
     );
   }
 

@@ -27,8 +27,31 @@ export interface Sale {
   valorTotal: number;
   canalVendaId: number;
   nomeCanalVenda: string;
+  nomeCompleto?: string | null;
+  pais?: string | null;
+  apelido?: string | null;
+  endereco?: string | null;
+  numero?: string | null;
+  bairro?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  cep?: string | null;
+  cpf?: string | null;
+  observacao?: string | null;
+  modoLocalidade?: 'BRASIL' | 'LIVRE' | null;
   itens: SaleItem[];
   _links?: Hateoas['_links'];
+}
+
+export interface SaleBrazilStateOption {
+  uf: string;
+  nome: string;
+}
+
+export interface SaleLocationConfig {
+  pais: string;
+  modoLocalidade: 'BRASIL' | 'LIVRE';
+  estadosBrasil: SaleBrazilStateOption[];
 }
 
 /**
@@ -36,6 +59,17 @@ export interface Sale {
  */
 export interface SaleRequest {
   canalVendaId: number;
+  nomeCompleto?: string | null;
+  pais?: string | null;
+  apelido?: string | null;
+  endereco?: string | null;
+  numero?: string | null;
+  bairro?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  cep?: string | null;
+  cpf?: string | null;
+  observacao?: string | null;
   itens: {
     produtoId: number;
     quantidade: number;

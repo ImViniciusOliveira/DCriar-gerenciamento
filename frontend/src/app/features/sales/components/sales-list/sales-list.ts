@@ -60,7 +60,9 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
   tableColumns: TableColumn<Sale>[] = [];
 
   @ViewChild('dataTemplate') dataTemplate!: TemplateRef<any>;
-  @ViewChild('canalTemplate') canalTemplate!: TemplateRef<any>;
+  @ViewChild('nomeTemplate') nomeTemplate!: TemplateRef<any>;
+  @ViewChild('apelidoTemplate') apelidoTemplate!: TemplateRef<any>;
+  @ViewChild('cidadeEstadoTemplate') cidadeEstadoTemplate!: TemplateRef<any>;
   @ViewChild('valorTemplate') valorTemplate!: TemplateRef<any>;
   @ViewChild('itensTemplate') itensTemplate!: TemplateRef<any>;
   @ViewChild('acoesTemplate') acoesTemplate!: TemplateRef<any>;
@@ -91,8 +93,10 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
   ngAfterViewInit(): void {
     this.tableColumns = [
       { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', cellTemplate: this.dataTemplate },
+      { key: 'nomeCompleto', header: 'Nome', sortable: false, className: 'col-customer-name', widthPx: 200, cellTemplate: this.nomeTemplate },
+      { key: 'apelido', header: 'Apelido', sortable: false, className: 'col-customer-nickname', widthPx: 180, cellTemplate: this.apelidoTemplate },
+      { key: 'cidadeEstado', header: 'Cidade / Estado', sortable: false, className: 'col-customer-city-state', widthPx: 220, cellTemplate: this.cidadeEstadoTemplate },
       { key: 'valorTotal', header: 'Total', sortable: true, className: 'col-price', widthPx: 200, cellTemplate: this.valorTemplate },
-      { key: 'nomeCanalVenda', header: 'Canal', sortable: false, className: 'col-sales-channel', widthPx: 200, cellTemplate: this.canalTemplate },
       { key: 'itens', header: 'Itens', sortable: false, className: 'col-trigger col-fit-center', widthPx: 150, cellTemplate: this.itensTemplate },
       { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions col-actions-main', widthPx: 150, cellTemplate: this.acoesTemplate },
     ];
@@ -147,10 +151,10 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
   /**
    * Abre o formulário de edição para a venda selecionada.
    */
-  onEdit(sale: Sale): void {
-    const saleCopy = structuredClone(sale);
+  async onEdit(sale: Sale): Promise<void> {
+    const fullSale = await this.loadSaleDetails(sale);
     this.openSalesDialog({
-      template: saleCopy,
+      template: fullSale,
       title: SalesList.Texts.editTitle
     }, SalesList.Texts.saveSuccess);
   }
@@ -158,10 +162,10 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
   /**
    * Abre a tela de detalhes para a venda selecionada.
    */
-  onViewDetails(sale: Sale): void {
-    const saleCopy = structuredClone(sale);
+  async onViewDetails(sale: Sale): Promise<void> {
+    const fullSale = await this.loadSaleDetails(sale);
     this.openSalesDialog({
-      template: saleCopy,
+      template: fullSale,
       title: 'Detalhes da Venda',
       isViewMode: true
     }, ''); // Não mostra mensagem de sucesso no modo de visualização
@@ -209,13 +213,21 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
     });
   }
 
-  openItems(sale: Sale): void {
+  async openItems(sale: Sale): Promise<void> {
+    const fullSale = await this.loadSaleDetails(sale);
+    const items = fullSale.itens ?? [];
+
     const dialogData: DetailsDialogData = {
-      title: `Itens da venda #${sale.id}`,
-      items: sale.itens.map(item => ({
-        label: `${item.quantidade}x ${item.nomeProduto}`,
-        value: `R$ ${item.precoTotal.toFixed(2)}`
-      })),
+      title: `Itens da venda #${fullSale.id}`,
+      items: items.length > 0
+        ? items.map(item => ({
+            label: `${item.quantidade}x ${item.nomeProduto}`,
+            value: `R$ ${item.precoTotal.toFixed(2)}`
+          }))
+        : [{
+            label: 'Itens',
+            value: 'Nenhum item registrado'
+          }],
       showLabels: true
     };
 
@@ -227,7 +239,36 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
     });
   }
 
-  hasItems(sale: Sale): boolean {
-    return sale.itens.length > 0;
+  canOpenItems(sale: Sale): boolean {
+    return !!sale._links?.['self']?.href;
+  }
+
+  displaySummaryValue(value?: string | null): string {
+    return value?.trim() ? value : '-';
+  }
+
+  displayCityState(sale: Sale): string {
+    const cidade = sale.cidade?.trim();
+    const estado = sale.estado?.trim();
+
+    if (cidade && estado) {
+      return `${cidade} / ${estado}`;
+    }
+
+    return cidade || estado || '-';
+  }
+
+  private async loadSaleDetails(sale: Sale): Promise<Sale> {
+    const selfUrl = sale._links?.['self']?.href;
+    if (!selfUrl) {
+      return structuredClone(sale);
+    }
+
+    try {
+      return await lastValueFrom(this.salesService.findByUrl(selfUrl));
+    } catch {
+      this.entityDialog.showErrorSnackbar(SalesList.Texts.resourceError);
+      return structuredClone(sale);
+    }
   }
 }

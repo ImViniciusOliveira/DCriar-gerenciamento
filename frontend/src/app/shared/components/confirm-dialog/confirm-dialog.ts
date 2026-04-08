@@ -11,7 +11,8 @@ import {
  */
 export interface ConfirmDialogData {
   title: string;
-  message: string;
+  message?: string;
+  messageHtml?: string;
 }
 
 /**

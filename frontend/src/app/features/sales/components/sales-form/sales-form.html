@@ -4,20 +4,147 @@
   <form [formGroup]="form" (ngSubmit)="onSave()">
     <mat-dialog-content>
       <div class="form-grid">
-        <!-- Seleção de Canal de Venda -->
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Canal de Venda</mat-label>
-          <mat-select formControlName="canalVendaId" [errorStateMatcher]="matcher">
-            @for (channel of channels(); track channel.id) {
-              <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
+        <section class="customer-section full-width">
+          <h3>Dados do Cliente</h3>
+
+          <div class="customer-grid customer-grid--name-channel">
+            <mat-form-field appearance="outline">
+              <mat-label>Nome completo</mat-label>
+              <input matInput formControlName="nomeCompleto" maxlength="200">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Apelido</mat-label>
+              <input matInput formControlName="apelido" maxlength="120">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Canal de venda</mat-label>
+              <mat-select formControlName="canalVendaId" [errorStateMatcher]="matcher">
+                @for (channel of channels(); track channel.id) {
+                  <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
+                }
+              </mat-select>
+              @if (form.get('canalVendaId')?.hasError('required')) {
+                <mat-error>O campo é obrigatório.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="customer-grid customer-grid--half">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ getDocumentLabel() }}</mat-label>
+              <input matInput formControlName="cpf" maxlength="40" [mask]="getDocumentMask()">
+              @if (form.get('cpf')?.hasError('backend')) {
+                <mat-error>{{ form.get('cpf')?.getError('backend') }}</mat-error>
+              } @else {
+                <mat-hint>{{ getDocumentHint() }}</mat-hint>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ getPostalCodeLabel() }}</mat-label>
+              <input matInput formControlName="cep" maxlength="20" [mask]="getPostalCodeMask()">
+              @if (form.get('cep')?.hasError('backend')) {
+                <mat-error>{{ form.get('cep')?.getError('backend') }}</mat-error>
+              } @else {
+                <mat-hint>{{ getPostalCodeHint() }}</mat-hint>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="customer-grid customer-grid--country-location">
+            <mat-form-field appearance="outline">
+              <mat-label>País</mat-label>
+              <input matInput formControlName="pais" maxlength="120" (blur)="onCountryBlur()">
+              <button
+                mat-icon-button
+                matSuffix
+                type="button"
+                [class.country-toggle-active]="countryLockedToBrazil()"
+                (click)="toggleBrazilLock()"
+                [attr.aria-label]="countryLockedToBrazil() ? 'Liberar edição do país' : 'Usar Brasil com estados brasileiros'">
+                <mat-icon>{{ countryLockedToBrazil() ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+              </button>
+              <mat-hint>{{ getCountryHint() }}</mat-hint>
+            </mat-form-field>
+
+            @if (isBrazilLocationMode()) {
+              <mat-form-field appearance="outline">
+                <mat-label>Estado</mat-label>
+                <input
+                  matInput
+                  formControlName="estado"
+                  maxlength="60"
+                  [matAutocomplete]="stateAuto"
+                  (focus)="resetBrazilStatesFilter()"
+                  (click)="resetBrazilStatesFilter()">
+                <mat-autocomplete #stateAuto="matAutocomplete" (optionSelected)="onStateAutocompleteSelected($event.option.value)">
+                  @for (state of filteredBrazilStates(); track state.uf) {
+                    <mat-option [value]="state.nome">{{ state.nome }} / {{ state.uf }}</mat-option>
+                  }
+                </mat-autocomplete>
+                @if (form.get('estado')?.hasError('backend')) {
+                  <mat-error>{{ form.get('estado')?.getError('backend') }}</mat-error>
+                } @else if (form.get('estado')?.hasError('invalidBrazilState')) {
+                  <mat-error>Selecione um estado brasileiro válido.</mat-error>
+                } @else {
+                  <mat-hint>Digite nome ou UF para filtrar.</mat-hint>
+                }
+              </mat-form-field>
+            } @else {
+              <mat-form-field appearance="outline">
+                <mat-label>Estado</mat-label>
+                <input matInput formControlName="estado" maxlength="60">
+                @if (form.get('estado')?.hasError('backend')) {
+                  <mat-error>{{ form.get('estado')?.getError('backend') }}</mat-error>
+                } @else {
+                  <mat-hint>Campo livre para países fora do Brasil.</mat-hint>
+                }
+              </mat-form-field>
             }
-          </mat-select>
-          @if (form.get('canalVendaId')?.hasError('required')) {
-            <mat-error>
-              O campo é obrigatório.
-            </mat-error>
-          }
-        </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Cidade</mat-label>
+              <input matInput formControlName="cidade" maxlength="120">
+            </mat-form-field>
+          </div>
+
+          <div class="customer-grid customer-grid--address">
+            <mat-form-field appearance="outline" class="address-with-number">
+              <mat-label>Endereço</mat-label>
+              <input matInput formControlName="endereco" maxlength="255">
+              <span
+                matTextSuffix
+                class="address-number-slot"
+                (mousedown)="$event.stopPropagation()"
+                (click)="$event.stopPropagation()">
+                <span class="address-number-label">Nº</span>
+                <input
+                  class="address-number-input"
+                  formControlName="numero"
+                  maxlength="40"
+                  (mousedown)="$event.stopPropagation()"
+                  (click)="$event.stopPropagation()">
+              </span>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Bairro</mat-label>
+              <input matInput formControlName="bairro" maxlength="120">
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Observação</mat-label>
+            <textarea
+              matInput
+              rows="3"
+              formControlName="observacao"
+              maxlength="1000"
+              [placeholder]="getObservationPlaceholder()"></textarea>
+          </mat-form-field>
+        </section>
 
         <!-- Lista de Itens (agora em layout simples sem retângulo) -->
         <div formArrayName="itens" class="items-container">
@@ -180,6 +307,35 @@
       <p><strong>Criado em:</strong> {{ data.template?.dataCriacao | date:'dd/MM/yyyy HH:mm' }}</p>
       <p><strong>Atualizado em:</strong> {{ data.template?.dataAtualizacao | date:'dd/MM/yyyy HH:mm' }}</p>
       <p><strong>Valor Total:</strong> {{ data.template?.valorTotal | currency:'BRL' }}</p>
+      <hr>
+      <h4>Dados do Cliente</h4>
+      <p>
+        <strong>Nome completo:</strong> {{ displayValue(data.template?.nomeCompleto) }}
+        <span> / </span>
+        <strong>Apelido:</strong> {{ displayValue(data.template?.apelido) }}
+      </p>
+      <p>
+        <strong>{{ data.template?.modoLocalidade === 'BRASIL' ? 'CPF' : 'Documento' }}:</strong>
+        {{ data.template?.modoLocalidade === 'BRASIL' ? displayCpf(data.template?.cpf) : displayValue(data.template?.cpf) }}
+        <span> / </span>
+        <strong>{{ data.template?.modoLocalidade === 'BRASIL' ? 'CEP' : 'Código postal' }}:</strong>
+        {{ data.template?.modoLocalidade === 'BRASIL' ? displayCep(data.template?.cep) : displayValue(data.template?.cep) }}
+      </p>
+      <p>
+        <strong>País:</strong> {{ displayValue(data.template?.pais) }}
+        <span> / </span>
+        <strong>Cidade:</strong> {{ displayValue(data.template?.cidade) }}
+        <span> / </span>
+        <strong>Estado:</strong> {{ displayValue(data.template?.estado) }}
+      </p>
+      <p>
+        <strong>Endereço:</strong> {{ displayValue(data.template?.endereco) }}
+        <span> / </span>
+        <strong>Número:</strong> {{ displayValue(data.template?.numero) }}
+        <span> / </span>
+        <strong>Bairro:</strong> {{ displayValue(data.template?.bairro) }}
+      </p>
+      <p><strong>Observação:</strong> {{ displayValue(data.template?.observacao) }}</p>
       <hr>
       @if (data.template?.itens) {
         <h4>Itens da Venda</h4>

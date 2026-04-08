@@ -34,8 +34,16 @@
     {{ sale.dataCriacao | date:'dd/MM/yyyy HH:mm' }}
   </ng-template>
 
-  <ng-template #canalTemplate let-sale>
-    {{ sale.nomeCanalVenda }}
+  <ng-template #nomeTemplate let-sale>
+    {{ displaySummaryValue(sale.nomeCompleto) }}
+  </ng-template>
+
+  <ng-template #apelidoTemplate let-sale>
+    {{ displaySummaryValue(sale.apelido) }}
+  </ng-template>
+
+  <ng-template #cidadeEstadoTemplate let-sale>
+    {{ displayCityState(sale) }}
   </ng-template>
 
   <ng-template #valorTemplate let-sale>
@@ -43,7 +51,7 @@
   </ng-template>
 
   <ng-template #itensTemplate let-sale>
-    @if (hasItems(sale)) {
+    @if (canOpenItems(sale)) {
       <button mat-button type="button" (click)="openItems(sale)">Exibir itens</button>
     } @else {
       <span>-</span>

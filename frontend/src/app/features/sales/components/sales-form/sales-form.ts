@@ -10,8 +10,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
+import { MatDialog } from '@angular/material/dialog';
 
-import { Sale, SaleRequest } from '../../models/sales.model';
+import { Sale, SaleBrazilStateOption, SaleLocationConfig, SaleRequest } from '../../models/sales.model';
 import { SalesService } from '../../services/sales.service';
 import { ChannelService } from '../../../stock/services/channel.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
@@ -20,6 +22,7 @@ import { Product } from '../../../products/models/product.model';
 import { ProductService } from '../../../products/services/product.service';
 import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN, POSITIVE_MONEY_2_PATTERN } from '../../../../shared/utils/number-patterns';
 import { scrollDialogToElement } from '../../../../shared/utils/dialog-scroll';
+import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 
 type SalePriceType = 'PRECO_PADRAO' | 'PRECO_ALTERADO' | 'DESCONTO_TOTAL';
 
@@ -125,8 +128,10 @@ function stockAvailabilityValidator(formArray: AbstractControl): ValidationError
     MatIconModule,
     MatSelectModule,
     MatAutocompleteModule,
+    NgxMaskDirective,
     ProductSearch
   ],
+  providers: [provideNgxMask()],
   templateUrl: './sales-form.html',
   styleUrls: ['./sales-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -138,6 +143,7 @@ export class SalesForm implements OnInit {
   private readonly channelService = inject(ChannelService);
   private readonly productService = inject(ProductService);
   private readonly entityDialog = inject(EntityDialogService);
+  private readonly dialog = inject(MatDialog);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   public readonly data: SalesFormData = inject(MAT_DIALOG_DATA);
@@ -146,6 +152,10 @@ export class SalesForm implements OnInit {
   isSaving = signal(false);
   isEditMode = signal(false);
   isViewMode = signal(false);
+  locationMode = signal<'BRASIL' | 'LIVRE'>('BRASIL');
+  countryLockedToBrazil = signal(true);
+  brazilStates = signal<SaleBrazilStateOption[]>([]);
+  filteredBrazilStates = signal<SaleBrazilStateOption[]>([]);
   matcher = new ImmediateErrorStateMatcher();
 
   // Mapa público para ser acessado pelo template
@@ -158,7 +168,8 @@ export class SalesForm implements OnInit {
     SAVE_SUCCESS: 'Venda registrada com sucesso!',
     UPDATE_SUCCESS: 'Venda atualizada com sucesso!',
     SAVE_ERROR: 'Falha ao registrar a venda. Verifique os dados e tente novamente.',
-    LOAD_ERROR: 'Não foi possível carregar os dados iniciais.'
+    LOAD_ERROR: 'Não foi possível carregar os dados iniciais.',
+    LOCATION_CHANGE_TITLE: 'Confirmar mudança para Brasil'
   };
 
   constructor() {
@@ -173,6 +184,17 @@ export class SalesForm implements OnInit {
 
     this.form = this.fb.group({
       canalVendaId: [null, Validators.required],
+      nomeCompleto: [''],
+      pais: ['Brasil'],
+      apelido: [''],
+      endereco: [''],
+      numero: [''],
+      bairro: [''],
+      cidade: [''],
+      estado: [''],
+      cep: [''],
+      cpf: [''],
+      observacao: [''],
       itens: this.fb.array([], stockAvailabilityValidator)
     });
 
@@ -189,19 +211,54 @@ export class SalesForm implements OnInit {
              this.addItem(false);
         }
       });
+
+    this.form.get('estado')?.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(value => this.handleStateValueChange(value));
+
+    ['cpf', 'cep', 'pais', 'estado', 'cidade', 'nomeCompleto', 'apelido', 'endereco', 'numero', 'bairro', 'observacao']
+      .forEach(field => {
+        this.form.get(field)?.valueChanges
+          .pipe(takeUntilDestroyed())
+          .subscribe(() => this.clearControlError(this.form.get(field)!, 'backend'));
+      });
   }
 
   ngOnInit(): void {
-    if (this.isEditMode() && this.data.template) {
-      this.initializeForm(this.data.template);
+    if (!this.isViewMode()) {
+      this.initializeTemplate(this.data.template);
+    }
+  }
+
+  private initializeTemplate(template?: Sale): void {
+    const country = template?.pais ?? 'Brasil';
+    const locationMode = template?.modoLocalidade ?? 'BRASIL';
+
+    this.form.patchValue({
+      canalVendaId: template?.canalVendaId ?? null,
+      nomeCompleto: template?.nomeCompleto ?? '',
+      pais: country,
+      apelido: template?.apelido ?? '',
+      endereco: template?.endereco ?? '',
+      numero: template?.numero ?? '',
+      bairro: template?.bairro ?? '',
+      cidade: template?.cidade ?? '',
+      estado: template?.estado ?? '',
+      cep: template?.cep ?? '',
+      cpf: template?.cpf ?? '',
+      observacao: template?.observacao ?? ''
+    }, { emitEvent: false });
+
+    this.locationMode.set(locationMode);
+    this.countryLockedToBrazil.set(locationMode === 'BRASIL');
+    this.resolveLocationConfig(country);
+
+    if (this.isEditMode() && template) {
+      this.initializeForm(template);
     }
   }
 
   private async initializeForm(sale: Sale): Promise<void> {
-    this.form.patchValue({
-      canalVendaId: sale.canalVendaId
-    }, { emitEvent: false });
-
     // Preenche os itens e popula o mapa de quantidades originais
     if (sale.itens && sale.itens.length > 0) {
       for (const item of sale.itens) {
@@ -534,7 +591,304 @@ export class SalesForm implements OnInit {
   getChannelName(): string {
     const channelId = this.data.template?.canalVendaId;
     const channel = this.channels().find(c => c.id === channelId);
-    return channel?.nome || 'N/A';
+    return channel?.nome || 'Não informado';
+  }
+
+  isBrazilLocationMode(): boolean {
+    return this.locationMode() === 'BRASIL';
+  }
+
+  onCountryBlur(): void {
+    if (this.countryLockedToBrazil()) {
+      return;
+    }
+    const country = String(this.form.get('pais')?.value ?? '').trim();
+    if (!country) {
+      this.locationMode.set('LIVRE');
+      this.brazilStates.set([]);
+      this.filteredBrazilStates.set([]);
+      this.cdr.markForCheck();
+      return;
+    }
+    this.resolveLocationConfig(country);
+  }
+
+  toggleBrazilLock(): void {
+    const countryControl = this.form.get('pais');
+    if (!countryControl) {
+      return;
+    }
+
+    if (this.countryLockedToBrazil()) {
+      this.countryLockedToBrazil.set(false);
+      countryControl.enable({ emitEvent: false });
+      countryControl.patchValue('', { emitEvent: false });
+      this.locationMode.set('LIVRE');
+      this.brazilStates.set([]);
+      this.filteredBrazilStates.set([]);
+      this.cdr.markForCheck();
+      return;
+    }
+
+    if (this.shouldConfirmBrazilSwitch()) {
+      const dialogData: ConfirmDialogData = {
+        title: SalesForm.Texts.LOCATION_CHANGE_TITLE,
+        messageHtml: 'Ao usar Brasil, <strong>documento</strong>, <strong>código postal</strong> e <strong>estado</strong> atuais podem ficar inválidos ou ser interpretados de outro jeito.<br><br><strong>Deseja continuar?</strong>'
+      };
+
+      this.dialog.open(ConfirmDialog, { data: dialogData }).afterClosed().subscribe(confirmed => {
+        if (confirmed === true) {
+          this.applyBrazilLock();
+        }
+      });
+      return;
+    }
+
+    this.applyBrazilLock();
+  }
+
+  onStateAutocompleteSelected(value: string): void {
+    this.form.get('estado')?.patchValue(value);
+    this.updateFilteredBrazilStates(value);
+  }
+
+  resetBrazilStatesFilter(): void {
+    if (!this.isBrazilLocationMode()) {
+      return;
+    }
+    this.filteredBrazilStates.set(this.brazilStates());
+  }
+
+  private resolveLocationConfig(country?: string | null): void {
+    this.salesService.getLocationConfig(country).subscribe({
+      next: (config: SaleLocationConfig) => {
+        this.locationMode.set(config.modoLocalidade);
+        this.brazilStates.set(config.estadosBrasil ?? []);
+        this.filteredBrazilStates.set(config.estadosBrasil ?? []);
+
+        const countryControl = this.form.get('pais');
+        if (countryControl && countryControl.value !== config.pais) {
+          countryControl.patchValue(config.pais, { emitEvent: false });
+        }
+        if (countryControl) {
+          if (this.countryLockedToBrazil()) {
+            countryControl.disable({ emitEvent: false });
+          } else {
+            countryControl.enable({ emitEvent: false });
+          }
+        }
+
+        this.updateFilteredBrazilStates(this.form.get('estado')?.value);
+        this.applyStateCompatibilityValidation(this.form.get('estado')?.value);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.brazilStates.set([]);
+        this.filteredBrazilStates.set([]);
+        this.locationMode.set('LIVRE');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private updateFilteredBrazilStates(rawValue?: string | null): void {
+    if (!this.isBrazilLocationMode()) {
+      this.filteredBrazilStates.set([]);
+      return;
+    }
+
+    const states = this.brazilStates();
+    const query = this.normalizeSearch(rawValue);
+
+    if (!query) {
+      this.filteredBrazilStates.set(states);
+      return;
+    }
+
+    this.filteredBrazilStates.set(
+      states.filter(state => {
+        const stateName = this.normalizeSearch(state.nome);
+        const stateUf = this.normalizeSearch(state.uf);
+        return stateName.includes(query) || stateUf.includes(query);
+      })
+    );
+  }
+
+  private handleStateValueChange(rawValue?: string | null): void {
+    this.updateFilteredBrazilStates(rawValue);
+    this.applyStateCompatibilityValidation(rawValue);
+  }
+
+  private applyStateCompatibilityValidation(rawValue?: string | null): void {
+    const stateControl = this.form.get('estado');
+    if (!stateControl) {
+      return;
+    }
+
+    if (!this.isBrazilLocationMode()) {
+      this.clearControlError(stateControl, 'invalidBrazilState');
+      return;
+    }
+
+    const query = this.normalizeSearch(rawValue);
+    if (!query) {
+      this.clearControlError(stateControl, 'invalidBrazilState');
+      return;
+    }
+
+    const matches = this.resolveBrazilStateMatches(query);
+    if (matches.length === 1) {
+      this.clearControlError(stateControl, 'invalidBrazilState');
+      return;
+    }
+
+    stateControl.setErrors({
+      ...(stateControl.errors || {}),
+      invalidBrazilState: true
+    });
+  }
+
+  private resolveBrazilStateMatches(query: string): SaleBrazilStateOption[] {
+    return this.brazilStates().filter(state => {
+      const normalizedName = this.normalizeSearch(state.nome);
+      const normalizedUf = this.normalizeSearch(state.uf);
+      return normalizedName.startsWith(query) || normalizedUf.startsWith(query);
+    });
+  }
+
+  private clearControlError(control: AbstractControl, errorKey: string): void {
+    if (!control.hasError(errorKey)) {
+      return;
+    }
+
+    const { [errorKey]: _, ...otherErrors } = control.errors || {};
+    control.setErrors(Object.keys(otherErrors).length ? otherErrors : null);
+  }
+
+  private shouldConfirmBrazilSwitch(): boolean {
+    const formValue = this.form.getRawValue();
+    const currentCountry = String(formValue.pais ?? '').trim();
+
+    if (!currentCountry || this.normalizeSearch(currentCountry) === 'brasil') {
+      return false;
+    }
+
+    return !!(
+      String(formValue.cpf ?? '').trim() ||
+      String(formValue.cep ?? '').trim() ||
+      String(formValue.estado ?? '').trim()
+    );
+  }
+
+  private applyBrazilLock(): void {
+    const countryControl = this.form.get('pais');
+    if (!countryControl) {
+      return;
+    }
+
+    this.countryLockedToBrazil.set(true);
+    this.form.patchValue({ pais: 'Brasil' }, { emitEvent: false });
+    countryControl.disable({ emitEvent: false });
+    this.filteredBrazilStates.set(this.brazilStates());
+    this.applyStateCompatibilityValidation(this.form.get('estado')?.value);
+    this.resolveLocationConfig('Brasil');
+  }
+
+  private applyBackendValidationErrors(details: Record<string, string> | undefined): void {
+    if (!details) {
+      return;
+    }
+
+    for (const [field, message] of Object.entries(details)) {
+      const control = this.form.get(field);
+      if (!control) {
+        continue;
+      }
+      control.setErrors({
+        ...(control.errors || {}),
+        backend: message
+      });
+      control.markAsTouched();
+    }
+  }
+
+  private normalizeSearch(value?: string | null): string {
+    return String(value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  private toNullableText(value: unknown): string | null {
+    const normalized = String(value ?? '').trim();
+    return normalized ? normalized : null;
+  }
+
+  displayValue(value?: string | null): string {
+    return value?.trim() ? value : 'Não informado';
+  }
+
+  getDocumentLabel(): string {
+    return this.isBrazilLocationMode() ? 'CPF' : 'Documento';
+  }
+
+  getPostalCodeLabel(): string {
+    return this.isBrazilLocationMode() ? 'CEP' : 'Código postal';
+  }
+
+  getDocumentMask(): string {
+    return this.isBrazilLocationMode() ? '000.000.000-00' : '';
+  }
+
+  getPostalCodeMask(): string {
+    return this.isBrazilLocationMode() ? '00000-000' : '';
+  }
+
+  getDocumentHint(): string {
+    return this.isBrazilLocationMode()
+      ? 'Informe o CPF do cliente.'
+      : 'Ex.: passaporte, DNI ou outro documento.';
+  }
+
+  getPostalCodeHint(): string {
+    return this.isBrazilLocationMode()
+      ? 'Informe o CEP do cliente.'
+      : 'Informe o código postal do país selecionado.';
+  }
+
+  getObservationPlaceholder(): string {
+    return this.isBrazilLocationMode()
+      ? ''
+      : 'Ex.: documento = passaporte';
+  }
+
+  displayCpf(value?: string | null): string {
+    const digits = String(value ?? '').replace(/\D/g, '');
+    if (!digits) {
+      return 'Não informado';
+    }
+    if (digits.length !== 11) {
+      return digits;
+    }
+    return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  }
+
+  displayCep(value?: string | null): string {
+    const digits = String(value ?? '').replace(/\D/g, '');
+    if (!digits) {
+      return 'Não informado';
+    }
+    if (digits.length !== 8) {
+      return digits;
+    }
+    return digits.replace(/(\d{5})(\d{3})/, '$1-$2');
+  }
+
+  getCountryHint(): string {
+    return this.countryLockedToBrazil()
+      ? 'Brasil selecionado.'
+      : 'Defina o país manualmente.';
   }
 
   onSave(): void {
@@ -548,6 +902,17 @@ export class SalesForm implements OnInit {
 
     const request: SaleRequest = {
       canalVendaId: formValue.canalVendaId,
+      nomeCompleto: this.toNullableText(formValue.nomeCompleto),
+      pais: this.toNullableText(formValue.pais),
+      apelido: this.toNullableText(formValue.apelido),
+      endereco: this.toNullableText(formValue.endereco),
+      numero: this.toNullableText(formValue.numero),
+      bairro: this.toNullableText(formValue.bairro),
+      cidade: this.toNullableText(formValue.cidade),
+      estado: this.toNullableText(formValue.estado),
+      cep: this.toNullableText(formValue.cep),
+      cpf: this.toNullableText(formValue.cpf),
+      observacao: this.toNullableText(formValue.observacao),
       itens: formValue.itens.map((item: any) => ({
         produtoId: item.produtoId,
         quantidade: item.quantidade,
@@ -570,6 +935,7 @@ export class SalesForm implements OnInit {
         this.dialogRef.close(true);
       },
       error: (err) => {
+        this.applyBackendValidationErrors(err.error?.details);
         const errorMsg = err.error?.detail || SalesForm.Texts.SAVE_ERROR;
         this.entityDialog.showErrorSnackbar(errorMsg);
         this.isSaving.set(false);

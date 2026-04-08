@@ -3,7 +3,11 @@
 
 <!-- `mat-dialog-content` é o contêiner para o corpo principal do diálogo. -->
 <div mat-dialog-content>
-  <p>{{ data.message }}</p>
+  @if (data.messageHtml) {
+    <p [innerHTML]="data.messageHtml"></p>
+  } @else {
+    <p>{{ data.message }}</p>
+  }
 </div>
 
 <!--
