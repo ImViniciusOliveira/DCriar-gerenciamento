@@ -8,6 +8,7 @@ import com.dcriar.api.dto.response.sales.VendaResponseDTO;
 import com.dcriar.api.mapper.sales.VendaMapper;
 import com.dcriar.domain.common.util.BrazilDocumentNormalizer;
 import com.dcriar.domain.common.util.BrazilStateSupport;
+import com.dcriar.domain.common.util.CountrySupport;
 import com.dcriar.domain.common.util.TrimTextNormalizer;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
@@ -228,15 +229,24 @@ public class VendaServiceImpl implements VendaService {
     }
 
     private void preencherDadosCliente(Venda venda, VendaRequestDTO requestDTO) {
+        String pais = CountrySupport.normalizeForStorage(requestDTO.getPais());
+
         venda.setNomeCompleto(requestDTO.getNomeCompleto());
+        venda.setPais(pais);
         venda.setApelido(requestDTO.getApelido());
         venda.setEndereco(requestDTO.getEndereco());
         venda.setNumero(requestDTO.getNumero());
         venda.setBairro(requestDTO.getBairro());
         venda.setCidade(requestDTO.getCidade());
-        venda.setEstado(BrazilStateSupport.normalize(requestDTO.getEstado()));
-        venda.setCep(BrazilDocumentNormalizer.normalizeCep(requestDTO.getCep()));
-        venda.setCpf(BrazilDocumentNormalizer.normalizeCpf(requestDTO.getCpf()));
+        venda.setEstado(CountrySupport.isBrazil(pais)
+                ? BrazilStateSupport.normalize(requestDTO.getEstado())
+                : requestDTO.getEstado());
+        venda.setCep(CountrySupport.isBrazil(pais)
+                ? BrazilDocumentNormalizer.normalizeCep(requestDTO.getCep())
+                : TrimTextNormalizer.trimToNull(requestDTO.getCep()));
+        venda.setCpf(CountrySupport.isBrazil(pais)
+                ? BrazilDocumentNormalizer.normalizeCpf(requestDTO.getCpf())
+                : TrimTextNormalizer.trimToNull(requestDTO.getCpf()));
         venda.setObservacao(TrimTextNormalizer.trimToNull(requestDTO.getObservacao()));
     }
 

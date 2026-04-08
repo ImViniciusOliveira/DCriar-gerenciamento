@@ -1,9 +1,16 @@
 package com.dcriar.api.controller.sales;
 
+import java.util.List;
+
 import com.dcriar.api.dto.request.sales.VendaRequestDTO;
+import com.dcriar.api.dto.response.sales.VendaEstadoOptionResponseDTO;
+import com.dcriar.api.dto.response.sales.VendaLocalidadeConfigResponseDTO;
 import com.dcriar.api.dto.response.sales.VendaResponseDTO;
 import com.dcriar.api.hateoas.sales.assembler.VendaModelAssembler;
 import com.dcriar.api.hateoas.sales.model.VendaModel;
+import com.dcriar.domain.common.util.BrazilStateSupport;
+import com.dcriar.domain.common.util.CountrySupport;
+import com.dcriar.domain.sales.entity.enums.ModoLocalidadeVenda;
 import com.dcriar.domain.sales.service.VendaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -133,7 +140,42 @@ public class VendaController {
     @Operation(summary = "Obter um modelo de venda para criação")
     @ApiResponse(responseCode = "200", description = "Modelo de venda retornado com sucesso")
     public ResponseEntity<VendaModel> getNewTemplate() {
-        return vendaModelAssembler.toOkResponseEntity(new VendaResponseDTO());
+        return vendaModelAssembler.toOkResponseEntity(
+                VendaResponseDTO.builder()
+                        .pais(CountrySupport.DEFAULT_COUNTRY)
+                        .modoLocalidade(ModoLocalidadeVenda.BRASIL)
+                        .build()
+        );
+    }
+
+    @GetMapping("/localidade-config")
+    @Operation(summary = "Resolver a configuração de localidade de uma venda")
+    @ApiResponse(responseCode = "200", description = "Configuração de localidade retornada com sucesso")
+    public ResponseEntity<VendaLocalidadeConfigResponseDTO> getLocationConfig(
+            @RequestParam(required = false) String pais) {
+        String normalizedCountry = CountrySupport.normalizeForStorage(pais);
+        ModoLocalidadeVenda modoLocalidade = CountrySupport.resolveLocationMode(normalizedCountry);
+
+        return ResponseEntity.ok(
+                VendaLocalidadeConfigResponseDTO.builder()
+                        .pais(CountrySupport.toDisplayName(normalizedCountry))
+                        .modoLocalidade(modoLocalidade)
+                        .estadosBrasil(resolveBrazilStates(modoLocalidade))
+                        .build()
+        );
+    }
+
+    private List<VendaEstadoOptionResponseDTO> resolveBrazilStates(ModoLocalidadeVenda modoLocalidade) {
+        if (modoLocalidade != ModoLocalidadeVenda.BRASIL) {
+            return List.of();
+        }
+
+        return BrazilStateSupport.listOptions().stream()
+                .map(state -> VendaEstadoOptionResponseDTO.builder()
+                        .uf(state.uf())
+                        .nome(state.displayName())
+                        .build())
+                .toList();
     }
 
     /**

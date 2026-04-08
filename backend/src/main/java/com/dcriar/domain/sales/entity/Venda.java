@@ -52,6 +52,9 @@ public class Venda extends AuditableEntity {
     @Column(name = "nome_completo")
     private String nomeCompleto;
 
+    @Column(name = "pais", nullable = false, length = 120)
+    private String pais;
+
     @Column(name = "apelido", length = 120)
     private String apelido;
 

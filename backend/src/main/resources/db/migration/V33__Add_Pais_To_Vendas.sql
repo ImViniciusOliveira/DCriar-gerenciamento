@@ -1,0 +1,9 @@
+ALTER TABLE vendas ADD COLUMN pais VARCHAR(120);
+
+UPDATE vendas
+SET pais = 'Brasil'
+WHERE pais IS NULL;
+
+ALTER TABLE vendas
+    ALTER COLUMN pais SET NOT NULL,
+    ALTER COLUMN pais SET DEFAULT 'Brasil';

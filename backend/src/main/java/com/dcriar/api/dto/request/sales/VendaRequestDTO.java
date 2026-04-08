@@ -35,6 +35,10 @@ public class VendaRequestDTO {
     @JsonDeserialize(using = HumanTextDeserializer.class)
     private String nomeCompleto;
 
+    @Schema(description = "País do cliente.", example = "Brasil")
+    @JsonDeserialize(using = HumanTextDeserializer.class)
+    private String pais;
+
     @Schema(description = "Apelido ou nome curto do cliente.", example = "Maria")
     @JsonDeserialize(using = HumanTextDeserializer.class)
     private String apelido;

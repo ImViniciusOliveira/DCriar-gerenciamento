@@ -7,6 +7,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.dcriar.domain.sales.entity.enums.ModoLocalidadeVenda;
+
 /**
  * Data Transfer Object (DTO) que representa a resposta de uma Venda finalizada.
  * <p>
@@ -47,6 +49,9 @@ public class VendaResponseDTO {
     @Schema(description = "Nome completo do cliente associado à venda.", example = "Maria da Silva")
     private String nomeCompleto;
 
+    @Schema(description = "País do cliente.", example = "Brasil")
+    private String pais;
+
     @Schema(description = "Apelido ou nome curto do cliente.", example = "Maria")
     private String apelido;
 
@@ -73,6 +78,9 @@ public class VendaResponseDTO {
 
     @Schema(description = "Observação livre sobre a venda ou cliente.", example = "Entregar no período da tarde.")
     private String observacao;
+
+    @Schema(description = "Modo de localidade que o frontend deve usar.", example = "BRASIL")
+    private ModoLocalidadeVenda modoLocalidade;
 
     /**
      * A lista de itens que compõem a venda.
