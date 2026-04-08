@@ -84,7 +84,7 @@ public class GlobalExceptionHandler {
             details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
         }
 
-        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+        logWarnException(ex, details);
         return buildErrorResponse(ex, HttpStatus.NOT_FOUND, details);
     }
 
@@ -208,9 +208,9 @@ public class GlobalExceptionHandler {
         }
 
         if (ex instanceof AtualizacaoSemAlteracoesException) {
-            logInfoException(ex, details);
+            logExceptionWithDetails(ex, details, true);
         } else {
-            logWarnException(ex, details);
+            logExceptionWithDetails(ex, details, false);
         }
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);
     }
@@ -250,7 +250,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ProdutoInvalidoException.class)
     public ResponseEntity<ErrorResponseDTO> handleMultiFieldValidation(ProdutoInvalidoException ex) {
-        logWarnException(ex, ex.getErrors());
+        logExceptionWithDetails(ex, ex.getErrors(), false);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, ex.getErrors());
     }
 
@@ -295,7 +295,7 @@ public class GlobalExceptionHandler {
             details.put("quantidadeRequisitada", String.valueOf(e.getQuantidadeRequisitada()));
             details.put("saldoDisponivel", String.valueOf(e.getSaldoDisponivel()));
         }
-        logWarnException(ex, details);
+        logExceptionWithDetails(ex, details, false);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
 
@@ -605,11 +605,15 @@ public class GlobalExceptionHandler {
     }
 
     private void logWarnException(Exception ex, Map<String, String> details) {
-        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+        logExceptionWithDetails(ex, details, false);
     }
 
-    private void logInfoException(Exception ex, Map<String, String> details) {
-        log.info("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+    private void logExceptionWithDetails(Exception ex, Map<String, String> details, boolean info) {
+        if (info) {
+            log.info("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+            return;
+        }
+        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
     }
 
     private String simplifyJsonCause(String cause) {
