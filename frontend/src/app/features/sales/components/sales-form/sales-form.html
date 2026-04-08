@@ -141,8 +141,14 @@
               matInput
               rows="3"
               formControlName="observacao"
-              maxlength="1000"
+              maxlength="100"
               [placeholder]="getObservationPlaceholder()"></textarea>
+            <mat-hint align="end">{{ form.get('observacao')?.value?.length || 0 }}/100</mat-hint>
+            @if (form.get('observacao')?.hasError('maxlength')) {
+              <mat-error>Máximo de 100 caracteres.</mat-error>
+            } @else if (form.get('observacao')?.hasError('backend')) {
+              <mat-error>{{ form.get('observacao')?.getError('backend') }}</mat-error>
+            }
           </mat-form-field>
         </section>
 

@@ -7,6 +7,9 @@ export interface AppNotificationItem {
   type: AppNotificationType;
   message: string;
   durationMs: number;
+  remainingMs: number;
+  startedAt: number | null;
+  paused: boolean;
   visible: boolean;
 }
 
@@ -37,6 +40,46 @@ export class AppNotificationService {
     this.enqueue('info', message, durationMs);
   }
 
+  pause(id: number): void {
+    const item = this.items().find(currentItem => currentItem.id === id);
+    if (!item || item.paused) {
+      return;
+    }
+
+    const now = Date.now();
+    const elapsedMs = item.startedAt ? Math.max(now - item.startedAt, 0) : 0;
+    const remainingMs = Math.max(item.remainingMs - elapsedMs, 0);
+
+    this.clearTimer(id);
+    this.items.update(items => items.map(currentItem => {
+      if (currentItem.id !== id) {
+        return currentItem;
+      }
+
+      return {
+        ...currentItem,
+        remainingMs,
+        startedAt: null,
+        paused: true
+      };
+    }));
+  }
+
+  resume(id: number): void {
+    const item = this.items().find(currentItem => currentItem.id === id);
+    if (!item || !item.paused) {
+      return;
+    }
+
+    const resumedItem: AppNotificationItem = {
+      ...item,
+      paused: false
+    };
+
+    this.items.update(items => items.map(currentItem => currentItem.id === id ? resumedItem : currentItem));
+    this.startTimer(resumedItem);
+  }
+
   dismiss(id: number): void {
     const removedItem = this.items().find(item => item.id === id);
     if (!removedItem) {
@@ -57,6 +100,9 @@ export class AppNotificationService {
       type,
       message,
       durationMs,
+      remainingMs: durationMs,
+      startedAt: null,
+      paused: false,
       visible: this.visibleCount() < AppNotificationService.MAX_VISIBLE_NOTIFICATIONS
     };
 
@@ -94,9 +140,23 @@ export class AppNotificationService {
 
   private startTimer(item: AppNotificationItem): void {
     this.clearTimer(item.id);
+    const startedAt = Date.now();
+
+    this.items.update(items => items.map(currentItem => {
+      if (currentItem.id !== item.id) {
+        return currentItem;
+      }
+
+      return {
+        ...currentItem,
+        startedAt,
+        paused: false
+      };
+    }));
+
     this.timers.set(
       item.id,
-      setTimeout(() => this.dismiss(item.id), item.durationMs)
+      setTimeout(() => this.dismiss(item.id), item.remainingMs)
     );
   }
 

@@ -32,7 +32,7 @@ public class VendaRequestValidator extends BaseValidator<ValidVendaRequest, Vend
     private static final int MAX_ESTADO = 60;
     private static final int MAX_DOCUMENTO = 40;
     private static final int MAX_CODIGO_POSTAL = 20;
-    private static final int MAX_OBSERVACAO = 1000;
+    private static final int MAX_OBSERVACAO = 100;
 
     @Override
     protected void validate(VendaRequestDTO dto) {

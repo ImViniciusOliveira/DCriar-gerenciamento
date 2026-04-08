@@ -195,7 +195,7 @@ export class SalesForm implements OnInit {
       estado: [''],
       cep: [''],
       cpf: [''],
-      observacao: [''],
+      observacao: ['', Validators.maxLength(100)],
       itens: this.fb.array([], stockAvailabilityValidator)
     });
 

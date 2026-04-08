@@ -22,6 +22,14 @@ export class NotificationCenter {
     this.notificationService.dismiss(notificationId);
   }
 
+  pause(notificationId: number): void {
+    this.notificationService.pause(notificationId);
+  }
+
+  resume(notificationId: number): void {
+    this.notificationService.resume(notificationId);
+  }
+
   trackByNotificationId(_: number, notification: AppNotificationItem): number {
     return notification.id;
   }
@@ -44,5 +52,10 @@ export class NotificationCenter {
       return 'info';
     }
     return 'error';
+  }
+
+  getAnimationDelay(notification: AppNotificationItem): string {
+    const elapsedMs = Math.max(notification.durationMs - notification.remainingMs, 0);
+    return `-${elapsedMs}ms`;
   }
 }
