@@ -1,114 +1,136 @@
-# Guia de Desenvolvimento — DCriar
+# Guia De Desenvolvimento
 
-Este documento descreve como rodar o projeto em ambiente de desenvolvimento local.
-Objetivo: máxima velocidade de iteração para frontend e facilidade para backend.
+Este guia é para o fluxo rápido de desenvolvimento: frontend local, backend local e só a infraestrutura no Docker.
 
-Resumo rápido
-- Frontend: rodar localmente com `npm start` / `ng serve` (hot reload).
-- Backend: rodar via IDE (mvnw spring-boot run) ou em container com o `backend/Dockerfile` (multi-stage).
-- Dependências locais (Postgres, MinIO) via Docker Compose (desenvolvimento).
+## Resumo
 
-1) Preparar arquivo de ambiente local
+- frontend: `http://localhost:4200`
+- backend: `http://localhost:8080`
+- banco: PostgreSQL via Docker
+- storage: MinIO via Docker
 
-- Copie o esqueleto e crie seu arquivo de segredos local:
+## Pré-Requisitos
+
+- Java 21
+- Node.js + npm
+- Docker + Docker Compose
+
+## 1. Criar O Arquivo Local
+
+O projeto usa `.env.dev.local` como arquivo real de desenvolvimento.  
+`.env.dev` é só esqueleto.
 
 ```bash
 cp .env.dev .env.dev.local
-# editar .env.dev.local com valores locais (DB, MinIO credentials)
 ```
 
-- Este arquivo **NÃO** deve ser comitado (está em `.gitignore`).
+Preencha no `.env.dev.local`:
+- banco
+- MinIO
+- `CORS_ALLOWED_ORIGIN`
+- `DATA_ENCRYPTION_KEY`
+- `WAIT_TIMEOUT`
+- `WAIT_INTERVAL`
 
-1) Subir dependências (Postgres, MinIO) via Docker Compose
-
-- Comando (scripts disponíveis):
-
-```bash
-# sobe postgres, minio e o job de setup que cria o bucket
-./scripts/up-dev.sh
-
-# derrubar
-./scripts/down-dev.sh
-```
-
-- Ou manualmente:
+## 2. Subir A Infraestrutura
 
 ```bash
-# sem usar scripts (exporte variável que os yml usam)
-export DEV_ENV_FILE=./.env.dev.local
-docker compose -f docker-compose.dev.yml -f docker-compose.override.yml up --build
-```
-
-1) Rodar o frontend (modo dev — recomendado)
-
-- Instale dependências se necessário:
-
-```bash
-cd frontend
-npm ci
-# ou npm install
-```
-
-- Rodar com hot-reload:
-
-```bash
-npm start
-# abre por padrão em http://localhost:4200
-```
-
-1) Rodar o backend
-
-Opção A — rodar pela IDE (recomendado para depuração):
-- Importar o projeto Maven (`backend/pom.xml`) na sua IDE (IntelliJ/VSCode+Extension).
-- Configurar a profile `dev` (ou passe `--spring.profiles.active=dev`) e a variável de ambiente `MINIO_URL=http://minio-dev:9000` no run configuration.
-- Rodar usando o `mvnw` ou a Run Configuration da IDE.
-
-Opção B — rodar em container (construção local rápida):
-
-```bash
-# build da imagem local do backend
-docker build -t dcriar-api:local backend/
-# rodar
-docker run --rm -p 8080:8080 --env-file ./.env.dev.local dcriar-api:local
-```
-
-1) Testar a integração
-- Acesse o frontend (http://localhost:4200) e verifique chamadas à API local via `/api` (o proxy do Angular encaminha para `http://localhost:8080`).
-- Verifique o MinIO console em `http://localhost:9001` (user/pass conforme `.env.dev.local`).
-
-1) Dicas para IDE (IntelliJ)
-- Importar como Maven project.
-- Configure uma Run Configuration do tipo `Spring Boot` apontando para o main class do backend.
-- Configure variáveis de ambiente na Run Configuration (ou use `application-dev.yml` para dev settings).
-
-1) Limpeza
-- Para remover containers e volumes do compose de dev:
-
-```bash
-./scripts/down-dev.sh
-# ou
-export DEV_ENV_FILE=./.env.dev.local
-docker compose -f docker-compose.dev.yml -f docker-compose.override.yml down --remove-orphans
-```
-
-## Scripts úteis (desenvolvimento)
-
-O projeto inclui scripts em `./scripts/develop` para facilitar subir e derrubar o ambiente de desenvolvimento.
-
-Principais scripts:
-
-- `./scripts/develop/up-dev.sh` — sobe os serviços de infraestrutura (Postgres, MinIO) para desenvolvimento. Usa `./.env.dev.local` por padrão.
-- `./scripts/develop/down-dev.sh` — derruba a stack de desenvolvimento e realiza limpeza local: para/remover containers que exponham as portas conhecidas e mata processos locais que estejam usando essas portas.
-
-Exemplos rápidos:
-
-```bash
-# subir serviços de dev
 ./scripts/develop/up-dev.sh
+```
 
-# derrubar e limpar
+Isso sobe:
+- `postgres-dev`
+- `minio-dev`
+- `minio-setup-dev`
+
+Para derrubar:
+
+```bash
 ./scripts/develop/down-dev.sh
 ```
 
-Observação:
-- O `down-dev.sh` faz uma limpeza proativa nas portas conhecidas (8080, 4200, 9000, 9001, 5432). Tenha cuidado ao rodar em máquinas com outros serviços que usem essas portas.
+## 3. Rodar O Backend
+
+O backend deve rodar localmente, normalmente pela IDE.
+
+Opção recomendada:
+- profile `local`
+- variáveis vindas do `.env.dev.local`
+
+Ou por Maven:
+
+```bash
+cd backend
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+API:
+- `http://localhost:8080`
+- actuator: `http://localhost:8080/actuator/health`
+
+## 4. Rodar O Frontend
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+Aplicação:
+- `http://localhost:4200`
+
+## 5. O Que Validar
+
+- frontend abre em `localhost:4200`
+- backend responde em `localhost:8080`
+- frontend consegue chamar `/api`
+- MinIO console abre em `http://localhost:9001`
+- a API sobe só se `DATA_ENCRYPTION_KEY` estiver configurada
+
+## 6. Estrutura Do Fluxo Dev
+
+Em desenvolvimento:
+- Docker sobe só infraestrutura
+- backend roda localmente
+- frontend roda localmente
+
+Isso dá:
+- hot reload no Angular
+- depuração melhor no Spring Boot
+- menos atrito no ciclo de alteração
+
+## 7. Comandos Úteis
+
+Subir infra:
+
+```bash
+./scripts/develop/up-dev.sh
+```
+
+Derrubar infra:
+
+```bash
+./scripts/develop/down-dev.sh
+```
+
+Compilar backend:
+
+```bash
+cd backend
+./mvnw -DskipTests compile
+```
+
+Build do frontend:
+
+```bash
+cd frontend
+npm run build
+```
+
+## 8. Se Precisar Entender Melhor
+
+Pontos importantes deste projeto em desenvolvimento:
+- `.env.dev.local` é o arquivo real
+- `.env.dev` não deve ser usado em runtime
+- dados sensíveis de venda dependem de `DATA_ENCRYPTION_KEY`
+- `docker-compose.dev.yml` não sobe backend nem frontend

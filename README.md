@@ -1,92 +1,84 @@
-# DCriar - Sistema de Gestão de Estoque e Produção
+# Sistema de Estoque, Produção e Vendas
 
-## Visão Geral
+Sistema web para controlar estoque, produção, vendas e distribuição por canal.
 
-O DCriar é um sistema completo para gestão de estoque e produção, projetado para pequenas e médias empresas que trabalham com a transformação de matéria-prima em produtos acabados. O sistema permite o controle total do ciclo de vida do produto, desde a entrada da matéria-prima até a venda final.
+O projeto foi construído para resolver um fluxo completo: entrada de matéria-prima, transformação em produto acabado, movimentação de estoque, produção orientada por consumo e corte, e venda com impacto automático no saldo.
 
-## Estrutura do Projeto
+## O Que O Sistema Resolve
 
-O projeto é dividido em duas partes principais:
+- controla produtos, preços e canais de venda
+- controla lotes de matéria-prima e histórico de movimentações
+- registra ordens de produção e consumo de insumos
+- distribui estoque por canal e permite ajustes
+- registra vendas e baixa o estoque automaticamente
+- mantém histórico operacional para auditoria
 
-* `backend/` — Aplicação Spring Boot que implementa a API REST e a lógica de negócio.
-* `frontend/` — Aplicação Angular 20 que consome a API e fornece a interface do usuário.
+## O Que Tem De Interessante Aqui
 
-Existem também scripts de deploy e um wrapper para `docker compose` em `scripts/lib/compose-run.sh`.
+- backend em `Java 21 + Spring Boot 3.5.5`
+- frontend em `Angular 21`
+- PostgreSQL com `Flyway`
+- MinIO para arquivos
+- deploy com `Docker Compose`
+- HTTPS no frontend/proxy via `nginx`
+- validações customizadas no backend
+- criptografia em repouso para dados sensíveis de venda
 
-## Como Começar (Desenvolvimento)
+## Arquitetura
 
-1. Clone o repositório:
+- `backend/`: API REST com regras de negócio, validações, migrações e integração com banco/MinIO
+- `frontend/`: interface web Angular para operação diária
+- `docker-compose.dev.yml`: infraestrutura local de desenvolvimento
+- `docker-compose.prod.yml`: stack de produção
 
-```bash
-git clone https://github.com/seu-usuario/dcriar-sistema-inventario.git
-cd dcriar-sistema-inventario
-```
+## Fluxos Principais
 
-1. Backend (rodando localmente):
+### 1. Estoque e matéria-prima
+- cadastro de tipos de matéria-prima
+- entrada de lotes
+- movimentações e histórico
+- saldo físico
+- distribuição por canal
 
-```bash
-cd backend
-mvn clean package
-mvn spring-boot:run
-```
+### 2. Produção
+- ordem de produção por produto
+- cálculo de consumo e corte
+- geração de movimentações
+- atualização de estoque acabado
 
-A API ficará disponível em `http://localhost:8080`.
+### 3. Vendas
+- venda por canal
+- itens com preço padrão ou alterado
+- baixa automática de estoque
+- dados de cliente com exposição controlada
 
-1. Frontend (desenvolvimento):
+## Dados Sensíveis Em Vendas
 
-```bash
-cd frontend
-npm install
-ng serve
-```
+A aplicação trata dados sensíveis de vendas com criptografia em repouso e exposição controlada na API.
 
-Abra `http://localhost:4200` no navegador.
+## Stack Técnica
 
-## Deploy com Docker Compose (dev / prod)
+- Backend: Java 21, Spring Boot 3.5.5, Spring Data JPA, Validation, HATEOAS, Actuator, Springdoc, Flyway
+- Frontend: Angular 21, Angular Material, ngx-mask
+- Banco: PostgreSQL 14
+- Storage: MinIO
+- Infra: Docker Compose + nginx
 
-O projeto inclui um script `scripts/lib/compose-run.sh` que é um wrapper em torno do `docker compose` para facilitar builds, pushes e deploys em modos `dev` e `prod`.
+## Guias Do Projeto
 
-Principais opções:
+O projeto tem guias objetivos para executar e publicar a aplicação:
 
-- `--mode <dev|prod>` — define o modo. Em `prod` o script usa por padrão `/etc/dcriar/.env.prod` e `/opt/dcriar/docker-compose.prod.yml`.
-- `--env-file <arquivo>` — arquivo .env a ser usado (substitui o padrão do modo).
-- `--compose-file <arquivo>` — arquivo compose adicional.
-- `--build-images` — constrói as imagens locais antes do deploy.
-- `--push-images` — envia (`docker push`) as imagens construídas para o registry.
-- `--image-tag <tag>` — permite selecionar a tag das imagens construídas.
-- `--no-sudo` — executa sem `sudo`.
+- desenvolvimento local: [Guia de Desenvolvimento](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.dev.md)
+- produção e deploy: [Guia de Produção](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.deploy.md)
+- comandos diretos de Docker e Docker Hub: [Guia de Comandos](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.comandos.md)
 
-Exemplos:
+Esses arquivos mostram o fluxo real do projeto com Docker Compose, backend pela IDE e deploy entre máquinas.
 
-- Subir em `prod` usando as imagens do Docker Hub (pull + up -d):
+## Diferenciais Do Projeto
 
-```bash
-sudo bash scripts/lib/compose-run.sh --mode prod --env-file /etc/dcriar/.env.prod --compose-file /opt/dcriar/docker-compose.prod.yml pull
-sudo bash scripts/lib/compose-run.sh --mode prod --env-file /etc/dcriar/.env.prod --compose-file /opt/dcriar/docker-compose.prod.yml up -d
-```
-
-- Build local + push + subir (tag `latest` ou outra):
-
-```bash
-sudo bash scripts/lib/compose-run.sh --mode prod --env-file /etc/dcriar/.env.prod --compose-file /opt/dcriar/docker-compose.prod.yml --build-images --push-images --image-tag latest up -d
-```
-
-## Acesso pela rede local
-
-Se o host em que você subiu o stack estiver na mesma rede local (e a porta `80:80` estiver mapeada para o host), outros computadores na mesma rede poderão acessar o sistema via `http://<IP_DO_HOST>/`.
-
-O frontend encaminha `/api` para o backend internamente pelo nginx, então o backend não precisa ficar exposto publicamente no host.
-
-Exemplo para descobrir o IP do host (Linux):
-
-```bash
-hostname -I | awk '{print $1}'
-```
-
-Observações de segurança:
-- Em produção, configure firewalls e regras de rede apropriadas.
-- Exponha apenas o frontend; mantenha o backend acessível só pela rede interna do compose sempre que possível.
-
----
-
-Consulte `backend/README.md` e `frontend/README.md` para instruções específicas de cada parte.
+- fluxo completo de estoque, produção e venda no mesmo sistema
+- regras de negócio explícitas no backend
+- normalização e validações customizadas para manter consistência dos dados
+- deploy com HTTPS no frontend/proxy
+- separação clara entre ambiente local e produção
+- proteção de dados sensíveis nas vendas
