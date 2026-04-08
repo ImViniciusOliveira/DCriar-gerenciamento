@@ -1,166 +1,209 @@
-# Guia de Comandos Docker
+# Guia de Comandos
 
-## DEVELOP
+Este arquivo reúne comandos diretos para rodar, inspecionar, publicar e limpar a aplicação.
 
-### 1. infra e backend pela IDE
+## Desenvolvimento
 
-- sobe so a infra no docker
-- backend roda pela IDE
+### 1. Subir só a infraestrutura
 
-comando:
+Use este modo quando o backend vai rodar pela IDE e o frontend vai rodar fora do Docker.
 
 ```bash
-docker compose --project-name dcriar-dev --env-file .env.dev.local -f docker-compose.dev.yml up -d
+docker compose --project-name seu-projeto-dev --env-file /caminho/do/seu-projeto/.env.dev.local -f /caminho/do/seu-projeto/docker-compose.dev.yml up -d
 ```
 
-depois rode o backend pela IDE ou:
+Depois rode o backend:
 
 ```bash
 cd backend
 mvn spring-boot:run
 ```
 
-------------------------------------------------------------------------
-
-### 2. infra e backend
-
-- sobe infra + backend no docker
-
-comando:
+E o frontend:
 
 ```bash
-docker compose --project-name dcriar-dev --env-file .env.dev.local -f docker-compose.dev.yml -f docker-compose.override.yml up -d
-```
-
-------------------------------------------------------------------------
-
-## FRONTEND
-
-- frontend em desenvolvimento roda fora do docker
-
-comando:
-
-```bash
-cd frontend/
+cd frontend
 npm start
 ```
 
-//////////////////////////////////////////////////////////////////////////////
-
-## PASSOS DEPLOY ENTRE 2 PCS
-
-PC1 = maquina onde voce gera e envia as imagens
-
-PC2 = maquina onde voce baixa as imagens e sobe a producao
-
-SEU USUARIO DOCKER HUB:
-
-`imviniciusoliveira`
-
-SUAS IMAGENS:
-
-- `imviniciusoliveira/dcriar-frontend`
-- `imviniciusoliveira/dcriar-api`
-
-------------------------------------------------------------------------
-
-## PC1
-
-### O QUE ELE FAZ
-
-- builda a imagem do backend
-- builda a imagem do frontend
-- envia as duas imagens para o Docker Hub
-
-### LOGIN NO DOCKER HUB
+### 2. Subir infraestrutura + backend no Docker
 
 ```bash
-docker login -u imviniciusoliveira
+docker compose --project-name seu-projeto-dev --env-file /caminho/do/seu-projeto/.env.dev.local -f /caminho/do/seu-projeto/docker-compose.dev.yml -f /caminho/do/seu-projeto/docker-compose.override.yml up -d
 ```
 
------------------------------------------------------------------------
-
-### ENVIAR IMAGENS COM TAG 1.0.0
-
-backend:
+O frontend continua rodando fora do Docker:
 
 ```bash
-docker build -t imviniciusoliveira/dcriar-api:1.0.0 backend/
-docker push imviniciusoliveira/dcriar-api:1.0.0
+cd frontend
+npm start
 ```
 
-frontend:
+### 3. Ver status da stack de desenvolvimento
 
 ```bash
-docker build -t imviniciusoliveira/dcriar-frontend:1.0.0 frontend/
-docker push imviniciusoliveira/dcriar-frontend:1.0.0
+docker compose --project-name seu-projeto-dev --env-file /caminho/do/seu-projeto/.env.dev.local -f /caminho/do/seu-projeto/docker-compose.dev.yml ps
 ```
 
------------------------------------------------------------------------
-
-### ENVIAR IMAGENS COM TAG latest
-
-backend:
+### 4. Ver logs da infraestrutura em desenvolvimento
 
 ```bash
-docker build -t imviniciusoliveira/dcriar-api:latest backend/
-docker push imviniciusoliveira/dcriar-api:latest
+docker compose --project-name seu-projeto-dev --env-file /caminho/do/seu-projeto/.env.dev.local -f /caminho/do/seu-projeto/docker-compose.dev.yml logs -f
 ```
 
-frontend:
+### 5. Parar a stack de desenvolvimento
 
 ```bash
-docker build -t imviniciusoliveira/dcriar-frontend:latest frontend/
-docker push imviniciusoliveira/dcriar-frontend:latest
+docker compose --project-name seu-projeto-dev --env-file /caminho/do/seu-projeto/.env.dev.local -f /caminho/do/seu-projeto/docker-compose.dev.yml down
 ```
 
------------------------------------------------------------------------
------------------------------------------------------------------------
+---
 
-## PC2
+## Build de Imagens
 
-### O QUE ELE FAZ
+### Backend
 
-- baixa as imagens do Docker Hub
-- sobe a producao com docker compose
+Exemplo com tag `1.0.0`:
 
-### ANTES DE SUBIR
+```bash
+docker build -t SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_BACKEND:1.0.0 backend/
+```
 
-- o arquivo `/etc/dcriar/.env.prod` precisa existir
-- o arquivo `/opt/dcriar/docker-compose.prod.yml` precisa existir
-- a versao no `.env.prod` precisa bater com a tag enviada no PC1
+Exemplo com tag `latest`:
 
-exemplo no `.env.prod`:
+```bash
+docker build -t SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_BACKEND:latest backend/
+```
+
+### Frontend
+
+Exemplo com tag `1.0.0`:
+
+```bash
+docker build -t SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:1.0.0 frontend/
+```
+
+Exemplo com tag `latest`:
+
+```bash
+docker build -t SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:latest frontend/
+```
+
+---
+
+## Publicar no Docker Hub
+
+### Login
+
+```bash
+docker login -u SEU_USUARIO_DOCKER_HUB
+```
+
+### Enviar backend
+
+```bash
+docker push SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_BACKEND:1.0.0
+docker push SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_BACKEND:latest
+```
+
+### Enviar frontend
+
+```bash
+docker push SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:1.0.0
+docker push SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:latest
+```
+
+---
+
+## Produção
+
+### Antes de subir
+
+Os arquivos abaixo precisam existir:
+
+- `/etc/seu-projeto/.env.prod`
+- `/opt/seu-projeto/docker-compose.prod.yml`
+
+No `/etc/seu-projeto/.env.prod`, a versão precisa bater com a tag publicada:
 
 ```dotenv
 APP_VERSION=1.0.0
-DOCKER_REGISTRY_USER=imviniciusoliveira
-BACKEND_IMAGE_NAME=dcriar-api
-FRONTEND_IMAGE_NAME=dcriar-frontend
+DOCKER_REGISTRY_USER=SEU_USUARIO_DOCKER_HUB
+BACKEND_IMAGE_NAME=NOME_DA_IMAGEM_BACKEND
+FRONTEND_IMAGE_NAME=NOME_DA_IMAGEM_FRONTEND
 ```
 
------------------------------------------------------------------------
-
-### BAIXAR AS IMAGENS DO DOCKER HUB
+### Baixar as imagens
 
 ```bash
-docker compose --project-name dcriar-prod --env-file /etc/dcriar/.env.prod -f /opt/dcriar/docker-compose.prod.yml pull
+docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml pull
 ```
 
------------------------------------------------------------------------
-
-### SUBIR A PRODUCAO
+### Subir a produção
 
 ```bash
-docker compose --project-name dcriar-prod --env-file /etc/dcriar/.env.prod -f /opt/dcriar/docker-compose.prod.yml up -d
+docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml up -d
 ```
 
------------------------------------------------------------------------
-
-### VER SE FUNCIONOU
+### Ver status
 
 ```bash
-docker compose --project-name dcriar-prod --env-file /etc/dcriar/.env.prod -f /opt/dcriar/docker-compose.prod.yml ps
+docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml ps
 ```
 
------------------------------------------------------------------------
+### Ver logs
+
+Todos os serviços:
+
+```bash
+docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml logs -f
+```
+
+Só backend:
+
+```bash
+docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml logs -f backend
+```
+
+Só frontend:
+
+```bash
+docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml logs -f frontend
+```
+
+### Parar a produção
+
+```bash
+docker compose --project-name seu-projeto-prod --env-file /etc/seu-projeto/.env.prod -f /opt/seu-projeto/docker-compose.prod.yml down
+```
+
+---
+
+## Comandos Úteis
+
+### Ver containers em execução
+
+```bash
+docker ps
+```
+
+### Ver imagens locais
+
+```bash
+docker images
+```
+
+### Remover imagens locais
+
+```bash
+docker rmi SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_BACKEND:1.0.0
+docker rmi SEU_USUARIO_DOCKER_HUB/NOME_DA_IMAGEM_FRONTEND:1.0.0
+```
+
+### Testar a aplicação em produção
+
+```bash
+curl -k -I https://IP_DO_SERVIDOR/health
+curl -I http://IP_DO_SERVIDOR/
+curl -k -I https://IP_DO_SERVIDOR/
+```
