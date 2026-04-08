@@ -149,12 +149,17 @@ INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, unid
     ((SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 'METRO_QUADRADO', 'METRO_QUADRADO', 25.00000000, 'Retalho da Ordem #5', '{ "larguraMm": 300 }', (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour');
 
 -- Inserção de Vendas (dependem de Canais de Venda)
-INSERT INTO vendas (data_criacao, data_atualizacao, canal_venda_id, valor_total) VALUES
-    (NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 99.90),
-    (NOW() - INTERVAL '12 hour', NOW() - INTERVAL '12 hour', (SELECT id FROM canais_venda WHERE nome = 'Equipe de Vendas'), 170.00),
-    (NOW(), NOW(), (SELECT id FROM canais_venda WHERE nome = 'Shopee'), 75.00),
-    (NOW() - INTERVAL '10 hour', NOW() - INTERVAL '10 hour', (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), 189.90),
-    (NOW() - INTERVAL '8 hour', NOW() - INTERVAL '8 hour', (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 159.80);
+-- Observação:
+-- - esta carga SQL grava direto no banco e não passa pelo conversor JPA de criptografia
+-- - por isso, aqui populamos apenas os campos de cliente que permanecem em claro
+-- - campos criptografados em repouso (nome_completo, endereco, numero, bairro, cep, cpf, observacao)
+--   devem continuar nulos nesta carga repetível
+INSERT INTO vendas (data_criacao, data_atualizacao, canal_venda_id, valor_total, apelido, cidade, estado) VALUES
+    (NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 99.90, 'Cliente Premium', 'Sao Paulo', 'Sao Paulo'),
+    (NOW() - INTERVAL '12 hour', NOW() - INTERVAL '12 hour', (SELECT id FROM canais_venda WHERE nome = 'Equipe de Vendas'), 170.00, 'Equipe Alpha', 'Campinas', 'Sao Paulo'),
+    (NOW(), NOW(), (SELECT id FROM canais_venda WHERE nome = 'Shopee'), 75.00, 'Shopee Julia', 'Curitiba', 'Parana'),
+    (NOW() - INTERVAL '10 hour', NOW() - INTERVAL '10 hour', (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), 189.90, 'Cliente Balcao', 'Belo Horizonte', 'Minas Gerais'),
+    (NOW() - INTERVAL '8 hour', NOW() - INTERVAL '8 hour', (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 159.80, 'Studio DTF', 'Rio de Janeiro', 'Rio de Janeiro');
 
 -- ETAPA 6: INSERÇÃO DE DADOS DE RELACIONAMENTO E HISTÓRICO (Nível Final)
 -- Estas são as tabelas de junção e logs que dependem de todas as outras entidades.

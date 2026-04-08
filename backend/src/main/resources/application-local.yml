@@ -74,7 +74,7 @@ management:
 
 # --- CORS CONFIGURATION ---
 cors:
-  allowed-origin: "http://localhost:4200"
+  allowed-origin: ${CORS_ALLOWED_ORIGIN}
 
 app:
   security:

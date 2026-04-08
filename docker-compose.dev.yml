@@ -51,8 +51,8 @@ services:
       - |-
         echo 'Esperando o MinIO-dev ficar online...';
         # Loop de espera manual para garantir que o MinIO esteja pronto.
-        TIMEOUT=$${WAIT_TIMEOUT:-60};
-        INTERVAL=$${WAIT_INTERVAL:-5};
+        TIMEOUT=$${WAIT_TIMEOUT};
+        INTERVAL=$${WAIT_INTERVAL};
         ATTEMPTS=0;
         MAX=$$(( (TIMEOUT + INTERVAL - 1) / INTERVAL ));
         until (/usr/bin/mc alias set dcriar-minio-dev http://$${MINIO_HOST}:$${MINIO_PORT} $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}); do

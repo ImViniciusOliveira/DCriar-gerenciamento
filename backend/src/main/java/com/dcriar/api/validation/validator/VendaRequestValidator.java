@@ -47,21 +47,46 @@ public class VendaRequestValidator extends BaseValidator<ValidVendaRequest, Vend
         validateMaxLength(dto.getObservacao(), MAX_OBSERVACAO, "observacao", "Observação");
 
         String cpf = dto.getCpf();
-        addViolationIf(cpf != null && !BrazilDocumentNormalizer.isValidCpf(cpf), "CPF inválido.", "cpf");
+        addViolationIf(cpf != null && !BrazilDocumentNormalizer.isValidCpf(cpf),
+                buildCpfMessage(cpf),
+                "cpf");
 
         String cep = dto.getCep();
-        addViolationIf(cep != null && !BrazilDocumentNormalizer.isValidCep(cep), "CEP inválido. Informe 8 dígitos.", "cep");
+        addViolationIf(cep != null && !BrazilDocumentNormalizer.isValidCep(cep),
+                buildCepMessage(cep),
+                "cep");
 
         String estado = dto.getEstado();
-        addViolationIf(estado != null && !BrazilStateSupport.isValid(estado), "Estado inválido.", "estado");
-        addViolationIf(estado == null && dto.getCidade() != null, "Estado é obrigatório quando a cidade for informada.", "estado");
-        addViolationIf(estado != null && dto.getCidade() == null, "Cidade é obrigatória quando o estado for informado.", "cidade");
+        addViolationIf(estado != null && !BrazilStateSupport.isValid(estado),
+                buildEstadoMessage(estado),
+                "estado");
     }
 
     private void validateMaxLength(String value, int maxLength, String fieldName, String label) {
         String trimmed = TrimTextNormalizer.trimToNull(value);
         addViolationIf(trimmed != null && trimmed.length() > maxLength,
-                label + " não pode ter mais de " + maxLength + " caracteres.",
+                label + " não pode ter mais de " + maxLength + " caracteres. Valor informado: " + quote(trimmed) + ".",
                 fieldName);
+    }
+
+    private String buildCpfMessage(String cpf) {
+        String normalized = BrazilDocumentNormalizer.normalizeCpf(cpf);
+        return "CPF inválido: " + quote(cpf) + ". Valor normalizado: " + quote(normalized)
+                + ". Informe um CPF com 11 dígitos válidos.";
+    }
+
+    private String buildCepMessage(String cep) {
+        String normalized = BrazilDocumentNormalizer.normalizeCep(cep);
+        return "CEP inválido: " + quote(cep) + ". Valor normalizado: " + quote(normalized)
+                + ". Informe 8 dígitos.";
+    }
+
+    private String buildEstadoMessage(String estado) {
+        return "Estado inválido: " + quote(estado)
+                + ". Informe a sigla UF ou o nome de um estado brasileiro.";
+    }
+
+    private String quote(String value) {
+        return value == null ? "\"\"" : "\"" + value + "\"";
     }
 }
