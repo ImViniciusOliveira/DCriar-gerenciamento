@@ -1,6 +1,6 @@
 # Sistema de Estoque, Produção e Vendas
 
-Projeto **full stack** para controle de estoque, produção e vendas, cobrindo o fluxo completo de uma operação que transforma matéria-prima em produto final.
+Projeto **full stack** para controle de estoque, produção e vendas, cobrindo o fluxo completo de uma operação que transforma matéria-prima em produto.
 
 Ele foi construído para centralizar:
 - entrada e controle de insumos
@@ -13,17 +13,26 @@ Ele foi construído para centralizar:
 
 ## Tecnologias Utilizadas
 
-| Backend | Frontend | Dados / Infra |
-| --- | --- | --- |
-| Java 21 | Angular 21 | PostgreSQL 14 |
-| Spring Boot 3.5.5 | Angular Material | MinIO |
-| Spring Data JPA / Hibernate | ngx-mask | Docker Compose |
-| Spring Validation |  | nginx com HTTPS em rede local |
-| Spring HATEOAS |  |  |
-| Springdoc / OpenAPI |  |  |
-| Flyway |  |  |
-| MapStruct |  |  |
-| MinIO SDK |  |  |
+**Backend**
+- Java 21
+- Spring Boot 3.5.5
+- Spring Data JPA / Hibernate
+- Spring Validation
+- Spring HATEOAS
+- Springdoc / OpenAPI
+- Flyway
+- MapStruct
+- MinIO SDK
+
+**Frontend**
+- Angular 21
+- Angular Material
+
+**Dados / Infra**
+- PostgreSQL 14
+- MinIO
+- Docker Compose
+- nginx com HTTPS em rede local
 
 ---
 
@@ -41,7 +50,7 @@ Ele foi construído para centralizar:
 - cálculo de consumo
 - cálculo de corte
 - geração de movimentações automáticas
-- atualização do estoque acabado
+- atualização do estoque
 
 ### Vendas
 - vendas por canal
