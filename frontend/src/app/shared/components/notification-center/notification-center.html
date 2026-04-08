@@ -1,0 +1,29 @@
+<section class="notification-center" aria-live="polite" aria-atomic="false">
+  @for (notification of notifications(); track trackByNotificationId($index, notification)) {
+    <article
+      class="notification-card"
+      [class.notification-card--success]="notification.type === 'success'"
+      [class.notification-card--error]="notification.type === 'error'"
+      [style.--notification-duration]="notification.durationMs + 'ms'">
+      <div class="notification-card__icon" aria-hidden="true">
+        <mat-icon>{{ getNotificationIcon(notification.type) }}</mat-icon>
+      </div>
+
+      <div class="notification-card__content">
+        <div class="notification-card__title">{{ getNotificationTitle(notification.type) }}</div>
+        <p class="notification-card__message">{{ notification.message }}</p>
+      </div>
+
+      <button
+        mat-icon-button
+        type="button"
+        class="notification-card__close"
+        (click)="dismiss(notification.id)"
+        aria-label="Fechar mensagem">
+        <mat-icon>close</mat-icon>
+      </button>
+
+      <div class="notification-card__life"></div>
+    </article>
+  }
+</section>

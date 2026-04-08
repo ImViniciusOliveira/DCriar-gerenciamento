@@ -1,9 +1,9 @@
 import { Injectable, inject, Type } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { ConfirmDialog, ConfirmDialogData } from '../components/confirm-dialog/confirm-dialog';
+import { AppNotificationService } from './app-notification';
 
 /**
  * Interface para configurar um diálogo de formulário genérico.
@@ -32,7 +32,7 @@ export interface FormDialogData<T> {
 })
 export class EntityDialogService {
   private readonly dialog = inject(MatDialog);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notification = inject(AppNotificationService);
 
   /**
    * Abre um diálogo de confirmação de exclusão padrão.
@@ -74,13 +74,13 @@ export class EntityDialogService {
    * Exibe uma notificação de sucesso padronizada.
    */
   showSuccessSnackbar(message: string): void {
-    this.snackBar.open(message, 'Fechar', { duration: 3000 });
+    this.notification.showSuccess(message);
   }
 
   /**
    * Exibe uma notificação de erro padronizada.
    */
   showErrorSnackbar(message: string): void {
-    this.snackBar.open(message, 'Fechar', { duration: 5000 });
+    this.notification.showError(message);
   }
 }

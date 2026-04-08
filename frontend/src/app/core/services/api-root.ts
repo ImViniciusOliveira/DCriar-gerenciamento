@@ -3,8 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import { Hateoas } from '../models/hateoas.model';
 import { shareReplay, catchError, of } from 'rxjs';
 import { environment } from './environment';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { AppNotificationService } from '../../shared/services/app-notification';
 
 /**
  * Serviço responsável por carregar e gerenciar os endpoints da API raiz (root).
@@ -15,7 +15,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 })
 export class ApiRoot {
   private readonly http = inject(HttpClient);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly notification = inject(AppNotificationService);
 
   private readonly API_URL = environment.apiVersionPath;
 
@@ -23,9 +23,7 @@ export class ApiRoot {
   // O `shareReplay(1)` garante que a requisição seja feita apenas uma vez e o resultado cacheado.
   private readonly _endpoints$ = this.http.get<Hateoas>(this.API_URL).pipe(
     catchError(() => {
-      this.snackBar.open('Não foi possível conectar ao servidor. Tente novamente mais tarde.', 'Fechar', {
-        duration: 7000,
-      });
+      this.notification.showError('Não foi possível conectar ao servidor. Tente novamente mais tarde.', 7000);
       return of({} as Hateoas); // Retorna um objeto Hateoas vazio em caso de erro.
     }),
     shareReplay(1)

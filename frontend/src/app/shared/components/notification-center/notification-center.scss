@@ -1,0 +1,117 @@
+.notification-center {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.notification-card {
+  --notification-color: var(--primary-color);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--notification-color) 20%, #d8dee5);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+  pointer-events: auto;
+  animation: notification-fade var(--notification-duration) linear forwards;
+  backdrop-filter: blur(10px);
+}
+
+.notification-card--success {
+  --notification-color: #2563eb;
+}
+
+.notification-card--error {
+  --notification-color: #dc3545;
+}
+
+.notification-card__icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--notification-color) 14%, white);
+  color: var(--notification-color);
+}
+
+.notification-card__content {
+  min-width: 0;
+}
+
+.notification-card__title {
+  font-size: 0.93rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.notification-card__message {
+  margin: 4px 0 0;
+  color: #475569;
+  font-size: 0.91rem;
+  line-height: 1.45;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.notification-card__close {
+  width: 32px;
+  height: 32px;
+  margin-top: -4px;
+  color: #64748b !important;
+}
+
+.notification-card__life {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: color-mix(in srgb, var(--notification-color) 85%, white);
+  transform-origin: left center;
+  animation: notification-life var(--notification-duration) linear forwards;
+}
+
+@keyframes notification-life {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes notification-fade {
+  0%,
+  74% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (max-width: 640px) {
+  .notification-center {
+    right: 12px;
+    bottom: 12px;
+    width: calc(100vw - 24px);
+  }
+}

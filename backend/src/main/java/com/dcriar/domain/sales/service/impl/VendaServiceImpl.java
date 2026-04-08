@@ -286,7 +286,9 @@ public class VendaServiceImpl implements VendaService {
             
             MovimentacaoEstoqueProduto movimentacaoEstorno = MovimentacaoEstoqueProduto.from(movimentacaoDTO, item.getProduto());
             movimentacaoEstorno.setVendaOrigemId(venda.getId());
-            movimentacaoEstoqueProdutoRepository.save(movimentacaoEstorno);
+
+            // Garante que o saldo físico já reflita o estorno antes da re-alocação no canal.
+            movimentacaoEstoqueProdutoRepository.saveAndFlush(movimentacaoEstorno);
 
             // 2. Estorna o estoque do canal (adiciona de volta, quantidade positiva)
             AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()

@@ -929,9 +929,6 @@ export class SalesForm implements OnInit {
 
     operation.subscribe({
       next: () => {
-        this.entityDialog.showSuccessSnackbar(
-          this.isEditMode() ? SalesForm.Texts.UPDATE_SUCCESS : SalesForm.Texts.SAVE_SUCCESS
-        );
         this.dialogRef.close(true);
       },
       error: (err) => {

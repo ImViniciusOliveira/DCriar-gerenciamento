@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 
 import { TopNavbar } from './layout/top-navbar';
 import { Footer } from './layout/footer';
+import { NotificationCenter } from './shared/components/notification-center/notification-center';
 
 /**
  * O componente raiz (root) da aplicação.
@@ -13,7 +14,7 @@ import { Footer } from './layout/footer';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, TopNavbar, Footer],
+  imports: [RouterOutlet, TopNavbar, Footer, NotificationCenter],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
