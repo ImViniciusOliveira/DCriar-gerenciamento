@@ -27,10 +27,22 @@ export class NotificationCenter {
   }
 
   getNotificationTitle(type: AppNotificationItem['type']): string {
-    return type === 'success' ? 'Concluído' : 'Erro';
+    if (type === 'success') {
+      return 'Concluído';
+    }
+    if (type === 'info') {
+      return 'Informação';
+    }
+    return 'Erro';
   }
 
   getNotificationIcon(type: AppNotificationItem['type']): string {
-    return type === 'success' ? 'check_circle' : 'error';
+    if (type === 'success') {
+      return 'check_circle';
+    }
+    if (type === 'info') {
+      return 'info';
+    }
+    return 'error';
   }
 }

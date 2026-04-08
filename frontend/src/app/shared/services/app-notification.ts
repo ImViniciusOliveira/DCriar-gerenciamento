@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-export type AppNotificationType = 'success' | 'error';
+export type AppNotificationType = 'success' | 'error' | 'info';
 
 export interface AppNotificationItem {
   id: number;
@@ -17,6 +17,7 @@ export class AppNotificationService {
   private static readonly MAX_VISIBLE_NOTIFICATIONS = 5;
   private static readonly DEFAULT_SUCCESS_DURATION_MS = 4200;
   private static readonly DEFAULT_ERROR_DURATION_MS = 6200;
+  private static readonly DEFAULT_INFO_DURATION_MS = 4200;
 
   private readonly items = signal<AppNotificationItem[]>([]);
   private readonly timers = new Map<number, ReturnType<typeof setTimeout>>();
@@ -30,6 +31,10 @@ export class AppNotificationService {
 
   showError(message: string, durationMs: number = AppNotificationService.DEFAULT_ERROR_DURATION_MS): void {
     this.enqueue('error', message, durationMs);
+  }
+
+  showInfo(message: string, durationMs: number = AppNotificationService.DEFAULT_INFO_DURATION_MS): void {
+    this.enqueue('info', message, durationMs);
   }
 
   dismiss(id: number): void {

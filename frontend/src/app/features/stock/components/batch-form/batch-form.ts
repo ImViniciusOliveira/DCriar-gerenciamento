@@ -108,6 +108,7 @@ export class BatchForm implements OnInit {
     SAVE_SUCCESS_CREATE: 'Lote cadastrado com sucesso!',
     SAVE_SUCCESS_UPDATE: 'Lote atualizado com sucesso!',
     SAVE_ERROR: 'Falha ao salvar. Verifique os dados e tente novamente.',
+    NO_CHANGES: 'Nenhuma alteração detectada.',
     FORM_VALIDATION_ERROR: 'Corrija os campos inválidos antes de continuar.',
     LOAD_ERROR: 'Não foi possível carregar os dados do lote.',
     UNITS_URL_ERROR: "URL para 'unidades-de-medida' não encontrada no template do lote.",
@@ -439,12 +440,17 @@ export class BatchForm implements OnInit {
     const request: BatchRequest = {
       tipoMateriaPrimaId: materialType.id,
       unidadeDeEstoque: formValue.unidadeDeEstoque,
-      unidadeCadastroEstoque: formValue.unidadeDeEstoque,
+      unidadeCadastroEstoque: this.batch().unidadeCadastroEstoque ?? formValue.unidadeDeEstoque,
       quantidadeInicial: this.parseDecimal(formValue.quantidadeInicial),
       custoTotalLote: this.parseDecimal(formValue.custoTotalLote),
       motivo: formValue.motivo,
       atributos: attributesMap
     };
+
+    if (this.isEditMode() && this.isNoOpUpdate(request)) {
+      this.entityDialog.showInfoSnackbar(BatchForm.Texts.NO_CHANGES);
+      return;
+    }
 
     const operation = this.isEditMode()
       ? this.batchService.update(this.data.template._links!['update']!.href, request)
@@ -452,11 +458,10 @@ export class BatchForm implements OnInit {
 
     operation.subscribe({
       next: () => {
-        this.entityDialog.showSuccessSnackbar(this.isEditMode() ? BatchForm.Texts.SAVE_SUCCESS_UPDATE : BatchForm.Texts.SAVE_SUCCESS_CREATE);
         this.dialogRef.close(true);
       },
-      error: () => {
-        this.entityDialog.showErrorSnackbar(BatchForm.Texts.SAVE_ERROR);
+      error: (err) => {
+        this.entityDialog.showErrorSnackbar(err?.error?.detail || err?.error?.message || BatchForm.Texts.SAVE_ERROR);
       }
     });
   }
@@ -469,6 +474,99 @@ export class BatchForm implements OnInit {
     const normalized = String(value ?? '0').trim().replace(',', '.');
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private isNoOpUpdate(request: BatchRequest): boolean {
+    const currentBatch = this.batch();
+    if (!currentBatch?.id) {
+      return false;
+    }
+
+    const currentDisplayUnit = currentBatch.unidadeCadastroEstoque ?? currentBatch.unidadeDeEstoque;
+
+    const currentAttributes = this.normalizeAttributesForComparison(currentBatch.atributos ?? {});
+    const requestAttributes = this.normalizeAttributesForComparison(request.atributos ?? {});
+    const currentReason = this.normalizeText(currentBatch.motivo);
+    const requestReason = this.normalizeText(request.motivo);
+
+    return String(currentBatch.tipoMateriaPrimaId ?? '') === String(request.tipoMateriaPrimaId ?? '')
+      && String(currentDisplayUnit ?? '') === String(request.unidadeDeEstoque ?? '')
+      && String(currentDisplayUnit ?? '') === String(request.unidadeCadastroEstoque ?? '')
+      && this.sameNumericValue(currentBatch.custoTotalLote, request.custoTotalLote)
+      && currentReason === requestReason
+      && this.deepEquals(currentAttributes, requestAttributes);
+  }
+
+  private normalizeAttributesForComparison(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map(item => this.normalizeAttributesForComparison(item));
+    }
+
+    if (value && typeof value === 'object') {
+      return Object.entries(value as Record<string, unknown>)
+        .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+        .reduce<Record<string, unknown>>((accumulator, [key, entryValue]) => {
+          const normalizedKey = this.normalizeText(key);
+          if (!normalizedKey) {
+            return accumulator;
+          }
+          accumulator[normalizedKey] = this.normalizeAttributesForComparison(entryValue);
+          return accumulator;
+        }, {});
+    }
+
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    return this.normalizeText(String(value));
+  }
+
+  private normalizeText(value: unknown): string | null {
+    const normalized = String(value ?? '').trim();
+    return normalized ? normalized : null;
+  }
+
+  private sameNumericValue(currentValue: unknown, requestValue: unknown): boolean {
+    const currentNumber = currentValue === null || currentValue === undefined || currentValue === ''
+      ? null
+      : Number(currentValue);
+    const requestNumber = requestValue === null || requestValue === undefined || requestValue === ''
+      ? null
+      : Number(requestValue);
+
+    if (currentNumber === null || requestNumber === null) {
+      return currentNumber === requestNumber;
+    }
+
+    return currentNumber === requestNumber;
+  }
+
+  private deepEquals(left: unknown, right: unknown): boolean {
+    if (left === right) {
+      return true;
+    }
+
+    if (Array.isArray(left) && Array.isArray(right)) {
+      if (left.length !== right.length) {
+        return false;
+      }
+
+      return left.every((item, index) => this.deepEquals(item, right[index]));
+    }
+
+    if (left && right && typeof left === 'object' && typeof right === 'object') {
+      const leftEntries = Object.entries(left as Record<string, unknown>);
+      const rightEntries = Object.entries(right as Record<string, unknown>);
+
+      if (leftEntries.length !== rightEntries.length) {
+        return false;
+      }
+
+      return leftEntries.every(([key, value]) => this.deepEquals(value, (right as Record<string, unknown>)[key]));
+    }
+
+    return false;
   }
 
   private applyFieldLocks(): void {

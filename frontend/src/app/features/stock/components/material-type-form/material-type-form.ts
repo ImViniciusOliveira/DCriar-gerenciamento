@@ -55,6 +55,7 @@ export function requireMatch(options: UnitOption[]): ValidatorFn {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MaterialTypeForm implements OnInit {
+  private static readonly NO_CHANGES_MESSAGE = 'Nenhuma alteração detectada.';
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<MaterialTypeForm>);
   private readonly materialTypeService = inject(MaterialTypeService);
@@ -177,13 +178,18 @@ export class MaterialTypeForm implements OnInit {
     formValue.unidadeDeConsumo = formValue.unidadeDeConsumo.name;
     const request: MaterialTypeRequest = formValue;
 
+    if (this.isEditMode() && this.isNoOpUpdate(request)) {
+      this.entityDialog.showInfoSnackbar(MaterialTypeForm.NO_CHANGES_MESSAGE);
+      return;
+    }
+
     const operation = this.isEditMode()
       ? this.materialTypeService.update(this.data.template._links!['update']!.href, request)
       : this.materialTypeService.create(request);
 
     operation.subscribe({
       next: () => this.dialogRef.close(true),
-      error: () => this.entityDialog.showErrorSnackbar(MaterialTypeForm.Texts.saveError)
+      error: (err) => this.entityDialog.showErrorSnackbar(err?.error?.detail || err?.error?.message || MaterialTypeForm.Texts.saveError)
     });
   }
 
@@ -199,5 +205,15 @@ export class MaterialTypeForm implements OnInit {
     if (this.isFieldLocked('unidadeDeConsumo')) {
       this.form.get('unidadeDeConsumo')?.disable({ emitEvent: false });
     }
+  }
+
+  private isNoOpUpdate(request: MaterialTypeRequest): boolean {
+    return this.normalizeText(this.data.template.nome) === this.normalizeText(request.nome)
+      && String(this.data.template.unidadeDeConsumo ?? '') === String(request.unidadeDeConsumo ?? '');
+  }
+
+  private normalizeText(value: unknown): string | null {
+    const normalized = String(value ?? '').trim();
+    return normalized ? normalized : null;
   }
 }

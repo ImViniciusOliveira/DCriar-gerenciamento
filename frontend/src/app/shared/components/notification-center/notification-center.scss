@@ -38,6 +38,10 @@
   --notification-color: #dc3545;
 }
 
+.notification-card--info {
+  --notification-color: #0f766e;
+}
+
 .notification-card__icon {
   display: grid;
   place-items: center;

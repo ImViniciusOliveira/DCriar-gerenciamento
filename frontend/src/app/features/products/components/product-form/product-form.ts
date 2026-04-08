@@ -98,6 +98,7 @@ export class ProductFormComponent implements OnInit {
     LOAD_ERROR: 'Falha ao buscar detalhes completos do produto:',
     SUBMIT_ERROR: 'Falha no envio do formulário:',
     UPDATE_ERROR: 'ID do produto não encontrado, não é possível atualizar.',
+    NO_CHANGES: 'Nenhuma alteração detectada.',
     FORM_VALIDATION_ERROR: 'Corrija os campos inválidos antes de continuar.',
     DUPLICATE_SPECIFICATION_KEY_INLINE_ERROR: 'Existe outra característica equivalente preenchida.'
   };
@@ -394,8 +395,8 @@ export class ProductFormComponent implements OnInit {
       } else {
         await this.handleCreateSubmit();
       }
-    } catch {
-      this.dialogRef.close(false);
+    } catch (err: any) {
+      this.entityDialog.showErrorSnackbar(err?.error?.detail || err?.error?.message || ProductFormComponent.Texts.SUBMIT_ERROR);
     } finally {
       this.isUploading.set(false);
     }
@@ -443,7 +444,7 @@ export class ProductFormComponent implements OnInit {
     }
 
     if (!hasImageChanged && !hasFormChanged && !this.isPhotoRemoved()) {
-      this.dialogRef.close(false); // Nenhuma mudança, fecha sem atualizar.
+      this.entityDialog.showInfoSnackbar(ProductFormComponent.Texts.NO_CHANGES);
       return;
     }
 

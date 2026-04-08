@@ -456,7 +456,7 @@
 
   <mat-dialog-actions align="end">
     <button mat-button type="button" (click)="onCancel()">Cancelar</button>
-    <button mat-raised-button color="primary" type="submit" [disabled]="!simulationResult() || form.invalid || isSaving() || needsVerification() || (isEditMode() && !hasEditChanges())">
+    <button mat-raised-button color="primary" type="submit" [disabled]="!simulationResult() || form.invalid || isSaving() || needsVerification()">
       {{ isSaving() ? 'Salvando...' : (isEditMode() ? 'Confirmar e Atualizar Ordem' : 'Confirmar e Criar Ordem') }}
     </button>
   </mat-dialog-actions>

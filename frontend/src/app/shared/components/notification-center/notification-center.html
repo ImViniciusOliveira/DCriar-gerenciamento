@@ -4,6 +4,7 @@
       class="notification-card"
       [class.notification-card--success]="notification.type === 'success'"
       [class.notification-card--error]="notification.type === 'error'"
+      [class.notification-card--info]="notification.type === 'info'"
       [style.--notification-duration]="notification.durationMs + 'ms'">
       <div class="notification-card__icon" aria-hidden="true">
         <mat-icon>{{ getNotificationIcon(notification.type) }}</mat-icon>

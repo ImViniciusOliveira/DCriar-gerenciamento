@@ -83,4 +83,11 @@ export class EntityDialogService {
   showErrorSnackbar(message: string): void {
     this.notification.showError(message);
   }
+
+  /**
+   * Exibe uma notificação informativa padronizada.
+   */
+  showInfoSnackbar(message: string): void {
+    this.notification.showInfo(message);
+  }
 }

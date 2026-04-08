@@ -168,6 +168,7 @@ export class SalesForm implements OnInit {
     SAVE_SUCCESS: 'Venda registrada com sucesso!',
     UPDATE_SUCCESS: 'Venda atualizada com sucesso!',
     SAVE_ERROR: 'Falha ao registrar a venda. Verifique os dados e tente novamente.',
+    NO_CHANGES: 'Nenhuma alteração detectada.',
     LOAD_ERROR: 'Não foi possível carregar os dados iniciais.',
     LOCATION_CHANGE_TITLE: 'Confirmar mudança para Brasil'
   };
@@ -897,7 +898,6 @@ export class SalesForm implements OnInit {
       return;
     }
 
-    this.isSaving.set(true);
     const formValue = this.form.getRawValue();
 
     const request: SaleRequest = {
@@ -923,6 +923,13 @@ export class SalesForm implements OnInit {
       }))
     };
 
+    if (this.isEditMode() && this.isNoOpUpdate(request)) {
+      this.entityDialog.showInfoSnackbar(SalesForm.Texts.NO_CHANGES);
+      return;
+    }
+
+    this.isSaving.set(true);
+
     const operation = this.isEditMode() && this.data.template?._links?.['update']
       ? this.salesService.update(this.data.template._links['update'].href, request)
       : this.salesService.create(request);
@@ -942,5 +949,69 @@ export class SalesForm implements OnInit {
 
   onCancel(): void {
     this.dialogRef.close(false);
+  }
+
+  private isNoOpUpdate(request: SaleRequest): boolean {
+    const currentSale = this.data.template;
+    if (!currentSale?.id) {
+      return false;
+    }
+
+    return JSON.stringify(this.normalizeSaleRequestForComparison(request))
+      === JSON.stringify(this.normalizeSaleForComparison(currentSale));
+  }
+
+  private normalizeSaleRequestForComparison(request: SaleRequest) {
+    return {
+      canalVendaId: Number(request.canalVendaId ?? 0),
+      nomeCompleto: this.toNullableText(request.nomeCompleto),
+      pais: this.toNullableText(request.pais),
+      apelido: this.toNullableText(request.apelido),
+      endereco: this.toNullableText(request.endereco),
+      numero: this.toNullableText(request.numero),
+      bairro: this.toNullableText(request.bairro),
+      cidade: this.toNullableText(request.cidade),
+      estado: this.toNullableText(request.estado),
+      cep: this.toNullableText(request.cep),
+      cpf: this.toNullableText(request.cpf),
+      observacao: this.toNullableText(request.observacao),
+      itens: [...request.itens]
+        .map(item => ({
+          produtoId: Number(item.produtoId),
+          quantidade: Number(item.quantidade),
+          precoAplicado: this.roundUnitPrice(Number(item.precoAplicado)),
+          precoTotal: this.roundMoney(Number(item.precoTotal)),
+          tipoPrecoAplicado: item.tipoPrecoAplicado,
+          motivoAlteracaoPreco: this.toNullableText(item.motivoAlteracaoPreco)
+        }))
+        .sort((left, right) => left.produtoId - right.produtoId)
+    };
+  }
+
+  private normalizeSaleForComparison(sale: Sale) {
+    return {
+      canalVendaId: Number(sale.canalVendaId ?? 0),
+      nomeCompleto: this.toNullableText(sale.nomeCompleto),
+      pais: this.toNullableText(sale.pais),
+      apelido: this.toNullableText(sale.apelido),
+      endereco: this.toNullableText(sale.endereco),
+      numero: this.toNullableText(sale.numero),
+      bairro: this.toNullableText(sale.bairro),
+      cidade: this.toNullableText(sale.cidade),
+      estado: this.toNullableText(sale.estado),
+      cep: this.toNullableText(sale.cep),
+      cpf: this.toNullableText(sale.cpf),
+      observacao: this.toNullableText(sale.observacao),
+      itens: [...(sale.itens ?? [])]
+        .map(item => ({
+          produtoId: Number(item.produtoId),
+          quantidade: Number(item.quantidade),
+          precoAplicado: this.roundUnitPrice(Number(item.precoUnitario)),
+          precoTotal: this.roundMoney(Number(item.precoTotal)),
+          tipoPrecoAplicado: item.tipoPrecoAplicado,
+          motivoAlteracaoPreco: this.toNullableText(item.motivoAlteracaoPreco)
+        }))
+        .sort((left, right) => left.produtoId - right.produtoId)
+    };
   }
 }

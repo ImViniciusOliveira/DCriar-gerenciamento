@@ -1257,6 +1257,11 @@ export class ProductionForm implements OnInit {
       return;
     }
 
+    if (this.isEditMode() && !this.hasEditChanges()) {
+      this.entityDialog.showInfoSnackbar('Nenhuma alteração detectada.');
+      return;
+    }
+
     this.isSaving.set(true);
     const formValue = this.form.getRawValue();
 
