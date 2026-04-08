@@ -23,7 +23,7 @@ public class OrdemDeProducaoNaoEncontradaException extends RuntimeException {
      * @param id O ID utilizado na busca que falhou.
      */
     public OrdemDeProducaoNaoEncontradaException(Long id) {
-        super(String.format("Ordem de Produção não encontrada com o ID: %d", id));
+        super(String.format("Ordem de produção #%d não foi encontrada. Verifique o identificador informado e tente novamente.", id));
         this.id = id;
     }
 }

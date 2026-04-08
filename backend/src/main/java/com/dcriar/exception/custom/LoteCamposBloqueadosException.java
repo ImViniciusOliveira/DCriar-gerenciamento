@@ -16,9 +16,10 @@ public class LoteCamposBloqueadosException extends AbstractCamposBloqueadosExcep
 
     public LoteCamposBloqueadosException(Long loteId, Set<String> camposBloqueados, Map<String, String> motivosBloqueio) {
         super(String.format(
-                "O lote com id %d possui campos bloqueados para edição: %s",
+                "Não é possível alterar os campos estruturais do lote #%d (%s). Motivos: %s",
                 loteId,
-                camposBloqueados
+                formatarCampos(camposBloqueados),
+                formatarMotivos(motivosBloqueio, camposBloqueados)
         ), camposBloqueados, motivosBloqueio);
         this.loteId = loteId;
     }

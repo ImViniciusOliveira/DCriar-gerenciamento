@@ -32,7 +32,12 @@ public class ProdutoEmUsoException extends RuntimeException {
      * @param entidadeIds O conjunto de IDs das entidades que impedem a exclusão.
      */
     public ProdutoEmUsoException(Long produtoId, Set<Long> entidadeIds) {
-        super(String.format("Produto com id %d está em uso e não pode ser excluído. Entidades relacionadas: %s", produtoId, entidadeIds));
+        super(String.format(
+                "Não é possível excluir o produto #%d porque ele ainda está em uso em %d registro(s) relacionado(s): %s. Remova ou ajuste esses vínculos antes de tentar excluir o produto.",
+                produtoId,
+                entidadeIds.size(),
+                entidadeIds
+        ));
         this.produtoId = produtoId;
         this.entidadeIds = entidadeIds;
     }

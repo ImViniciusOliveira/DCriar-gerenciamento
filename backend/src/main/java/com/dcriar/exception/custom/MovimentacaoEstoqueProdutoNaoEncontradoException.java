@@ -19,7 +19,7 @@ public class MovimentacaoEstoqueProdutoNaoEncontradoException extends RuntimeExc
      * @param id O ID da movimentação.
      */
     public MovimentacaoEstoqueProdutoNaoEncontradoException(Long id) {
-        super("Movimentação de Estoque de Produto não encontrada com ID: " + id);
+        super("Movimentação de estoque de produto #" + id + " não foi encontrada. Verifique o identificador informado e tente novamente.");
         this.id = id;
     }
 }

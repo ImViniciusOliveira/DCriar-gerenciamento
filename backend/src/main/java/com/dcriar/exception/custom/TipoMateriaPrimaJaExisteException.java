@@ -23,7 +23,10 @@ public class TipoMateriaPrimaJaExisteException extends RuntimeException {
      * @param nome O nome do tipo de matéria-prima que já existe.
      */
     public TipoMateriaPrimaJaExisteException(String nome) {
-        super(String.format("Tipo de matéria-prima já existente: %s", nome));
+        super(String.format(
+                "Já existe um tipo de matéria-prima cadastrado com o nome '%s'. Use um nome diferente para continuar.",
+                nome
+        ));
         this.nome = nome;
     }
 }

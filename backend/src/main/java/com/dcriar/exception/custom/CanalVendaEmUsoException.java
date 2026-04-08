@@ -23,15 +23,19 @@ public class CanalVendaEmUsoException extends RuntimeException {
             Set<Long> ordemDeProducaoIds
     ) {
         super(String.format(
-                "Canal de venda com id %d está em uso e não pode ser excluído. Estoques: %s, Vendas: %s, Ordens de produção: %s",
+                "Não é possível excluir o canal de venda #%d porque ele ainda está em uso. Estoques vinculados: %s. Vendas vinculadas: %s. Ordens de produção vinculadas: %s. Remova ou ajuste esses vínculos antes de excluir o canal.",
                 canalVendaId,
-                estoqueIds,
-                vendaIds,
-                ordemDeProducaoIds
+                formatarIds(estoqueIds),
+                formatarIds(vendaIds),
+                formatarIds(ordemDeProducaoIds)
         ));
         this.canalVendaId = canalVendaId;
         this.estoqueIds = estoqueIds;
         this.vendaIds = vendaIds;
         this.ordemDeProducaoIds = ordemDeProducaoIds;
+    }
+
+    private static String formatarIds(Set<Long> ids) {
+        return ids == null || ids.isEmpty() ? "nenhum" : ids.toString();
     }
 }

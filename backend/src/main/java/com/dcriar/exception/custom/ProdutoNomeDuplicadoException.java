@@ -12,7 +12,10 @@ public class ProdutoNomeDuplicadoException extends RuntimeException {
     private final String nome;
 
     public ProdutoNomeDuplicadoException(String nome) {
-        super(String.format("Já existe um produto com o nome: %s", nome));
+        super(String.format(
+                "Já existe um produto cadastrado com o nome '%s'. Use um nome diferente para continuar.",
+                nome
+        ));
         this.nome = nome;
     }
 }

@@ -31,7 +31,11 @@ public class TipoMateriaPrimaEmUsoException extends RuntimeException {
      * @param loteIds O conjunto de IDs dos lotes que impedem a exclusão.
      */
     public TipoMateriaPrimaEmUsoException(Long tipoMateriaPrimaId, Set<Long> loteIds) {
-        super(String.format("O tipo de matéria-prima com id %d está em uso nos lotes: %s e não pode ser excluído.", tipoMateriaPrimaId, loteIds));
+        super(String.format(
+                "Não é possível excluir o tipo de matéria-prima #%d porque ele ainda está em uso nos lote(s): %s. Remova ou ajuste esses vínculos antes de tentar excluir o cadastro.",
+                tipoMateriaPrimaId,
+                loteIds
+        ));
         this.tipoMateriaPrimaId = tipoMateriaPrimaId;
         this.loteIds = loteIds;
     }

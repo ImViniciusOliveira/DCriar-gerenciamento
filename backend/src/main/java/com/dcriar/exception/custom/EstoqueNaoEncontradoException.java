@@ -26,7 +26,11 @@ public class EstoqueNaoEncontradoException extends RuntimeException {
      * @param canalVendaId O ID do canal de venda.
      */
     public EstoqueNaoEncontradoException(Long produtoId, Long canalVendaId) {
-        super(String.format("Estoque para o produto ID %d no canal ID %d não encontrado.", produtoId, canalVendaId));
+        super(String.format(
+                "Não foi encontrado estoque para o produto #%d no canal de venda #%d. Verifique os identificadores informados e tente novamente.",
+                produtoId,
+                canalVendaId
+        ));
         this.produtoId = produtoId;
         this.canalVendaId = canalVendaId;
     }

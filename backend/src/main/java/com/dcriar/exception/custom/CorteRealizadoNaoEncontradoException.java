@@ -19,7 +19,7 @@ public class CorteRealizadoNaoEncontradoException extends RuntimeException {
      * @param id O ID do corte realizado.
      */
     public CorteRealizadoNaoEncontradoException(Long id) {
-        super("Corte Realizado não encontrado com ID: " + id);
+        super("Corte realizado #" + id + " não foi encontrado. Verifique o identificador informado e tente novamente.");
         this.id = id;
     }
 }

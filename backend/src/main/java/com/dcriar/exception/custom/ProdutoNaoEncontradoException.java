@@ -23,7 +23,7 @@ public class ProdutoNaoEncontradoException extends RuntimeException {
      * @param id O ID utilizado na busca que falhou.
      */
     public ProdutoNaoEncontradoException(Long id) {
-        super(String.format("Produto não encontrado com o ID: %d", id));
+        super(String.format("Produto #%d não foi encontrado. Verifique o identificador informado e tente novamente.", id));
         this.id = id;
     }
 }

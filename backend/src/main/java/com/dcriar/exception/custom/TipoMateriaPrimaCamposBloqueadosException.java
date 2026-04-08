@@ -16,9 +16,10 @@ public class TipoMateriaPrimaCamposBloqueadosException extends AbstractCamposBlo
 
     public TipoMateriaPrimaCamposBloqueadosException(Long tipoMateriaPrimaId, Set<String> camposBloqueados, Map<String, String> motivosBloqueio) {
         super(String.format(
-                "O tipo de matéria-prima com id %d possui campos bloqueados para edição: %s",
+                "Não é possível alterar os campos estruturais do tipo de matéria-prima #%d (%s). Motivos: %s",
                 tipoMateriaPrimaId,
-                camposBloqueados
+                formatarCampos(camposBloqueados),
+                formatarMotivos(motivosBloqueio, camposBloqueados)
         ), camposBloqueados, motivosBloqueio);
         this.tipoMateriaPrimaId = tipoMateriaPrimaId;
     }

@@ -16,9 +16,10 @@ public class ProdutoCamposBloqueadosException extends AbstractCamposBloqueadosEx
 
     public ProdutoCamposBloqueadosException(Long produtoId, Set<String> camposBloqueados, Map<String, String> motivosBloqueio) {
         super(String.format(
-                "O produto com id %d possui campos bloqueados para edição: %s",
+                "Não é possível alterar os campos estruturais do produto #%d (%s). Motivos: %s",
                 produtoId,
-                camposBloqueados
+                formatarCampos(camposBloqueados),
+                formatarMotivos(motivosBloqueio, camposBloqueados)
         ), camposBloqueados, motivosBloqueio);
         this.produtoId = produtoId;
     }

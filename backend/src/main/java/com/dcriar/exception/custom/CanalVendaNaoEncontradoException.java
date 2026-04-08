@@ -23,7 +23,7 @@ public class CanalVendaNaoEncontradoException extends RuntimeException {
      * @param id O ID utilizado na busca que falhou.
      */
     public CanalVendaNaoEncontradoException(Long id) {
-        super(String.format("Canal de venda não encontrado com o ID: %d", id));
+        super(String.format("Canal de venda #%d não foi encontrado. Verifique o identificador informado e tente novamente.", id));
         this.id = id;
     }
 }

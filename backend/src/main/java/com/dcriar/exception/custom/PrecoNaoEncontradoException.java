@@ -12,7 +12,7 @@ public class PrecoNaoEncontradoException extends RuntimeException {
     private final Long id;
 
     public PrecoNaoEncontradoException(Long id) {
-        super(String.format("Preço não encontrado com o ID: %d", id));
+        super(String.format("Preço #%d não foi encontrado. Verifique o identificador informado e tente novamente.", id));
         this.id = id;
     }
 }

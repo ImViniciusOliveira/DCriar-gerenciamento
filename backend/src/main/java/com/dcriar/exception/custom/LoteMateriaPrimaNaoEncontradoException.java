@@ -23,7 +23,7 @@ public class LoteMateriaPrimaNaoEncontradoException extends RuntimeException {
      * @param id O ID utilizado na busca que falhou.
      */
     public LoteMateriaPrimaNaoEncontradoException(Long id) {
-        super(String.format("Lote de matéria-prima não encontrado com o ID: %d", id));
+        super(String.format("Lote de matéria-prima #%d não foi encontrado. Verifique o identificador informado e tente novamente.", id));
         this.id = id;
     }
 }

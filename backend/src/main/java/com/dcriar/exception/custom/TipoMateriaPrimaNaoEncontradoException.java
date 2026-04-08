@@ -23,7 +23,7 @@ public class TipoMateriaPrimaNaoEncontradoException extends RuntimeException {
      * @param materiaPrimaId O ID utilizado na busca que falhou.
      */
     public TipoMateriaPrimaNaoEncontradoException(Long materiaPrimaId) {
-        super(String.format("Tipo de Matéria-Prima não encontrado com o ID: %d", materiaPrimaId));
+        super(String.format("Tipo de matéria-prima #%d não foi encontrado. Verifique o identificador informado e tente novamente.", materiaPrimaId));
         this.materiaPrimaId = materiaPrimaId;
     }
 }

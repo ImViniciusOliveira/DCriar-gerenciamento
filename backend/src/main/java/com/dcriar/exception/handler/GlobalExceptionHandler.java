@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -275,13 +276,18 @@ public class GlobalExceptionHandler {
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400 e detalhes dos erros de campo.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponseDTO> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
+    public ResponseEntity<ErrorResponseDTO> handleValidationErrors(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        Map<String, String> errors = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(error ->
                 errors.put(error.getField(), error.getDefaultMessage()));
 
-        log.warn("Erros de validação de argumento de método: {}", errors);
-        return buildErrorResponse("Erro de validação. Verifique os campos informados.", HttpStatus.BAD_REQUEST, errors);
+        log.warn(
+                "Erros de validação de argumento de método: method={} uri={} errors={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                errors
+        );
+        return buildErrorResponse(buildValidationMessage(errors), HttpStatus.BAD_REQUEST, errors);
     }
 
     /**
@@ -292,18 +298,32 @@ public class GlobalExceptionHandler {
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponseDTO> handleMalformedJson(HttpMessageNotReadableException ex) {
-        String msg = "JSON malformado ou sintaxe inválida na requisição.";
-        String detalhe;
+    public ResponseEntity<ErrorResponseDTO> handleMalformedJson(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        String message;
+        Map<String, String> details = new LinkedHashMap<>();
+
         if (ex.getMostSpecificCause() instanceof InvalidFormatException invalidFormat) {
             String campo = invalidFormat.getPath().stream().map(JsonMappingException.Reference::getFieldName).collect(Collectors.joining("."));
-            detalhe = String.format("Campo '%s' recebeu valor inválido: '%s'.", campo, invalidFormat.getValue());
+            String valorInformado = String.valueOf(invalidFormat.getValue());
+            message = String.format(
+                    "O campo '%s' recebeu um valor em formato inválido: '%s'.",
+                    campo,
+                    valorInformado
+            );
+            details.put("campo", campo);
+            details.put("valorInformado", valorInformado);
         } else {
-            ex.getMostSpecificCause();
-            detalhe = ex.getMostSpecificCause().getMessage();
+            message = "O corpo da requisição está malformado ou contém dados inválidos.";
+            details.put("causa", ex.getMostSpecificCause().getMessage());
         }
-        log.warn("JSON inválido: {}", detalhe);
-        return buildErrorResponse(msg, HttpStatus.BAD_REQUEST, Map.of("erro", detalhe));
+
+        log.warn(
+                "JSON inválido: method={} uri={} details={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                sanitizeLogMap(details)
+        );
+        return buildErrorResponse(message, HttpStatus.BAD_REQUEST, details);
     }
 
     /**
@@ -315,15 +335,30 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorResponseDTO> handleMissingRequestParameter(org.springframework.web.bind.MissingServletRequestParameterException ex) {
+        return handleMissingRequestParameter(ex, null);
+    }
+
+    public ResponseEntity<ErrorResponseDTO> handleMissingRequestParameter(
+            org.springframework.web.bind.MissingServletRequestParameterException ex,
+            HttpServletRequest request
+    ) {
         String parameterName = ex.getParameterName();
 
-        // Para outros parâmetros, retorna erro genérico
-        Map<String, String> details = new HashMap<>();
+        Map<String, String> details = new LinkedHashMap<>();
         details.put("parametro", parameterName);
-        details.put("mensagem", ex.getMessage());
+        details.put("orientacao", "Informe o parâmetro obrigatório e tente novamente.");
 
-        log.warn("Parâmetro obrigatório ausente: {}", parameterName);
-        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
+        log.warn(
+                "Parâmetro obrigatório ausente: method={} uri={} parametro={}",
+                request != null ? request.getMethod() : "N/A",
+                request != null ? request.getRequestURI() : "N/A",
+                parameterName
+        );
+        return buildErrorResponse(
+                String.format("O parâmetro obrigatório '%s' não foi informado na requisição.", parameterName),
+                HttpStatus.BAD_REQUEST,
+                details
+        );
     }
 
     /**
@@ -437,6 +472,40 @@ public class GlobalExceptionHandler {
      */
     private ResponseEntity<ErrorResponseDTO> buildErrorResponse(Exception ex, HttpStatus status, Map<String, String> details) {
         return buildErrorResponse(ex.getMessage(), status, details);
+    }
+
+    private String buildValidationMessage(Map<String, String> errors) {
+        if (errors.isEmpty()) {
+            return "Há campos inválidos na requisição. Revise os dados informados.";
+        }
+
+        if (errors.size() == 1) {
+            return errors.values().iterator().next();
+        }
+
+        return String.format(
+                "Há %d campos inválidos na requisição. Revise os detalhes informados.",
+                errors.size()
+        );
+    }
+
+    private Map<String, String> sanitizeLogMap(Map<String, String> details) {
+        Map<String, String> sanitized = new LinkedHashMap<>();
+        details.forEach((key, value) -> sanitized.put(key, sanitizeLogValue(value)));
+        return sanitized;
+    }
+
+    private String sanitizeLogValue(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        return value
+                .replace(System.lineSeparator(), " ")
+                .replace('\n', ' ')
+                .replace('\r', ' ')
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     //endregion

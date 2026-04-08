@@ -12,7 +12,10 @@ public class ProdutoSkuDuplicadoException extends RuntimeException {
     private final String sku;
 
     public ProdutoSkuDuplicadoException(String sku) {
-        super(String.format("Já existe um produto com o SKU: %s", sku));
+        super(String.format(
+                "Já existe um produto cadastrado com o SKU '%s'. Use um SKU diferente para continuar.",
+                sku
+        ));
         this.sku = sku;
     }
 }
