@@ -347,7 +347,7 @@ public class GlobalExceptionHandler {
             details.put("valorInformado", valorInformado);
         } else {
             message = "O corpo da requisição está malformado ou contém dados inválidos.";
-            details.put("causa", ex.getMostSpecificCause().getMessage());
+            details.put("causa", simplifyJsonCause(ex.getMostSpecificCause().getMessage()));
         }
 
         log.warn(
@@ -407,6 +407,30 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(msg, HttpStatus.METHOD_NOT_ALLOWED, Map.of("metodosPermitidos", metodosPermitidos));
     }
 
+    @ExceptionHandler(DadosSensiveisCriptografiaException.class)
+    public ResponseEntity<ErrorResponseDTO> handleSensitiveDataEncryption(
+            DadosSensiveisCriptografiaException ex,
+            HttpServletRequest request
+    ) {
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("codigo", ex.getCodigo());
+
+        if ("CHAVE_CRIPTOGRAFIA_NAO_CONFIGURADA".equals(ex.getCodigo())
+                || "CHAVE_CRIPTOGRAFIA_INVALIDA".equals(ex.getCodigo())) {
+            details.put("orientacao", "Revise a configuração de DATA_ENCRYPTION_KEY antes de iniciar a aplicação.");
+        }
+
+        log.error(
+                "Falha de criptografia de dados sensíveis: method={} uri={} codigo={} message={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                ex.getCodigo(),
+                ex.getMessage(),
+                ex
+        );
+        return buildErrorResponse(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, details);
+    }
+
     /**
      * Trata exceções internas do servidor (HTTP 500 Internal Server Error).
      * Intercepta {@link JsonMergeException} e {@link ArquivoStorageException}.
@@ -415,22 +439,48 @@ public class GlobalExceptionHandler {
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 500.
      */
     @ExceptionHandler({JsonMergeException.class, ArquivoStorageException.class})
-    public ResponseEntity<ErrorResponseDTO> handleInternalServerExceptions(RuntimeException ex) {
-        log.error("Erro interno do servidor: ", ex);
-        String msg = "Ocorreu um erro interno inesperado. Tente novamente mais tarde.";
-        return buildErrorResponse(msg, HttpStatus.INTERNAL_SERVER_ERROR, Map.of("detalhe", ex.getMessage()));
+    public ResponseEntity<ErrorResponseDTO> handleInternalServerExceptions(RuntimeException ex, HttpServletRequest request) {
+        Map<String, String> details = new LinkedHashMap<>();
+
+        if (ex instanceof JsonMergeException e) {
+            details.put("recurso", e.getRecurso());
+            details.put("operacao", e.getOperacao());
+        } else if (ex instanceof ArquivoStorageException e) {
+            details.put("operacao", e.getOperacao());
+            details.put("nomeArquivo", e.getNomeArquivo());
+        }
+
+        log.error(
+                "Erro interno controlado: method={} uri={} type={} details={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                ex.getClass().getSimpleName(),
+                sanitizeLogMap(details),
+                ex
+        );
+        return buildErrorResponse(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, details);
     }
 
     /**
      * Manipula erros de integridade (ex: tentar criar produto com nome duplicado)
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponseDTO> handleDatabaseErrors(DataIntegrityViolationException ex) {
-        log.error("Conflito de dados no banco de dados.", ex);
+    public ResponseEntity<ErrorResponseDTO> handleDatabaseErrors(DataIntegrityViolationException ex, HttpServletRequest request) {
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("causa", "VIOLACAO_DE_INTEGRIDADE");
+        details.put("orientacao", "Verifique se o registro já existe ou se ainda está vinculado a outros dados.");
+
+        log.error(
+                "Conflito de integridade no banco: method={} uri={} rootCause={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                sanitizeLogValue(resolveRootCauseMessage(ex)),
+                ex
+        );
         return buildErrorResponse(
-                "Conflito de dados. Este registro já existe ou viola uma regra de integridade.",
+                "A operação violou uma regra de integridade dos dados. Verifique se o registro já existe ou se ainda possui vínculos ativos.",
                 HttpStatus.CONFLICT,
-                null
+                details
         );
     }
 
@@ -438,12 +488,24 @@ public class GlobalExceptionHandler {
      * Manipula uploads maiores que o permitido
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ErrorResponseDTO> handleMaxSizeException(MaxUploadSizeExceededException ex) {
-        log.warn("Tentativa de upload de arquivo excedeu o tamanho máximo permitido.", ex);
+    public ResponseEntity<ErrorResponseDTO> handleMaxSizeException(MaxUploadSizeExceededException ex, HttpServletRequest request) {
+        Map<String, String> details = new LinkedHashMap<>();
+        if (ex.getMaxUploadSize() > 0) {
+            details.put("limiteBytes", String.valueOf(ex.getMaxUploadSize()));
+        }
+        details.put("orientacao", "Envie um arquivo menor e tente novamente.");
+
+        log.warn(
+                "Upload excedeu o tamanho máximo: method={} uri={} limiteBytes={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                ex.getMaxUploadSize(),
+                ex
+        );
         return buildErrorResponse(
                 "O arquivo enviado excede o tamanho máximo permitido.",
                 HttpStatus.EXPECTATION_FAILED,
-                null
+                details
         );
     }
 
@@ -455,8 +517,14 @@ public class GlobalExceptionHandler {
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 500.
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponseDTO> handleGenericException(Exception ex) {
-        log.error("Erro inesperado: ", ex);
+    public ResponseEntity<ErrorResponseDTO> handleGenericException(Exception ex, HttpServletRequest request) {
+        log.error(
+                "Erro inesperado: method={} uri={} type={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                ex.getClass().getSimpleName(),
+                ex
+        );
         String msg = "Ocorreu um erro interno inesperado. Tente novamente mais tarde.";
         return buildErrorResponse(msg, HttpStatus.INTERNAL_SERVER_ERROR, Map.of("exception", ex.getClass().getSimpleName()));
     }
@@ -535,6 +603,28 @@ public class GlobalExceptionHandler {
                 .replace('\r', ' ')
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    private String simplifyJsonCause(String cause) {
+        String sanitized = sanitizeLogValue(cause);
+
+        if (sanitized == null || sanitized.isBlank()) {
+            return "JSON malformado.";
+        }
+
+        if (sanitized.startsWith("Unexpected end-of-input")) {
+            return "O JSON foi encerrado antes do final esperado.";
+        }
+
+        return sanitized;
+    }
+
+    private String resolveRootCauseMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current.getMessage();
     }
 
     //endregion

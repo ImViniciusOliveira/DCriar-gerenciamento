@@ -13,13 +13,18 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 public class ArquivoStorageException extends RuntimeException {
 
+    private final String operacao;
+    private final String nomeArquivo;
+
     /**
      * Construtor que aceita uma mensagem de erro.
      *
      * @param message A mensagem detalhando a causa da exceção.
      */
-    private ArquivoStorageException(String message) {
+    private ArquivoStorageException(String message, String operacao, String nomeArquivo) {
         super(message);
+        this.operacao = operacao;
+        this.nomeArquivo = nomeArquivo;
     }
 
     /**
@@ -28,11 +33,29 @@ public class ArquivoStorageException extends RuntimeException {
      * @param message A mensagem detalhando a causa da exceção.
      * @param cause A exceção original que causou o erro de armazenamento.
      */
-    private ArquivoStorageException(String message, Throwable cause) {
+    private ArquivoStorageException(String message, Throwable cause, String operacao, String nomeArquivo) {
         super(message, cause);
+        this.operacao = operacao;
+        this.nomeArquivo = nomeArquivo;
     }
 
     public static ArquivoStorageException falhaAoArmazenar(String originalName, Throwable cause) {
-        return new ArquivoStorageException("Falha crítica ao armazenar arquivo " + originalName, cause);
+        return new ArquivoStorageException(
+                String.format(
+                        "Não foi possível armazenar o arquivo '%s'. Verifique o conteúdo enviado e tente novamente.",
+                        originalName
+                ),
+                cause,
+                "ARMAZENAR",
+                originalName
+        );
+    }
+
+    public String getOperacao() {
+        return operacao;
+    }
+
+    public String getNomeArquivo() {
+        return nomeArquivo;
     }
 }

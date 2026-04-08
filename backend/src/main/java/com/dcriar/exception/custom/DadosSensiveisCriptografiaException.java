@@ -6,23 +6,29 @@ package com.dcriar.exception.custom;
  */
 public class DadosSensiveisCriptografiaException extends RuntimeException {
 
+    private final String codigo;
+
     private DadosSensiveisCriptografiaException(String message, Throwable cause) {
         super(message, cause);
+        this.codigo = "CRIPTOGRAFIA_DADOS_SENSIVEIS";
     }
 
-    private DadosSensiveisCriptografiaException(String message) {
+    private DadosSensiveisCriptografiaException(String message, String codigo) {
         super(message);
+        this.codigo = codigo;
     }
 
     public static DadosSensiveisCriptografiaException chaveInvalida() {
         return new DadosSensiveisCriptografiaException(
-                "A chave de criptografia configurada para os dados sensíveis é inválida. Use uma chave AES-256 em Base64."
+                "A chave de criptografia configurada para os dados sensíveis é inválida. Use uma chave AES-256 em Base64.",
+                "CHAVE_CRIPTOGRAFIA_INVALIDA"
         );
     }
 
     public static DadosSensiveisCriptografiaException chaveNaoConfigurada() {
         return new DadosSensiveisCriptografiaException(
-                "A chave de criptografia dos dados sensíveis não foi configurada. Defina DATA_ENCRYPTION_KEY no ambiente."
+                "A chave de criptografia dos dados sensíveis não foi configurada. Defina DATA_ENCRYPTION_KEY no ambiente.",
+                "CHAVE_CRIPTOGRAFIA_NAO_CONFIGURADA"
         );
     }
 
@@ -38,5 +44,9 @@ public class DadosSensiveisCriptografiaException extends RuntimeException {
                 "Falha ao descriptografar um dado sensível da venda.",
                 cause
         );
+    }
+
+    public String getCodigo() {
+        return codigo;
     }
 }

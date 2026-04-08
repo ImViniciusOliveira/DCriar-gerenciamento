@@ -9,7 +9,32 @@ package com.dcriar.exception.custom;
  */
 public class JsonMergeException extends RuntimeException {
 
-    public JsonMergeException(String message, Throwable cause) {
+    private final String recurso;
+    private final String operacao;
+
+    private JsonMergeException(String message, Throwable cause, String recurso, String operacao) {
         super(message, cause);
+        this.recurso = recurso;
+        this.operacao = operacao;
+    }
+
+    public static JsonMergeException falhaAoMesclarPatch(String recurso, Throwable cause) {
+        return new JsonMergeException(
+                String.format(
+                        "Não foi possível aplicar a atualização parcial em '%s'. Revise os campos enviados e tente novamente.",
+                        recurso
+                ),
+                cause,
+                recurso,
+                "PATCH"
+        );
+    }
+
+    public String getRecurso() {
+        return recurso;
+    }
+
+    public String getOperacao() {
+        return operacao;
     }
 }
