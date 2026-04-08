@@ -432,23 +432,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Trata exceções internas do servidor (HTTP 500 Internal Server Error).
-     * Intercepta {@link JsonMergeException} e {@link ArquivoStorageException}.
+     * Trata exceções internas controladas de armazenamento de arquivos (HTTP 500 Internal Server Error).
      *
      * @param ex A exceção interna do servidor lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 500.
      */
-    @ExceptionHandler({JsonMergeException.class, ArquivoStorageException.class})
-    public ResponseEntity<ErrorResponseDTO> handleInternalServerExceptions(RuntimeException ex, HttpServletRequest request) {
+    @ExceptionHandler(ArquivoStorageException.class)
+    public ResponseEntity<ErrorResponseDTO> handleFileStorageException(ArquivoStorageException ex, HttpServletRequest request) {
         Map<String, String> details = new LinkedHashMap<>();
-
-        if (ex instanceof JsonMergeException e) {
-            details.put("recurso", e.getRecurso());
-            details.put("operacao", e.getOperacao());
-        } else if (ex instanceof ArquivoStorageException e) {
-            details.put("operacao", e.getOperacao());
-            details.put("nomeArquivo", e.getNomeArquivo());
-        }
+        details.put("operacao", ex.getOperacao());
+        details.put("nomeArquivo", ex.getNomeArquivo());
 
         log.error(
                 "Erro interno controlado: method={} uri={} type={} details={}",

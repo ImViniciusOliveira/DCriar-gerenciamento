@@ -1,9 +1,12 @@
 package com.dcriar.exception.custom;
 
+import lombok.Getter;
+
 /**
  * Exceção lançada quando há falha de configuração ou processamento da criptografia
  * dos dados sensíveis armazenados em repouso.
  */
+@Getter
 public class DadosSensiveisCriptografiaException extends RuntimeException {
 
     private final String codigo;
@@ -44,9 +47,5 @@ public class DadosSensiveisCriptografiaException extends RuntimeException {
                 "Falha ao descriptografar um dado sensível da venda.",
                 cause
         );
-    }
-
-    public String getCodigo() {
-        return codigo;
     }
 }
