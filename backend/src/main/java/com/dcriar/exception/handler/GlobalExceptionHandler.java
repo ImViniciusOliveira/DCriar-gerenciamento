@@ -19,7 +19,6 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -39,7 +38,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ValorNumericoExcedeLimiteException.class)
     public ResponseEntity<ErrorResponseDTO> handleValorNumericoExcedeLimite(ValorNumericoExcedeLimiteException ex) {
-        Map<String, String> details = new HashMap<>();
+        Map<String, String> details = new LinkedHashMap<>();
         details.put("campo", ex.getNomeDoCampo());
         details.put("valorCalculado", ex.getValorEnviado());
         details.put("limite", ex.getLimiteMaximo());
@@ -66,7 +65,7 @@ public class GlobalExceptionHandler {
             OrdemDeProducaoNaoEncontradaException.class, PrecoNaoEncontradoException.class, EstoqueNaoEncontradoException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleNotFoundExceptions(RuntimeException ex) {
-        Map<String, String> details = new HashMap<>();
+        Map<String, String> details = new LinkedHashMap<>();
 
         if (ex instanceof ProdutoNaoEncontradoException e) { details.put("produtoId", String.valueOf(e.getId())); }
         else if (ex instanceof CanalVendaNaoEncontradoException e) { details.put("canalVendaId", String.valueOf(e.getId())); }
@@ -78,7 +77,12 @@ public class GlobalExceptionHandler {
         else if (ex instanceof MovimentacaoEstoqueProdutoNaoEncontradoException e) { details.put("movimentacaoId", String.valueOf(e.getId())); }
         else if (ex instanceof OrdemDeProducaoNaoEncontradaException e) { details.put("ordemDeProducaoId", String.valueOf(e.getId())); }
         else if (ex instanceof PrecoNaoEncontradoException e) { details.put("precoId", String.valueOf(e.getId())); }
-        else if (ex instanceof EstoqueNaoEncontradoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("canalVendaId", String.valueOf(e.getCanalVendaId())); }
+        else if (ex instanceof EstoqueNaoEncontradoException e) {
+            details.put("produtoLabel", e.getProdutoLabel());
+            details.put("nomeCanalVenda", e.getNomeCanalVenda());
+            details.put("produtoId", String.valueOf(e.getProdutoId()));
+            details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
+        }
 
         log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
         return buildErrorResponse(ex, HttpStatus.NOT_FOUND, details);
@@ -113,7 +117,7 @@ public class GlobalExceptionHandler {
             UnidadeEstoqueCorteInvalidaException.class, LogicalMapKeyInvalidaException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
-        Map<String, String> details = new HashMap<>();
+        Map<String, String> details = new LinkedHashMap<>();
 
         // Exceptions de parâmetros de busca
         if (ex instanceof TipoProdutoInvalidoException e) {
@@ -156,35 +160,45 @@ public class GlobalExceptionHandler {
             CanalVendaNomeDuplicadoException.class, AtualizacaoSemAlteracoesException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
-        Map<String, String> details = new HashMap<>();
+        Map<String, String> details = new LinkedHashMap<>();
         if (ex instanceof TipoMateriaPrimaJaExisteException e) { details.put("nome", e.getNome()); }
-        else if (ex instanceof ProdutoEmUsoException e) { details.put("produtoId", String.valueOf(e.getProdutoId())); details.put("nomeProduto", e.getNomeProduto()); details.put("entidadesEmUso", formatarColecao(e.getEntidadeIds())); details.put("entidadesEmUsoLabels", formatarColecao(e.getEntidadeLabels())); }
-        else if (ex instanceof TipoMateriaPrimaEmUsoException e) { details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId())); details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima()); details.put("lotesEmUso", formatarColecao(e.getLoteIds())); details.put("lotesEmUsoLabels", formatarColecao(e.getLoteLabels())); }
+        else if (ex instanceof ProdutoEmUsoException e) {
+            details.put("nomeProduto", e.getNomeProduto());
+            details.put("entidadesEmUsoLabels", formatarColecao(e.getEntidadeLabels()));
+            details.put("produtoId", String.valueOf(e.getProdutoId()));
+            details.put("entidadesEmUso", formatarColecao(e.getEntidadeIds()));
+        }
+        else if (ex instanceof TipoMateriaPrimaEmUsoException e) {
+            details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima());
+            details.put("lotesEmUsoLabels", formatarColecao(e.getLoteLabels()));
+            details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId()));
+            details.put("lotesEmUso", formatarColecao(e.getLoteIds()));
+        }
         else if (ex instanceof CanalVendaNomeDuplicadoException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof CanalVendaEmUsoException e) {
-            details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
             details.put("nomeCanalVenda", e.getNomeCanalVenda());
-            details.put("estoquesEmUso", formatarColecao(e.getEstoqueIds()));
             details.put("estoquesEmUsoLabels", formatarColecao(e.getEstoqueLabels()));
-            details.put("vendasEmUso", formatarColecao(e.getVendaIds()));
             details.put("vendasEmUsoLabels", formatarColecao(e.getVendaLabels()));
-            details.put("ordensDeProducaoEmUso", formatarColecao(e.getOrdemDeProducaoIds()));
             details.put("ordensDeProducaoEmUsoLabels", formatarColecao(e.getOrdemDeProducaoLabels()));
+            details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
+            details.put("estoquesEmUso", formatarColecao(e.getEstoqueIds()));
+            details.put("vendasEmUso", formatarColecao(e.getVendaIds()));
+            details.put("ordensDeProducaoEmUso", formatarColecao(e.getOrdemDeProducaoIds()));
         }
         else if (ex instanceof ProdutoNomeDuplicadoException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof ProdutoSkuDuplicadoException e) { details.put("sku", e.getSku()); }
         else if (ex instanceof ExclusaoLoteBloqueadaException e) { details.put("info", e.getMessage()); }
         else if (ex instanceof ProdutoCamposBloqueadosException e) {
-            preencherDetalhesCamposBloqueados(details, "produtoId", e.getProdutoId(), e);
             details.put("nomeProduto", e.getNomeProduto());
+            preencherDetalhesCamposBloqueados(details, "produtoId", e.getProdutoId(), e);
         }
         else if (ex instanceof TipoMateriaPrimaCamposBloqueadosException e) {
-            preencherDetalhesCamposBloqueados(details, "tipoMateriaPrimaId", e.getTipoMateriaPrimaId(), e);
             details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima());
+            preencherDetalhesCamposBloqueados(details, "tipoMateriaPrimaId", e.getTipoMateriaPrimaId(), e);
         }
         else if (ex instanceof LoteCamposBloqueadosException e) {
-            preencherDetalhesCamposBloqueados(details, "loteId", e.getLoteId(), e);
             details.put("identificadorPublico", e.getIdentificadorPublico());
+            preencherDetalhesCamposBloqueados(details, "loteId", e.getLoteId(), e);
         }
         else if (ex instanceof AtualizacaoSemAlteracoesException e) {
             details.put("recurso", e.getRecurso());
@@ -205,22 +219,24 @@ public class GlobalExceptionHandler {
             Long idValue,
             AbstractCamposBloqueadosException ex
     ) {
-        details.put(idKey, String.valueOf(idValue));
         details.put("camposBloqueados", formatarColecao(ex.getCamposBloqueados()));
         ex.getMotivosBloqueio().forEach((campo, motivo) -> details.put("motivo." + campo, motivo));
+        details.put(idKey, String.valueOf(idValue));
     }
 
     private String formatarColecao(Iterable<?> itens) {
-        StringBuilder builder = new StringBuilder();
-
-        for (Object item : itens) {
-            if (builder.length() > 0) {
-                builder.append(", ");
-            }
-            builder.append(item);
-        }
-
-        return builder.toString();
+        return java.util.stream.StreamSupport.stream(itens.spliterator(), false)
+                .filter(Objects::nonNull)
+                .sorted((left, right) -> {
+                    if (left instanceof Comparable<?> && right instanceof Comparable<?> && left.getClass().equals(right.getClass())) {
+                        @SuppressWarnings("unchecked")
+                        Comparable<Object> comparable = (Comparable<Object>) left;
+                        return comparable.compareTo(right);
+                    }
+                    return String.valueOf(left).compareTo(String.valueOf(right));
+                })
+                .map(String::valueOf)
+                .collect(Collectors.joining(", "));
     }
 
     /**
@@ -249,21 +265,31 @@ public class GlobalExceptionHandler {
             AlocacaoEstoqueExcedeTotalException.class, SaldoMateriaPrimaInsuficienteException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleInsufficientStock(RuntimeException ex) {
-        Map<String, String> details = new HashMap<>();
+        Map<String, String> details = new LinkedHashMap<>();
         if (ex instanceof EstoqueInsuficienteParaMovimentacaoException e) {
-            details.put("loteId", String.valueOf(e.getLoteId()));
+            details.put("identificadorPublicoLote", e.getIdentificadorPublicoLote());
+            details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima());
             details.put("quantidadeRequisitada", String.valueOf(Math.abs(e.getQuantidadeRequisitada())));
             details.put("saldoDisponivel", String.valueOf(e.getSaldoDisponivel()));
+            details.put("loteId", String.valueOf(e.getLoteId()));
         } else if (ex instanceof EstoqueInsuficienteCanalException e) {
-            details.put("produtoId", String.valueOf(e.getProdutoId()));
-            details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
+            details.put("produtoLabel", e.getProdutoLabel());
+            details.put("nomeCanalVenda", e.getNomeCanalVenda());
             details.put("quantidadeRequisitada", String.valueOf(Math.abs(e.getQuantidadeRequisitada())));
             details.put("estoqueAtual", String.valueOf(e.getEstoqueAtual()));
+            details.put("produtoId", String.valueOf(e.getProdutoId()));
+            details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
         } else if (ex instanceof AlocacaoEstoqueExcedeTotalException e) {
+            details.put("produtoLabel", e.getProdutoLabel());
+            details.put("nomeCanalVenda", e.getNomeCanalVenda());
             details.put("quantidadeParaAlocar", String.valueOf(e.getQuantidadeParaAlocar()));
             details.put("novoTotalDistribuido", String.valueOf(e.getNovoTotalDistribuido()));
             details.put("estoqueFisicoTotal", String.valueOf(e.getEstoqueFisicoTotal()));
+            details.put("produtoId", String.valueOf(e.getProdutoId()));
+            details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
         } else if (ex instanceof SaldoMateriaPrimaInsuficienteException e) {
+            details.put("identificadorLote", e.getIdentificadorLote());
+            details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima());
             details.put("quantidadeRequisitada", String.valueOf(e.getQuantidadeRequisitada()));
             details.put("saldoDisponivel", String.valueOf(e.getSaldoDisponivel()));
         }

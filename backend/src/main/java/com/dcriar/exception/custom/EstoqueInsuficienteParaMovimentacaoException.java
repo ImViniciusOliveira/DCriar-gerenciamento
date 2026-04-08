@@ -16,6 +16,8 @@ public class EstoqueInsuficienteParaMovimentacaoException extends RuntimeExcepti
      * O ID do lote no qual a movimentação foi tentada.
      */
     private final Long loteId;
+    private final String identificadorPublicoLote;
+    private final String nomeTipoMateriaPrima;
 
     /**
      * A quantidade (em kg, m, etc.) que a operação tentou movimentar.
@@ -34,12 +36,23 @@ public class EstoqueInsuficienteParaMovimentacaoException extends RuntimeExcepti
      * @param quantidadeRequisitada Quantidade que se tentou registrar.
      * @param saldoDisponivel Saldo disponível no lote no momento da falha.
      */
-    public EstoqueInsuficienteParaMovimentacaoException(Long loteId, double quantidadeRequisitada, double saldoDisponivel) {
+    public EstoqueInsuficienteParaMovimentacaoException(
+            Long loteId,
+            String identificadorPublicoLote,
+            String nomeTipoMateriaPrima,
+            double quantidadeRequisitada,
+            double saldoDisponivel
+    ) {
         super(String.format(
-                "Tentativa de registrar uma movimentação de %.4f unidades no lote %d, mas o saldo disponível é %.4f",
-                Math.abs(quantidadeRequisitada), loteId, saldoDisponivel
+                "Não é possível registrar a movimentação no lote '%s' da matéria-prima '%s'. Foram solicitadas %.4f unidades, mas o saldo disponível é %.4f.",
+                identificadorPublicoLote,
+                nomeTipoMateriaPrima,
+                Math.abs(quantidadeRequisitada),
+                saldoDisponivel
         ));
         this.loteId = loteId;
+        this.identificadorPublicoLote = identificadorPublicoLote;
+        this.nomeTipoMateriaPrima = nomeTipoMateriaPrima;
         this.quantidadeRequisitada = quantidadeRequisitada;
         this.saldoDisponivel = saldoDisponivel;
     }

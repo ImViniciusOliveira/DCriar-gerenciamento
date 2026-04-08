@@ -16,11 +16,13 @@ public class EstoqueInsuficienteCanalException extends RuntimeException {
      * O ID do produto com estoque insuficiente.
      */
     private final Long produtoId;
+    private final String produtoLabel;
 
     /**
      * O ID do canal de venda onde o estoque é insuficiente.
      */
     private final Long canalVendaId;
+    private final String nomeCanalVenda;
 
     /**
      * A quantidade de unidades que a operação tentou movimentar.
@@ -40,14 +42,32 @@ public class EstoqueInsuficienteCanalException extends RuntimeException {
      * @param quantidadeRequisitada A quantidade que se tentou remover.
      * @param estoqueAtual A quantidade que estava disponível no momento da falha.
      */
-    public EstoqueInsuficienteCanalException(Long produtoId, Long canalVendaId, int quantidadeRequisitada, int estoqueAtual) {
+    public EstoqueInsuficienteCanalException(
+            Long produtoId,
+            String produtoLabel,
+            Long canalVendaId,
+            String nomeCanalVenda,
+            int quantidadeRequisitada,
+            int estoqueAtual
+    ) {
         super(String.format(
-                "Estoque insuficiente no canal. Tentativa de remover %d unidades do produto ID %d no canal ID %d, mas apenas %d unidades estavam disponíveis.",
-                Math.abs(quantidadeRequisitada), produtoId, canalVendaId, estoqueAtual
+                "Não é possível remover %d %s do produto '%s' no canal de venda '%s' porque há apenas %d %s disponíveis nesse canal.",
+                Math.abs(quantidadeRequisitada),
+                descreverUnidade(Math.abs(quantidadeRequisitada)),
+                produtoLabel,
+                nomeCanalVenda,
+                estoqueAtual,
+                descreverUnidade(estoqueAtual)
         ));
         this.produtoId = produtoId;
+        this.produtoLabel = produtoLabel;
         this.canalVendaId = canalVendaId;
+        this.nomeCanalVenda = nomeCanalVenda;
         this.quantidadeRequisitada = quantidadeRequisitada;
         this.estoqueAtual = estoqueAtual;
+    }
+
+    private static String descreverUnidade(int quantidade) {
+        return quantidade == 1 ? "unidade" : "unidades";
     }
 }

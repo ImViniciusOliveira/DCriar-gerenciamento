@@ -14,6 +14,9 @@ import java.math.BigDecimal;
 @Getter
 public class SaldoMateriaPrimaInsuficienteException extends RuntimeException {
 
+    private final String identificadorLote;
+    private final String nomeTipoMateriaPrima;
+
     /**
      * A quantidade de matéria-prima que a operação tentou consumir.
      */
@@ -30,11 +33,21 @@ public class SaldoMateriaPrimaInsuficienteException extends RuntimeException {
      * @param quantidadeRequisitada A quantidade que se tentou consumir.
      * @param saldoDisponivel       A quantidade que estava disponível.
      */
-    public SaldoMateriaPrimaInsuficienteException(BigDecimal quantidadeRequisitada, BigDecimal saldoDisponivel) {
+    public SaldoMateriaPrimaInsuficienteException(
+            String identificadorLote,
+            String nomeTipoMateriaPrima,
+            BigDecimal quantidadeRequisitada,
+            BigDecimal saldoDisponivel
+    ) {
         super(String.format(
-                "Saldo de matéria-prima insuficiente. Necessário: %.2f, Disponível: %.2f",
-                quantidadeRequisitada, saldoDisponivel
+                "Saldo insuficiente no lote '%s' da matéria-prima '%s'. Necessário: %.2f. Disponível: %.2f.",
+                identificadorLote,
+                nomeTipoMateriaPrima,
+                quantidadeRequisitada,
+                saldoDisponivel
         ));
+        this.identificadorLote = identificadorLote;
+        this.nomeTipoMateriaPrima = nomeTipoMateriaPrima;
         this.quantidadeRequisitada = quantidadeRequisitada;
         this.saldoDisponivel = saldoDisponivel;
     }

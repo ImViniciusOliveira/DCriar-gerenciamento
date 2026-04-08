@@ -339,6 +339,8 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 saldoAtual.add(requestDTO.getQuantidade()).compareTo(BigDecimal.ZERO) < 0) {
             throw new EstoqueInsuficienteParaMovimentacaoException(
                     lote.getId(),
+                    LotePublicIdentifierFormatter.format(lote),
+                    lote.getTipoMateriaPrima().getNome(),
                     requestDTO.getQuantidade().abs().doubleValue(),
                     saldoAtual.doubleValue()
             );

@@ -79,7 +79,13 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
             if (novoTotalDistribuido > estoqueFisicoTotal) {
                 throw new AlocacaoEstoqueExcedeTotalException(
-                        requestDTO.getQuantidade(), novoTotalDistribuido, estoqueFisicoTotal
+                        produto.getId(),
+                        formatarProdutoLabel(produto),
+                        canalVenda.getId(),
+                        canalVenda.getNome(),
+                        requestDTO.getQuantidade(),
+                        novoTotalDistribuido,
+                        estoqueFisicoTotal
                 );
             }
         }
@@ -95,7 +101,9 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         if (novaQuantidade < 0) {
             throw new EstoqueInsuficienteCanalException(
                     produto.getId(),
+                    formatarProdutoLabel(produto),
                     canalVenda.getId(),
+                    canalVenda.getNome(),
                     requestDTO.getQuantidade(), // A quantidade que se tentou remover
                     estoque.getQuantidade()     // O estoque atual antes da operação
             );
@@ -136,7 +144,12 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
         return estoqueRepository.findByProdutoAndCanalVenda(produto, canalVenda)
                 .map(estoqueMapper::toResponseDTO)
-                .orElseThrow(() -> new EstoqueNaoEncontradoException(produtoId, canalVendaId));
+                .orElseThrow(() -> new EstoqueNaoEncontradoException(
+                        produtoId,
+                        formatarProdutoLabel(produto),
+                        canalVendaId,
+                        canalVenda.getNome()
+                ));
     }
 
     @Override
@@ -222,6 +235,10 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
             .quantidade(0)
             .build();
         return Estoque.from(dto, produto, canalVenda);
+    }
+
+    private String formatarProdutoLabel(Produto produto) {
+        return produto.getSku() + " - " + produto.getNome();
     }
 
     private Produto findProdutoById(Long id) {

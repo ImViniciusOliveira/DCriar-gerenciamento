@@ -40,6 +40,7 @@ import com.dcriar.domain.stock.model.LoteRetalhoHierarchyItem;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.domain.stock.service.LoteRetalhoHierarchyService;
+import com.dcriar.domain.stock.util.LotePublicIdentifierFormatter;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -271,7 +272,12 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         BigDecimal saldoDisponivel = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteConsumido);
 
         if (saldoDisponivel.compareTo(consumoTotalNecessario) < 0) {
-            throw new SaldoMateriaPrimaInsuficienteException(consumoTotalNecessario, saldoDisponivel);
+            throw new SaldoMateriaPrimaInsuficienteException(
+                    LotePublicIdentifierFormatter.format(loteConsumido),
+                    loteConsumido.getTipoMateriaPrima().getNome(),
+                    consumoTotalNecessario,
+                    saldoDisponivel
+            );
         }
 
         // 3. Cria e persiste a Ordem de Produção.
@@ -492,7 +498,12 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         BigDecimal saldoDisponivel = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteConsumido);
 
         if (saldoDisponivel.compareTo(consumoTotalNecessario) < 0) {
-            throw new SaldoMateriaPrimaInsuficienteException(consumoTotalNecessario, saldoDisponivel);
+            throw new SaldoMateriaPrimaInsuficienteException(
+                    LotePublicIdentifierFormatter.format(loteConsumido),
+                    loteConsumido.getTipoMateriaPrima().getNome(),
+                    consumoTotalNecessario,
+                    saldoDisponivel
+            );
         }
 
         OrdemDeProducaoRequestDTO ordemRequestDTO = OrdemDeProducaoRequestDTO.builder()
@@ -818,7 +829,12 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         BigDecimal saldoTotalDisponivel = calcularSaldoDisponivelParaEdicao(loteConsumido, requestDTO.getOrdemId());
 
         if (saldoTotalDisponivel.compareTo(consumoTotalNecessario) < 0) {
-            throw new SaldoMateriaPrimaInsuficienteException(consumoTotalNecessario, saldoTotalDisponivel);
+            throw new SaldoMateriaPrimaInsuficienteException(
+                    LotePublicIdentifierFormatter.format(loteConsumido),
+                    loteConsumido.getTipoMateriaPrima().getNome(),
+                    consumoTotalNecessario,
+                    saldoTotalDisponivel
+            );
         }
 
         PlanoDeConsumo plano = new PlanoDeConsumo(
@@ -978,7 +994,12 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private void validarSaldoLoteCorte(LoteMateriaPrima lote, BigDecimal consumoEmMetros) {
         BigDecimal saldoAtual = lote.getSaldoCalculado() != null ? lote.getSaldoCalculado() : movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
         if (consumoEmMetros.compareTo(saldoAtual) > 0) {
-            throw new SaldoMateriaPrimaInsuficienteException(consumoEmMetros, saldoAtual);
+            throw new SaldoMateriaPrimaInsuficienteException(
+                    LotePublicIdentifierFormatter.format(lote),
+                    lote.getTipoMateriaPrima().getNome(),
+                    consumoEmMetros,
+                    saldoAtual
+            );
         }
     }
 

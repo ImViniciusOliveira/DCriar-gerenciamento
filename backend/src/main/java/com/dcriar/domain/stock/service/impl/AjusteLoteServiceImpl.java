@@ -129,6 +129,8 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
         if (saldoAtualInterno.add(quantidadeMovimentacao).compareTo(BigDecimal.ZERO) < 0) {
             throw new EstoqueInsuficienteParaMovimentacaoException(
                     lote.getId(),
+                    LotePublicIdentifierFormatter.format(lote),
+                    lote.getTipoMateriaPrima().getNome(),
                     quantidadeMovimentacao.abs().doubleValue(),
                     saldoAtualInterno.doubleValue()
             );
