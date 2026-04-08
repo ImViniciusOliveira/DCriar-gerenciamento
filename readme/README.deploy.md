@@ -6,7 +6,7 @@ Este guia descreve três fluxos complementares e responsabilidades separadas:
 - Fluxo 2 (DEV): Teste Local — como o Desenvolvedor simula produção na própria máquina usando os caminhos reais (/etc e /opt).
 - Fluxo 3 (ADMIN): Deploy Manual — como o Admin do servidor (Windows/WSL) faz o deploy no servidor real, sem usar scripts do projeto.
 
-Observação de segurança: Segredos de produção (.env.prod) devem ficar em /etc/dcriar/.env.prod (perm 600, owner root). O arquivo docker-compose.prod.yml fica em /opt/dcriar/docker-compose.prod.yml (perm 644, owner root).
+Observação de segurança: Segredos de produção (.env.prod) devem ficar em /etc/dcriar/.env.prod (perm 600, owner root). O arquivo docker-compose.prod.yml fica em /opt/dcriar/docker-compose.prod.yml (perm 644, owner root). Certificados TLS do frontend devem ficar fora da imagem, por exemplo em /etc/dcriar/tls.
 
 ---
 
@@ -90,7 +90,12 @@ Conteúdo de exemplo (preencha valores reais):
 
 ```dotenv
 # /etc/dcriar/.env.prod
-FRONTEND_PORT=80
+FRONTEND_HTTP_PORT=80
+FRONTEND_HTTPS_PORT=443
+FRONTEND_SERVER_NAME=seu-frontend.exemplo.com
+FRONTEND_TLS_ENABLED=true
+TLS_CERT_FILE=/etc/dcriar/tls/fullchain.crt
+TLS_KEY_FILE=/etc/dcriar/tls/private.key
 
 # Imagens (ajuste para a tag desejada)
 DOCKER_REGISTRY_USER=imviniciusoliveira
@@ -136,6 +141,29 @@ sudo nano /opt/dcriar/docker-compose.prod.yml
 
 Cole o conteúdo do docker-compose.prod.yml do projeto.
 
+4) Certificados TLS do frontend/proxy
+
+O nginx do frontend termina o HTTPS e encaminha `/api` para o backend internamente no compose. Por isso, o certificado fica apenas no serviço `frontend`.
+
+Exemplo de diretório:
+
+```bash
+sudo mkdir -p /etc/dcriar/tls
+sudo chmod 700 /etc/dcriar/tls
+```
+
+Arquivos esperados:
+
+```text
+/etc/dcriar/tls/fullchain.crt
+/etc/dcriar/tls/private.key
+```
+
+Observações:
+- Em produção com domínio público, prefira certificado emitido por uma CA confiável.
+- Em rede local, use uma CA interna ou `mkcert` e instale a CA nas máquinas clientes.
+- O `FRONTEND_SERVER_NAME` deve bater com o nome presente no certificado.
+
 B) Deploy / Atualização
 
 1) Puxar imagens (opcional, recomendado)
@@ -153,6 +181,7 @@ PROD_ENV_FILE=/etc/dcriar/.env.prod docker compose -f /opt/dcriar/docker-compose
 Observação:
 - Apenas o frontend deve ficar exposto no host.
 - O backend atende internamente e recebe chamadas via `/api` através do nginx do frontend.
+- Quando `FRONTEND_TLS_ENABLED=true`, a porta 80 responde só para healthcheck/redirect e a navegação real acontece em HTTPS na porta 443.
 
 3) Logs e status
 

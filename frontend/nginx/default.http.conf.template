@@ -1,0 +1,6 @@
+server {
+    listen 80;
+    server_name ${FRONTEND_SERVER_NAME};
+
+    include /etc/nginx/snippets/app.common.conf;
+}
