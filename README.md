@@ -79,8 +79,23 @@ Ele foi construído para centralizar:
 
 ---
 
+## Certificado HTTPS
+
+Em produção, o HTTPS fica no `nginx`, usando certificado e chave montados fora da imagem.
+
+Isso protege o tráfego entre navegador e servidor e deixa o deploy mais seguro e mais flexível.
+
+Esse modelo funciona bem em rede local e também permite trocar depois para um certificado público real, caso a aplicação passe a usar um domínio de internet.
+
+No servidor, os arquivos esperados são:
+- `fullchain.crt`
+- `private.key`
+
+---
+
 ## Guias
 
 - [Guia de Desenvolvimento](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.dev.md)
 - [Guia de Produção](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.deploy.md)
 - [Guia de Comandos](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.comandos.md)
+- [Guia de Certificado TLS](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.certificado.md)
