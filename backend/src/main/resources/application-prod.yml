@@ -46,6 +46,11 @@ minio:
 cors:
   allowed-origin: ${CORS_ALLOWED_ORIGIN}
 
+app:
+  security:
+    data-encryption:
+      key: ${DATA_ENCRYPTION_KEY}
+
 springdoc:
   api-docs: { enabled: true }
   swagger-ui: { enabled: true, url: /v3/api-docs }

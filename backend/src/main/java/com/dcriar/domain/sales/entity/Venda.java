@@ -1,5 +1,6 @@
 package com.dcriar.domain.sales.entity;
 
+import com.dcriar.domain.common.persistence.EncryptedStringAttributeConverter;
 import com.dcriar.domain.common.entity.AuditableEntity;
 import com.dcriar.domain.product.entity.CanalVenda;
 import jakarta.persistence.*;
@@ -46,6 +47,43 @@ public class Venda extends AuditableEntity {
      */
     @Column(name = "valor_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal valorTotal;
+
+    @Convert(converter = EncryptedStringAttributeConverter.class)
+    @Column(name = "nome_completo")
+    private String nomeCompleto;
+
+    @Column(name = "apelido", length = 120)
+    private String apelido;
+
+    @Convert(converter = EncryptedStringAttributeConverter.class)
+    @Column(name = "endereco")
+    private String endereco;
+
+    @Convert(converter = EncryptedStringAttributeConverter.class)
+    @Column(name = "numero")
+    private String numero;
+
+    @Convert(converter = EncryptedStringAttributeConverter.class)
+    @Column(name = "bairro")
+    private String bairro;
+
+    @Column(name = "cidade", length = 120)
+    private String cidade;
+
+    @Column(name = "estado", length = 60)
+    private String estado;
+
+    @Convert(converter = EncryptedStringAttributeConverter.class)
+    @Column(name = "cep")
+    private String cep;
+
+    @Convert(converter = EncryptedStringAttributeConverter.class)
+    @Column(name = "cpf")
+    private String cpf;
+
+    @Convert(converter = EncryptedStringAttributeConverter.class)
+    @Column(name = "observacao")
+    private String observacao;
 
     /**
      * A lista de itens que compõem esta venda.
