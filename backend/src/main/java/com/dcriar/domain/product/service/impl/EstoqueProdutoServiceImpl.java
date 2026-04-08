@@ -14,6 +14,7 @@ import com.dcriar.api.mapper.product.HistoricoEstoqueConsolidadoMapper;
 import com.dcriar.api.mapper.product.MovimentacaoProdutoMapper;
 import com.dcriar.api.mapper.product.ProdutoEstoqueDTOMapper;
 import com.dcriar.domain.common.util.PageableSortUtils;
+import com.dcriar.domain.common.util.PostgresSearchUtils;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
@@ -160,7 +161,8 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
             throw new CanalVendaNaoEncontradoException(canalId);
         }
         Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, RESUMO_STABLE_SORTS);
-        return estoqueRepository.buscarEstoqueResumido(canalId, nomeProduto, apenasComSaldo, pageableComDesempate);
+        String nomeProdutoTermo = resolveNomeProdutoTermo(nomeProduto);
+        return estoqueRepository.buscarEstoqueResumido(canalId, nomeProdutoTermo, apenasComSaldo, pageableComDesempate);
     }
 
     @Override
@@ -239,6 +241,13 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
     private String formatarProdutoLabel(Produto produto) {
         return produto.getSku() + " - " + produto.getNome();
+    }
+
+    private String resolveNomeProdutoTermo(String nomeProduto) {
+        if (nomeProduto == null || nomeProduto.isBlank()) {
+            return null;
+        }
+        return PostgresSearchUtils.likeTerm(nomeProduto);
     }
 
     private Produto findProdutoById(Long id) {

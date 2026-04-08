@@ -74,13 +74,13 @@ public interface EstoqueRepository extends JpaRepository<Estoque, Long> {
            "JOIN e.produto p " +
            "LEFT JOIN Preco pr ON pr.produto = p " +
            "WHERE e.canalVenda.id = :canalId " +
-           "AND (:nomeProduto IS NULL OR " +
-           "CAST(FUNCTION('unaccent', LOWER(p.nome)) AS string) LIKE CAST(FUNCTION('unaccent', LOWER(CONCAT('%', :nomeProduto, '%'))) AS string) OR " +
-           "CAST(FUNCTION('unaccent', LOWER(p.sku)) AS string) LIKE CAST(FUNCTION('unaccent', LOWER(CONCAT('%', :nomeProduto, '%'))) AS string)) " +
+           "AND (:nomeProdutoTermo IS NULL OR " +
+           "CAST(FUNCTION('unaccent', LOWER(p.nome)) AS string) LIKE :nomeProdutoTermo OR " +
+           "CAST(FUNCTION('unaccent', LOWER(p.sku)) AS string) LIKE :nomeProdutoTermo) " +
            "AND (:apenasComSaldo = false OR e.quantidade > 0)")
     Page<EstoqueProdutoResumoDTO> buscarEstoqueResumido(
             @Param("canalId") Long canalId,
-            @Param("nomeProduto") String nomeProduto,
+            @Param("nomeProdutoTermo") String nomeProdutoTermo,
             @Param("apenasComSaldo") boolean apenasComSaldo,
             Pageable pageable);
 }
