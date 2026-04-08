@@ -1,84 +1,77 @@
 # Sistema de Estoque, Produção e Vendas
 
-Sistema web para controlar estoque, produção, vendas e distribuição por canal.
+Projeto **full stack** para controle de estoque, produção e vendas, cobrindo o fluxo completo de uma operação que transforma matéria-prima em produto final.
 
-O projeto foi construído para resolver um fluxo completo: entrada de matéria-prima, transformação em produto acabado, movimentação de estoque, produção orientada por consumo e corte, e venda com impacto automático no saldo.
+Ele foi construído para centralizar:
+- entrada e controle de insumos
+- produção com consumo e corte
+- distribuição de estoque por canal
+- vendas com impacto automático no saldo
+- histórico operacional para auditoria
 
-## O Que O Sistema Resolve
+---
 
-- controla produtos, preços e canais de venda
-- controla lotes de matéria-prima e histórico de movimentações
-- registra ordens de produção e consumo de insumos
-- distribui estoque por canal e permite ajustes
-- registra vendas e baixa o estoque automaticamente
-- mantém histórico operacional para auditoria
+## Tecnologias Utilizadas
 
-## O Que Tem De Interessante Aqui
+| Backend | Frontend | Dados / Infra |
+| --- | --- | --- |
+| Java 21 | Angular 21 | PostgreSQL 14 |
+| Spring Boot 3.5.5 | Angular Material | MinIO |
+| Spring Data JPA / Hibernate | ngx-mask | Docker Compose |
+| Spring Validation |  | nginx com HTTPS em rede local |
+| Spring HATEOAS |  |  |
+| Springdoc / OpenAPI |  |  |
+| Flyway |  |  |
+| MapStruct |  |  |
+| MinIO SDK |  |  |
 
-- backend em `Java 21 + Spring Boot 3.5.5`
-- frontend em `Angular 21`
-- PostgreSQL com `Flyway`
-- MinIO para arquivos
-- deploy com `Docker Compose`
-- HTTPS no frontend/proxy via `nginx`
-- validações customizadas no backend
-- criptografia em repouso para dados sensíveis de venda
+---
 
-## Arquitetura
+## Funcionalidades Principais
 
-- `backend/`: API REST com regras de negócio, validações, migrações e integração com banco/MinIO
-- `frontend/`: interface web Angular para operação diária
-- `docker-compose.dev.yml`: infraestrutura local de desenvolvimento
+### Estoque
+- cadastro de produtos e preços
+- controle de matéria-prima por lote
+- movimentações e histórico de estoque
+- distribuição de saldo por canal
+- ajustes operacionais
+
+### Produção
+- ordens de produção
+- cálculo de consumo
+- cálculo de corte
+- geração de movimentações automáticas
+- atualização do estoque acabado
+
+### Vendas
+- vendas por canal
+- precificação por item
+- baixa automática de estoque
+- dados do cliente com proteção no backend
+
+---
+
+## Destaques Técnicos
+
+- API com regras de negócio explícitas
+- validações customizadas e normalização de dados
+- criptografia em repouso para dados sensíveis de vendas
+- separação clara entre ambiente de desenvolvimento e produção
+- deploy com HTTPS no frontend/proxy
+
+---
+
+## Estrutura Do Projeto
+
+- `backend/`: API REST, regras de negócio, validações, migrações e integração com banco e MinIO
+- `frontend/`: interface Angular para operação do sistema
+- `docker-compose.dev.yml`: infraestrutura de desenvolvimento
 - `docker-compose.prod.yml`: stack de produção
 
-## Fluxos Principais
+---
 
-### 1. Estoque e matéria-prima
-- cadastro de tipos de matéria-prima
-- entrada de lotes
-- movimentações e histórico
-- saldo físico
-- distribuição por canal
+## Guias
 
-### 2. Produção
-- ordem de produção por produto
-- cálculo de consumo e corte
-- geração de movimentações
-- atualização de estoque acabado
-
-### 3. Vendas
-- venda por canal
-- itens com preço padrão ou alterado
-- baixa automática de estoque
-- dados de cliente com exposição controlada
-
-## Dados Sensíveis Em Vendas
-
-A aplicação trata dados sensíveis de vendas com criptografia em repouso e exposição controlada na API.
-
-## Stack Técnica
-
-- Backend: Java 21, Spring Boot 3.5.5, Spring Data JPA, Validation, HATEOAS, Actuator, Springdoc, Flyway
-- Frontend: Angular 21, Angular Material, ngx-mask
-- Banco: PostgreSQL 14
-- Storage: MinIO
-- Infra: Docker Compose + nginx
-
-## Guias Do Projeto
-
-O projeto tem guias objetivos para executar e publicar a aplicação:
-
-- desenvolvimento local: [Guia de Desenvolvimento](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.dev.md)
-- produção e deploy: [Guia de Produção](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.deploy.md)
-- comandos diretos de Docker e Docker Hub: [Guia de Comandos](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.comandos.md)
-
-Esses arquivos mostram o fluxo real do projeto com Docker Compose, backend pela IDE e deploy entre máquinas.
-
-## Diferenciais Do Projeto
-
-- fluxo completo de estoque, produção e venda no mesmo sistema
-- regras de negócio explícitas no backend
-- normalização e validações customizadas para manter consistência dos dados
-- deploy com HTTPS no frontend/proxy
-- separação clara entre ambiente local e produção
-- proteção de dados sensíveis nas vendas
+- [Guia de Desenvolvimento](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.dev.md)
+- [Guia de Produção](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.deploy.md)
+- [Guia de Comandos](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readme/README.comandos.md)
