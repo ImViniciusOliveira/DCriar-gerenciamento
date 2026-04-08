@@ -12,6 +12,7 @@ import com.dcriar.api.dto.response.production.SimulacaoConsumoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
 import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
 import com.dcriar.api.mapper.production.PlanoDeConsumoMapper;
+import com.dcriar.domain.common.util.UniqueComparisonNormalizer;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
@@ -307,7 +308,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Transactional
     public OrdemDeProducaoResponseDTO atualizarOrdemDeCorte(Long id, OrdemDeCorteRequestDTO requestDTO) {
         OrdemDeProducao ordemExistente = findOrdemByIdWithDetails(id);
-        prepararOrdemParaReprocessamento(ordemExistente, "edição");
 
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
@@ -428,6 +428,16 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .rotacionado(parametros.rotacionado())
                 .build();
 
+        if (isNoOpCorteUpdate(ordemExistente, requestDTO, ordemRequestDTO, cortesRealizadosDTOs, lotePrincipal.getId(), produto.getId())) {
+            throw AtualizacaoSemAlteracoesException.para(
+                    "ordemDeProducao",
+                    id,
+                    "Nenhuma alteração foi informada para atualizar a ordem de produção."
+            );
+        }
+
+        prepararOrdemParaReprocessamento(ordemExistente, "edição");
+
         ordemExistente.updateFrom(ordemRequestDTO, produto, new HashSet<>(Set.of(lotePrincipal)), margensEntity);
         ordemExistente.getCortesRealizados().clear();
 
@@ -465,7 +475,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Transactional
     public OrdemDeProducaoResponseDTO atualizarOrdemDeConsumo(Long id, OrdemDeConsumoRequestDTO requestDTO) {
         OrdemDeProducao ordemExistente = findOrdemByIdWithDetails(id);
-        prepararOrdemParaReprocessamento(ordemExistente, "edição");
 
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumo()) {
@@ -493,6 +502,16 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 .quantidadeProduzida(requestDTO.getQuantidadeProduzida())
                 .motivo(requestDTO.getMotivo())
                 .build();
+
+        if (isNoOpConsumoUpdate(ordemExistente, ordemRequestDTO, loteConsumido.getId(), produto.getId())) {
+            throw AtualizacaoSemAlteracoesException.para(
+                    "ordemDeProducao",
+                    id,
+                    "Nenhuma alteração foi informada para atualizar a ordem de produção."
+            );
+        }
+
+        prepararOrdemParaReprocessamento(ordemExistente, "edição");
 
         ordemExistente.updateFrom(ordemRequestDTO, produto, new HashSet<>(Set.of(loteConsumido)), null);
         ordemExistente.getCortesRealizados().clear();
@@ -534,6 +553,94 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         prepararOrdemParaReprocessamento(ordem, "exclusão");
         ordem.getLotesConsumidos().clear();
         ordemDeProducaoRepository.delete(ordem);
+    }
+
+    private boolean isNoOpCorteUpdate(
+            OrdemDeProducao ordemExistente,
+            OrdemDeCorteRequestDTO requestDTO,
+            OrdemDeProducaoRequestDTO ordemRequestDTO,
+            List<CorteRealizadoResponseDTO> cortesRealizadosDTOs,
+            Long loteId,
+            Long produtoId
+    ) {
+        return isSameOrdemBase(ordemExistente, ordemRequestDTO, loteId, produtoId)
+                && Objects.equals(ordemExistente.getModoCalculo(), requestDTO.getModoCalculo())
+                && sameMargens(ordemExistente.getMargens(), requestDTO.getMargens())
+                && sameBigDecimal(ordemExistente.getLarguraFinalCm(), ordemRequestDTO.getLarguraFinalCm())
+                && sameBigDecimal(ordemExistente.getComprimentoFinalCm(), ordemRequestDTO.getComprimentoFinalCm())
+                && sameCuts(ordemExistente.getCortesRealizados(), cortesRealizadosDTOs);
+    }
+
+    private boolean isNoOpConsumoUpdate(
+            OrdemDeProducao ordemExistente,
+            OrdemDeProducaoRequestDTO ordemRequestDTO,
+            Long loteId,
+            Long produtoId
+    ) {
+        return isSameOrdemBase(ordemExistente, ordemRequestDTO, loteId, produtoId)
+                && ordemExistente.getCortesRealizados().isEmpty();
+    }
+
+    private boolean isSameOrdemBase(
+            OrdemDeProducao ordemExistente,
+            OrdemDeProducaoRequestDTO ordemRequestDTO,
+            Long loteId,
+            Long produtoId
+    ) {
+        Long loteAtualId = ordemExistente.getLotesConsumidos().stream()
+                .findFirst()
+                .map(LoteMateriaPrima::getId)
+                .orElse(null);
+
+        return Objects.equals(ordemExistente.getProduto().getId(), produtoId)
+                && Objects.equals(loteAtualId, loteId)
+                && Objects.equals(ordemExistente.getCanalVendaDestinoId(), ordemRequestDTO.getCanalVendaDestinoId())
+                && Objects.equals(ordemExistente.getQuantidadeProduzida(), ordemRequestDTO.getQuantidadeProduzida())
+                && UniqueComparisonNormalizer.equalsTrimmedKey(ordemExistente.getMotivo(), ordemRequestDTO.getMotivo())
+                && ordemExistente.isRotacionado() == ordemRequestDTO.isRotacionado();
+    }
+
+    private boolean sameMargens(Margens margens, MargensRequestDTO requestDTO) {
+        if (margens == null && requestDTO == null) {
+            return true;
+        }
+        if (margens == null || requestDTO == null) {
+            return false;
+        }
+
+        return sameBigDecimal(margens.getSuperior(), requestDTO.getSuperior())
+                && sameBigDecimal(margens.getInferior(), requestDTO.getInferior())
+                && sameBigDecimal(margens.getEsquerda(), requestDTO.getEsquerda())
+                && sameBigDecimal(margens.getDireita(), requestDTO.getDireita());
+    }
+
+    private boolean sameCuts(List<CorteRealizado> atuais, List<CorteRealizadoResponseDTO> novos) {
+        if (atuais.size() != novos.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < atuais.size(); i++) {
+            CorteRealizado atual = atuais.get(i);
+            CorteRealizadoResponseDTO novo = novos.get(i);
+
+            if (!sameBigDecimal(atual.getLarguraCm(), novo.getLarguraCm())
+                    || !sameBigDecimal(atual.getComprimentoCm(), novo.getComprimentoCm())
+                    || !Objects.equals(atual.getQuantidade(), novo.getQuantidade())
+                    || !Objects.equals(atual.getTipo(), novo.getTipo())
+                    || !Objects.equals(atual.getRetalhoCategoria(), novo.getRetalhoCategoria())
+                    || !Objects.equals(atual.getRepeticoes(), novo.getRepeticoes())) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean sameBigDecimal(BigDecimal left, BigDecimal right) {
+        if (left == null) {
+            return right == null;
+        }
+        return right != null && left.compareTo(right) == 0;
     }
 
     @Override

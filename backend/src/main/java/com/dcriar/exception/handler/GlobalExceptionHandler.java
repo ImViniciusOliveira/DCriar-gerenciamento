@@ -152,7 +152,7 @@ public class GlobalExceptionHandler {
             ProdutoSkuDuplicadoException.class, ExclusaoLoteBloqueadaException.class,
             ProdutoCamposBloqueadosException.class, TipoMateriaPrimaCamposBloqueadosException.class,
             LoteCamposBloqueadosException.class, CanalVendaEmUsoException.class,
-            CanalVendaNomeDuplicadoException.class
+            CanalVendaNomeDuplicadoException.class, AtualizacaoSemAlteracoesException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
         Map<String, String> details = new HashMap<>();
@@ -178,8 +178,16 @@ public class GlobalExceptionHandler {
         else if (ex instanceof LoteCamposBloqueadosException e) {
             preencherDetalhesCamposBloqueados(details, "loteId", e.getLoteId(), e);
         }
+        else if (ex instanceof AtualizacaoSemAlteracoesException e) {
+            details.put("recurso", e.getRecurso());
+            details.put("recursoId", String.valueOf(e.getRecursoId()));
+        }
 
-        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+        if (ex instanceof AtualizacaoSemAlteracoesException) {
+            log.info("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+        } else {
+            log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+        }
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);
     }
 

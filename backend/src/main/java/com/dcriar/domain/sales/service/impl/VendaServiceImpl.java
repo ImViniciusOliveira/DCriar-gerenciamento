@@ -10,6 +10,7 @@ import com.dcriar.domain.common.util.BrazilDocumentNormalizer;
 import com.dcriar.domain.common.util.BrazilStateSupport;
 import com.dcriar.domain.common.util.CountrySupport;
 import com.dcriar.domain.common.util.TrimTextNormalizer;
+import com.dcriar.domain.common.util.UniqueComparisonNormalizer;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Preco;
@@ -38,6 +39,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -76,12 +78,20 @@ public class VendaServiceImpl implements VendaService {
         Venda vendaExistente = vendaRepository.findById(id)
                 .orElseThrow(() -> new VendaNaoEncontradaException(id));
 
-        // 1. Estorna o estoque da venda antiga
-        performStockReversal(vendaExistente, "edição");
-
-        // 2. Prepara os novos dados
+        // 1. Prepara os novos dados
         CanalVenda novoCanal = buscarCanalVenda(requestDTO.getCanalVendaId());
         List<ItemVenda> novosItens = processarItensVenda(requestDTO.getItens(), novoCanal);
+
+        if (isNoOpUpdate(vendaExistente, requestDTO, novoCanal, novosItens)) {
+            throw AtualizacaoSemAlteracoesException.para(
+                    "venda",
+                    id,
+                    "Nenhuma alteração foi informada para atualizar a venda."
+            );
+        }
+
+        // 2. Estorna o estoque da venda antiga
+        performStockReversal(vendaExistente, "edição");
 
         // 3. Atualiza a entidade existente (mantendo o ID)
         vendaExistente.updateFrom(novoCanal, novosItens);
@@ -248,6 +258,71 @@ public class VendaServiceImpl implements VendaService {
                 ? BrazilDocumentNormalizer.normalizeCpf(requestDTO.getCpf())
                 : TrimTextNormalizer.trimToNull(requestDTO.getCpf()));
         venda.setObservacao(TrimTextNormalizer.trimToNull(requestDTO.getObservacao()));
+    }
+
+    private boolean isNoOpUpdate(Venda venda, VendaRequestDTO requestDTO, CanalVenda novoCanal, List<ItemVenda> novosItens) {
+        String pais = CountrySupport.normalizeForStorage(requestDTO.getPais());
+
+        return Objects.equals(venda.getCanalVenda().getId(), novoCanal.getId())
+                && UniqueComparisonNormalizer.equalsCatalogKey(venda.getNomeCompleto(), requestDTO.getNomeCompleto())
+                && UniqueComparisonNormalizer.equalsCatalogKey(venda.getPais(), pais)
+                && UniqueComparisonNormalizer.equalsCatalogKey(venda.getApelido(), requestDTO.getApelido())
+                && UniqueComparisonNormalizer.equalsCatalogKey(venda.getEndereco(), requestDTO.getEndereco())
+                && UniqueComparisonNormalizer.equalsTrimmedKey(venda.getNumero(), requestDTO.getNumero())
+                && UniqueComparisonNormalizer.equalsCatalogKey(venda.getBairro(), requestDTO.getBairro())
+                && UniqueComparisonNormalizer.equalsCatalogKey(venda.getCidade(), requestDTO.getCidade())
+                && sameEstado(venda, requestDTO, pais)
+                && sameCep(venda, requestDTO, pais)
+                && sameCpf(venda, requestDTO, pais)
+                && UniqueComparisonNormalizer.equalsTrimmedKey(venda.getObservacao(), requestDTO.getObservacao())
+                && sameItens(venda.getItens(), novosItens);
+    }
+
+    private boolean sameEstado(Venda venda, VendaRequestDTO requestDTO, String pais) {
+        String estadoNormalizado = CountrySupport.isBrazil(pais)
+                ? BrazilStateSupport.normalize(requestDTO.getEstado())
+                : requestDTO.getEstado();
+        return UniqueComparisonNormalizer.equalsCatalogKey(venda.getEstado(), estadoNormalizado);
+    }
+
+    private boolean sameCep(Venda venda, VendaRequestDTO requestDTO, String pais) {
+        if (CountrySupport.isBrazil(pais)) {
+            return Objects.equals(venda.getCep(), BrazilDocumentNormalizer.normalizeCep(requestDTO.getCep()));
+        }
+        return UniqueComparisonNormalizer.equalsTrimmedKey(venda.getCep(), requestDTO.getCep());
+    }
+
+    private boolean sameCpf(Venda venda, VendaRequestDTO requestDTO, String pais) {
+        if (CountrySupport.isBrazil(pais)) {
+            return Objects.equals(venda.getCpf(), BrazilDocumentNormalizer.normalizeCpf(requestDTO.getCpf()));
+        }
+        return UniqueComparisonNormalizer.equalsTrimmedKey(venda.getCpf(), requestDTO.getCpf());
+    }
+
+    private boolean sameItens(List<ItemVenda> atuais, List<ItemVenda> novos) {
+        if (atuais.size() != novos.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < atuais.size(); i++) {
+            ItemVenda atual = atuais.get(i);
+            ItemVenda novo = novos.get(i);
+
+            if (!Objects.equals(atual.getProduto().getId(), novo.getProduto().getId())
+                    || !Objects.equals(atual.getQuantidade(), novo.getQuantidade())
+                    || atual.getPrecoComercialOriginal().compareTo(novo.getPrecoComercialOriginal()) != 0
+                    || atual.getPrecoUnitario().compareTo(novo.getPrecoUnitario()) != 0
+                    || atual.getPrecoTotal().compareTo(novo.getPrecoTotal()) != 0
+                    || atual.getTipoPrecoAplicado() != novo.getTipoPrecoAplicado()
+                    || !Objects.equals(
+                            TrimTextNormalizer.trimToNull(atual.getMotivoAlteracaoPreco()),
+                            TrimTextNormalizer.trimToNull(novo.getMotivoAlteracaoPreco())
+                    )) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void performStockReduction(Produto produto, CanalVenda canalVenda, int quantity, Long vendaId) {

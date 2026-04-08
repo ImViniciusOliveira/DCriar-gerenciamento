@@ -22,6 +22,7 @@ import com.dcriar.exception.custom.TipoMateriaPrimaCamposBloqueadosException;
 import com.dcriar.exception.custom.TipoMateriaPrimaEmUsoException;
 import com.dcriar.exception.custom.TipoMateriaPrimaNaoEncontradoException;
 import com.dcriar.exception.custom.TipoProdutoInvalidoException;
+import com.dcriar.exception.custom.AtualizacaoSemAlteracoesException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -101,6 +102,13 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     @Transactional
     public TipoMateriaPrimaResponseDTO update(Long id, TipoMateriaPrimaRequestDTO requestDTO) {
         TipoMateriaPrima tipo = findTipoById(id);
+        if (isNoOpUpdate(tipo, requestDTO)) {
+            throw AtualizacaoSemAlteracoesException.para(
+                    "tipoMateriaPrima",
+                    id,
+                    "Nenhuma alteração foi informada para atualizar o tipo de matéria-prima."
+            );
+        }
         validarCamposBloqueadosNaEdicao(tipo, requestDTO);
         if (requestDTO.getNome() != null
                 && !UniqueComparisonNormalizer.equalsCatalogKey(tipo.getNome(), requestDTO.getNome())) {
@@ -190,5 +198,13 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     private boolean tipoMateriaPrimaPossuiUsoOperacional(TipoMateriaPrima tipo) {
         return produtoRepository.existsByTipoMateriaPrima(tipo)
                 || loteMateriaPrimaRepository.existsByTipoMateriaPrima(tipo);
+    }
+
+    private boolean isNoOpUpdate(TipoMateriaPrima tipo, TipoMateriaPrimaRequestDTO requestDTO) {
+        boolean sameNome = requestDTO.getNome() == null
+                || UniqueComparisonNormalizer.equalsCatalogKey(tipo.getNome(), requestDTO.getNome());
+        boolean sameUnidade = requestDTO.getUnidadeDeConsumo() == null
+                || Objects.equals(tipo.getUnidadeDeConsumo(), requestDTO.getUnidadeDeConsumo());
+        return sameNome && sameUnidade;
     }
 }

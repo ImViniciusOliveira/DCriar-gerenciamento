@@ -41,6 +41,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -215,13 +216,24 @@ public class ProdutoServiceImpl implements ProdutoService {
     @Transactional
     public ProdutoResponseDTO patch(Long id, Map<String, Object> fields) {
         if (fields == null || fields.isEmpty()) {
-            return findById(id);
+            throw AtualizacaoSemAlteracoesException.para(
+                    "produto",
+                    id,
+                    "Nenhuma alteração foi informada para atualizar o produto."
+            );
         }
 
         Produto produto = findProdutoById(id);
         validarCamposPatch(produto, fields);
         validarDuplicidadeCamposPatch(produto, fields);
         validarCamposBloqueadosNaEdicao(produto, fields);
+        if (isNoOpPatch(produto, fields)) {
+            throw AtualizacaoSemAlteracoesException.para(
+                    "produto",
+                    id,
+                    "Nenhuma alteração foi informada para atualizar o produto."
+            );
+        }
 
         // Mapeamento Manual de Alta Performance
         fields.forEach((key, value) -> {
@@ -389,6 +401,101 @@ public class ProdutoServiceImpl implements ProdutoService {
                 throw new ProdutoSkuDuplicadoException(skuNormalizado);
             }
         }
+    }
+
+    private boolean isNoOpPatch(Produto produto, Map<String, Object> fields) {
+        for (Map.Entry<String, Object> entry : fields.entrySet()) {
+            if (!isSameProductFieldValue(produto, entry.getKey(), entry.getValue())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isSameProductFieldValue(Produto produto, String key, Object value) {
+        return switch (key) {
+            case "nome" -> UniqueComparisonNormalizer.equalsCatalogKey(produto.getNome(), (String) value);
+            case "sku" -> UniqueComparisonNormalizer.equalsTrimmedKey(produto.getSku(), (String) value);
+            case "descricao" -> UniqueComparisonNormalizer.equalsTrimmedKey(produto.getDescricao(), (String) value);
+            case "ativo" -> Objects.equals(produto.isAtivo(), value);
+            case "fotoPrincipalUrl" -> Objects.equals(produto.getFotoPrincipalUrl(), value);
+            case "precoComercial" -> sameBigDecimal(produto.getPrecoComercial(), toBigDecimal(value));
+            case "tipoMateriaPrimaId" -> value instanceof Number number
+                    && Objects.equals(produto.getTipoMateriaPrima().getId(), number.longValue());
+            case "unidadesPorProduto" -> sameUnidadesPorProduto(produto, value);
+            case "cor" -> produto instanceof ProdutoDeCorte p
+                    && UniqueComparisonNormalizer.equalsCatalogKey(p.getCor(), (String) value);
+            case "dimensoes" -> isSameDimensoesPatch(produto, value);
+            case "codigoFabricante" -> produto instanceof ProdutoDeConsumo p
+                    && UniqueComparisonNormalizer.equalsCatalogKey(p.getCodigoFabricante(), (String) value);
+            case "unidadeCadastroConsumo" -> produto instanceof ProdutoDeConsumo p
+                    && value != null
+                    && Objects.equals(p.getUnidadeCadastroConsumo(), UnidadeDeMedida.valueOf(value.toString()));
+            case "especificacoes" -> isSameEspecificacoesPatch(produto, value);
+            default -> false;
+        };
+    }
+
+    private boolean sameUnidadesPorProduto(Produto produto, Object value) {
+        if (value == null || produto.getUnidadesPorProduto() == null) {
+            return false;
+        }
+
+        if (produto instanceof ProdutoDeConsumo consumo) {
+            BigDecimal convertido = converterUnidadesPorProdutoParaUnidadeInterna(
+                    new BigDecimal(value.toString()),
+                    consumo.getTipoMateriaPrima().getUnidadeDeConsumo(),
+                    consumo.getUnidadeCadastroConsumo()
+            );
+            return sameBigDecimal(consumo.getUnidadesPorProduto(), convertido);
+        }
+
+        return sameBigDecimal(produto.getUnidadesPorProduto(), new BigDecimal(value.toString()));
+    }
+
+    private boolean isSameDimensoesPatch(Produto produto, Object value) {
+        if (!(produto instanceof ProdutoDeCorte p) || !(value instanceof Map<?, ?> dimensoesMap) || p.getDimensoes() == null) {
+            return false;
+        }
+
+        boolean sameLargura = !dimensoesMap.containsKey("larguraCm")
+                || sameBigDecimal(p.getDimensoes().getLarguraCm(), toBigDecimal(dimensoesMap.get("larguraCm")));
+        boolean sameComprimento = !dimensoesMap.containsKey("comprimentoCm")
+                || sameBigDecimal(p.getDimensoes().getComprimentoCm(), toBigDecimal(dimensoesMap.get("comprimentoCm")));
+
+        return sameLargura && sameComprimento;
+    }
+
+    private boolean isSameEspecificacoesPatch(Produto produto, Object value) {
+        if (!(produto instanceof ProdutoDeConsumo p) || !(value instanceof Map<?, ?> mapValue)) {
+            return false;
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> incomingSpecs = MapStringValueTrimmer.trimStringValues((Map<String, String>) mapValue);
+        Map<String, String> atuais = p.getEspecificacoes() == null ? Map.of() : p.getEspecificacoes();
+        Map<String, String> simuladas = new HashMap<>(atuais);
+
+        incomingSpecs.forEach((specKey, specValue) -> {
+            if (specValue == null) {
+                simuladas.remove(specKey);
+            } else {
+                simuladas.put(specKey, TrimTextNormalizer.trimToNull(specValue));
+            }
+        });
+
+        return Objects.equals(atuais, simuladas);
+    }
+
+    private BigDecimal toBigDecimal(Object value) {
+        return value == null ? null : new BigDecimal(value.toString());
+    }
+
+    private boolean sameBigDecimal(BigDecimal left, BigDecimal right) {
+        if (left == null) {
+            return right == null;
+        }
+        return right != null && left.compareTo(right) == 0;
     }
 
     private BigDecimal converterUnidadesPorProdutoParaUnidadeInterna(

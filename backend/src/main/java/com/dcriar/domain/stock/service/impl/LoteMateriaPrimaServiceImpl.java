@@ -10,6 +10,8 @@ import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
 import com.dcriar.domain.common.util.LogicalMapKeySupport;
 import com.dcriar.domain.common.util.PageableSortUtils;
+import com.dcriar.domain.common.util.TrimTextNormalizer;
+import com.dcriar.domain.common.util.MapStringValueTrimmer;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
@@ -148,6 +150,13 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 : lote.getUnidadeCadastroEstoque();
         UnidadeDeMedida unidadeInternaEstoque = resolverUnidadeInternaEstoque(tipoMateriaPrima, unidadeCadastroEstoque);
         validarCompatibilidadeUnidadesDoLote(tipoMateriaPrima, unidadeInternaEstoque, unidadeCadastroEstoque);
+        if (isNoOpUpdate(lote, requestDTO, tipoMateriaPrima, unidadeInternaEstoque, unidadeCadastroEstoque)) {
+            throw AtualizacaoSemAlteracoesException.para(
+                    "loteMateriaPrima",
+                    id,
+                    "Nenhuma alteração foi informada para atualizar o lote de matéria-prima."
+            );
+        }
         lote.updateFrom(requestDTO, tipoMateriaPrima);
         lote.setUnidadeDeEstoque(unidadeInternaEstoque);
         lote.setUnidadeCadastroEstoque(unidadeCadastroEstoque);
@@ -219,6 +228,64 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
             return unidadePrincipal.getUnidadeInternaDeCalculo();
         }
         return unidadeCadastroEstoque;
+    }
+
+    private boolean isNoOpUpdate(
+            LoteMateriaPrima lote,
+            LoteMateriaPrimaRequestDTO requestDTO,
+            TipoMateriaPrima tipoMateriaPrima,
+            UnidadeDeMedida unidadeInternaEstoque,
+            UnidadeDeMedida unidadeCadastroEstoque
+    ) {
+        boolean sameTipo = Objects.equals(lote.getTipoMateriaPrima().getId(), tipoMateriaPrima.getId());
+        boolean sameUnidadeEstoque = Objects.equals(lote.getUnidadeDeEstoque(), unidadeInternaEstoque);
+        boolean sameUnidadeCadastro = Objects.equals(lote.getUnidadeCadastroEstoque(), unidadeCadastroEstoque);
+        boolean sameAtributos = requestDTO.getAtributos() == null
+                || Objects.equals(
+                        normalizeAttributesForComparison(lote.getAtributos()),
+                        normalizeAttributesForComparison(MapStringValueTrimmer.trimObjectStringValues(requestDTO.getAtributos()))
+                );
+        boolean sameCusto = requestDTO.getCustoTotalLote() == null
+                || sameBigDecimalValue(lote.getCustoTotalLote(), requestDTO.getCustoTotalLote());
+        boolean sameMotivo = requestDTO.getMotivo() == null
+                || Objects.equals(lote.getMotivo(), TrimTextNormalizer.trimToNull(requestDTO.getMotivo()));
+
+        return sameTipo && sameUnidadeEstoque && sameUnidadeCadastro && sameAtributos && sameCusto && sameMotivo;
+    }
+
+    private boolean sameBigDecimalValue(BigDecimal currentValue, BigDecimal requestValue) {
+        if (currentValue == null || requestValue == null) {
+            return Objects.equals(currentValue, requestValue);
+        }
+
+        return currentValue.compareTo(requestValue) == 0;
+    }
+
+    private Object normalizeAttributesForComparison(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof Map<?, ?> mapValue) {
+            Map<String, Object> normalized = new java.util.LinkedHashMap<>();
+            mapValue.forEach((entryKey, entryValue) -> normalized.put(
+                    TrimTextNormalizer.trimToNull(String.valueOf(entryKey)),
+                    normalizeAttributesForComparison(entryValue)
+            ));
+            return normalized;
+        }
+
+        if (value instanceof List<?> listValue) {
+            return listValue.stream()
+                    .map(this::normalizeAttributesForComparison)
+                    .toList();
+        }
+
+        if (value instanceof String stringValue) {
+            return TrimTextNormalizer.trimToNull(stringValue);
+        }
+
+        return TrimTextNormalizer.trimToNull(String.valueOf(value));
     }
 
     private BigDecimal converterQuantidadeInicialParaUnidadeInterna(LoteMateriaPrimaRequestDTO requestDTO, TipoMateriaPrima tipoMateriaPrima) {

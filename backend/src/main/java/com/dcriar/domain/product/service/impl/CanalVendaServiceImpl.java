@@ -5,6 +5,7 @@ import com.dcriar.api.dto.response.product.CanalVendaResponseDTO;
 import com.dcriar.api.mapper.product.CanalVendaMapper;
 import com.dcriar.domain.common.persistence.NormalizedUniquenessChecker;
 import com.dcriar.domain.common.util.HumanTextNormalizer;
+import com.dcriar.domain.common.util.UniqueComparisonNormalizer;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
@@ -17,6 +18,7 @@ import com.dcriar.domain.sales.repository.VendaRepository;
 import com.dcriar.exception.custom.CanalVendaEmUsoException;
 import com.dcriar.exception.custom.CanalVendaNomeDuplicadoException;
 import com.dcriar.exception.custom.CanalVendaNaoEncontradoException;
+import com.dcriar.exception.custom.AtualizacaoSemAlteracoesException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +54,13 @@ public class CanalVendaServiceImpl implements CanalVendaService {
     public CanalVendaResponseDTO update(Long id, CanalVendaRequestDTO requestDTO) {
         CanalVenda canal = canalVendaRepository.findById(id)
                 .orElseThrow(() -> new CanalVendaNaoEncontradoException(id));
+        if (requestDTO.getNome() == null || UniqueComparisonNormalizer.equalsCatalogKey(canal.getNome(), requestDTO.getNome())) {
+            throw AtualizacaoSemAlteracoesException.para(
+                    "canalVenda",
+                    id,
+                    "Nenhuma alteração foi informada para atualizar o canal de venda."
+            );
+        }
         validarNomeDisponivelParaAtualizacao(id, requestDTO.getNome());
         canal.updateFrom(requestDTO);
         CanalVenda atualizado = canalVendaRepository.save(canal);
