@@ -822,6 +822,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
 
         LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());
+        validarCompatibilidadeMaterialEntreProdutoELote(produto, loteConsumido);
         UnidadeDeMedida unidadeExibicao = produto.getTipoMateriaPrima().getUnidadeDeConsumo();
 
         BigDecimal consumoTotalNecessario = produto.getUnidadesPorProduto()

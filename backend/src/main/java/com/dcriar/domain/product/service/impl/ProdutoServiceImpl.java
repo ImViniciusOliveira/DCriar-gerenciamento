@@ -209,7 +209,7 @@ public class ProdutoServiceImpl implements ProdutoService {
         // Por simplicidade, vamos assumir que o PATCH é o método preferencial para atualizações.
         // Implementar um PUT completo exigiria uma lógica complexa para converter entre tipos de produto,
         // o que geralmente não é uma operação de negócio desejável.
-        throw new UnsupportedOperationException("A atualização completa (PUT) de produtos não é suportada. Utilize o PATCH.");
+        throw OperacaoNaoSuportadaException.putProdutoUsePatch();
     }
 
     @Override

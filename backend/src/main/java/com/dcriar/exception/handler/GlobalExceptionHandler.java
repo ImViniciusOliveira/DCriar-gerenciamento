@@ -114,7 +114,8 @@ public class GlobalExceptionHandler {
             TipoProdutoInvalidoException.class, OperadorEstoqueInvalidoException.class,
             IncompatibilidadeMaterialException.class, QuantidadeExcedeCapacidadeLoteException.class,
             UnidadeCadastroConsumoInvalidaException.class, UnidadeEstoqueLoteInvalidaException.class,
-            UnidadeEstoqueCorteInvalidaException.class, LogicalMapKeyInvalidaException.class
+            UnidadeEstoqueCorteInvalidaException.class, LogicalMapKeyInvalidaException.class,
+            OperacaoNaoSuportadaException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
         Map<String, String> details = new LinkedHashMap<>();
@@ -133,6 +134,11 @@ public class GlobalExceptionHandler {
             case LogicalMapKeyInvalidaException e -> {
                 details.put("campo", e.getFieldPath());
                 details.put("info", e.getMessage());
+            }
+            case OperacaoNaoSuportadaException e -> {
+                details.put("recurso", e.getRecurso());
+                details.put("operacao", e.getOperacao());
+                details.put("alternativaSugerida", e.getAlternativaSugerida());
             }
             default -> details.put("info", ex.getMessage());
         }
@@ -207,11 +213,7 @@ public class GlobalExceptionHandler {
             details.put("recursoId", String.valueOf(e.getRecursoId()));
         }
 
-        if (ex instanceof AtualizacaoSemAlteracoesException) {
-            logExceptionWithDetails(ex, details, true);
-        } else {
-            logExceptionWithDetails(ex, details, false);
-        }
+        logExceptionWithDetails(ex, details, ex instanceof AtualizacaoSemAlteracoesException);
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);
     }
 
@@ -485,17 +487,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponseDTO> handleMaxSizeException(MaxUploadSizeExceededException ex, HttpServletRequest request) {
         Map<String, String> details = new LinkedHashMap<>();
-        if (ex.getMaxUploadSize() > 0) {
-            details.put("limiteBytes", String.valueOf(ex.getMaxUploadSize()));
+        Long limiteBytes = resolveUploadLimitBytes(ex);
+        Long tamanhoRecebidoBytes = resolveUploadReceivedBytes(ex);
+        if (limiteBytes != null) {
+            details.put("limiteBytes", String.valueOf(limiteBytes));
+        }
+        if (tamanhoRecebidoBytes != null) {
+            details.put("tamanhoRecebidoBytes", String.valueOf(tamanhoRecebidoBytes));
         }
         details.put("orientacao", "Envie um arquivo menor e tente novamente.");
 
-        log.warn(
+        log.info(
                 "Upload excedeu o tamanho máximo: method={} uri={} limiteBytes={}",
                 request.getMethod(),
                 request.getRequestURI(),
-                ex.getMaxUploadSize(),
-                ex
+                limiteBytes != null ? limiteBytes : ex.getMaxUploadSize()
         );
         return buildErrorResponse(
                 "O arquivo enviado excede o tamanho máximo permitido.",
@@ -636,6 +642,34 @@ public class GlobalExceptionHandler {
             current = current.getCause();
         }
         return current.getMessage();
+    }
+
+    private Long resolveUploadLimitBytes(MaxUploadSizeExceededException ex) {
+        if (ex.getMaxUploadSize() > 0) {
+            return ex.getMaxUploadSize();
+        }
+
+        String rootCause = sanitizeLogValue(resolveRootCauseMessage(ex));
+        if (rootCause == null) {
+            return null;
+        }
+
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("configured maximum \\((\\d+)\\)")
+                .matcher(rootCause);
+        return matcher.find() ? Long.parseLong(matcher.group(1)) : null;
+    }
+
+    private Long resolveUploadReceivedBytes(MaxUploadSizeExceededException ex) {
+        String rootCause = sanitizeLogValue(resolveRootCauseMessage(ex));
+        if (rootCause == null) {
+            return null;
+        }
+
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("size \\((\\d+)\\)")
+                .matcher(rootCause);
+        return matcher.find() ? Long.parseLong(matcher.group(1)) : null;
     }
 
     //endregion
