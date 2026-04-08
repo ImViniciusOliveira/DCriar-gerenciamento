@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
         details.put("valorCalculado", ex.getValorEnviado());
         details.put("limite", ex.getLimiteMaximo());
 
-        log.warn("{}: {}", ex.getClass().getSimpleName(), ex.getMessage());
+        logWarnException(ex);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
 
@@ -120,22 +120,24 @@ public class GlobalExceptionHandler {
         Map<String, String> details = new LinkedHashMap<>();
 
         // Exceptions de parâmetros de busca
-        if (ex instanceof TipoProdutoInvalidoException e) {
-            details.put("tipoProdutoFornecido", e.getTipoProdutoFornecido());
-            details.put("tiposValidos", "CORTE, CONSUMO");
-        } else if (ex instanceof OperadorEstoqueInvalidoException e) {
-            details.put("operadorFornecido", e.getOperadorFornecido());
-            details.put("operadoresValidos", "GTE (≥), LTE (≤)");
-        } else if (ex instanceof AjusteLoteInvalidoException e) {
-            details.put("campo", e.getDetalhe());
-        } else if (ex instanceof LogicalMapKeyInvalidaException e) {
-            details.put("campo", e.getFieldPath());
-            details.put("info", e.getMessage());
-        } else {
-            details.put("info", ex.getMessage());
+        switch (ex) {
+            case TipoProdutoInvalidoException e -> {
+                details.put("tipoProdutoFornecido", e.getTipoProdutoFornecido());
+                details.put("tiposValidos", "CORTE, CONSUMO");
+            }
+            case OperadorEstoqueInvalidoException e -> {
+                details.put("operadorFornecido", e.getOperadorFornecido());
+                details.put("operadoresValidos", "GTE (≥), LTE (≤)");
+            }
+            case AjusteLoteInvalidoException e -> details.put("campo", e.getDetalhe());
+            case LogicalMapKeyInvalidaException e -> {
+                details.put("campo", e.getFieldPath());
+                details.put("info", e.getMessage());
+            }
+            default -> details.put("info", ex.getMessage());
         }
 
-        log.warn("{}: {}", ex.getClass().getSimpleName(), ex.getMessage());
+        logWarnException(ex);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
 
@@ -206,9 +208,9 @@ public class GlobalExceptionHandler {
         }
 
         if (ex instanceof AtualizacaoSemAlteracoesException) {
-            log.info("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+            logInfoException(ex, details);
         } else {
-            log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+            logWarnException(ex, details);
         }
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);
     }
@@ -248,7 +250,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ProdutoInvalidoException.class)
     public ResponseEntity<ErrorResponseDTO> handleMultiFieldValidation(ProdutoInvalidoException ex) {
-        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), ex.getErrors());
+        logWarnException(ex, ex.getErrors());
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, ex.getErrors());
     }
 
@@ -293,7 +295,7 @@ public class GlobalExceptionHandler {
             details.put("quantidadeRequisitada", String.valueOf(e.getQuantidadeRequisitada()));
             details.put("saldoDisponivel", String.valueOf(e.getSaldoDisponivel()));
         }
-        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+        logWarnException(ex, details);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
 
@@ -596,6 +598,18 @@ public class GlobalExceptionHandler {
                 .replace('\r', ' ')
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    private void logWarnException(Exception ex) {
+        log.warn("{}: {}", ex.getClass().getSimpleName(), ex.getMessage());
+    }
+
+    private void logWarnException(Exception ex, Map<String, String> details) {
+        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+    }
+
+    private void logInfoException(Exception ex, Map<String, String> details) {
+        log.info("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
     }
 
     private String simplifyJsonCause(String cause) {
