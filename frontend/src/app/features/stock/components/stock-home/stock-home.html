@@ -76,7 +76,31 @@
     } @else if (isAdjustmentsSection()) {
       <div class="stock-home__adjustments">
         <div class="stock-home__adjustment-filters">
-          <mat-form-field appearance="outline" class="stock-home__movement-field">
+          <div class="stock-home__adjustment-filter-group">
+            <mat-form-field appearance="outline" class="stock-home__search-field stock-home__search-field--adjustments">
+              <mat-label>{{ getAdjustmentSearchLabel() }}</mat-label>
+              <input
+                matInput
+                type="text"
+                [placeholder]="getAdjustmentSearchPlaceholder()"
+                [formControl]="adjustmentSearchControl">
+              <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+
+            @if (activeAdjustmentView().key === 'canais') {
+              <mat-form-field appearance="outline" class="stock-home__movement-field">
+                <mat-label>Canal</mat-label>
+                <mat-select [formControl]="adjustmentChannelControl">
+                  <mat-option value="">Todos</mat-option>
+                  @for (channel of channels(); track channel.id) {
+                    <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+          </div>
+
+          <mat-form-field appearance="outline" class="stock-home__movement-field stock-home__movement-field--adjustments">
             <mat-label>Base do ajuste</mat-label>
             <mat-select
               [value]="activeAdjustmentView().key"

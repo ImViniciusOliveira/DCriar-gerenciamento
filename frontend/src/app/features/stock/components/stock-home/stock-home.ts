@@ -33,8 +33,10 @@ import {
   AdjustmentLotSummary,
   AdjustmentProductSummary
 } from '../../models/stock-adjustment.model';
+import { Channel } from '../../models/channel.model';
 import { ApiResponseStockHistory, StockHistoryItem, StockMovementTypeOption } from '../../models/stock-history.model';
 import { BatchService } from '../../services/batch.service';
+import { ChannelService } from '../../services/channel.service';
 import { StockService } from '../../services/stock.service';
 import { BatchForm } from '../batch-form/batch-form';
 import { ChannelStockAdjustmentForm } from '../channel-stock-adjustment-form/channel-stock-adjustment-form';
@@ -93,6 +95,7 @@ export class StockHome implements AfterViewInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly stockService = inject(StockService);
   private readonly batchService = inject(BatchService);
+  private readonly channelService = inject(ChannelService);
   private readonly entityDialog = inject(EntityDialogService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly pagination = inject(PaginationHandler);
@@ -162,6 +165,11 @@ export class StockHome implements AfterViewInit {
   protected readonly adjustmentPageIndex = signal(0);
   protected readonly adjustmentSortActive = signal('tipoMateriaPrima.nome');
   protected readonly adjustmentSortDirection = signal<Sort['direction']>('asc');
+  protected readonly adjustmentSearchControl = new FormControl('', { nonNullable: true });
+  protected readonly adjustmentChannelControl = new FormControl<number | ''>('', { nonNullable: true });
+  protected readonly adjustmentSearch = signal('');
+  protected readonly selectedAdjustmentChannelId = signal<number | null>(null);
+  protected readonly channels = signal<Channel[]>([]);
   protected readonly adjustmentRefreshVersion = signal(0);
 
   historyTableColumns: TableColumn<StockHistoryItem>[] = [];
@@ -220,6 +228,12 @@ export class StockHome implements AfterViewInit {
       ),
       { initialValue: [] }
     );
+    const channelsResponse = toSignal(
+      this.channelService.getAllChannels().pipe(
+        catchError(() => of([]))
+      ),
+      { initialValue: [] }
+    );
 
     effect(() => {
       const response = historyResponse();
@@ -230,6 +244,27 @@ export class StockHome implements AfterViewInit {
 
     effect(() => {
       this.movementTypes.set(movementTypesResponse());
+    });
+
+    effect(() => {
+      this.channels.set(channelsResponse());
+    });
+
+    this.adjustmentSearchControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(value => {
+      this.adjustmentSearch.set(value.trim());
+      this.resetAdjustmentPage();
+    });
+
+    this.adjustmentChannelControl.valueChanges.pipe(
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(value => {
+      this.selectedAdjustmentChannelId.set(value === '' ? null : Number(value));
+      this.resetAdjustmentPage();
     });
 
     effect(() => {
@@ -262,6 +297,8 @@ export class StockHome implements AfterViewInit {
       const pageSize = this.adjustmentPageSize();
       const sortActive = this.adjustmentSortActive();
       const sortDirection = this.adjustmentSortDirection();
+      const search = this.adjustmentSearch();
+      const channelId = this.selectedAdjustmentChannelId();
       this.adjustmentRefreshVersion();
 
       this.updateAdjustmentColumns(view.key);
@@ -273,7 +310,7 @@ export class StockHome implements AfterViewInit {
       }
 
       const sort = sortDirection ? `${sortActive},${sortDirection}` : sortActive;
-      const subscription = this.getAdjustmentRows$(view.key, pageIndex, pageSize, sort)
+      const subscription = this.getAdjustmentRows$(view.key, pageIndex, pageSize, sort, search, channelId)
         .subscribe(result => {
           this.adjustmentItems.set(result.items);
           this.adjustmentTotalElements.set(result.total);
@@ -310,6 +347,10 @@ export class StockHome implements AfterViewInit {
 
   protected setActiveAdjustmentView(view: AdjustmentViewOption): void {
     this.activeAdjustmentView.set(view);
+    if (view.key !== 'canais') {
+      this.adjustmentChannelControl.setValue('', { emitEvent: false });
+      this.selectedAdjustmentChannelId.set(null);
+    }
     this.resetAdjustmentTable(view.key);
   }
 
@@ -343,7 +384,27 @@ export class StockHome implements AfterViewInit {
     const defaults = this.getAdjustmentDefaultSort(this.activeAdjustmentView().key);
     this.adjustmentSortActive.set(sort.direction ? sort.active : defaults.active);
     this.adjustmentSortDirection.set(sort.direction || defaults.direction);
-    this.adjustmentPageIndex.set(0);
+    this.resetAdjustmentPage();
+  }
+
+  protected getAdjustmentSearchLabel(): string {
+    switch (this.activeAdjustmentView().key) {
+      case 'lotes':
+        return 'Buscar lote';
+      case 'produtos':
+      case 'canais':
+        return 'Buscar produto';
+    }
+  }
+
+  protected getAdjustmentSearchPlaceholder(): string {
+    switch (this.activeAdjustmentView().key) {
+      case 'lotes':
+        return 'Digite o nome da matéria-prima';
+      case 'produtos':
+      case 'canais':
+        return 'Digite o nome ou SKU do produto';
+    }
   }
 
   protected hasProductNameChanged(item: StockHistoryItem): boolean {
@@ -494,10 +555,14 @@ export class StockHome implements AfterViewInit {
 
   private resetAdjustmentTable(view: AdjustmentViewKey): void {
     const defaultSort = this.getAdjustmentDefaultSort(view);
-    this.adjustmentPageIndex.set(0);
     this.adjustmentPageSize.set(10);
     this.adjustmentSortActive.set(defaultSort.active);
     this.adjustmentSortDirection.set(defaultSort.direction);
+    this.resetAdjustmentPage();
+  }
+
+  private resetAdjustmentPage(): void {
+    this.adjustmentPageIndex.set(0);
   }
 
   private getAdjustmentDefaultSort(view: AdjustmentViewKey): Sort {
@@ -553,10 +618,22 @@ export class StockHome implements AfterViewInit {
     this.cdr.markForCheck();
   }
 
-  private getAdjustmentRows$(view: AdjustmentViewKey, page: number, size: number, sort: string): Observable<{ items: AdjustmentTableRow[]; total: number }> {
+  private getAdjustmentRows$(
+    view: AdjustmentViewKey,
+    page: number,
+    size: number,
+    sort: string,
+    search: string,
+    channelId: number | null
+  ): Observable<{ items: AdjustmentTableRow[]; total: number }> {
     switch (view) {
       case 'lotes':
-        return this.stockService.searchAdjustmentLots({ page, size, sort }).pipe(
+        return this.stockService.searchAdjustmentLots({
+          page,
+          size,
+          sort,
+          nomeMateriaPrima: search || undefined
+        }).pipe(
           map(response => ({
             items: response.items.map(lot => ({ rowType: 'lotes' as const, lot })),
             total: response.total
@@ -564,7 +641,12 @@ export class StockHome implements AfterViewInit {
           catchError(() => of({ items: [] as AdjustmentTableRow[], total: 0 }))
         );
       case 'produtos':
-        return this.stockService.searchAdjustmentProducts({ page, size, sort }).pipe(
+        return this.stockService.searchAdjustmentProducts({
+          page,
+          size,
+          sort,
+          nomeProduto: search || undefined
+        }).pipe(
           map(response => ({
             items: response.items.map(product => ({ rowType: 'produtos' as const, product })),
             total: response.total
@@ -572,7 +654,13 @@ export class StockHome implements AfterViewInit {
           catchError(() => of({ items: [] as AdjustmentTableRow[], total: 0 }))
         );
       case 'canais':
-        return this.stockService.searchAdjustmentChannels({ page, size, sort }).pipe(
+        return this.stockService.searchAdjustmentChannels({
+          page,
+          size,
+          sort,
+          nomeProduto: search || undefined,
+          canalVendaId: channelId ?? undefined
+        }).pipe(
           map(response => ({
             items: response.items.map(channel => ({ rowType: 'canais' as const, channel })),
             total: response.total
