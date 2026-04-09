@@ -33,7 +33,9 @@ import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,8 +58,50 @@ import static java.util.stream.Collectors.groupingBy;
 public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     private static final Map<String, String> HISTORICO_STABLE_SORTS = Map.of("data", "id");
     private static final Map<String, String> RESUMO_STABLE_SORTS = Map.of("produto.nome", "produto.id");
-    private static final Map<String, String> AJUSTE_PRODUTOS_STABLE_SORTS = Map.of("nome", "id");
-    private static final Map<String, String> AJUSTE_CANAIS_STABLE_SORTS = Map.of("produto.nome", "produto.id", "canalVenda.nome", "canalVenda.id");
+    private static final Map<String, String> AJUSTE_PRODUTOS_SORT_ALIASES = Map.of(
+            "nome", "nome",
+            "nomeProduto", "nome",
+            "sku", "sku",
+            "skuProduto", "sku",
+            "estoqueFisicoTotal", "estoqueFisicoTotal",
+            "estoqueDistribuidoTotal", "estoqueDistribuidoTotal",
+            "estoqueDisponivelParaAlocar", "estoqueDisponivelParaAlocar"
+    );
+    private static final Map<String, String> AJUSTE_PRODUTOS_STABLE_SORTS = Map.of(
+            "nome", "id",
+            "sku", "id",
+            "estoqueFisicoTotal", "id",
+            "estoqueDistribuidoTotal", "id",
+            "estoqueDisponivelParaAlocar", "id"
+    );
+    private static final Map<String, String> AJUSTE_CANAIS_SORT_ALIASES = Map.ofEntries(
+            Map.entry("produto.nome", "produto.nome"),
+            Map.entry("nome", "produto.nome"),
+            Map.entry("nomeProduto", "produto.nome"),
+            Map.entry("produto.sku", "produto.sku"),
+            Map.entry("sku", "produto.sku"),
+            Map.entry("skuProduto", "produto.sku"),
+            Map.entry("canalVenda.nome", "canalVenda.nome"),
+            Map.entry("nomeCanalVenda", "canalVenda.nome"),
+            Map.entry("quantidade", "quantidade"),
+            Map.entry("quantidadeNoCanal", "quantidade"),
+            Map.entry("estoqueFisicoTotal", "estoqueFisicoTotal"),
+            Map.entry("estoqueDistribuidoTotal", "estoqueDistribuidoTotal"),
+            Map.entry("estoqueDisponivelParaAlocar", "estoqueDisponivelParaAlocar")
+    );
+    private static final Map<String, String> AJUSTE_CANAIS_STABLE_SORTS = Map.of(
+            "produto.nome", "id",
+            "produto.sku", "id",
+            "canalVenda.nome", "id",
+            "quantidade", "id",
+            "estoqueFisicoTotal", "id",
+            "estoqueDistribuidoTotal", "id",
+            "estoqueDisponivelParaAlocar", "id"
+    );
+    private static final String SORTS_ACEITOS_AJUSTE_PRODUTOS =
+            "nome, nomeProduto, sku, skuProduto, estoqueFisicoTotal, estoqueDistribuidoTotal, estoqueDisponivelParaAlocar";
+    private static final String SORTS_ACEITOS_AJUSTE_CANAIS =
+            "produto.nome, nome, nomeProduto, produto.sku, sku, skuProduto, canalVenda.nome, nomeCanalVenda, quantidade, quantidadeNoCanal, estoqueFisicoTotal, estoqueDistribuidoTotal, estoqueDisponivelParaAlocar";
 
     private final EstoqueRepository estoqueRepository;
     private final ProdutoRepository produtoRepository;
@@ -185,7 +229,13 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         spec = spec.and(ProdutoSpecifications.comNomeLike(nomeProduto));
         spec = spec.and(ProdutoSpecifications.comTipo(tipoProduto));
 
-        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, AJUSTE_PRODUTOS_STABLE_SORTS);
+        Pageable pageableComSortTraduzido = translatePageable(
+                pageable,
+                AJUSTE_PRODUTOS_SORT_ALIASES,
+                "ajustes-produtos",
+                SORTS_ACEITOS_AJUSTE_PRODUTOS
+        );
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageableComSortTraduzido, AJUSTE_PRODUTOS_STABLE_SORTS);
         return produtoRepository.findAll(spec, pageableComDesempate)
                 .map(this::mapProdutoParaAjusteResumo);
     }
@@ -197,11 +247,17 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
             throw new CanalVendaNaoEncontradoException(canalVendaId);
         }
 
-        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, AJUSTE_CANAIS_STABLE_SORTS);
         Specification<Estoque> spec = (root, query, builder) -> builder.conjunction();
         spec = spec.and(EstoqueSpecifications.comNomeProdutoLike(nomeProduto));
         spec = spec.and(EstoqueSpecifications.comCanalVendaId(canalVendaId));
 
+        Pageable pageableComSortTraduzido = translatePageable(
+                pageable,
+                AJUSTE_CANAIS_SORT_ALIASES,
+                "ajustes-canais",
+                SORTS_ACEITOS_AJUSTE_CANAIS
+        );
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageableComSortTraduzido, AJUSTE_CANAIS_STABLE_SORTS);
         return estoqueRepository.findAll(spec, pageableComDesempate)
                 .map(this::mapEstoqueParaAjusteCanalResumo);
     }
@@ -285,27 +341,18 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     }
 
     private AjusteEstoqueProdutoResumoDTO mapProdutoParaAjusteResumo(Produto produto) {
-        Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
-        int estoqueDistribuidoTotal = estoqueRepository.findAllByProduto(produto).stream()
-                .mapToInt(Estoque::getQuantidade)
-                .sum();
-
         return AjusteEstoqueProdutoResumoDTO.builder()
                 .produtoId(produto.getId())
                 .nomeProduto(produto.getNome())
                 .skuProduto(produto.getSku())
-                .estoqueFisicoTotal(estoqueFisicoTotal)
-                .estoqueDistribuidoTotal(estoqueDistribuidoTotal)
-                .estoqueDisponivelParaAlocar(estoqueFisicoTotal - estoqueDistribuidoTotal)
+                .estoqueFisicoTotal(produto.getEstoqueFisicoTotal())
+                .estoqueDistribuidoTotal(produto.getEstoqueDistribuidoTotal())
+                .estoqueDisponivelParaAlocar(produto.getEstoqueDisponivelParaAlocar())
                 .build();
     }
 
     private AjusteEstoqueCanalResumoDTO mapEstoqueParaAjusteCanalResumo(Estoque estoque) {
         Produto produto = estoque.getProduto();
-        Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
-        int estoqueDistribuidoTotal = estoqueRepository.findAllByProduto(produto).stream()
-                .mapToInt(Estoque::getQuantidade)
-                .sum();
 
         return AjusteEstoqueCanalResumoDTO.builder()
                 .produtoId(produto.getId())
@@ -314,10 +361,33 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .canalVendaId(estoque.getCanalVenda().getId())
                 .nomeCanalVenda(estoque.getCanalVenda().getNome())
                 .quantidadeNoCanal(estoque.getQuantidade())
-                .estoqueFisicoTotal(estoqueFisicoTotal)
-                .estoqueDistribuidoTotal(estoqueDistribuidoTotal)
-                .estoqueDisponivelParaAlocar(estoqueFisicoTotal - estoqueDistribuidoTotal)
+                .estoqueFisicoTotal(estoque.getEstoqueFisicoTotal())
+                .estoqueDistribuidoTotal(estoque.getEstoqueDistribuidoTotal())
+                .estoqueDisponivelParaAlocar(estoque.getEstoqueDisponivelParaAlocar())
                 .build();
+    }
+
+    private Pageable translatePageable(
+            Pageable pageable,
+            Map<String, String> aliases,
+            String recurso,
+            String camposAceitos
+    ) {
+        if (!pageable.getSort().isSorted()) {
+            return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.unsorted());
+        }
+
+        List<Sort.Order> translatedOrders = pageable.getSort().stream()
+                .map(order -> {
+                    String translatedProperty = aliases.get(order.getProperty());
+                    if (translatedProperty == null) {
+                        throw new OrdenacaoInvalidaException(recurso, order.getProperty(), camposAceitos);
+                    }
+                    return new Sort.Order(order.getDirection(), translatedProperty);
+                })
+                .toList();
+
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(translatedOrders));
     }
 
     private String resolveNomeProdutoTermo(String nomeProduto) {

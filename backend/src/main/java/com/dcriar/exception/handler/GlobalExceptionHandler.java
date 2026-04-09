@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -120,7 +121,7 @@ public class GlobalExceptionHandler {
             IncompatibilidadeMaterialException.class, QuantidadeExcedeCapacidadeLoteException.class,
             UnidadeCadastroConsumoInvalidaException.class, UnidadeEstoqueLoteInvalidaException.class,
             UnidadeEstoqueCorteInvalidaException.class, LogicalMapKeyInvalidaException.class,
-            OperacaoNaoSuportadaException.class
+            OperacaoNaoSuportadaException.class, OrdenacaoInvalidaException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
         Map<String, String> details = new LinkedHashMap<>();
@@ -284,6 +285,11 @@ public class GlobalExceptionHandler {
                 details.put("recurso", e.getRecurso());
                 details.put("operacao", e.getOperacao());
                 details.put("alternativaSugerida", e.getAlternativaSugerida());
+            }
+            case OrdenacaoInvalidaException e -> {
+                details.put("recurso", e.getRecurso());
+                details.put("campoOrdenacao", e.getCampoOrdenacao());
+                details.put("camposAceitos", e.getCamposAceitos());
             }
             default -> {
             }
@@ -590,6 +596,31 @@ public class GlobalExceptionHandler {
                 sanitizeLogMap(details)
         );
         return buildErrorResponse(message, HttpStatus.BAD_REQUEST, details);
+    }
+
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<ErrorResponseDTO> handlePropertyReferenceException(
+            PropertyReferenceException ex,
+            HttpServletRequest request
+    ) {
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("campoOrdenacao", ex.getPropertyName());
+        details.put("orientacao", "Revise o parâmetro 'sort' e utilize apenas campos aceitos por este endpoint.");
+
+        log.info(
+                "Campo de ordenação inválido: method={} uri={} details={}",
+                request != null ? request.getMethod() : "N/A",
+                request != null ? request.getRequestURI() : "N/A",
+                sanitizeLogMap(details)
+        );
+        return buildErrorResponse(
+                String.format(
+                        "O campo de ordenação '%s' não é suportado para esta consulta.",
+                        ex.getPropertyName()
+                ),
+                HttpStatus.BAD_REQUEST,
+                details
+        );
     }
 
     /**

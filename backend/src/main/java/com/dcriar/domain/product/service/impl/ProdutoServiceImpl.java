@@ -561,14 +561,10 @@ public class ProdutoServiceImpl implements ProdutoService {
                     )
             );
         }
-        Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
-        int estoqueDistribuidoTotal = estoqueRepository.findAllByProduto(produto).stream()
-                .mapToInt(Estoque::getQuantidade)
-                .sum();
         dto.setPrecoComercial(produto.getPrecoComercial());
-        dto.setEstoqueFisicoTotal(estoqueFisicoTotal);
-        dto.setEstoqueDistribuidoTotal(estoqueDistribuidoTotal);
-        dto.setEstoqueDisponivelParaAlocar(estoqueFisicoTotal - estoqueDistribuidoTotal);
+        dto.setEstoqueFisicoTotal(produto.getEstoqueFisicoTotal());
+        dto.setEstoqueDistribuidoTotal(produto.getEstoqueDistribuidoTotal());
+        dto.setEstoqueDisponivelParaAlocar(produto.getEstoqueDisponivelParaAlocar());
         CamposBloqueadosInfo camposBloqueados = resolverCamposBloqueados(produto);
         dto.setCamposBloqueados(camposBloqueados.camposBloqueados());
         dto.setMotivosBloqueio(camposBloqueados.motivosBloqueio());

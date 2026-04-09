@@ -62,6 +62,27 @@ public abstract class Produto extends AuditableEntity {
     private Integer estoqueFisicoTotal;
 
     /**
+     * Total atualmente distribuído nos canais de venda.
+     * <p>
+     * Campo somente leitura usado para listagem e ordenação server-side.
+     */
+    @Formula("(SELECT COALESCE(SUM(e.quantidade), 0) FROM estoques e WHERE e.produto_id = id)")
+    private Integer estoqueDistribuidoTotal;
+
+    /**
+     * Saldo ainda disponível para alocação após descontar o total já distribuído.
+     * <p>
+     * Campo somente leitura usado para listagem e ordenação server-side.
+     */
+    @Formula("(" +
+            "(SELECT COALESCE(SUM(CASE WHEN mep.tipo LIKE 'ENTRADA%' THEN mep.quantidade ELSE -mep.quantidade END), 0) " +
+            " FROM movimentacoes_estoque_produto mep WHERE mep.produto_id = id)" +
+            " - " +
+            "(SELECT COALESCE(SUM(e.quantidade), 0) FROM estoques e WHERE e.produto_id = id)" +
+            ")")
+    private Integer estoqueDisponivelParaAlocar;
+
+    /**
      * Tipo persistido do produto conforme o discriminator da hierarquia.
      * <p>
      * Exposto como campo somente leitura para permitir ordenação server-side de recursos

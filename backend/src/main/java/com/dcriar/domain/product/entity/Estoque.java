@@ -3,6 +3,7 @@ package com.dcriar.domain.product.entity;
 import com.dcriar.api.dto.request.product.EstoqueRequestDTO;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Formula;
 
 /**
  * Representa o estoque de um produto acabado em um canal de venda específico.
@@ -47,6 +48,36 @@ public class Estoque {
      */
     @Column(nullable = false)
     private Integer quantidade;
+
+    /**
+     * Estoque físico total atual do produto associado a este canal.
+     * <p>
+     * Campo somente leitura usado em listagens analíticas e ajustes.
+     */
+    @Formula("(SELECT COALESCE(SUM(CASE WHEN mep.tipo LIKE 'ENTRADA%' THEN mep.quantidade ELSE -mep.quantidade END), 0) " +
+            "FROM movimentacoes_estoque_produto mep WHERE mep.produto_id = produto_id)")
+    private Integer estoqueFisicoTotal;
+
+    /**
+     * Total distribuído em todos os canais para o produto associado.
+     * <p>
+     * Campo somente leitura usado em listagens analíticas e ajustes.
+     */
+    @Formula("(SELECT COALESCE(SUM(e.quantidade), 0) FROM estoques e WHERE e.produto_id = produto_id)")
+    private Integer estoqueDistribuidoTotal;
+
+    /**
+     * Saldo ainda disponível para distribuição após considerar todos os canais.
+     * <p>
+     * Campo somente leitura usado em listagens analíticas e ajustes.
+     */
+    @Formula("(" +
+            "(SELECT COALESCE(SUM(CASE WHEN mep.tipo LIKE 'ENTRADA%' THEN mep.quantidade ELSE -mep.quantidade END), 0) " +
+            " FROM movimentacoes_estoque_produto mep WHERE mep.produto_id = produto_id)" +
+            " - " +
+            "(SELECT COALESCE(SUM(e.quantidade), 0) FROM estoques e WHERE e.produto_id = produto_id)" +
+            ")")
+    private Integer estoqueDisponivelParaAlocar;
 
     /**
      * Cria uma instância de Estoque a partir do DTO de request, centralizando regras de negócio de criação.

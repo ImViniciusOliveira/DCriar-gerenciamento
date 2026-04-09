@@ -32,7 +32,9 @@ import com.dcriar.domain.stock.util.LotePublicIdentifierFormatter;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -40,10 +42,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -57,6 +61,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     private static final Map<String, String> STABLE_SORTS = Map.of("tipoMateriaPrima.nome", "id");
+    private static final String SORTS_ACEITOS_AJUSTE_LOTES =
+            "tipoMateriaPrima.nome, nome, nomeTipoMateriaPrima, id, loteId, identificadorPublico, saldoAtual, saldoEstoque, valorAtualLote, custoUnitarioAtual";
 
     private static final int MAX_INTEGER_DIGITS_SUPPORTED = 19;
     private static final String CAMPO_LARGURA_MM = "atributos.larguraMm";
@@ -338,10 +344,12 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
             Pageable pageable
     ) {
         Specification<LoteMateriaPrima> spec = LoteMateriaPrimaSpecification.comFiltrosAjuste(nomeMateriaPrima, tipoEstrutural);
-        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, STABLE_SORTS);
+        List<AjusteLoteResumoDTO> itens = loteMateriaPrimaRepository.findAll(spec).stream()
+                .map(this::mapToAjusteResumoDTO)
+                .collect(Collectors.toList());
 
-        return loteMateriaPrimaRepository.findAll(spec, pageableComDesempate)
-                .map(this::mapToAjusteResumoDTO);
+        itens.sort(resolveComparatorLotesParaAjuste(pageable.getSort()));
+        return toPage(itens, pageable);
     }
 
     @Override
@@ -535,6 +543,63 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .valorAtualLote(responseDTO.getValorAtualLote())
                 .custoUnitarioAtual(responseDTO.getCustoUnitarioAtual())
                 .build();
+    }
+
+    private Comparator<AjusteLoteResumoDTO> resolveComparatorLotesParaAjuste(Sort sort) {
+        Sort effectiveSort = sort.isSorted() ? sort : Sort.by(Sort.Order.asc("tipoMateriaPrima.nome"));
+        Comparator<AjusteLoteResumoDTO> comparator = null;
+
+        for (Sort.Order order : effectiveSort) {
+            Comparator<AjusteLoteResumoDTO> currentComparator = switch (order.getProperty()) {
+                case "tipoMateriaPrima.nome", "nome", "nomeTipoMateriaPrima" ->
+                        compareString(AjusteLoteResumoDTO::getNomeTipoMateriaPrima, order);
+                case "id", "loteId" ->
+                        compareComparable(AjusteLoteResumoDTO::getLoteId, order);
+                case "identificadorPublico" ->
+                        compareString(AjusteLoteResumoDTO::getIdentificadorPublico, order);
+                case "saldoAtual", "saldoEstoque" ->
+                        compareComparable(AjusteLoteResumoDTO::getSaldoEstoque, order);
+                case "valorAtualLote" ->
+                        compareComparable(AjusteLoteResumoDTO::getValorAtualLote, order);
+                case "custoUnitarioAtual" ->
+                        compareComparable(AjusteLoteResumoDTO::getCustoUnitarioAtual, order);
+                default -> throw new OrdenacaoInvalidaException(
+                        "ajustes-lotes",
+                        order.getProperty(),
+                        SORTS_ACEITOS_AJUSTE_LOTES
+                );
+            };
+
+            comparator = comparator == null ? currentComparator : comparator.thenComparing(currentComparator);
+        }
+
+        return comparator
+                .thenComparing(AjusteLoteResumoDTO::getNomeTipoMateriaPrima, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+                .thenComparing(AjusteLoteResumoDTO::getIdentificadorPublico, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+                .thenComparing(AjusteLoteResumoDTO::getLoteId, Comparator.nullsLast(Long::compareTo));
+    }
+
+    private <T, U extends Comparable<? super U>> Comparator<T> compareComparable(
+            Function<T, U> extractor,
+            Sort.Order order
+    ) {
+        Comparator<T> comparator = Comparator.comparing(extractor, Comparator.nullsLast(Comparator.naturalOrder()));
+        return order.isDescending() ? comparator.reversed() : comparator;
+    }
+
+    private <T> Comparator<T> compareString(Function<T, String> extractor, Sort.Order order) {
+        Comparator<T> comparator = Comparator.comparing(extractor, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+        return order.isDescending() ? comparator.reversed() : comparator;
+    }
+
+    private <T> Page<T> toPage(List<T> itens, Pageable pageable) {
+        int start = (int) pageable.getOffset();
+        if (start >= itens.size()) {
+            return new PageImpl<>(List.of(), pageable, itens.size());
+        }
+
+        int end = Math.min(start + pageable.getPageSize(), itens.size());
+        return new PageImpl<>(itens.subList(start, end), pageable, itens.size());
     }
 
     private void validarCamposBloqueadosNaEdicao(LoteMateriaPrima lote, LoteMateriaPrimaRequestDTO requestDTO) {
