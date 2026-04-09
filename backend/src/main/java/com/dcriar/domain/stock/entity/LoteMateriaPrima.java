@@ -34,6 +34,43 @@ import java.util.Map;
 @EqualsAndHashCode(of = "id", callSuper = false)
 public class LoteMateriaPrima extends AuditableEntity {
 
+    private static final String ZERO_NUMERIC_SQL = "0::numeric";
+    private static final String SALDO_ATUAL_SQL =
+            "(SELECT COALESCE(SUM(m.quantidade), " + ZERO_NUMERIC_SQL + ") FROM movimentacoes_estoque_lote m WHERE m.lote_id = id)";
+    private static final String QTD_ENTRADA_COMPRA_SQL =
+            "(SELECT COALESCE(SUM(m.quantidade), " + ZERO_NUMERIC_SQL + ") FROM movimentacoes_estoque_lote m WHERE m.lote_id = id AND m.tipo = 'ENTRADA_COMPRA')";
+    private static final String QTD_ENTRADA_SOBRA_SQL =
+            "(SELECT COALESCE(SUM(m.quantidade), " + ZERO_NUMERIC_SQL + ") FROM movimentacoes_estoque_lote m WHERE m.lote_id = id AND m.tipo = 'ENTRADA_SOBRA')";
+    private static final String QTD_AJUSTE_POSITIVO_SQL =
+            "(SELECT COALESCE(SUM(m.quantidade), " + ZERO_NUMERIC_SQL + ") FROM movimentacoes_estoque_lote m WHERE m.lote_id = id AND m.tipo = 'AJUSTE_INVENTARIO' AND m.quantidade > 0)";
+    private static final String TEM_AJUSTE_OU_PERDA_SQL =
+            "EXISTS (SELECT 1 FROM movimentacoes_estoque_lote m WHERE m.lote_id = id AND m.tipo IN ('AJUSTE_INVENTARIO', 'PERDA_DESCARTE'))";
+    private static final String QUANTIDADE_BASE_COM_CUSTO_SQL =
+            "(CASE " +
+                    "WHEN " + QTD_ENTRADA_COMPRA_SQL + " > " + ZERO_NUMERIC_SQL + " THEN " + QTD_ENTRADA_COMPRA_SQL + " " +
+                    "WHEN " + QTD_ENTRADA_SOBRA_SQL + " > " + ZERO_NUMERIC_SQL + " THEN " + QTD_ENTRADA_SOBRA_SQL + " " +
+                    "WHEN " + QTD_AJUSTE_POSITIVO_SQL + " > " + ZERO_NUMERIC_SQL + " THEN " + QTD_AJUSTE_POSITIVO_SQL + " " +
+                    "ELSE " + ZERO_NUMERIC_SQL + " END)";
+    private static final String UNIDADE_CONSUMO_SQL =
+            "(SELECT t.unidade_de_consumo FROM tipos_materia_prima t WHERE t.id = tipo_materia_prima_id)";
+    private static final String SALDO_APRESENTACAO_SQL =
+            "(CASE " +
+                    "WHEN " + UNIDADE_CONSUMO_SQL + " = 'QUILOGRAMA' AND unidade_cadastro_estoque = 'QUILOGRAMA' " +
+                    "THEN " + SALDO_ATUAL_SQL + " / 1000 " +
+                    "WHEN " + UNIDADE_CONSUMO_SQL + " = 'LITRO' AND unidade_cadastro_estoque = 'LITRO' " +
+                    "THEN " + SALDO_ATUAL_SQL + " / 1000 " +
+                    "ELSE " + SALDO_ATUAL_SQL + " END)";
+    private static final String VALOR_ATUAL_LOTE_SQL =
+            "(CASE " +
+                    "WHEN custo_total_lote IS NULL OR " + SALDO_ATUAL_SQL + " <= " + ZERO_NUMERIC_SQL + " THEN " + ZERO_NUMERIC_SQL + " " +
+                    "WHEN " + TEM_AJUSTE_OU_PERDA_SQL + " THEN custo_total_lote " +
+                    "WHEN " + QUANTIDADE_BASE_COM_CUSTO_SQL + " <= " + ZERO_NUMERIC_SQL + " THEN " + ZERO_NUMERIC_SQL + " " +
+                    "ELSE custo_total_lote * " + SALDO_ATUAL_SQL + " / NULLIF(" + QUANTIDADE_BASE_COM_CUSTO_SQL + ", " + ZERO_NUMERIC_SQL + ") END)";
+    private static final String CUSTO_UNITARIO_ATUAL_SQL =
+            "(CASE " +
+                    "WHEN " + SALDO_APRESENTACAO_SQL + " <= " + ZERO_NUMERIC_SQL + " THEN " + ZERO_NUMERIC_SQL + " " +
+                    "ELSE " + VALOR_ATUAL_LOTE_SQL + " / NULLIF(" + SALDO_APRESENTACAO_SQL + ", " + ZERO_NUMERIC_SQL + ") END)";
+
     /**
      * O ID único do lote de matéria-prima.
      */
@@ -77,8 +114,32 @@ public class LoteMateriaPrima extends AuditableEntity {
      * Este campo é somente leitura e serve para suportar listagem e ordenação server-side
      * sem depender de uma consulta adicional por lote.
      */
-    @Formula("(SELECT COALESCE(SUM(m.quantidade), 0) FROM movimentacoes_estoque_lote m WHERE m.lote_id = id)")
+    @Formula(SALDO_ATUAL_SQL)
     private BigDecimal saldoAtual;
+
+    /**
+     * Saldo atual na unidade de apresentação do lote.
+     * <p>
+     * Campo somente leitura usado em respostas e listagens sem depender de enriquecimento manual.
+     */
+    @Formula(SALDO_APRESENTACAO_SQL)
+    private BigDecimal saldoEstoque;
+
+    /**
+     * Valor econômico atual do saldo remanescente do lote.
+     * <p>
+     * Campo somente leitura usado para listagem e ordenação server-side.
+     */
+    @Formula(VALOR_ATUAL_LOTE_SQL)
+    private BigDecimal valorAtualLote;
+
+    /**
+     * Custo unitário atual do lote na unidade de apresentação.
+     * <p>
+     * Campo somente leitura usado para listagem e ordenação server-side.
+     */
+    @Formula(CUSTO_UNITARIO_ATUAL_SQL)
+    private BigDecimal custoUnitarioAtual;
 
     /**
      * O motivo da criação ou entrada deste lote no estoque.

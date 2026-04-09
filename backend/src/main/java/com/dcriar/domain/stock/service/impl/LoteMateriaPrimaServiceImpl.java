@@ -12,27 +12,25 @@ import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
 import com.dcriar.domain.common.util.LogicalMapKeySupport;
 import com.dcriar.domain.common.util.PageableSortUtils;
-import com.dcriar.domain.common.util.TrimTextNormalizer;
 import com.dcriar.domain.common.util.MapStringValueTrimmer;
+import com.dcriar.domain.common.util.TrimTextNormalizer;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.model.LoteRetalhoHierarchyItem;
-import com.dcriar.domain.stock.model.ValorizacaoAtualLoteMateriaPrima;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.domain.stock.repository.TipoMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.specification.LoteMateriaPrimaSpecification;
 import com.dcriar.domain.stock.service.LoteRetalhoHierarchyService;
 import com.dcriar.domain.stock.service.LoteMateriaPrimaService;
-import com.dcriar.domain.stock.service.ValorizacaoLoteMateriaPrimaService;
 import com.dcriar.domain.stock.util.LotePublicIdentifierFormatter;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -42,12 +40,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -61,8 +57,24 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     private static final Map<String, String> STABLE_SORTS = Map.of("tipoMateriaPrima.nome", "id");
+    private static final Map<String, String> AJUSTE_LOTES_SORT_ALIASES = Map.of(
+            "tipoMateriaPrima.nome", "tipoMateriaPrima.nome",
+            "nome", "tipoMateriaPrima.nome",
+            "nomeTipoMateriaPrima", "tipoMateriaPrima.nome",
+            "id", "id",
+            "loteId", "id",
+            "identificadorPublico", "id",
+            "valorAtualLote", "valorAtualLote",
+            "custoUnitarioAtual", "custoUnitarioAtual"
+    );
+    private static final Map<String, String> AJUSTE_LOTES_STABLE_SORTS = Map.of(
+            "tipoMateriaPrima.nome", "id",
+            "id", "id",
+            "valorAtualLote", "id",
+            "custoUnitarioAtual", "id"
+    );
     private static final String SORTS_ACEITOS_AJUSTE_LOTES =
-            "tipoMateriaPrima.nome, nome, nomeTipoMateriaPrima, id, loteId, identificadorPublico, saldoAtual, saldoEstoque, valorAtualLote, custoUnitarioAtual";
+            "tipoMateriaPrima.nome, nome, nomeTipoMateriaPrima, id, loteId, identificadorPublico, valorAtualLote, custoUnitarioAtual";
 
     private static final int MAX_INTEGER_DIGITS_SUPPORTED = 19;
     private static final String CAMPO_LARGURA_MM = "atributos.larguraMm";
@@ -82,7 +94,6 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     private final LoteMateriaPrimaMapper loteMateriaPrimaMapper;
     private final MovimentacaoMapper movimentacaoMapper;
     private final LoteRetalhoHierarchyService loteRetalhoHierarchyService;
-    private final ValorizacaoLoteMateriaPrimaService valorizacaoLoteMateriaPrimaService;
 
     /**
      * Cria um novo lote de matéria-prima e registra sua movimentação de entrada inicial.
@@ -137,11 +148,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         novoLote.getMovimentacoes().add(movimentacaoInicial);
         LoteMateriaPrima loteSalvo = loteMateriaPrimaRepository.save(novoLote);
 
-        // 5. Enriquece a resposta com o saldo inicial.
-        LoteMateriaPrimaResponseDTO responseDTO = loteMateriaPrimaMapper.toResponseDTO(loteSalvo);
-        popularDadosDeApresentacao(responseDTO, loteSalvo, quantidadeInicialInterna);
-
-        return responseDTO;
+        return findById(loteSalvo.getId());
     }
 
     @Override
@@ -170,12 +177,8 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         lote.setUnidadeDeEstoque(unidadeInternaEstoque);
         lote.setUnidadeCadastroEstoque(unidadeCadastroEstoque);
         LoteMateriaPrima loteAtualizado = loteMateriaPrimaRepository.save(lote);
-        
-        // Enriquece a resposta com o saldo atualizado.
-        BigDecimal saldo = calcularSaldo(loteAtualizado);
-        LoteMateriaPrimaResponseDTO responseDTO = loteMateriaPrimaMapper.toResponseDTO(loteAtualizado);
-        popularDadosDeApresentacao(responseDTO, loteAtualizado, saldo);
-        return responseDTO;
+
+        return findById(loteAtualizado.getId());
     }
 
     /**
@@ -313,10 +316,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     @Transactional(readOnly = true)
     public LoteMateriaPrimaResponseDTO findById(Long id) {
         LoteMateriaPrima lote = findLoteById(id);
-        LoteMateriaPrimaResponseDTO responseDTO = loteMateriaPrimaMapper.toResponseDTO(lote);
-        popularDadosDeApresentacao(responseDTO, lote, calcularSaldo(lote));
-
-        return responseDTO;
+        return mapAndEnrichLote(lote);
     }
 
     @Override
@@ -327,13 +327,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, STABLE_SORTS);
         Page<LoteMateriaPrima> lotesPage = loteMateriaPrimaRepository.findAll(spec, pageableComDesempate);
 
-        // Mapeia a Page de entidades para uma Page de DTOs
-        return lotesPage.map(lote -> {
-            LoteMateriaPrimaResponseDTO dto = loteMateriaPrimaMapper.toResponseDTO(lote);
-            popularDadosDeApresentacao(dto, lote, calcularSaldo(lote));
-            dto.setAtributos(lote.getAtributos());
-            return dto;
-        });
+        return lotesPage.map(this::mapAndEnrichLote);
     }
 
     @Override
@@ -344,12 +338,15 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
             Pageable pageable
     ) {
         Specification<LoteMateriaPrima> spec = LoteMateriaPrimaSpecification.comFiltrosAjuste(nomeMateriaPrima, tipoEstrutural);
-        List<AjusteLoteResumoDTO> itens = loteMateriaPrimaRepository.findAll(spec).stream()
-                .map(this::mapToAjusteResumoDTO)
-                .collect(Collectors.toList());
-
-        itens.sort(resolveComparatorLotesParaAjuste(pageable.getSort()));
-        return toPage(itens, pageable);
+        Pageable pageableComSortTraduzido = translatePageable(
+                pageable,
+                AJUSTE_LOTES_SORT_ALIASES,
+                "ajustes-lotes",
+                SORTS_ACEITOS_AJUSTE_LOTES
+        );
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageableComSortTraduzido, AJUSTE_LOTES_STABLE_SORTS);
+        return loteMateriaPrimaRepository.findAll(spec, pageableComDesempate)
+                .map(this::mapToAjusteResumoDTO);
     }
 
     @Override
@@ -489,6 +486,13 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .orElseThrow(() -> new LoteMateriaPrimaNaoEncontradoException(id));
     }
 
+    private LoteMateriaPrimaResponseDTO mapAndEnrichLote(LoteMateriaPrima lote) {
+        LoteMateriaPrimaResponseDTO dto = loteMateriaPrimaMapper.toResponseDTO(lote);
+        popularDadosDeApresentacao(dto, lote, lote.getSaldoAtual());
+        dto.setAtributos(lote.getAtributos());
+        return dto;
+    }
+
     private BigDecimal calcularSaldo(LoteMateriaPrima lote) {
         if (lote.getSaldoAtual() != null) {
             return lote.getSaldoAtual();
@@ -498,24 +502,13 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
 
     private void popularDadosDeApresentacao(LoteMateriaPrimaResponseDTO responseDTO, LoteMateriaPrima lote, BigDecimal saldoInterno) {
         UnidadeDeMedida unidadeCadastro = lote.getUnidadeCadastroEstoque();
-        UnidadeDeMedida unidadePrincipal = lote.getTipoMateriaPrima().getUnidadeDeConsumo();
-        BigDecimal saldoApresentacao = saldoInterno;
-        ValorizacaoAtualLoteMateriaPrima valorizacaoAtual = valorizacaoLoteMateriaPrimaService.calcularValorizacaoAtual(lote);
-
-        if (unidadePrincipal.isConsumo() && !unidadePrincipal.isPermiteCorte()) {
-            saldoApresentacao = unidadePrincipal.converterQuantidadeDaUnidadeInternaParaInformada(
-                    saldoInterno,
-                    unidadeCadastro
-            );
-        }
-
         responseDTO.setUnidadeDeEstoque(unidadeCadastro);
         responseDTO.setUnidadeCadastroEstoque(unidadeCadastro);
         responseDTO.setUnidadeSimbolo(unidadeCadastro.getSimbolo());
-        responseDTO.setSaldoEstoque(saldoApresentacao);
+        responseDTO.setSaldoEstoque(lote.getSaldoEstoque());
         responseDTO.setSaldoInternoAtual(saldoInterno);
-        responseDTO.setValorAtualLote(valorizacaoAtual.valorAtualLote());
-        responseDTO.setCustoUnitarioAtual(valorizacaoAtual.custoUnitarioAtualApresentacao());
+        responseDTO.setValorAtualLote(lote.getValorAtualLote());
+        responseDTO.setCustoUnitarioAtual(lote.getCustoUnitarioAtual());
         responseDTO.setIdentificadorPublico(LotePublicIdentifierFormatter.format(lote));
         responseDTO.setIdentificadorOrigemPublico(lote.getLoteDeOrigem() != null
                 ? LotePublicIdentifierFormatter.format(lote.getLoteDeOrigem())
@@ -527,79 +520,43 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     }
 
     private AjusteLoteResumoDTO mapToAjusteResumoDTO(LoteMateriaPrima lote) {
-        BigDecimal saldoInterno = calcularSaldo(lote);
-        LoteMateriaPrimaResponseDTO responseDTO = loteMateriaPrimaMapper.toResponseDTO(lote);
-        popularDadosDeApresentacao(responseDTO, lote, saldoInterno);
-
         return AjusteLoteResumoDTO.builder()
                 .loteId(lote.getId())
-                .identificadorPublico(responseDTO.getIdentificadorPublico())
-                .identificadorOrigemPublico(responseDTO.getIdentificadorOrigemPublico())
+                .identificadorPublico(LotePublicIdentifierFormatter.format(lote))
+                .identificadorOrigemPublico(lote.getLoteDeOrigem() != null
+                        ? LotePublicIdentifierFormatter.format(lote.getLoteDeOrigem())
+                        : null)
                 .tipoMateriaPrimaId(lote.getTipoMateriaPrima().getId())
                 .nomeTipoMateriaPrima(lote.getTipoMateriaPrima().getNome())
-                .tipoEstrutural(responseDTO.getTipoEstrutural())
-                .saldoEstoque(responseDTO.getSaldoEstoque())
-                .unidadeSimbolo(responseDTO.getUnidadeSimbolo())
-                .valorAtualLote(responseDTO.getValorAtualLote())
-                .custoUnitarioAtual(responseDTO.getCustoUnitarioAtual())
+                .tipoEstrutural(LotePublicIdentifierFormatter.resolverTipoEstrutural(lote))
+                .saldoEstoque(lote.getSaldoEstoque())
+                .unidadeSimbolo(lote.getUnidadeCadastroEstoque().getSimbolo())
+                .valorAtualLote(lote.getValorAtualLote())
+                .custoUnitarioAtual(lote.getCustoUnitarioAtual())
                 .build();
     }
 
-    private Comparator<AjusteLoteResumoDTO> resolveComparatorLotesParaAjuste(Sort sort) {
-        Sort effectiveSort = sort.isSorted() ? sort : Sort.by(Sort.Order.asc("tipoMateriaPrima.nome"));
-        Comparator<AjusteLoteResumoDTO> comparator = null;
-
-        for (Sort.Order order : effectiveSort) {
-            Comparator<AjusteLoteResumoDTO> currentComparator = switch (order.getProperty()) {
-                case "tipoMateriaPrima.nome", "nome", "nomeTipoMateriaPrima" ->
-                        compareString(AjusteLoteResumoDTO::getNomeTipoMateriaPrima, order);
-                case "id", "loteId" ->
-                        compareComparable(AjusteLoteResumoDTO::getLoteId, order);
-                case "identificadorPublico" ->
-                        compareString(AjusteLoteResumoDTO::getIdentificadorPublico, order);
-                case "saldoAtual", "saldoEstoque" ->
-                        compareComparable(AjusteLoteResumoDTO::getSaldoEstoque, order);
-                case "valorAtualLote" ->
-                        compareComparable(AjusteLoteResumoDTO::getValorAtualLote, order);
-                case "custoUnitarioAtual" ->
-                        compareComparable(AjusteLoteResumoDTO::getCustoUnitarioAtual, order);
-                default -> throw new OrdenacaoInvalidaException(
-                        "ajustes-lotes",
-                        order.getProperty(),
-                        SORTS_ACEITOS_AJUSTE_LOTES
-                );
-            };
-
-            comparator = comparator == null ? currentComparator : comparator.thenComparing(currentComparator);
-        }
-
-        return comparator
-                .thenComparing(AjusteLoteResumoDTO::getNomeTipoMateriaPrima, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-                .thenComparing(AjusteLoteResumoDTO::getIdentificadorPublico, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-                .thenComparing(AjusteLoteResumoDTO::getLoteId, Comparator.nullsLast(Long::compareTo));
-    }
-
-    private <T, U extends Comparable<? super U>> Comparator<T> compareComparable(
-            Function<T, U> extractor,
-            Sort.Order order
+    private Pageable translatePageable(
+            Pageable pageable,
+            Map<String, String> aliases,
+            String recurso,
+            String camposAceitos
     ) {
-        Comparator<T> comparator = Comparator.comparing(extractor, Comparator.nullsLast(Comparator.naturalOrder()));
-        return order.isDescending() ? comparator.reversed() : comparator;
-    }
-
-    private <T> Comparator<T> compareString(Function<T, String> extractor, Sort.Order order) {
-        Comparator<T> comparator = Comparator.comparing(extractor, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-        return order.isDescending() ? comparator.reversed() : comparator;
-    }
-
-    private <T> Page<T> toPage(List<T> itens, Pageable pageable) {
-        int start = (int) pageable.getOffset();
-        if (start >= itens.size()) {
-            return new PageImpl<>(List.of(), pageable, itens.size());
+        if (!pageable.getSort().isSorted()) {
+            return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.unsorted());
         }
 
-        int end = Math.min(start + pageable.getPageSize(), itens.size());
-        return new PageImpl<>(itens.subList(start, end), pageable, itens.size());
+        List<Sort.Order> translatedOrders = pageable.getSort().stream()
+                .map(order -> {
+                    String translatedProperty = aliases.get(order.getProperty());
+                    if (translatedProperty == null) {
+                        throw new OrdenacaoInvalidaException(recurso, order.getProperty(), camposAceitos);
+                    }
+                    return new Sort.Order(order.getDirection(), translatedProperty);
+                })
+                .toList();
+
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(translatedOrders));
     }
 
     private void validarCamposBloqueadosNaEdicao(LoteMateriaPrima lote, LoteMateriaPrimaRequestDTO requestDTO) {
