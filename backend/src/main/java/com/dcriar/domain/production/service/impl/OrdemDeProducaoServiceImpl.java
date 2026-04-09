@@ -51,7 +51,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -1076,70 +1084,16 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                 ordem.getId(),
                 retalho.getId(),
                 retalho.getOrdemDeProducaoOrigem() != null ? retalho.getOrdemDeProducaoOrigem().getId() : ordem.getId(),
-                construirCadeiaRetalhos(retalho),
-                listarOrdensRelacionadasIds(retalho),
-                obterTipoAlteracaoAtiva(retalho),
-                obterOrdemConsumidoraAtivaId(retalho)
+                loteRetalhoHierarchyService.listarCadeiaAteRaiz(retalho).stream()
+                        .map(lote -> new ImpossivelExcluirProducaoException.CadeiaRetalhoItem(
+                                lote.getId(),
+                                lote.getOrdemDeProducaoOrigem() != null ? lote.getOrdemDeProducaoOrigem().getId() : null
+                        ))
+                        .toList(),
+                loteRetalhoHierarchyService.listarOrdensRelacionadasIds(retalho),
+                loteRetalhoHierarchyService.obterTipoAlteracaoAtiva(retalho),
+                loteRetalhoHierarchyService.obterOrdemConsumidoraAtivaId(retalho)
         );
-    }
-
-    private List<ImpossivelExcluirProducaoException.CadeiaRetalhoItem> construirCadeiaRetalhos(LoteMateriaPrima retalho) {
-        return listarCadeiaAteRaiz(retalho).stream()
-                .map(lote -> new ImpossivelExcluirProducaoException.CadeiaRetalhoItem(
-                        lote.getId(),
-                        lote.getOrdemDeProducaoOrigem() != null ? lote.getOrdemDeProducaoOrigem().getId() : null
-                ))
-                .toList();
-    }
-
-    private List<Long> listarOrdensRelacionadasIds(LoteMateriaPrima retalho) {
-        Set<Long> ordensRelacionadas = new LinkedHashSet<>();
-        List<LoteMateriaPrima> cadeia = listarCadeiaAteRaiz(retalho);
-
-        for (LoteMateriaPrima loteDaCadeia : cadeia) {
-            if (loteDaCadeia.getOrdemDeProducaoOrigem() != null) {
-                ordensRelacionadas.add(loteDaCadeia.getOrdemDeProducaoOrigem().getId());
-            }
-        }
-
-        retalho.getMovimentacoes().stream()
-                .filter(movimentacao -> movimentacao.getOrdemDeProducao() != null)
-                .map(movimentacao -> movimentacao.getOrdemDeProducao().getId())
-                .forEach(ordensRelacionadas::add);
-
-        return new ArrayList<>(ordensRelacionadas);
-    }
-
-    private List<LoteMateriaPrima> listarCadeiaAteRaiz(LoteMateriaPrima retalho) {
-        LinkedList<LoteMateriaPrima> cadeia = new LinkedList<>();
-        LoteMateriaPrima atual = retalho;
-
-        while (atual != null) {
-            cadeia.addFirst(atual);
-            atual = atual.getLoteDeOrigem();
-        }
-
-        return cadeia;
-    }
-
-    private TipoMovimentacao obterTipoAlteracaoAtiva(LoteMateriaPrima retalho) {
-        return retalho.getMovimentacoes().stream()
-                .filter(movimentacao -> switch (movimentacao.getTipo()) {
-                    case SAIDA_PRODUCAO, PERDA_DESCARTE, AJUSTE_INVENTARIO -> true;
-                    default -> false;
-                })
-                .max(Comparator.comparing(MovimentacaoEstoqueLote::getData))
-                .map(MovimentacaoEstoqueLote::getTipo)
-                .orElse(null);
-    }
-
-    private Long obterOrdemConsumidoraAtivaId(LoteMateriaPrima retalho) {
-        return retalho.getMovimentacoes().stream()
-                .filter(movimentacao -> movimentacao.getTipo() == TipoMovimentacao.SAIDA_PRODUCAO)
-                .max(Comparator.comparing(MovimentacaoEstoqueLote::getData))
-                .map(MovimentacaoEstoqueLote::getOrdemDeProducao)
-                .map(OrdemDeProducao::getId)
-                .orElse(null);
     }
 
     private void validarCompatibilidadeMaterialEntreProdutoELote(Produto produto, LoteMateriaPrima lote) {

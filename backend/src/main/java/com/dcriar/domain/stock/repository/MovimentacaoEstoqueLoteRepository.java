@@ -21,19 +21,6 @@ import java.util.List;
 @Repository
 public interface MovimentacaoEstoqueLoteRepository extends JpaRepository<MovimentacaoEstoqueLote, Long> {
 
-    /**
-     * Calcula o saldo de estoque atual para um determinado lote somando todas as
-     * suas movimentações.
-     * <p>
-     * A função COALESCE é usada para garantir que, se um lote não tiver nenhuma
-     * movimentação, o saldo retornado seja 0, em vez de nulo.
-     *
-     * @param lote O lote para o qual o saldo será calculado.
-     * @return O saldo de estoque atual como um BigDecimal.
-     */
-    @Query("SELECT COALESCE(SUM(m.quantidade), 0) FROM MovimentacaoEstoqueLote m WHERE m.lote = :lote")
-    BigDecimal findSaldoByLote(@Param("lote") LoteMateriaPrima lote);
-
     @Query("""
             SELECT COALESCE(SUM(ABS(m.quantidade)), 0)
             FROM MovimentacaoEstoqueLote m
