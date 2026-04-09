@@ -20,6 +20,8 @@ import {
 import { BatchService } from '../../services/batch.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { BatchAdjustmentImpactDialog, BatchAdjustmentImpactDialogResult } from '../batch-adjustment-impact-dialog/batch-adjustment-impact-dialog';
+import { clearApiFieldErrors, extractApiErrorPayload, resolveApiErrorMessage } from '../../../../shared/utils/api-errors';
+import { setControlError } from '../../../../shared/utils/control-errors';
 
 interface AdjustmentOption<T extends string> {
   value: T;
@@ -209,6 +211,7 @@ export class BatchAdjustmentForm {
     this.form.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
+        clearApiFieldErrors(this.form, ['quantidade']);
         if (this.calculationResult()) {
           this.calculationResult.set(null);
           this.selectedImpactedIds.set([]);
@@ -235,6 +238,7 @@ export class BatchAdjustmentForm {
       motivo: this.form.controls.motivo.getRawValue().trim()
     };
 
+    clearApiFieldErrors(this.form, ['quantidade']);
     this.isCalculating.set(true);
 
     this.batchService.calculateAdjustment(calculateUrl, payload).subscribe({
@@ -250,7 +254,7 @@ export class BatchAdjustmentForm {
       },
       error: err => {
         this.isCalculating.set(false);
-        this.entityDialog.showApiErrorSnackbar(err, BatchAdjustmentForm.Texts.CALCULATE_ERROR);
+        this.handleAdjustmentApiError(err, BatchAdjustmentForm.Texts.CALCULATE_ERROR);
       }
     });
   }
@@ -295,6 +299,7 @@ export class BatchAdjustmentForm {
       idsItensImpactadosAtualizados: selectedIds
     };
 
+    clearApiFieldErrors(this.form, ['quantidade']);
     this.isApplying.set(true);
 
     this.batchService.applyAdjustment(applyUrl, payload).subscribe({
@@ -306,9 +311,22 @@ export class BatchAdjustmentForm {
       },
       error: err => {
         this.isApplying.set(false);
-        this.entityDialog.showApiErrorSnackbar(err, BatchAdjustmentForm.Texts.APPLY_ERROR);
+        this.handleAdjustmentApiError(err, BatchAdjustmentForm.Texts.APPLY_ERROR);
       }
     });
+  }
+
+  private handleAdjustmentApiError(error: unknown, fallbackMessage: string): void {
+    const payload = extractApiErrorPayload(error);
+
+    if (payload.status === 400 || payload.status === 409) {
+      const message = resolveApiErrorMessage(error, fallbackMessage);
+      setControlError(this.form.controls.quantidade, 'backend', message);
+      this.form.controls.quantidade.markAsTouched();
+      return;
+    }
+
+    this.entityDialog.showApiErrorSnackbar(error, fallbackMessage);
   }
 
   private clearCalculatedState(): void {

@@ -38,6 +38,9 @@
         <mat-label>Quantidade</mat-label>
         <input matInput type="text" inputmode="decimal" formControlName="quantidade">
         <span matTextSuffix>{{ adjustmentUnitSymbol() }}</span>
+        @if (form.controls.quantidade.hasError('backend')) {
+          <mat-error>{{ form.controls.quantidade.getError('backend') }}</mat-error>
+        }
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="adjustment-form__full adjustment-form__motivo">
