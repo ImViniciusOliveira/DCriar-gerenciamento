@@ -15,6 +15,8 @@ import com.dcriar.api.mapper.product.EstoqueMapper;
 import com.dcriar.api.mapper.product.HistoricoEstoqueConsolidadoMapper;
 import com.dcriar.api.mapper.product.MovimentacaoProdutoMapper;
 import com.dcriar.api.mapper.product.ProdutoEstoqueDTOMapper;
+import com.dcriar.domain.common.model.CamposBloqueadosInfo;
+import com.dcriar.domain.common.util.BloqueioOperacionalEstoqueUtils;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.common.util.PostgresSearchUtils;
 import com.dcriar.domain.product.entity.CanalVenda;
@@ -44,6 +46,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
@@ -172,6 +175,35 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     @Transactional
     public void ajustarEstoqueFisico(AjusteEstoqueProdutoRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
+        CamposBloqueadosInfo bloqueiosOperacionais = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisProduto(
+                produto.getEstoqueFisicoTotal(),
+                produto.getEstoqueDistribuidoTotal(),
+                produto.getEstoqueDisponivelParaAlocar()
+        );
+        if (requestDTO.getQuantidade() < 0
+                && bloqueiosOperacionais.contemCampo(BloqueioOperacionalEstoqueUtils.ACAO_AJUSTE_FISICO_NEGATIVO)) {
+            throw new OperacaoEstoqueBloqueadaException(
+                    "PRODUTO",
+                    produto.getId(),
+                    formatarProdutoLabel(produto),
+                    Set.of(BloqueioOperacionalEstoqueUtils.ACAO_AJUSTE_FISICO_NEGATIVO),
+                    Map.of(
+                            BloqueioOperacionalEstoqueUtils.ACAO_AJUSTE_FISICO_NEGATIVO,
+                            bloqueiosOperacionais.motivosBloqueio().get(BloqueioOperacionalEstoqueUtils.ACAO_AJUSTE_FISICO_NEGATIVO)
+                    )
+            );
+        }
+
+        int estoqueFisicoAtual = produto.getEstoqueFisicoTotal() != null ? produto.getEstoqueFisicoTotal() : 0;
+        int estoqueFisicoProjetado = estoqueFisicoAtual + requestDTO.getQuantidade();
+        if (requestDTO.getQuantidade() < 0 && estoqueFisicoProjetado < 0) {
+            throw new EstoqueFisicoInsuficienteProdutoException(
+                    produto.getId(),
+                    formatarProdutoLabel(produto),
+                    requestDTO.getQuantidade(),
+                    estoqueFisicoAtual
+            );
+        }
 
         MovimentacaoEstoqueProdutoRequestDTO movimentacaoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
                 .produtoId(produto.getId())
@@ -338,6 +370,11 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     }
 
     private AjusteEstoqueProdutoResumoDTO mapProdutoParaAjusteResumo(Produto produto) {
+        CamposBloqueadosInfo camposBloqueados = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisProduto(
+                produto.getEstoqueFisicoTotal(),
+                produto.getEstoqueDistribuidoTotal(),
+                produto.getEstoqueDisponivelParaAlocar()
+        );
         return AjusteEstoqueProdutoResumoDTO.builder()
                 .produtoId(produto.getId())
                 .nomeProduto(produto.getNome())
@@ -345,11 +382,19 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .estoqueFisicoTotal(produto.getEstoqueFisicoTotal())
                 .estoqueDistribuidoTotal(produto.getEstoqueDistribuidoTotal())
                 .estoqueDisponivelParaAlocar(produto.getEstoqueDisponivelParaAlocar())
+                .camposBloqueados(camposBloqueados.camposBloqueados())
+                .motivosBloqueio(camposBloqueados.motivosBloqueio())
                 .build();
     }
 
     private AjusteEstoqueCanalResumoDTO mapEstoqueParaAjusteCanalResumo(Estoque estoque) {
         Produto produto = estoque.getProduto();
+        CamposBloqueadosInfo camposBloqueados = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisCanal(
+                estoque.getQuantidade(),
+                estoque.getEstoqueFisicoTotal(),
+                estoque.getEstoqueDistribuidoTotal(),
+                estoque.getEstoqueDisponivelParaAlocar()
+        );
 
         return AjusteEstoqueCanalResumoDTO.builder()
                 .produtoId(produto.getId())
@@ -361,6 +406,8 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .estoqueFisicoTotal(estoque.getEstoqueFisicoTotal())
                 .estoqueDistribuidoTotal(estoque.getEstoqueDistribuidoTotal())
                 .estoqueDisponivelParaAlocar(estoque.getEstoqueDisponivelParaAlocar())
+                .camposBloqueados(camposBloqueados.camposBloqueados())
+                .motivosBloqueio(camposBloqueados.motivosBloqueio())
                 .build();
     }
 

@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Map;
+import java.util.Set;
+
 @Getter
 @Setter
 @Builder
@@ -40,4 +43,10 @@ public class AjusteEstoqueCanalResumoDTO {
 
     @Schema(description = "Saldo ainda disponível para distribuição.", example = "3")
     private Integer estoqueDisponivelParaAlocar;
+
+    @Schema(description = "Ações atualmente bloqueadas para esse canal na UI.", example = "[\"ajusteCanalPositivo\"]")
+    private Set<String> camposBloqueados;
+
+    @Schema(description = "Motivos por ação bloqueada, para orientar a UI.", example = "{\"ajusteCanalPositivo\":\"Produto com distribuicao acima do estoque fisico.\"}")
+    private Map<String, String> motivosBloqueio;
 }

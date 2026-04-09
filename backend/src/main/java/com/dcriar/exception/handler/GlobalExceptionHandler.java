@@ -316,7 +316,8 @@ public class GlobalExceptionHandler {
             ProdutoSkuDuplicadoException.class, ExclusaoLoteBloqueadaException.class,
             ProdutoCamposBloqueadosException.class, TipoMateriaPrimaCamposBloqueadosException.class,
             LoteCamposBloqueadosException.class, CanalVendaEmUsoException.class,
-            CanalVendaNomeDuplicadoException.class, AtualizacaoSemAlteracoesException.class
+            CanalVendaNomeDuplicadoException.class, AtualizacaoSemAlteracoesException.class,
+            OperacaoEstoqueBloqueadaException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleConflictExceptions(RuntimeException ex) {
         Map<String, String> details = new LinkedHashMap<>();
@@ -380,6 +381,11 @@ public class GlobalExceptionHandler {
             details.put("recurso", e.getRecurso());
             details.put("recursoId", String.valueOf(e.getRecursoId()));
         }
+        else if (ex instanceof OperacaoEstoqueBloqueadaException e) {
+            details.put("tipoRecurso", e.getTipoRecurso());
+            details.put("identificador", e.getIdentificador());
+            preencherDetalhesCamposBloqueados(details, "recursoId", e.getRecursoId(), e);
+        }
 
         logInfoException(ex, details);
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);
@@ -434,7 +440,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler({
             EstoqueInsuficienteParaMovimentacaoException.class, EstoqueInsuficienteCanalException.class,
-            AlocacaoEstoqueExcedeTotalException.class, SaldoMateriaPrimaInsuficienteException.class
+            AlocacaoEstoqueExcedeTotalException.class, SaldoMateriaPrimaInsuficienteException.class,
+            EstoqueFisicoInsuficienteProdutoException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleInsufficientStock(RuntimeException ex) {
         Map<String, String> details = new LinkedHashMap<>();
@@ -464,6 +471,11 @@ public class GlobalExceptionHandler {
             details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima());
             details.put("quantidadeRequisitada", String.valueOf(e.getQuantidadeRequisitada()));
             details.put("saldoDisponivel", String.valueOf(e.getSaldoDisponivel()));
+        } else if (ex instanceof EstoqueFisicoInsuficienteProdutoException e) {
+            details.put("produtoLabel", e.getProdutoLabel());
+            details.put("quantidadeRequisitada", String.valueOf(Math.abs(e.getQuantidadeRequisitada())));
+            details.put("estoqueAtual", String.valueOf(e.getEstoqueAtual()));
+            details.put("produtoId", String.valueOf(e.getProdutoId()));
         }
         logInfoException(ex, details);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);

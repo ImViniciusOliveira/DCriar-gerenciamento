@@ -12,6 +12,8 @@ import com.dcriar.api.dto.response.production.SimulacaoConsumoResponseDTO;
 import com.dcriar.api.dto.response.production.SimulacaoCorteResponseDTO;
 import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
 import com.dcriar.api.mapper.production.PlanoDeConsumoMapper;
+import com.dcriar.domain.common.model.CamposBloqueadosInfo;
+import com.dcriar.domain.common.util.BloqueioOperacionalEstoqueUtils;
 import com.dcriar.domain.common.util.UniqueComparisonNormalizer;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
@@ -102,6 +104,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         // 1. Validações iniciais e busca de entidades principais.
         Produto produto = findProdutoById(requestDTO.getProdutoId());
+        validarProdutoAptoParaUsoEmProducao(produto);
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
             throw TipoProducaoIncompativelException.produtoNaoPermiteCorte(
                     produto.getNome(),
@@ -113,6 +116,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw LotePrincipalNaoEspecificadoException.paraProducaoPorCorte();
         }
         LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLoteId());
+        validarLoteAptoParaUsoEmProducao(lotePrincipal);
         validarCompatibilidadeMaterialEntreProdutoELote(produto, lotePrincipal);
         carregarSaldoAtualNoLote(lotePrincipal);
 
@@ -265,6 +269,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     public OrdemDeConsumoResponseDTO criarOrdemDeConsumo(OrdemDeConsumoRequestDTO requestDTO) {
         // 1. Validações iniciais e busca de entidades.
         Produto produto = findProdutoById(requestDTO.getProdutoId());
+        validarProdutoAptoParaUsoEmProducao(produto);
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumo()) {
             throw TipoProducaoIncompativelException.produtoNaoEhConsumo(
                     produto.getNome(),
@@ -273,6 +278,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
 
         LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());
+        validarLoteAptoParaUsoEmProducao(loteConsumido);
 
         // 2. Valida se o saldo do lote é suficiente.
         BigDecimal consumoTotalNecessario = produto.getUnidadesPorProduto()
@@ -324,6 +330,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         OrdemDeProducao ordemExistente = findOrdemByIdWithDetails(id);
 
         Produto produto = findProdutoById(requestDTO.getProdutoId());
+        validarProdutoAptoParaUsoEmProducao(produto);
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isPermiteCorte()) {
             throw TipoProducaoIncompativelException.produtoNaoPermiteCorte(
                     produto.getNome(),
@@ -335,6 +342,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw LotePrincipalNaoEspecificadoException.paraProducaoPorCorte();
         }
         LoteMateriaPrima lotePrincipal = findLoteById(requestDTO.getLoteId());
+        validarLoteAptoParaUsoEmProducao(lotePrincipal);
         validarCompatibilidadeMaterialEntreProdutoELote(produto, lotePrincipal);
         carregarSaldoAtualNoLote(lotePrincipal);
 
@@ -491,6 +499,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         OrdemDeProducao ordemExistente = findOrdemByIdWithDetails(id);
 
         Produto produto = findProdutoById(requestDTO.getProdutoId());
+        validarProdutoAptoParaUsoEmProducao(produto);
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumo()) {
             throw TipoProducaoIncompativelException.produtoNaoEhConsumo(
                     produto.getNome(),
@@ -499,6 +508,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
 
         LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());
+        validarLoteAptoParaUsoEmProducao(loteConsumido);
         validarCompatibilidadeMaterialEntreProdutoELote(produto, loteConsumido);
 
         BigDecimal consumoTotalNecessario = produto.getUnidadesPorProduto()
@@ -681,7 +691,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Override
     public SimulacaoCorteResponseDTO simularCorte(SimulacaoCorteRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
+        validarProdutoAptoParaUsoEmProducao(produto);
         LoteMateriaPrima loteParaSimulacao = findLoteById(requestDTO.getLoteId());
+        validarLoteAptoParaUsoEmProducao(loteParaSimulacao);
         validarCompatibilidadeMaterialEntreProdutoELote(produto, loteParaSimulacao);
         carregarSaldoDisponivelParaEdicaoNoLote(loteParaSimulacao, requestDTO.getOrdemId());
 
@@ -718,7 +730,9 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Override
     public SimulacaoCorteResponseDTO verificarCorte(VerificacaoCorteRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
+        validarProdutoAptoParaUsoEmProducao(produto);
         LoteMateriaPrima lote = findLoteById(requestDTO.getLoteId());
+        validarLoteAptoParaUsoEmProducao(lote);
         validarCompatibilidadeMaterialEntreProdutoELote(produto, lote);
         carregarSaldoDisponivelParaEdicaoNoLote(lote, requestDTO.getOrdemId());
 
@@ -822,6 +836,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     @Override
     public SimulacaoConsumoResponseDTO simularConsumo(SimulacaoConsumoRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
+        validarProdutoAptoParaUsoEmProducao(produto);
         if (!produto.getTipoMateriaPrima().getUnidadeDeConsumo().isConsumo()) {
             throw TipoProducaoIncompativelException.produtoUsaMateriaPrimaGeometrica(
                     produto.getNome(),
@@ -830,6 +845,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         }
 
         LoteMateriaPrima loteConsumido = findLoteById(requestDTO.getLoteId());
+        validarLoteAptoParaUsoEmProducao(loteConsumido);
         validarCompatibilidadeMaterialEntreProdutoELote(produto, loteConsumido);
         UnidadeDeMedida unidadeExibicao = produto.getTipoMateriaPrima().getUnidadeDeConsumo();
 
@@ -1331,6 +1347,46 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
     private Integer obterSaldoAtualProduto(Produto produto) {
         return produto.getEstoqueFisicoTotal() != null ? produto.getEstoqueFisicoTotal() : 0;
+    }
+
+    private void validarProdutoAptoParaUsoEmProducao(Produto produto) {
+        CamposBloqueadosInfo bloqueios = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisProduto(
+                produto.getEstoqueFisicoTotal(),
+                produto.getEstoqueDistribuidoTotal(),
+                produto.getEstoqueDisponivelParaAlocar()
+        );
+        if (!bloqueios.contemCampo(BloqueioOperacionalEstoqueUtils.ACAO_USAR_EM_PRODUCAO)) {
+            return;
+        }
+
+        throw new OperacaoEstoqueBloqueadaException(
+                "PRODUTO",
+                produto.getId(),
+                produto.getSku() + " - " + produto.getNome(),
+                Set.of(BloqueioOperacionalEstoqueUtils.ACAO_USAR_EM_PRODUCAO),
+                Map.of(
+                        BloqueioOperacionalEstoqueUtils.ACAO_USAR_EM_PRODUCAO,
+                        bloqueios.motivosBloqueio().get(BloqueioOperacionalEstoqueUtils.ACAO_USAR_EM_PRODUCAO)
+                )
+        );
+    }
+
+    private void validarLoteAptoParaUsoEmProducao(LoteMateriaPrima lote) {
+        CamposBloqueadosInfo bloqueios = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisLote(lote.getSaldoAtual());
+        if (!bloqueios.contemCampo(BloqueioOperacionalEstoqueUtils.ACAO_USAR_EM_PRODUCAO)) {
+            return;
+        }
+
+        throw new OperacaoEstoqueBloqueadaException(
+                "LOTE",
+                lote.getId(),
+                LotePublicIdentifierFormatter.format(lote),
+                Set.of(BloqueioOperacionalEstoqueUtils.ACAO_USAR_EM_PRODUCAO),
+                Map.of(
+                        BloqueioOperacionalEstoqueUtils.ACAO_USAR_EM_PRODUCAO,
+                        bloqueios.motivosBloqueio().get(BloqueioOperacionalEstoqueUtils.ACAO_USAR_EM_PRODUCAO)
+                )
+        );
     }
 
     private BigDecimal obterCustoUnitarioAtualDoLote(LoteMateriaPrima lote) {

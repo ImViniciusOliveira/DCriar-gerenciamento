@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.Map;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -45,4 +47,10 @@ public class AjusteLoteResumoDTO {
 
     @Schema(description = "Custo unitário atual na unidade de apresentação.", example = "12.07")
     private BigDecimal custoUnitarioAtual;
+
+    @Schema(description = "Ações atualmente bloqueadas para esse lote na UI.", example = "[\"ajusteLoteNegativo\", \"usarEmProducao\"]")
+    private Set<String> camposBloqueados;
+
+    @Schema(description = "Motivos por ação bloqueada, para orientar a UI.", example = "{\"usarEmProducao\":\"Lote com saldo negativo. Regularize com entrada ou ajuste positivo antes de continuar.\"}")
+    private Map<String, String> motivosBloqueio;
 }

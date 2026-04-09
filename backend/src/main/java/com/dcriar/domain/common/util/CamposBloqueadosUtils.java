@@ -31,4 +31,20 @@ public final class CamposBloqueadosUtils {
                 .filter(camposBloqueadosInfo::contemCampo)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
     }
+
+    public static CamposBloqueadosInfo unir(CamposBloqueadosInfo... infos) {
+        if (infos == null || infos.length == 0) {
+            return CamposBloqueadosInfo.vazio();
+        }
+
+        Map<String, String> bloqueios = new LinkedHashMap<>();
+        for (CamposBloqueadosInfo info : infos) {
+            if (info == null || info.estaVazio()) {
+                continue;
+            }
+            info.motivosBloqueio().forEach(bloqueios::putIfAbsent);
+        }
+
+        return bloqueios.isEmpty() ? CamposBloqueadosInfo.vazio() : CamposBloqueadosInfo.fromMotivos(bloqueios);
+    }
 }

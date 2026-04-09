@@ -9,6 +9,7 @@ import com.dcriar.api.dto.response.stock.MovimentacaoResponseDTO;
 import com.dcriar.api.mapper.stock.LoteMateriaPrimaMapper;
 import com.dcriar.api.mapper.stock.MovimentacaoMapper;
 import com.dcriar.domain.common.model.CamposBloqueadosInfo;
+import com.dcriar.domain.common.util.BloqueioOperacionalEstoqueUtils;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
 import com.dcriar.domain.common.util.LogicalMapKeySupport;
 import com.dcriar.domain.common.util.PageableSortUtils;
@@ -509,12 +510,16 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 ? LotePublicIdentifierFormatter.format(lote.getLoteDeOrigem())
                 : null);
         responseDTO.setTipoEstrutural(LotePublicIdentifierFormatter.resolverTipoEstrutural(lote));
-        CamposBloqueadosInfo camposBloqueados = resolverCamposBloqueados(lote);
+        CamposBloqueadosInfo camposBloqueados = CamposBloqueadosUtils.unir(
+                resolverCamposBloqueados(lote),
+                BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisLote(lote.getSaldoAtual())
+        );
         responseDTO.setCamposBloqueados(camposBloqueados.camposBloqueados());
         responseDTO.setMotivosBloqueio(camposBloqueados.motivosBloqueio());
     }
 
     private AjusteLoteResumoDTO mapToAjusteResumoDTO(LoteMateriaPrima lote) {
+        CamposBloqueadosInfo camposBloqueados = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisLote(lote.getSaldoAtual());
         return AjusteLoteResumoDTO.builder()
                 .loteId(lote.getId())
                 .identificadorPublico(LotePublicIdentifierFormatter.format(lote))
@@ -528,6 +533,8 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .unidadeSimbolo(lote.getUnidadeCadastroEstoque().getSimbolo())
                 .valorAtualLote(lote.getValorAtualLote())
                 .custoUnitarioAtual(lote.getCustoUnitarioAtual())
+                .camposBloqueados(camposBloqueados.camposBloqueados())
+                .motivosBloqueio(camposBloqueados.motivosBloqueio())
                 .build();
     }
 

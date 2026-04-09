@@ -6,6 +6,7 @@ import com.dcriar.api.dto.response.product.ProdutoResponseDTO;
 import com.dcriar.api.mapper.product.ProdutoMapper;
 import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.persistence.NormalizedUniquenessChecker;
+import com.dcriar.domain.common.util.BloqueioOperacionalEstoqueUtils;
 import com.dcriar.domain.common.util.CamposBloqueadosUtils;
 import com.dcriar.domain.common.util.HumanTextNormalizer;
 import com.dcriar.domain.common.util.LogicalMapKeySupport;
@@ -565,7 +566,14 @@ public class ProdutoServiceImpl implements ProdutoService {
         dto.setEstoqueFisicoTotal(produto.getEstoqueFisicoTotal());
         dto.setEstoqueDistribuidoTotal(produto.getEstoqueDistribuidoTotal());
         dto.setEstoqueDisponivelParaAlocar(produto.getEstoqueDisponivelParaAlocar());
-        CamposBloqueadosInfo camposBloqueados = resolverCamposBloqueados(produto);
+        CamposBloqueadosInfo camposBloqueados = CamposBloqueadosUtils.unir(
+                resolverCamposBloqueados(produto),
+                BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisProduto(
+                        produto.getEstoqueFisicoTotal(),
+                        produto.getEstoqueDistribuidoTotal(),
+                        produto.getEstoqueDisponivelParaAlocar()
+                )
+        );
         dto.setCamposBloqueados(camposBloqueados.camposBloqueados());
         dto.setMotivosBloqueio(camposBloqueados.motivosBloqueio());
         return dto;
