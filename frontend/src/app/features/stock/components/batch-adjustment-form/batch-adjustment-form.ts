@@ -60,6 +60,7 @@ export class BatchAdjustmentForm {
     CALCULATE_ERROR: 'Não foi possível calcular o ajuste do lote.',
     APPLY_SUCCESS: 'Operação aplicada com sucesso.',
     APPLY_ERROR: 'Não foi possível aplicar a operação no lote.',
+    FIELD_VALIDATION_ERROR: 'Revise os campos destacados.',
     ADJUSTMENT_OPERATION_MESSAGE: 'Ajuste corrige divergências de registro no lote. O valor total é mantido e o custo unitário é recalculado com base na nova quantidade informada.'
   };
 
@@ -323,6 +324,7 @@ export class BatchAdjustmentForm {
       const message = resolveApiErrorMessage(error, fallbackMessage);
       setControlError(this.form.controls.quantidade, 'backend', message);
       this.form.controls.quantidade.markAsTouched();
+      this.entityDialog.showErrorSnackbar(BatchAdjustmentForm.Texts.FIELD_VALIDATION_ERROR);
       return;
     }
 
