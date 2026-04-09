@@ -1,6 +1,7 @@
 package com.dcriar.api.dto.request.product;
 
 import com.dcriar.api.validation.annotation.ValidAjusteEstoque;
+import com.dcriar.domain.product.entity.enums.DirecaoAjusteEstoque;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -31,12 +32,14 @@ public class AjusteEstoqueRequestDTO {
     @Schema(description = "ID do canal de venda onde o estoque será ajustado.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long canalVendaId;
 
+    @Schema(description = "Direção do ajuste. Use ADICIONAR para alocar no canal e RETIRAR para desalocar do canal.", example = "ADICIONAR", requiredMode = Schema.RequiredMode.REQUIRED)
+    private DirecaoAjusteEstoque direcao;
+
     /**
      * A quantidade a ser ajustada.
      * <p>
-     * Use um valor positivo para adicionar estoque ao canal (alocar) e um valor
-     * negativo para remover estoque do canal (desalocar).
+     * Sempre informe um valor positivo. A direção define se a operação aloca ou desaloca.
      */
-    @Schema(description = "Quantidade a ser ajustada. Use valor positivo para alocar e negativo para desalocar estoque.", example = "-1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade absoluta a ser ajustada. Sempre positiva.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 }

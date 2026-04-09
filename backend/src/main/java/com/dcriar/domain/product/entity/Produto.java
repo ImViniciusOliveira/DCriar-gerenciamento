@@ -57,7 +57,7 @@ public abstract class Produto extends AuditableEntity {
     @JoinColumn(name = "tipo_materia_prima_id")
     private TipoMateriaPrima tipoMateriaPrima;
 
-    @Formula("(SELECT COALESCE(SUM(CASE WHEN mep.tipo LIKE 'ENTRADA%' THEN mep.quantidade ELSE -mep.quantidade END), 0) " +
+    @Formula("(SELECT COALESCE(SUM(mep.quantidade), 0) " +
              "FROM movimentacoes_estoque_produto mep WHERE mep.produto_id = id)")
     private Integer estoqueFisicoTotal;
 
@@ -75,7 +75,7 @@ public abstract class Produto extends AuditableEntity {
      * Campo somente leitura usado para listagem e ordenação server-side.
      */
     @Formula("(" +
-            "(SELECT COALESCE(SUM(CASE WHEN mep.tipo LIKE 'ENTRADA%' THEN mep.quantidade ELSE -mep.quantidade END), 0) " +
+            "(SELECT COALESCE(SUM(mep.quantidade), 0) " +
             " FROM movimentacoes_estoque_produto mep WHERE mep.produto_id = id)" +
             " - " +
             "(SELECT COALESCE(SUM(e.quantidade), 0) FROM estoques e WHERE e.produto_id = id)" +

@@ -51,8 +51,11 @@ type AdjustmentChannelsSearchParams = {
   canalVendaId?: number;
 };
 
+export type StockAdjustmentDirection = 'ADICIONAR' | 'RETIRAR';
+
 export interface ProductPhysicalAdjustmentRequest {
   produtoId: number;
+  direcao: StockAdjustmentDirection;
   quantidade: number;
   motivo: string;
 }
@@ -60,6 +63,7 @@ export interface ProductPhysicalAdjustmentRequest {
 export interface ChannelStockAdjustmentRequest {
   produtoId: number;
   canalVendaId: number;
+  direcao: StockAdjustmentDirection;
   quantidade: number;
 }
 

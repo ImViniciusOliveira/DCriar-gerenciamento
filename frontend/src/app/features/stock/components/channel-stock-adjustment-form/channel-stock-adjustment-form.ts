@@ -9,7 +9,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { AdjustmentChannelSummary } from '../../models/stock-adjustment.model';
-import { ChannelStockAdjustmentRequest, StockService } from '../../services/stock.service';
+import { ChannelStockAdjustmentRequest, StockAdjustmentDirection, StockService } from '../../services/stock.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { clearApiFieldErrors, applyApiFieldErrors, extractApiErrorPayload, resolveApiErrorMessage } from '../../../../shared/utils/api-errors';
@@ -17,10 +17,8 @@ import { clearControlError, setControlError } from '../../../../shared/utils/con
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
 import { stockApiErrorOptions } from '../../utils/stock-api-errors';
 
-type ChannelAdjustmentDirection = 'ADICIONAR' | 'RETIRAR';
-
 interface ChannelAdjustmentOption {
-  value: ChannelAdjustmentDirection;
+  value: StockAdjustmentDirection;
   label: string;
 }
 
@@ -57,7 +55,7 @@ export class ChannelStockAdjustmentForm {
     validationError: 'Revise os campos destacados.'
   };
 
-  private readonly fb = inject(FormBuilder);
+  private readonly fb = inject(FormBuilder).nonNullable;
   private readonly dialogRef = inject(MatDialogRef<ChannelStockAdjustmentForm>);
   private readonly stockService = inject(StockService);
   private readonly entityDialog = inject(EntityDialogService);
@@ -65,20 +63,19 @@ export class ChannelStockAdjustmentForm {
 
   readonly matcher = new InstantErrorStateMatcher();
   readonly isSaving = signal(false);
+  readonly backendMaxQuantity = signal<number | null>(null);
   readonly options: ChannelAdjustmentOption[] = [
     { value: 'ADICIONAR', label: 'Adicionar ao canal' },
     { value: 'RETIRAR', label: 'Retirar do canal' }
   ];
 
   readonly form = this.fb.group({
-    direcao: this.fb.control<ChannelAdjustmentDirection | null>('ADICIONAR', { validators: [Validators.required] }),
+    direcao: this.fb.control<StockAdjustmentDirection>('ADICIONAR', { validators: [Validators.required] }),
     quantidade: this.fb.control('', [Validators.required, Validators.pattern(/^[1-9]\d*$/)])
   });
 
-  readonly selectedDirectionLockReason = computed(() => {
-    const direction = this.form.controls.direcao.getRawValue();
-    return direction ? this.getDirectionLockReason(direction) : null;
-  });
+  readonly selectedDirectionLockReason = computed(() => this.getDirectionLockReason(this.form.controls.direcao.getRawValue()));
+  readonly maxAllowedQuantity = computed(() => this.resolveEffectiveMaxQuantity());
 
   readonly hasAvailableDirection = computed(() => this.options.some(option => !this.isDirectionLocked(option.value)));
 
@@ -89,8 +86,16 @@ export class ChannelStockAdjustmentForm {
         .subscribe(() => clearControlError(this.form.get(controlPath), 'backend'));
     });
 
-    const firstAvailable = this.options.find(option => !this.isDirectionLocked(option.value))?.value ?? null;
+    this.form.controls.direcao.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.backendMaxQuantity.set(null);
+        this.updateQuantityValidators();
+      });
+
+    const firstAvailable = this.options.find(option => !this.isDirectionLocked(option.value))?.value ?? 'ADICIONAR';
     this.form.controls.direcao.setValue(firstAvailable);
+    this.updateQuantityValidators();
   }
 
   onSave(): void {
@@ -105,8 +110,8 @@ export class ChannelStockAdjustmentForm {
     }
 
     const direction = this.form.controls.direcao.getRawValue();
-    if (!direction || this.isDirectionLocked(direction)) {
-      setControlError(this.form.controls.quantidade, 'backend', this.getDirectionLockReason(direction ?? 'ADICIONAR') ?? ChannelStockAdjustmentForm.Texts.saveError);
+    if (this.isDirectionLocked(direction)) {
+      setControlError(this.form.controls.quantidade, 'backend', this.getDirectionLockReason(direction) ?? ChannelStockAdjustmentForm.Texts.saveError);
       this.form.controls.quantidade.markAsTouched();
       this.entityDialog.showErrorSnackbar(ChannelStockAdjustmentForm.Texts.validationError);
       return;
@@ -115,7 +120,8 @@ export class ChannelStockAdjustmentForm {
     const request: ChannelStockAdjustmentRequest = {
       produtoId: this.data.template.produtoId,
       canalVendaId: this.data.template.canalVendaId,
-      quantidade: this.toSignedQuantity(direction)
+      direcao: direction,
+      quantidade: this.toAbsoluteQuantity()
     };
 
     clearApiFieldErrors(this.form, ChannelStockAdjustmentForm.BACKEND_ERROR_FIELDS);
@@ -143,24 +149,24 @@ export class ChannelStockAdjustmentForm {
     }).format(value);
   }
 
-  isDirectionLocked(direction: ChannelAdjustmentDirection): boolean {
+  isDirectionLocked(direction: StockAdjustmentDirection): boolean {
     const field = direction === 'ADICIONAR' ? 'ajusteCanalPositivo' : 'ajusteCanalNegativo';
     return hasLockedField(this.data.template, field);
   }
 
-  getDirectionLockReason(direction: ChannelAdjustmentDirection): string | null {
+  getDirectionLockReason(direction: StockAdjustmentDirection): string | null {
     return direction === 'ADICIONAR'
       ? getLockedFieldReason(this.data.template, 'ajusteCanalPositivo')
       : getLockedFieldReason(this.data.template, 'ajusteCanalNegativo');
   }
 
-  private toSignedQuantity(direction: ChannelAdjustmentDirection): number {
-    const absoluteQuantity = Number(this.form.controls.quantidade.getRawValue());
-    return direction === 'RETIRAR' ? absoluteQuantity * -1 : absoluteQuantity;
+  private toAbsoluteQuantity(): number {
+    return Number(this.form.controls.quantidade.getRawValue());
   }
 
   private handleApiError(err: unknown): void {
     clearApiFieldErrors(this.form, ChannelStockAdjustmentForm.BACKEND_ERROR_FIELDS);
+    this.applyBackendQuantityLimit(err);
     const hasFieldErrors = applyApiFieldErrors(this.form, err, {
       fieldMap: ChannelStockAdjustmentForm.BACKEND_FIELD_MAP,
       ...stockApiErrorOptions
@@ -184,5 +190,41 @@ export class ChannelStockAdjustmentForm {
     }
 
     this.entityDialog.showApiErrorSnackbar(err, ChannelStockAdjustmentForm.Texts.saveError, stockApiErrorOptions);
+  }
+
+  private resolveEffectiveMaxQuantity(): number | null {
+    const backendMax = this.backendMaxQuantity();
+    if (backendMax != null) {
+      return backendMax;
+    }
+
+    const direction = this.form.controls.direcao.getRawValue();
+    if (direction === 'ADICIONAR') {
+      return Math.max(this.data.template.estoqueDisponivelParaAlocar ?? 0, 0);
+    }
+
+    return Math.max(this.data.template.quantidadeNoCanal ?? 0, 0);
+  }
+
+  private updateQuantityValidators(): void {
+    const validators = [Validators.required, Validators.pattern(/^[1-9]\d*$/)];
+    const maxAllowed = this.resolveEffectiveMaxQuantity();
+    if (maxAllowed != null) {
+      validators.push(Validators.max(maxAllowed));
+    }
+
+    this.form.controls.quantidade.setValidators(validators);
+    this.form.controls.quantidade.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private applyBackendQuantityLimit(err: unknown): void {
+    const payload = extractApiErrorPayload(err);
+    const maxAllowed = Number(payload.details?.['quantidadeMaximaPermitida']);
+    if (!Number.isFinite(maxAllowed)) {
+      return;
+    }
+
+    this.backendMaxQuantity.set(maxAllowed);
+    this.updateQuantityValidators();
   }
 }

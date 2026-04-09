@@ -1,6 +1,7 @@
 package com.dcriar.api.dto.request.product;
 
 import com.dcriar.api.validation.annotation.ValidAjusteEstoqueProduto;
+import com.dcriar.domain.product.entity.enums.DirecaoAjusteEstoque;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -26,12 +27,15 @@ public class AjusteEstoqueProdutoRequestDTO {
     @Schema(description = "ID do produto cujo estoque físico será ajustado.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long produtoId;
 
+    @Schema(description = "Direção do ajuste. Use ADICIONAR para entrada e RETIRAR para saída.", example = "ADICIONAR", requiredMode = Schema.RequiredMode.REQUIRED)
+    private DirecaoAjusteEstoque direcao;
+
     /**
      * A quantidade a ser ajustada.
      * <p>
-     * Use um valor positivo para adicionar (entrada) e um valor negativo para remover (saída).
+     * Sempre informe um valor positivo. A direção define se a operação é de entrada ou saída.
      */
-    @Schema(description = "Quantidade a ser ajustada. Use valor positivo para entrada e negativo para saída.", example = "-1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Quantidade absoluta a ser ajustada. Sempre positiva.", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer quantidade;
 
     /**

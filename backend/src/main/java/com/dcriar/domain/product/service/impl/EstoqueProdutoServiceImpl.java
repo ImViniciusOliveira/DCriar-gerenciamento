@@ -25,6 +25,7 @@ import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
+import com.dcriar.domain.product.entity.enums.DirecaoAjusteEstoque;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
@@ -121,13 +122,14 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     public EstoqueResponseDTO ajustarEstoque(AjusteEstoqueRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         CanalVenda canalVenda = findCanalVendaById(requestDTO.getCanalVendaId());
+        int quantidadeAssinada = resolveQuantidadeAssinada(requestDTO.getDirecao(), requestDTO.getQuantidade());
 
         // 1. Validação de regra de negócio: ao adicionar estoque em um canal, o total distribuído
         // não pode ultrapassar o estoque físico disponível.
-        if (requestDTO.getQuantidade() > 0) {
+        if (quantidadeAssinada > 0) {
             int estoqueFisicoTotal = produto.getEstoqueFisicoTotal() != null ? produto.getEstoqueFisicoTotal() : 0;
             int totalDistribuido = produto.getEstoqueDistribuidoTotal() != null ? produto.getEstoqueDistribuidoTotal() : 0;
-            int novoTotalDistribuido = totalDistribuido + requestDTO.getQuantidade();
+            int novoTotalDistribuido = totalDistribuido + quantidadeAssinada;
 
             if (novoTotalDistribuido > estoqueFisicoTotal) {
                 throw new AlocacaoEstoqueExcedeTotalException(
@@ -135,7 +137,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                         formatarProdutoLabel(produto),
                         canalVenda.getId(),
                         canalVenda.getNome(),
-                        requestDTO.getQuantidade(),
+                        quantidadeAssinada,
                         novoTotalDistribuido,
                         estoqueFisicoTotal
                 );
@@ -147,7 +149,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         Estoque estoque = estoqueRepository.findByProdutoAndCanalVenda(produto, canalVenda)
                 .orElseGet(() -> criarNovoEstoque(produto, canalVenda));
 
-        int novaQuantidade = estoque.getQuantidade() + requestDTO.getQuantidade();
+        int novaQuantidade = estoque.getQuantidade() + quantidadeAssinada;
 
         // 3. Validação de regra de negócio: o estoque de um canal não pode ficar negativo.
         if (novaQuantidade < 0) {
@@ -156,7 +158,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                     formatarProdutoLabel(produto),
                     canalVenda.getId(),
                     canalVenda.getNome(),
-                    requestDTO.getQuantidade(), // A quantidade que se tentou remover
+                    quantidadeAssinada, // A quantidade que se tentou remover
                     estoque.getQuantidade()     // O estoque atual antes da operação
             );
         }
@@ -176,12 +178,13 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     @Transactional
     public void ajustarEstoqueFisico(AjusteEstoqueProdutoRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
+        int quantidadeAssinada = resolveQuantidadeAssinada(requestDTO.getDirecao(), requestDTO.getQuantidade());
         CamposBloqueadosInfo bloqueiosOperacionais = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisProduto(
                 produto.getEstoqueFisicoTotal(),
                 produto.getEstoqueDistribuidoTotal(),
                 produto.getEstoqueDisponivelParaAlocar()
         );
-        if (requestDTO.getQuantidade() < 0
+        if (quantidadeAssinada < 0
                 && bloqueiosOperacionais.contemCampo(BloqueioOperacionalEstoqueUtils.ACAO_AJUSTE_FISICO_NEGATIVO)) {
             throw new OperacaoEstoqueBloqueadaException(
                     "PRODUTO",
@@ -196,12 +199,12 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         }
 
         int estoqueFisicoAtual = produto.getEstoqueFisicoTotal() != null ? produto.getEstoqueFisicoTotal() : 0;
-        int estoqueFisicoProjetado = estoqueFisicoAtual + requestDTO.getQuantidade();
-        if (requestDTO.getQuantidade() < 0 && estoqueFisicoProjetado < 0) {
+        int estoqueFisicoProjetado = estoqueFisicoAtual + quantidadeAssinada;
+        if (quantidadeAssinada < 0 && estoqueFisicoProjetado < 0) {
             throw new EstoqueFisicoInsuficienteProdutoException(
                     produto.getId(),
                     formatarProdutoLabel(produto),
-                    requestDTO.getQuantidade(),
+                    quantidadeAssinada,
                     estoqueFisicoAtual
             );
         }
@@ -209,7 +212,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         MovimentacaoEstoqueProdutoRequestDTO movimentacaoDTO = MovimentacaoEstoqueProdutoRequestDTO.builder()
                 .produtoId(produto.getId())
                 .tipo(TipoMovimentacaoProduto.AJUSTE_MANUAL.name())
-                .quantidade(requestDTO.getQuantidade())
+                .quantidade(quantidadeAssinada)
                 .motivo(requestDTO.getMotivo())
                 .build();
         MovimentacaoEstoqueProduto movimentacaoManual = MovimentacaoEstoqueProduto.from(movimentacaoDTO, produto);
@@ -368,6 +371,14 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
     private String formatarProdutoLabel(Produto produto) {
         return produto.getSku() + " - " + produto.getNome();
+    }
+
+    private int resolveQuantidadeAssinada(DirecaoAjusteEstoque direcao, Integer quantidade) {
+        int quantidadeAbsoluta = quantidade != null ? quantidade : 0;
+        if (direcao == DirecaoAjusteEstoque.RETIRAR) {
+            return quantidadeAbsoluta * -1;
+        }
+        return quantidadeAbsoluta;
     }
 
     private AjusteEstoqueProdutoResumoDTO mapProdutoParaAjusteResumo(Produto produto) {

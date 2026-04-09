@@ -19,6 +19,7 @@ public class AjusteEstoqueValidator extends BaseValidator<ValidAjusteEstoque, Aj
     protected void validate(AjusteEstoqueRequestDTO dto) {
         addViolationIf(dto.getProdutoId() == null, "O ID do produto é obrigatório.", "produtoId");
         addViolationIf(dto.getCanalVendaId() == null, "O ID do canal de venda é obrigatório.", "canalVendaId");
-        addViolationIf(dto.getQuantidade() == null || dto.getQuantidade() == 0, "A quantidade do ajuste deve ser diferente de zero.", "quantidade");
+        addViolationIf(dto.getDirecao() == null, "A direção do ajuste é obrigatória.", "direcao");
+        addViolationIf(dto.getQuantidade() == null || dto.getQuantidade() <= 0, "A quantidade do ajuste deve ser maior que zero.", "quantidade");
     }
 }

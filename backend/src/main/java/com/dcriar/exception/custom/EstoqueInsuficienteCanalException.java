@@ -33,6 +33,7 @@ public class EstoqueInsuficienteCanalException extends RuntimeException {
      * A quantidade de unidades que estava realmente disponível no momento da falha.
      */
     private final Integer estoqueAtual;
+    private final Integer quantidadeMaximaPermitida;
 
     /**
      * Constrói a exceção com todos os detalhes da falha de estoque no canal.
@@ -65,6 +66,7 @@ public class EstoqueInsuficienteCanalException extends RuntimeException {
         this.nomeCanalVenda = nomeCanalVenda;
         this.quantidadeRequisitada = quantidadeRequisitada;
         this.estoqueAtual = estoqueAtual;
+        this.quantidadeMaximaPermitida = Math.max(estoqueAtual, 0);
     }
 
     private static String descreverUnidade(int quantidade) {

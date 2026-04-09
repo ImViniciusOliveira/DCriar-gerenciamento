@@ -20,6 +20,7 @@ import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.ProdutoDeCorte;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
+import com.dcriar.domain.product.entity.enums.DirecaoAjusteEstoque;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
@@ -941,6 +942,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
                     .produtoId(produtoId)
                     .canalVendaId(canalVendaId)
+                    .direcao(DirecaoAjusteEstoque.ADICIONAR)
                     .quantidade(quantidade)
                     .build();
             estoqueProdutoService.ajustarEstoque(ajusteDTO);
@@ -1035,7 +1037,8 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
                     .produtoId(ordem.getProduto().getId())
                     .canalVendaId(ordem.getCanalVendaDestinoId())
-                    .quantidade(-ordem.getQuantidadeProduzida())
+                    .direcao(DirecaoAjusteEstoque.RETIRAR)
+                    .quantidade(ordem.getQuantidadeProduzida())
                     .build();
             estoqueProdutoService.ajustarEstoque(ajusteDTO);
         }

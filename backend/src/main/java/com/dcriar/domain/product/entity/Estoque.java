@@ -54,7 +54,7 @@ public class Estoque {
      * <p>
      * Campo somente leitura usado em listagens analíticas e ajustes.
      */
-    @Formula("(SELECT COALESCE(SUM(CASE WHEN mep.tipo LIKE 'ENTRADA%' THEN mep.quantidade ELSE -mep.quantidade END), 0) " +
+    @Formula("(SELECT COALESCE(SUM(mep.quantidade), 0) " +
             "FROM movimentacoes_estoque_produto mep WHERE mep.produto_id = produto_id)")
     private Integer estoqueFisicoTotal;
 
@@ -72,7 +72,7 @@ public class Estoque {
      * Campo somente leitura usado em listagens analíticas e ajustes.
      */
     @Formula("(" +
-            "(SELECT COALESCE(SUM(CASE WHEN mep.tipo LIKE 'ENTRADA%' THEN mep.quantidade ELSE -mep.quantidade END), 0) " +
+            "(SELECT COALESCE(SUM(mep.quantidade), 0) " +
             " FROM movimentacoes_estoque_produto mep WHERE mep.produto_id = produto_id)" +
             " - " +
             "(SELECT COALESCE(SUM(e.quantidade), 0) FROM estoques e WHERE e.produto_id = produto_id)" +

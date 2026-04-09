@@ -16,6 +16,7 @@ import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Preco;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
+import com.dcriar.domain.product.entity.enums.DirecaoAjusteEstoque;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
@@ -329,7 +330,8 @@ public class VendaServiceImpl implements VendaService {
         AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
                 .produtoId(produto.getId())
                 .canalVendaId(canalVenda.getId())
-                .quantidade(quantity * -1)
+                .direcao(DirecaoAjusteEstoque.RETIRAR)
+                .quantidade(quantity)
                 .build();
         estoqueProdutoService.ajustarEstoque(ajusteDTO);
 
@@ -369,6 +371,7 @@ public class VendaServiceImpl implements VendaService {
             AjusteEstoqueRequestDTO ajusteDTO = AjusteEstoqueRequestDTO.builder()
                     .produtoId(item.getProduto().getId())
                     .canalVendaId(venda.getCanalVenda().getId())
+                    .direcao(DirecaoAjusteEstoque.ADICIONAR)
                     .quantidade(item.getQuantidade())
                     .build();
             estoqueProdutoService.ajustarEstoque(ajusteDTO);

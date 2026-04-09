@@ -16,6 +16,7 @@ public class AlocacaoEstoqueExcedeTotalException extends RuntimeException {
     private final int quantidadeParaAlocar;
     private final int novoTotalDistribuido;
     private final int estoqueFisicoTotal;
+    private final int quantidadeMaximaPermitida;
 
     public AlocacaoEstoqueExcedeTotalException(
             Long produtoId,
@@ -43,5 +44,6 @@ public class AlocacaoEstoqueExcedeTotalException extends RuntimeException {
         this.quantidadeParaAlocar = quantidadeParaAlocar;
         this.novoTotalDistribuido = novoTotalDistribuido;
         this.estoqueFisicoTotal = estoqueFisicoTotal;
+        this.quantidadeMaximaPermitida = Math.max(estoqueFisicoTotal - (novoTotalDistribuido - quantidadeParaAlocar), 0);
     }
 }

@@ -12,6 +12,7 @@ public class EstoqueFisicoInsuficienteProdutoException extends RuntimeException 
     private final String produtoLabel;
     private final Integer quantidadeRequisitada;
     private final Integer estoqueAtual;
+    private final Integer quantidadeMaximaPermitida;
 
     public EstoqueFisicoInsuficienteProdutoException(
             Long produtoId,
@@ -31,6 +32,7 @@ public class EstoqueFisicoInsuficienteProdutoException extends RuntimeException 
         this.produtoLabel = produtoLabel;
         this.quantidadeRequisitada = quantidadeRequisitada;
         this.estoqueAtual = estoqueAtual;
+        this.quantidadeMaximaPermitida = Math.max(estoqueAtual, 0);
     }
 
     private static String descreverUnidade(int quantidade) {

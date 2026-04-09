@@ -18,7 +18,8 @@ public class AjusteEstoqueProdutoValidator extends BaseValidator<ValidAjusteEsto
     @Override
     protected void validate(AjusteEstoqueProdutoRequestDTO dto) {
         addViolationIf(dto.getProdutoId() == null, "O ID do produto é obrigatório.", "produtoId");
-        addViolationIf(dto.getQuantidade() == null || dto.getQuantidade() == 0, "A quantidade do ajuste deve ser diferente de zero.", "quantidade");
+        addViolationIf(dto.getDirecao() == null, "A direção do ajuste é obrigatória.", "direcao");
+        addViolationIf(dto.getQuantidade() == null || dto.getQuantidade() <= 0, "A quantidade do ajuste deve ser maior que zero.", "quantidade");
         addViolationIf(dto.getMotivo() == null || dto.getMotivo().isBlank(), "O motivo é obrigatório para ajustes manuais de estoque.", "motivo");
     }
 }

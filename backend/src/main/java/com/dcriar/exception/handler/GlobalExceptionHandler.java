@@ -456,6 +456,7 @@ public class GlobalExceptionHandler {
             details.put("nomeCanalVenda", e.getNomeCanalVenda());
             details.put("quantidadeRequisitada", String.valueOf(Math.abs(e.getQuantidadeRequisitada())));
             details.put("estoqueAtual", String.valueOf(e.getEstoqueAtual()));
+            details.put("quantidadeMaximaPermitida", String.valueOf(e.getQuantidadeMaximaPermitida()));
             details.put("produtoId", String.valueOf(e.getProdutoId()));
             details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
         } else if (ex instanceof AlocacaoEstoqueExcedeTotalException e) {
@@ -464,6 +465,7 @@ public class GlobalExceptionHandler {
             details.put("quantidadeParaAlocar", String.valueOf(e.getQuantidadeParaAlocar()));
             details.put("novoTotalDistribuido", String.valueOf(e.getNovoTotalDistribuido()));
             details.put("estoqueFisicoTotal", String.valueOf(e.getEstoqueFisicoTotal()));
+            details.put("quantidadeMaximaPermitida", String.valueOf(e.getQuantidadeMaximaPermitida()));
             details.put("produtoId", String.valueOf(e.getProdutoId()));
             details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
         } else if (ex instanceof SaldoMateriaPrimaInsuficienteException e) {
@@ -475,6 +477,7 @@ public class GlobalExceptionHandler {
             details.put("produtoLabel", e.getProdutoLabel());
             details.put("quantidadeRequisitada", String.valueOf(Math.abs(e.getQuantidadeRequisitada())));
             details.put("estoqueAtual", String.valueOf(e.getEstoqueAtual()));
+            details.put("quantidadeMaximaPermitida", String.valueOf(e.getQuantidadeMaximaPermitida()));
             details.put("produtoId", String.valueOf(e.getProdutoId()));
         }
         logInfoException(ex, details);
