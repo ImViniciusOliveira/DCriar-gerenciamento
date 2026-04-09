@@ -3,6 +3,7 @@ package com.dcriar.domain.stock.repository;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
+import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -33,6 +34,18 @@ public interface MovimentacaoEstoqueLoteRepository extends JpaRepository<Movimen
     @Query("SELECT COALESCE(SUM(m.quantidade), 0) FROM MovimentacaoEstoqueLote m WHERE m.lote = :lote")
     BigDecimal findSaldoByLote(@Param("lote") LoteMateriaPrima lote);
 
+    @Query("""
+            SELECT COALESCE(SUM(ABS(m.quantidade)), 0)
+            FROM MovimentacaoEstoqueLote m
+            WHERE m.ordemDeProducao = :ordemDeProducao
+              AND m.lote = :lote
+              AND m.quantidade < 0
+            """)
+    BigDecimal findConsumoByOrdemDeProducaoAndLote(
+            @Param("ordemDeProducao") OrdemDeProducao ordemDeProducao,
+            @Param("lote") LoteMateriaPrima lote
+    );
+
     /**
      * Busca todo o histórico de movimentações de um lote específico.
      * <p>
@@ -43,6 +56,10 @@ public interface MovimentacaoEstoqueLoteRepository extends JpaRepository<Movimen
      * @return Uma lista com todas as movimentações do lote.
      */
     List<MovimentacaoEstoqueLote> findAllByLote(LoteMateriaPrima lote);
+
+    boolean existsByLoteAndTipoNot(LoteMateriaPrima lote, TipoMovimentacao tipo);
+
+    void deleteByLote(LoteMateriaPrima lote);
 
     /**
      * Busca todas as movimentações de lote associadas a uma ordem de produção específica.

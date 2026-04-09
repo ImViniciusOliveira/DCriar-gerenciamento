@@ -227,9 +227,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
     }
 
     private BigDecimal calcularSaldo(LoteMateriaPrima lote) {
-        return lote.getSaldoAtual() != null
-                ? lote.getSaldoAtual()
-                : movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+        return lote.getSaldoAtual() != null ? lote.getSaldoAtual() : BigDecimal.ZERO;
     }
 
     private BigDecimal converterQuantidadeParaUnidadeInterna(LoteMateriaPrima lote, BigDecimal quantidadeInformada) {

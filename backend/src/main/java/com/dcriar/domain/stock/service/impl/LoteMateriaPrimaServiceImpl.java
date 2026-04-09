@@ -440,10 +440,8 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .map(LoteRetalhoHierarchyItem::lote)
                 .toList();
         try {
-            descendentesParaExcluir.forEach(item -> movimentacaoEstoqueLoteRepository.deleteAll(
-                    movimentacaoEstoqueLoteRepository.findAllByLote(item)
-            ));
-            movimentacaoEstoqueLoteRepository.deleteAll(movimentacaoEstoqueLoteRepository.findAllByLote(lote));
+            descendentesParaExcluir.forEach(movimentacaoEstoqueLoteRepository::deleteByLote);
+            movimentacaoEstoqueLoteRepository.deleteByLote(lote);
             loteMateriaPrimaRepository.deleteAll(descendentesParaExcluir);
             loteMateriaPrimaRepository.delete(lote);
             loteMateriaPrimaRepository.flush();
@@ -494,10 +492,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     }
 
     private BigDecimal calcularSaldo(LoteMateriaPrima lote) {
-        if (lote.getSaldoAtual() != null) {
-            return lote.getSaldoAtual();
-        }
-        return movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+        return lote.getSaldoAtual() != null ? lote.getSaldoAtual() : BigDecimal.ZERO;
     }
 
     private void popularDadosDeApresentacao(LoteMateriaPrimaResponseDTO responseDTO, LoteMateriaPrima lote, BigDecimal saldoInterno) {
@@ -599,8 +594,8 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     }
 
     private boolean lotePossuiUsoOperacional(LoteMateriaPrima lote) {
-        boolean possuiMovimentacaoOperacional = movimentacaoEstoqueLoteRepository.findAllByLote(lote).stream()
-                .anyMatch(movimentacao -> movimentacao.getTipo() != TipoMovimentacao.ENTRADA_COMPRA);
+        boolean possuiMovimentacaoOperacional =
+                movimentacaoEstoqueLoteRepository.existsByLoteAndTipoNot(lote, TipoMovimentacao.ENTRADA_COMPRA);
 
         return lote.getLoteDeOrigem() != null
                 || lote.getOrdemDeProducaoOrigem() != null

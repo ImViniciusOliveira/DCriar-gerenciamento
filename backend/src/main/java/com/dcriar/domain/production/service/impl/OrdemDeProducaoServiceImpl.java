@@ -269,7 +269,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         // 2. Valida se o saldo do lote é suficiente.
         BigDecimal consumoTotalNecessario = produto.getUnidadesPorProduto()
                 .multiply(BigDecimal.valueOf(requestDTO.getQuantidadeProduzida()));
-        BigDecimal saldoDisponivel = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteConsumido);
+        BigDecimal saldoDisponivel = obterSaldoAtualDoLote(loteConsumido);
 
         if (saldoDisponivel.compareTo(consumoTotalNecessario) < 0) {
             throw new SaldoMateriaPrimaInsuficienteException(
@@ -495,7 +495,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
 
         BigDecimal consumoTotalNecessario = produto.getUnidadesPorProduto()
                 .multiply(BigDecimal.valueOf(requestDTO.getQuantidadeProduzida()));
-        BigDecimal saldoDisponivel = movimentacaoEstoqueLoteRepository.findSaldoByLote(loteConsumido);
+        BigDecimal saldoDisponivel = obterSaldoAtualDoLote(loteConsumido);
 
         if (saldoDisponivel.compareTo(consumoTotalNecessario) < 0) {
             throw new SaldoMateriaPrimaInsuficienteException(
@@ -868,7 +868,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         
         BigDecimal quantidadeRealRetalho = calcularQuantidadeRetalhoNaUnidadeDoLote(lotePrincipal, larguraSobraCm, comprimentoRetalhoCm);
 
-        BigDecimal custoUnitario = calcularCustoUnitario(lotePrincipal);
+        BigDecimal custoUnitario = obterCustoUnitarioAtualDoLote(lotePrincipal);
         
         BigDecimal custoTotalRetalho = custoUnitario.multiply(quantidadeRealRetalho);
 
@@ -899,62 +899,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
         entradaRetalho.setOrdemDeProducao(ordemOrigem);
         
         movimentacaoEstoqueLoteRepository.save(entradaRetalho);
-    }
-
-    private BigDecimal calcularCustoUnitario(LoteMateriaPrima lote) {
-        BigDecimal saldoAtual = lote.getSaldoCalculado() != null
-                ? lote.getSaldoCalculado()
-                : movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
-
-        if (possuiAjusteOuPerdaManual(lote)) {
-            if (saldoAtual.compareTo(BigDecimal.ZERO) <= 0 || lote.getCustoTotalLote() == null) {
-                return BigDecimal.ZERO;
-            }
-            return lote.getCustoTotalLote().divide(saldoAtual, 4, RoundingMode.HALF_UP);
-        }
-
-        BigDecimal quantidadeBaseComCusto = calcularQuantidadeBaseComCusto(lote);
-        if (quantidadeBaseComCusto.compareTo(BigDecimal.ZERO) <= 0 || lote.getCustoTotalLote() == null) {
-            return BigDecimal.ZERO;
-        }
-
-        return lote.getCustoTotalLote().divide(quantidadeBaseComCusto, 4, RoundingMode.HALF_UP);
-    }
-
-    private boolean possuiAjusteOuPerdaManual(LoteMateriaPrima lote) {
-        return lote.getMovimentacoes().stream()
-                .map(MovimentacaoEstoqueLote::getTipo)
-                .anyMatch(tipo -> tipo == TipoMovimentacao.AJUSTE_INVENTARIO || tipo == TipoMovimentacao.PERDA_DESCARTE);
-    }
-
-    private BigDecimal calcularQuantidadeBaseComCusto(LoteMateriaPrima lote) {
-        BigDecimal quantidadeEntradaCompra = somarQuantidadePorTipo(lote, TipoMovimentacao.ENTRADA_COMPRA);
-        if (quantidadeEntradaCompra.compareTo(BigDecimal.ZERO) > 0) {
-            return quantidadeEntradaCompra;
-        }
-
-        BigDecimal quantidadeEntradaSobra = somarQuantidadePorTipo(lote, TipoMovimentacao.ENTRADA_SOBRA);
-        if (quantidadeEntradaSobra.compareTo(BigDecimal.ZERO) > 0) {
-            return quantidadeEntradaSobra;
-        }
-
-        BigDecimal quantidadeAjustePositiva = lote.getMovimentacoes().stream()
-                .filter(movimentacao -> movimentacao.getTipo() == TipoMovimentacao.AJUSTE_INVENTARIO)
-                .map(MovimentacaoEstoqueLote::getQuantidade)
-                .filter(quantidade -> quantidade.compareTo(BigDecimal.ZERO) > 0)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return quantidadeAjustePositiva.compareTo(BigDecimal.ZERO) > 0
-                ? quantidadeAjustePositiva
-                : BigDecimal.ZERO;
-    }
-
-    private BigDecimal somarQuantidadePorTipo(LoteMateriaPrima lote, TipoMovimentacao tipoMovimentacao) {
-        return lote.getMovimentacoes().stream()
-                .filter(movimentacao -> movimentacao.getTipo() == tipoMovimentacao)
-                .map(MovimentacaoEstoqueLote::getQuantidade)
-                .filter(quantidade -> quantidade.compareTo(BigDecimal.ZERO) > 0)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private void registrarSaidaLote(LoteMateriaPrima lote, BigDecimal quantidade, String motivo, OrdemDeProducao ordem) {
@@ -993,7 +937,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private void validarSaldoLoteCorte(LoteMateriaPrima lote, BigDecimal consumoEmMetros) {
-        BigDecimal saldoAtual = lote.getSaldoCalculado() != null ? lote.getSaldoCalculado() : movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+        BigDecimal saldoAtual = obterSaldoAtualDoLote(lote);
         if (consumoEmMetros.compareTo(saldoAtual) > 0) {
             throw new SaldoMateriaPrimaInsuficienteException(
                     LotePublicIdentifierFormatter.format(lote),
@@ -1032,7 +976,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private void validarOrdemPodeSerEstornada(OrdemDeProducao ordem) {
-        Integer saldoAtualProduto = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(ordem.getProduto());
+        Integer saldoAtualProduto = obterSaldoAtualProduto(ordem.getProduto());
         if (saldoAtualProduto < ordem.getQuantidadeProduzida()) {
             throw ImpossivelExcluirProducaoException.estoqueInsuficienteParaEstorno(
                     ordem.getQuantidadeProduzida(),
@@ -1208,7 +1152,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private void carregarSaldoAtualNoLote(LoteMateriaPrima lote) {
-        lote.setSaldoCalculado(movimentacaoEstoqueLoteRepository.findSaldoByLote(lote));
+        lote.setSaldoCalculado(obterSaldoAtualDoLote(lote));
     }
 
     private void carregarSaldoDisponivelParaEdicaoNoLote(LoteMateriaPrima lote, Long ordemId) {
@@ -1328,7 +1272,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
                     .build());
             saldoRestante.put(
                     lote.getId(),
-                    converterConsumoParaUnidadeExibicao(movimentacaoEstoqueLoteRepository.findSaldoByLote(lote), unidadeExibicao)
+                    converterConsumoParaUnidadeExibicao(obterSaldoAtualDoLote(lote), unidadeExibicao)
             );
         }
 
@@ -1412,19 +1356,33 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private BigDecimal calcularSaldoDisponivelParaEdicao(LoteMateriaPrima lote, Long ordemId) {
-        BigDecimal saldoAtual = movimentacaoEstoqueLoteRepository.findSaldoByLote(lote);
+        BigDecimal saldoAtual = obterSaldoAtualDoLote(lote);
         if (ordemId == null) {
             return saldoAtual;
         }
 
         OrdemDeProducao ordem = findOrdemByIdWithDetails(ordemId);
-        BigDecimal consumoOriginalDaOrdem = movimentacaoEstoqueLoteRepository.findByOrdemDeProducao(ordem).stream()
-                .filter(mov -> mov.getLote() != null && mov.getLote().getId().equals(lote.getId()))
-                .filter(mov -> mov.getQuantidade().compareTo(BigDecimal.ZERO) < 0)
-                .map(mov -> mov.getQuantidade().abs())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal consumoOriginalDaOrdem =
+                movimentacaoEstoqueLoteRepository.findConsumoByOrdemDeProducaoAndLote(ordem, lote);
 
         return saldoAtual.add(consumoOriginalDaOrdem);
+    }
+
+    private BigDecimal obterSaldoAtualDoLote(LoteMateriaPrima lote) {
+        if (lote.getSaldoCalculado() != null) {
+            return lote.getSaldoCalculado();
+        }
+        return lote.getSaldoAtual() != null ? lote.getSaldoAtual() : BigDecimal.ZERO;
+    }
+
+    private Integer obterSaldoAtualProduto(Produto produto) {
+        return produto.getEstoqueFisicoTotal() != null ? produto.getEstoqueFisicoTotal() : 0;
+    }
+
+    private BigDecimal obterCustoUnitarioAtualDoLote(LoteMateriaPrima lote) {
+        return lote.getCustoUnitarioAtual() != null
+                ? lote.getCustoUnitarioAtual().setScale(4, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO.setScale(4, RoundingMode.HALF_UP);
     }
 
     private BigDecimal calcularConsumoCorteNaUnidadeDoLote(
