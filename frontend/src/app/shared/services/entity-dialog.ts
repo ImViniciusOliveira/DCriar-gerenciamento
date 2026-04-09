@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { ConfirmDialog, ConfirmDialogData } from '../components/confirm-dialog/confirm-dialog';
 import { AppNotificationService } from './app-notification';
+import { ApiErrorHandlingOptions, resolveApiErrorMessage } from '../utils/api-errors';
 
 /**
  * Interface para configurar um diálogo de formulário genérico.
@@ -82,6 +83,14 @@ export class EntityDialogService {
    */
   showErrorSnackbar(message: string): void {
     this.notification.showError(message);
+  }
+
+  showApiErrorSnackbar(
+    error: unknown,
+    fallbackMessage: string,
+    options?: ApiErrorHandlingOptions
+  ): void {
+    this.notification.showError(resolveApiErrorMessage(error, fallbackMessage, options));
   }
 
   /**

@@ -190,8 +190,8 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
           next: () => {
             this.entityDialog.showSuccessSnackbar(SalesList.Texts.deleteSuccess);
           },
-          error: () => {
-            this.entityDialog.showErrorSnackbar(SalesList.Texts.deleteError);
+          error: (err) => {
+            this.entityDialog.showApiErrorSnackbar(err, SalesList.Texts.deleteError);
           }
         });
       }

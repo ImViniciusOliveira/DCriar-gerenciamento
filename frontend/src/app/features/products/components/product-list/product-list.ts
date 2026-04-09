@@ -126,7 +126,7 @@ export class ProductList extends BaseList<Product> implements AfterViewInit {
         }
         this.productService.deleteProduct(deleteUrl).subscribe({
           next: () => this.entityDialog.showSuccessSnackbar(ProductList.Texts.deleteSuccess),
-          error: () => this.entityDialog.showErrorSnackbar(ProductList.Texts.deleteError)
+          error: (err) => this.entityDialog.showApiErrorSnackbar(err, ProductList.Texts.deleteError)
         });
       });
   }

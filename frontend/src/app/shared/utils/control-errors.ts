@@ -1,5 +1,29 @@
 import { AbstractControl } from '@angular/forms';
 
+export function setControlError(
+  control: AbstractControl | null,
+  errorKey: string,
+  errorValue: unknown = true
+): void {
+  if (!control) {
+    return;
+  }
+
+  control.setErrors({
+    ...(control.errors ?? {}),
+    [errorKey]: errorValue
+  });
+}
+
+export function clearControlError(control: AbstractControl | null, errorKey: string): void {
+  if (!control?.hasError(errorKey)) {
+    return;
+  }
+
+  const { [errorKey]: _, ...remainingErrors } = control.errors ?? {};
+  control.setErrors(Object.keys(remainingErrors).length ? remainingErrors : null);
+}
+
 export function toggleControlError(
   control: AbstractControl | null,
   errorKey: string,
@@ -13,18 +37,10 @@ export function toggleControlError(
 
   if (enabled) {
     if (!currentErrors[errorKey]) {
-      control.setErrors({
-        ...currentErrors,
-        [errorKey]: true
-      });
+      setControlError(control, errorKey);
     }
     return;
   }
 
-  if (!currentErrors[errorKey]) {
-    return;
-  }
-
-  const { [errorKey]: _, ...remainingErrors } = currentErrors;
-  control.setErrors(Object.keys(remainingErrors).length ? remainingErrors : null);
+  clearControlError(control, errorKey);
 }

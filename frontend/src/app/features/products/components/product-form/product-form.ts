@@ -23,8 +23,10 @@ import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN, POSITIVE_MONEY_2_PATTERN } from '../../../../shared/utils/number-patterns';
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
 import { analyzeLogicalMapKeys } from '../../../../shared/utils/logical-map-key';
-import { toggleControlError } from '../../../../shared/utils/control-errors';
+import { clearControlError, toggleControlError } from '../../../../shared/utils/control-errors';
 import { scrollDialogToElement } from '../../../../shared/utils/dialog-scroll';
+import { applyApiFieldErrors, clearApiFieldErrors } from '../../../../shared/utils/api-errors';
+import { productApiErrorOptions } from '../../utils/product-api-errors';
 
 export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -56,6 +58,28 @@ export function maxIntegerDigits(maxDigits: number): ValidatorFn {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ProductFormComponent implements OnInit {
+  private static readonly BACKEND_FIELD_MAP: Record<string, string> = {
+    nome: 'nome',
+    sku: 'sku',
+    precoComercial: 'precoComercial',
+    unidadesPorProduto: 'unidadesPorProduto',
+    unidadeCadastroConsumo: 'unidadeCadastroConsumo',
+    tipoMateriaPrimaId: 'materiaPrima',
+    cor: 'cor',
+    larguraCm: 'dimensoes.larguraCm',
+    comprimentoCm: 'dimensoes.comprimentoCm',
+    'dimensoes.larguraCm': 'dimensoes.larguraCm',
+    'dimensoes.comprimentoCm': 'dimensoes.comprimentoCm',
+    codigoFabricante: 'codigoFabricante',
+    descricao: 'descricao'
+  };
+
+  private static readonly BACKEND_ERROR_FIELDS = [
+    ...Object.values(ProductFormComponent.BACKEND_FIELD_MAP),
+    'dimensoes.larguraCm',
+    'dimensoes.comprimentoCm'
+  ];
+
   private readonly productService = inject(ProductService);
   private readonly enumService = inject(EnumService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -99,7 +123,7 @@ export class ProductFormComponent implements OnInit {
     SUBMIT_ERROR: 'Falha no envio do formulário:',
     UPDATE_ERROR: 'ID do produto não encontrado, não é possível atualizar.',
     NO_CHANGES: 'Nenhuma alteração detectada.',
-    FORM_VALIDATION_ERROR: 'Corrija os campos inválidos antes de continuar.',
+    FORM_VALIDATION_ERROR: 'Revise os campos destacados.',
     DUPLICATE_SPECIFICATION_KEY_INLINE_ERROR: 'Existe outra característica equivalente preenchida.'
   };
 
@@ -168,6 +192,12 @@ export class ProductFormComponent implements OnInit {
 
     this.loadAvailableProductUnits(currentProduct.tipoProduto || 'CORTE');
     this.applyFieldLocks();
+
+    ProductFormComponent.BACKEND_ERROR_FIELDS.forEach(controlPath => {
+      this.productForm.get(controlPath)?.valueChanges
+        .pipe(takeUntilDestroyed())
+        .subscribe(() => clearControlError(this.productForm.get(controlPath), 'backend'));
+    });
   }
 
   ngOnInit(): void {
@@ -396,7 +426,16 @@ export class ProductFormComponent implements OnInit {
         await this.handleCreateSubmit();
       }
     } catch (err: any) {
-      this.entityDialog.showErrorSnackbar(err?.error?.detail || err?.error?.message || ProductFormComponent.Texts.SUBMIT_ERROR);
+      clearApiFieldErrors(this.productForm, ProductFormComponent.BACKEND_ERROR_FIELDS);
+      const hasFieldErrors = applyApiFieldErrors(this.productForm, err, {
+        fieldMap: ProductFormComponent.BACKEND_FIELD_MAP,
+        ...productApiErrorOptions
+      });
+      if (hasFieldErrors) {
+        this.entityDialog.showErrorSnackbar('Revise os campos destacados.');
+      } else {
+        this.entityDialog.showApiErrorSnackbar(err, ProductFormComponent.Texts.SUBMIT_ERROR, productApiErrorOptions);
+      }
     } finally {
       this.isUploading.set(false);
     }

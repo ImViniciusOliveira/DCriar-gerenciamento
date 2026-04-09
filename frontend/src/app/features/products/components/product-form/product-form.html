@@ -14,6 +14,8 @@
               <mat-error>O nome é obrigatório.</mat-error>
             } @else if (productForm.get('nome')?.hasError('maxlength')) {
               <mat-error>O nome não pode exceder 100 caracteres.</mat-error>
+            } @else if (productForm.get('nome')?.hasError('backend')) {
+              <mat-error>{{ productForm.get('nome')?.getError('backend') }}</mat-error>
             }
           </mat-form-field>
 
@@ -24,6 +26,8 @@
               <mat-error>O SKU é obrigatório.</mat-error>
             } @else if (productForm.get('sku')?.hasError('maxlength')) {
               <mat-error>O SKU não pode exceder 50 caracteres.</mat-error>
+            } @else if (productForm.get('sku')?.hasError('backend')) {
+              <mat-error>{{ productForm.get('sku')?.getError('backend') }}</mat-error>
             }
           </mat-form-field>
 
@@ -50,6 +54,8 @@
               <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (productForm.get('precoComercial')?.hasError('maxIntegerDigits')) {
               <mat-error>Máximo de 15 dígitos.</mat-error>
+            } @else if (productForm.get('precoComercial')?.hasError('backend')) {
+              <mat-error>{{ productForm.get('precoComercial')?.getError('backend') }}</mat-error>
             }
           </mat-form-field>
 
@@ -70,6 +76,8 @@
               <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (productForm.get('unidadesPorProduto')?.hasError('maxIntegerDigits')) {
               <mat-error>Máximo de 10 dígitos.</mat-error>
+            } @else if (productForm.get('unidadesPorProduto')?.hasError('backend')) {
+              <mat-error>{{ productForm.get('unidadesPorProduto')?.getError('backend') }}</mat-error>
             }
           </mat-form-field>
 
@@ -79,6 +87,8 @@
               <input matInput formControlName="cor" [errorStateMatcher]="matcher">
                @if (productForm.get('cor')?.hasError('maxlength')) {
                 <mat-error>Máximo de 50 caracteres.</mat-error>
+              } @else if (productForm.get('cor')?.hasError('backend')) {
+                <mat-error>{{ productForm.get('cor')?.getError('backend') }}</mat-error>
               }
             </mat-form-field>
           }
@@ -112,10 +122,15 @@
             @if (getFieldLockReason('unidadeCadastroConsumo')) {
               <mat-hint>{{ getFieldLockReason('unidadeCadastroConsumo') }}</mat-hint>
             }
+            @if (productForm.get('unidadeCadastroConsumo')?.hasError('backend')) {
+              <mat-error>{{ productForm.get('unidadeCadastroConsumo')?.getError('backend') }}</mat-error>
+            }
           </mat-form-field>
         }
       </app-material-type-search>
-      @if (shouldShowControlError(materialTypeControl)) {
+      @if (materialTypeControl.hasError('backend')) {
+        <div class="field-error">{{ materialTypeControl.getError('backend') }}</div>
+      } @else if (shouldShowControlError(materialTypeControl)) {
         <div class="field-error">Selecione uma matéria-prima.</div>
       }
 
@@ -135,6 +150,8 @@
               <mat-error>O valor deve ser maior que 0.1.</mat-error>
             } @else if (productForm.get('dimensoes.larguraCm')?.hasError('maxIntegerDigits')) {
               <mat-error>Máximo de 10 dígitos.</mat-error>
+            } @else if (productForm.get('dimensoes.larguraCm')?.hasError('backend')) {
+              <mat-error>{{ productForm.get('dimensoes.larguraCm')?.getError('backend') }}</mat-error>
             }
           </mat-form-field>
           <mat-form-field appearance="outline">
@@ -151,6 +168,8 @@
               <mat-error>O valor deve ser maior que 0.1.</mat-error>
             } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('maxIntegerDigits')) {
               <mat-error>Máximo de 10 dígitos.</mat-error>
+            } @else if (productForm.get('dimensoes.comprimentoCm')?.hasError('backend')) {
+              <mat-error>{{ productForm.get('dimensoes.comprimentoCm')?.getError('backend') }}</mat-error>
             }
           </mat-form-field>
         </div>
@@ -163,6 +182,8 @@
             <input matInput formControlName="codigoFabricante" [errorStateMatcher]="matcher">
              @if (productForm.get('codigoFabricante')?.hasError('maxlength')) {
               <mat-error>O código não pode exceder 50 caracteres.</mat-error>
+            } @else if (productForm.get('codigoFabricante')?.hasError('backend')) {
+              <mat-error>{{ productForm.get('codigoFabricante')?.getError('backend') }}</mat-error>
             }
           </mat-form-field>
         </div>
@@ -209,6 +230,8 @@
           <mat-hint align="end">{{ productForm.get('descricao')?.value?.length || 0 }}/100</mat-hint>
           @if (productForm.get('descricao')?.hasError('maxlength')) {
             <mat-error>A descrição não pode exceder 100 caracteres.</mat-error>
+          } @else if (productForm.get('descricao')?.hasError('backend')) {
+            <mat-error>{{ productForm.get('descricao')?.getError('backend') }}</mat-error>
           }
         </mat-form-field>
 
@@ -241,7 +264,7 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Cancelar</button>
-      <button mat-raised-button color="primary" type="submit" [disabled]="productForm.invalid">{{ data.isCreationMode ? 'Cadastrar' : 'Salvar Alterações' }}</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="isUploading()">{{ data.isCreationMode ? 'Cadastrar' : 'Salvar Alterações' }}</button>
     </mat-dialog-actions>
   </form>
 } @else {

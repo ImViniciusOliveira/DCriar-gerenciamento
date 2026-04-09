@@ -24,8 +24,10 @@ import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-m
 import { POSITIVE_DECIMAL_4_PATTERN } from '../../../../shared/utils/number-patterns';
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
 import { analyzeLogicalMapKeys, normalizeLogicalMapKey } from '../../../../shared/utils/logical-map-key';
-import { toggleControlError } from '../../../../shared/utils/control-errors';
+import { clearControlError, toggleControlError } from '../../../../shared/utils/control-errors';
 import { scrollDialogToElement } from '../../../../shared/utils/dialog-scroll';
+import { applyApiFieldErrors, clearApiFieldErrors } from '../../../../shared/utils/api-errors';
+import { stockApiErrorOptions } from '../../utils/stock-api-errors';
 
 /**
  * Validador que verifica se a parte inteira de um número excede um máximo de dígitos.
@@ -68,6 +70,19 @@ export interface BatchFormData {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BatchForm implements OnInit {
+  private static readonly BACKEND_FIELD_MAP: Record<string, string> = {
+    tipoMateriaPrimaId: 'materiaPrima',
+    unidadeDeEstoque: 'unidadeDeEstoque',
+    quantidadeInicial: 'quantidadeInicial',
+    custoTotalLote: 'custoTotalLote',
+    motivo: 'motivo',
+    atributos: 'larguraMm',
+    larguraMm: 'larguraMm',
+    'atributos.larguraMm': 'larguraMm'
+  };
+
+  private static readonly BACKEND_ERROR_FIELDS = Object.values(BatchForm.BACKEND_FIELD_MAP);
+
   private static readonly GEOMETRIC_UNITS = new Set([
     'METRO_LINEAR',
     'CENTIMETRO_LINEAR',
@@ -90,6 +105,7 @@ export class BatchForm implements OnInit {
   isViewMode = signal(false);
   requiresWidth: Signal<boolean>;
   matcher = new InstantErrorStateMatcher();
+  isInitializing = signal(false);
 
   readonly batch = signal<Batch>(this.data.template);
   readonly movements = signal<BatchMovement[]>([]);
@@ -109,7 +125,7 @@ export class BatchForm implements OnInit {
     SAVE_SUCCESS_UPDATE: 'Lote atualizado com sucesso!',
     SAVE_ERROR: 'Falha ao salvar. Verifique os dados e tente novamente.',
     NO_CHANGES: 'Nenhuma alteração detectada.',
-    FORM_VALIDATION_ERROR: 'Corrija os campos inválidos antes de continuar.',
+    FORM_VALIDATION_ERROR: 'Revise os campos destacados.',
     LOAD_ERROR: 'Não foi possível carregar os dados do lote.',
     UNITS_URL_ERROR: "URL para 'unidades-de-medida' não encontrada no template do lote.",
     DUPLICATE_ATTRIBUTE_KEY_INLINE_ERROR: 'Existe outro atributo equivalente preenchido.',
@@ -132,6 +148,10 @@ export class BatchForm implements OnInit {
       larguraMm: [null],
       atributos: this.fb.array([])
     });
+
+    if (this.isEditMode()) {
+      this.isInitializing.set(true);
+    }
     this.attributes.addValidators(this.validateAttributeKeys.bind(this));
 
     const unidadeEstoque$ = this.form.get('unidadeDeEstoque')!.valueChanges;
@@ -183,6 +203,12 @@ export class BatchForm implements OnInit {
       this.attributes.updateValueAndValidity();
     });
 
+    BatchForm.BACKEND_ERROR_FIELDS.forEach(controlPath => {
+      this.form.get(controlPath)?.valueChanges
+        .pipe(takeUntilDestroyed())
+        .subscribe(() => clearControlError(this.form.get(controlPath), 'backend'));
+    });
+
     this.syncStockUnitControlState();
     this.applyFieldLocks();
   }
@@ -230,9 +256,19 @@ export class BatchForm implements OnInit {
         await this.loadMovements(fullBatch);
         this.syncStockUnitControlState();
         this.applyFieldLocks();
+        if (this.isEditMode()) {
+          console.log('[BatchForm] campos bloqueados carregados', {
+            id: this.batch().id,
+            identificadorPublico: this.batch().identificadorPublico,
+            camposBloqueados: this.batch().camposBloqueados ?? [],
+            motivosBloqueio: this.batch().motivosBloqueio ?? {}
+          });
+        }
         this.cdr.markForCheck();
       } catch {
         this.entityDialog.showErrorSnackbar(BatchForm.Texts.LOAD_ERROR);
+      } finally {
+        this.isInitializing.set(false);
       }
     }
   }
@@ -306,10 +342,14 @@ export class BatchForm implements OnInit {
     try {
       const freshBatch = await lastValueFrom(this.batchService.findByUrl(selfLink));
       this.batch.set(freshBatch);
+      this.syncStockUnitControlState();
+      this.applyFieldLocks();
       await this.loadMovements(freshBatch);
       this.cdr.markForCheck();
     } catch {
       this.batch.set(updatedBatch);
+      this.syncStockUnitControlState();
+      this.applyFieldLocks();
       await this.loadMovements(updatedBatch);
       this.cdr.markForCheck();
     }
@@ -417,6 +457,10 @@ export class BatchForm implements OnInit {
   }
 
   onSave(): void {
+    if (this.isInitializing()) {
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.entityDialog.showErrorSnackbar(BatchForm.Texts.FORM_VALIDATION_ERROR);
@@ -437,31 +481,54 @@ export class BatchForm implements OnInit {
       attributesMap['larguraMm'] = formValue.larguraMm ? this.parseDecimal(formValue.larguraMm) : null;
     }
 
-    const request: BatchRequest = {
-      tipoMateriaPrimaId: materialType.id,
-      unidadeDeEstoque: formValue.unidadeDeEstoque,
-      unidadeCadastroEstoque: this.batch().unidadeCadastroEstoque ?? formValue.unidadeDeEstoque,
-      quantidadeInicial: this.parseDecimal(formValue.quantidadeInicial),
-      custoTotalLote: this.parseDecimal(formValue.custoTotalLote),
-      motivo: formValue.motivo,
-      atributos: attributesMap
+    const request: Partial<BatchRequest> = {
+      motivo: formValue.motivo
     };
 
-    if (this.isEditMode() && this.isNoOpUpdate(request)) {
+    if (!this.isEditMode() || !this.isFieldLocked('tipoMateriaPrimaId')) {
+      request.tipoMateriaPrimaId = materialType.id;
+    }
+    if (!this.isEditMode() || !this.isFieldLocked('unidadeDeEstoque', 'unidadeCadastroEstoque')) {
+      request.unidadeDeEstoque = formValue.unidadeDeEstoque;
+      request.unidadeCadastroEstoque = this.batch().unidadeCadastroEstoque ?? formValue.unidadeDeEstoque;
+    }
+    request.quantidadeInicial = this.isEditMode()
+      ? this.batch().saldoEstoque
+      : this.parseDecimal(formValue.quantidadeInicial);
+    if (!this.isEditMode() || !this.isFieldLocked('custoTotalLote')) {
+      request.custoTotalLote = this.parseDecimal(formValue.custoTotalLote);
+    }
+
+    const atributosParaEnviar = { ...attributesMap };
+    if (this.isEditMode() && this.isFieldLocked('atributos.larguraMm')) {
+      delete atributosParaEnviar['larguraMm'];
+    }
+    request.atributos = atributosParaEnviar;
+
+    if (this.isEditMode() && this.isNoOpUpdate(request as BatchRequest)) {
       this.entityDialog.showInfoSnackbar(BatchForm.Texts.NO_CHANGES);
       return;
     }
 
     const operation = this.isEditMode()
-      ? this.batchService.update(this.data.template._links!['update']!.href, request)
-      : this.batchService.create(request);
+      ? this.batchService.update(this.data.template._links!['update']!.href, request as BatchRequest)
+      : this.batchService.create(request as BatchRequest);
 
     operation.subscribe({
       next: () => {
         this.dialogRef.close(true);
       },
       error: (err) => {
-        this.entityDialog.showErrorSnackbar(err?.error?.detail || err?.error?.message || BatchForm.Texts.SAVE_ERROR);
+        clearApiFieldErrors(this.form, BatchForm.BACKEND_ERROR_FIELDS);
+        const hasFieldErrors = applyApiFieldErrors(this.form, err, {
+          fieldMap: BatchForm.BACKEND_FIELD_MAP,
+          ...stockApiErrorOptions
+        });
+        if (hasFieldErrors) {
+          this.entityDialog.showErrorSnackbar('Revise os campos destacados.');
+        } else {
+          this.entityDialog.showApiErrorSnackbar(err, BatchForm.Texts.SAVE_ERROR, stockApiErrorOptions);
+        }
       }
     });
   }
@@ -489,10 +556,10 @@ export class BatchForm implements OnInit {
     const currentReason = this.normalizeText(currentBatch.motivo);
     const requestReason = this.normalizeText(request.motivo);
 
-    return String(currentBatch.tipoMateriaPrimaId ?? '') === String(request.tipoMateriaPrimaId ?? '')
-      && String(currentDisplayUnit ?? '') === String(request.unidadeDeEstoque ?? '')
-      && String(currentDisplayUnit ?? '') === String(request.unidadeCadastroEstoque ?? '')
-      && this.sameNumericValue(currentBatch.custoTotalLote, request.custoTotalLote)
+    return (request.tipoMateriaPrimaId == null || String(currentBatch.tipoMateriaPrimaId ?? '') === String(request.tipoMateriaPrimaId ?? ''))
+      && (request.unidadeDeEstoque == null || String(currentDisplayUnit ?? '') === String(request.unidadeDeEstoque ?? ''))
+      && (request.unidadeCadastroEstoque == null || String(currentDisplayUnit ?? '') === String(request.unidadeCadastroEstoque ?? ''))
+      && (request.custoTotalLote == null || this.sameNumericValue(currentBatch.custoTotalLote, request.custoTotalLote))
       && currentReason === requestReason
       && this.deepEquals(currentAttributes, requestAttributes);
   }
@@ -573,6 +640,8 @@ export class BatchForm implements OnInit {
     if (!this.isEditMode()) {
       return;
     }
+
+    this.form.get('quantidadeInicial')?.disable({ emitEvent: false });
 
     if (this.isFieldLocked('tipoMateriaPrimaId')) {
       this.materialTypeControl.disable({ emitEvent: false });

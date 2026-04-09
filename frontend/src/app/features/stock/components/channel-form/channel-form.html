@@ -18,6 +18,10 @@
       @if (form.controls.nome.hasError('maxlength')) {
         <mat-error>O nome deve ter no maximo 150 caracteres.</mat-error>
       }
+
+      @if (form.controls.nome.hasError('backend')) {
+        <mat-error>{{ form.controls.nome.getError('backend') }}</mat-error>
+      }
     </mat-form-field>
   </mat-dialog-content>
 

@@ -14,7 +14,9 @@
             [lockReason]="getFieldLockReason('tipoMateriaPrimaId')"
             (selectionChange)="onMaterialTypeChange($event)">
           </app-material-type-search>
-          @if (shouldShowControlError(materialTypeControl)) {
+          @if (materialTypeControl.hasError('backend')) {
+            <div class="field-error">{{ materialTypeControl.getError('backend') }}</div>
+          } @else if (shouldShowControlError(materialTypeControl)) {
             <div class="field-error">Selecione uma matéria-prima.</div>
           }
         </div>
@@ -23,7 +25,9 @@
           <!-- Unidade de Estoque -->
           <mat-form-field appearance="outline">
             <mat-label>Unidade de Estoque</mat-label>
-            <mat-select formControlName="unidadeDeEstoque" [errorStateMatcher]="matcher">
+            <mat-select
+              formControlName="unidadeDeEstoque"
+              [errorStateMatcher]="matcher">
               @for (unit of stockUnitOptions(); track unit.value) {
                 <mat-option [value]="unit.value">{{ unit.viewValue }}</mat-option>
               }
@@ -31,6 +35,8 @@
             <mat-hint>{{ getFieldLockReason('unidadeDeEstoque', 'unidadeCadastroEstoque') || 'Como este lote será medido.' }}</mat-hint>
             @if (form.get('unidadeDeEstoque')?.hasError('required')) {
               <mat-error>O campo é obrigatório.</mat-error>
+            } @else if (form.get('unidadeDeEstoque')?.hasError('backend')) {
+              <mat-error>{{ form.get('unidadeDeEstoque')?.getError('backend') }}</mat-error>
             }
           </mat-form-field>
 
@@ -49,13 +55,21 @@
               <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (form.get('quantidadeInicial')?.hasError('maxIntegerDigits')) {
               <mat-error>Máximo de 15 dígitos.</mat-error>
+            } @else if (form.get('quantidadeInicial')?.hasError('backend')) {
+              <mat-error>{{ form.get('quantidadeInicial')?.getError('backend') }}</mat-error>
             }
           </mat-form-field>
 
           <!-- Custo Total do Lote -->
           <mat-form-field appearance="outline">
             <mat-label>Custo Total do Lote</mat-label>
-            <input matInput type="text" inputmode="decimal" formControlName="custoTotalLote" [errorStateMatcher]="matcher" required>
+            <input
+              matInput
+              type="text"
+              inputmode="decimal"
+              formControlName="custoTotalLote"
+              [errorStateMatcher]="matcher"
+              required>
             <span matTextSuffix>&nbsp;R$</span>
             @if (getFieldLockReason('custoTotalLote')) {
               <mat-hint>{{ getFieldLockReason('custoTotalLote') }}</mat-hint>
@@ -68,6 +82,8 @@
               <mat-error>O valor deve ser maior que zero.</mat-error>
             } @else if (form.get('custoTotalLote')?.hasError('maxIntegerDigits')) {
               <mat-error>Máximo de 15 dígitos.</mat-error>
+            } @else if (form.get('custoTotalLote')?.hasError('backend')) {
+              <mat-error>{{ form.get('custoTotalLote')?.getError('backend') }}</mat-error>
             }
           </mat-form-field>
         </div>
@@ -81,6 +97,8 @@
             <mat-error>O campo é obrigatório.</mat-error>
           } @else if (form.get('motivo')?.hasError('maxlength')) {
             <mat-error>O motivo não pode exceder 100 caracteres.</mat-error>
+          } @else if (form.get('motivo')?.hasError('backend')) {
+            <mat-error>{{ form.get('motivo')?.getError('backend') }}</mat-error>
           }
         </mat-form-field>
 
@@ -89,7 +107,13 @@
           <div class="form-row form-row--single-column">
             <mat-form-field appearance="outline">
               <mat-label>Largura (mm)</mat-label>
-              <input matInput type="text" inputmode="decimal" formControlName="larguraMm" [errorStateMatcher]="matcher" required>
+              <input
+                matInput
+                type="text"
+                inputmode="decimal"
+                formControlName="larguraMm"
+                [errorStateMatcher]="matcher"
+                required>
               <mat-hint>{{ getFieldLockReason('atributos.larguraMm') || 'Obrigatório para unidades geométricas.' }}</mat-hint>
               @if (form.get('larguraMm')?.hasError('required')) {
                 <mat-error>O campo é obrigatório.</mat-error>
@@ -101,6 +125,8 @@
                 <mat-error>O valor deve ser maior que zero.</mat-error>
               } @else if (form.get('larguraMm')?.hasError('maxIntegerDigits')) {
                 <mat-error>Máximo de 10 dígitos.</mat-error>
+              } @else if (form.get('larguraMm')?.hasError('backend')) {
+                <mat-error>{{ form.get('larguraMm')?.getError('backend') }}</mat-error>
               }
             </mat-form-field>
           </div>
@@ -145,7 +171,7 @@
 
     <mat-dialog-actions align="end">
       <button mat-button type="button" (click)="onCancel()">Cancelar</button>
-      <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
+      <button mat-raised-button color="primary" type="submit" [disabled]="isInitializing()">
         {{ isEditMode() ? 'Salvar Alterações' : 'Registrar Lote' }}
       </button>
     </mat-dialog-actions>

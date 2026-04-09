@@ -11,6 +11,8 @@
           <mat-error>O campo é obrigatório.</mat-error>
         } @else if (form.get('nome')?.hasError('maxlength')) {
           <mat-error>Máximo de 150 caracteres.</mat-error>
+        } @else if (form.get('nome')?.hasError('backend')) {
+          <mat-error>{{ form.get('nome')?.getError('backend') }}</mat-error>
         }
       </mat-form-field>
 
@@ -41,6 +43,8 @@
           <mat-error>O campo é obrigatório.</mat-error>
         } @else if (form.get('unidadeDeConsumo')?.hasError('requireMatch')) {
           <mat-error>Selecione uma opção válida.</mat-error>
+        } @else if (form.get('unidadeDeConsumo')?.hasError('backend')) {
+          <mat-error>{{ form.get('unidadeDeConsumo')?.getError('backend') }}</mat-error>
         }
       </mat-form-field>
     </div>
@@ -48,7 +52,7 @@
 
   <mat-dialog-actions align="end">
     <button mat-button type="button" (click)="onCancel()">Cancelar</button>
-    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
+    <button mat-raised-button color="primary" type="submit" [disabled]="isInitializing()">
       {{ isEditMode() ? 'Salvar Alterações' : 'Salvar' }}
     </button>
   </mat-dialog-actions>

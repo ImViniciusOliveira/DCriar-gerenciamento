@@ -146,6 +146,12 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit, OnInit 
    * Abre o formulário de edição para o lote selecionado.
    */
   onEdit(lote: Batch): void {
+    console.log('[BatchList] editar lote', {
+      id: lote.id,
+      identificadorPublico: lote.identificadorPublico,
+      camposBloqueados: lote.camposBloqueados ?? [],
+      motivosBloqueio: lote.motivosBloqueio ?? {}
+    });
     const loteCopy = structuredClone(lote);
     this.openFormDialog({
       template: loteCopy,
@@ -180,12 +186,19 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit, OnInit 
       BatchList.Texts.deleteConfirmTitle
     ).subscribe(confirmed => {
       if (confirmed) {
+        console.log('[BatchList] excluir lote', {
+          id: lote.id,
+          identificadorPublico: lote.identificadorPublico,
+          camposBloqueados: lote.camposBloqueados ?? [],
+          motivosBloqueio: lote.motivosBloqueio ?? {}
+        });
         this.batchService.delete(deleteUrl).subscribe({
           next: () => {
             this.entityDialog.showSuccessSnackbar(BatchList.Texts.deleteSuccess);
           },
-          error: () => {
-            this.entityDialog.showErrorSnackbar(BatchList.Texts.deleteError);
+          error: (err) => {
+            console.log('[BatchList] erro ao excluir lote', err);
+            this.entityDialog.showApiErrorSnackbar(err, BatchList.Texts.deleteError);
           }
         });
       }

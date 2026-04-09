@@ -6,7 +6,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { lastValueFrom } from 'rxjs';
 import { startWith } from 'rxjs/operators';
 
 import { MaterialType, MaterialTypeRequest } from '../../models/material-type.model';
@@ -15,6 +16,9 @@ import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { EnumService } from '../../../../core/services/enum.service';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
+import { applyApiFieldErrors, clearApiFieldErrors } from '../../../../shared/utils/api-errors';
+import { clearControlError } from '../../../../shared/utils/control-errors';
+import { stockApiErrorOptions } from '../../utils/stock-api-errors';
 
 export interface MaterialTypeFormData {
   template: MaterialType;
@@ -56,6 +60,13 @@ export function requireMatch(options: UnitOption[]): ValidatorFn {
 })
 export class MaterialTypeForm implements OnInit {
   private static readonly NO_CHANGES_MESSAGE = 'Nenhuma alteração detectada.';
+  private static readonly BACKEND_FIELD_MAP: Record<string, string> = {
+    nome: 'nome',
+    unidadeDeConsumo: 'unidadeDeConsumo'
+  };
+
+  private static readonly BACKEND_ERROR_FIELDS = Object.values(MaterialTypeForm.BACKEND_FIELD_MAP);
+
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<MaterialTypeForm>);
   private readonly materialTypeService = inject(MaterialTypeService);
@@ -66,8 +77,10 @@ export class MaterialTypeForm implements OnInit {
 
   private static readonly Texts = {
     saveError: 'Falha ao salvar. Verifique os dados.',
+    loadError: 'Não foi possível carregar os dados completos da matéria-prima.',
     loadUnitsError: 'Erro ao carregar unidades.',
-    unitsUrlError: 'URL de unidades-de-medida não encontrada.'
+    unitsUrlError: 'URL de unidades-de-medida não encontrada.',
+    formValidationError: 'Revise os campos destacados.'
   };
 
   form: FormGroup;
@@ -75,6 +88,8 @@ export class MaterialTypeForm implements OnInit {
 
   allUnits = signal<UnitOption[]>([]);
   filterValue = signal<string>('');
+  currentMaterialType = signal<MaterialType>(this.data.template);
+  isInitializing = signal(false);
 
   /** Signal computado que filtra as unidades com base no valor digitado. */
   filteredUnits = computed(() => {
@@ -95,6 +110,10 @@ export class MaterialTypeForm implements OnInit {
       unidadeDeConsumo: ['', [Validators.required]]
     });
 
+    if (this.isEditMode()) {
+      this.isInitializing.set(true);
+    }
+
     const valueChanges$ = this.form.get('unidadeDeConsumo')!.valueChanges.pipe(startWith(''));
     const valueSignal = toSignal(valueChanges$, { initialValue: '' });
 
@@ -105,43 +124,75 @@ export class MaterialTypeForm implements OnInit {
       this.filterValue.set(stringValue);
     });
 
+    MaterialTypeForm.BACKEND_ERROR_FIELDS.forEach(controlPath => {
+      this.form.get(controlPath)?.valueChanges
+        .pipe(takeUntilDestroyed())
+        .subscribe(() => clearControlError(this.form.get(controlPath), 'backend'));
+    });
+
     this.applyFieldLocks();
   }
 
   ngOnInit(): void {
-    this.loadMeasurementUnits();
+    this.initializeForm().catch(() => undefined);
+  }
+
+  private async initializeForm(): Promise<void> {
+    try {
+      if (this.isEditMode() && this.currentMaterialType().id) {
+        const fullMaterialType = await lastValueFrom(this.materialTypeService.findById(this.currentMaterialType().id));
+        this.currentMaterialType.set(fullMaterialType);
+        this.form.patchValue({
+          nome: fullMaterialType.nome
+        }, { emitEvent: false });
+      }
+
+      await this.loadMeasurementUnits();
+      this.applyFieldLocks();
+      if (this.isEditMode()) {
+        console.log('[MaterialTypeForm] campos bloqueados carregados', {
+          id: this.currentMaterialType().id,
+          nome: this.currentMaterialType().nome,
+          camposBloqueados: this.currentMaterialType().camposBloqueados ?? [],
+          motivosBloqueio: this.currentMaterialType().motivosBloqueio ?? {}
+        });
+      }
+      this.cdr.markForCheck();
+    } catch {
+      this.entityDialog.showErrorSnackbar(MaterialTypeForm.Texts.loadError);
+    } finally {
+      this.isInitializing.set(false);
+    }
   }
 
   /**
    * Carrega as unidades de medida a partir do link HATEOAS para popular o autocomplete.
    */
-  loadMeasurementUnits(): void {
-    const url = this.data.template?._links?.['unidades-de-medida']?.href;
+  async loadMeasurementUnits(): Promise<void> {
+    const materialType = this.currentMaterialType();
+    const url = materialType?._links?.['unidades-de-medida']?.href ?? this.data.template?._links?.['unidades-de-medida']?.href;
 
     if (!url) {
       return;
     }
 
-    this.enumService.getEnumOptions(url, 'unidadesDeMedida').subscribe({
-      next: (options) => {
-        const units: UnitOption[] = options.map(option => ({
-          name: option.value,
-          descricao: option.viewValue
-        }));
+    const options = await lastValueFrom(this.enumService.getEnumOptions(url, 'unidadesDeMedida'));
+    const units: UnitOption[] = options.map(option => ({
+      name: option.value,
+      descricao: option.viewValue
+    }));
 
-        this.allUnits.set(units);
-        this.form.get('unidadeDeConsumo')?.setValidators([Validators.required, requireMatch(units)]);
+    this.allUnits.set(units);
+    this.form.get('unidadeDeConsumo')?.setValidators([Validators.required, requireMatch(units)]);
 
-        if (this.data.template?.unidadeDeConsumo) {
-          const initialUnit = units.find(u => u.name === this.data.template.unidadeDeConsumo);
-          this.form.get('unidadeDeConsumo')?.setValue(initialUnit);
-        }
+    if (materialType?.unidadeDeConsumo) {
+      const initialUnit = units.find(u => u.name === materialType.unidadeDeConsumo);
+      this.form.get('unidadeDeConsumo')?.setValue(initialUnit);
+    }
 
-        this.form.get('unidadeDeConsumo')?.updateValueAndValidity();
-        this.applyFieldLocks();
-        this.cdr.markForCheck();
-      }
-    });
+    this.form.get('unidadeDeConsumo')?.updateValueAndValidity();
+    this.applyFieldLocks();
+    this.cdr.markForCheck();
   }
 
   /**
@@ -159,37 +210,62 @@ export class MaterialTypeForm implements OnInit {
   }
 
   protected isFieldLocked(field: string): boolean {
-    return hasLockedField(this.data.template, field);
+    return hasLockedField(this.currentMaterialType(), field);
   }
 
   protected getFieldLockReason(field: string): string | null {
-    return getLockedFieldReason(this.data.template, field);
+    return getLockedFieldReason(this.currentMaterialType(), field);
   }
 
   /**
    * Envia os dados do formulário para criação ou atualização do Tipo de Matéria-Prima.
    */
   onSave(): void {
-    if (this.form.invalid) {
+    if (this.isInitializing()) {
       return;
     }
 
-    const formValue = { ...this.form.value };
-    formValue.unidadeDeConsumo = formValue.unidadeDeConsumo.name;
-    const request: MaterialTypeRequest = formValue;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.entityDialog.showErrorSnackbar(MaterialTypeForm.Texts.formValidationError);
+      return;
+    }
 
-    if (this.isEditMode() && this.isNoOpUpdate(request)) {
+    const formValue = this.form.getRawValue();
+    const unidadeSelecionada = typeof formValue.unidadeDeConsumo === 'string'
+      ? formValue.unidadeDeConsumo
+      : formValue.unidadeDeConsumo?.name;
+    const request: Partial<MaterialTypeRequest> = {
+      nome: String(formValue.nome ?? '').trim()
+    };
+
+    if (!this.isEditMode() || !this.isFieldLocked('unidadeDeConsumo')) {
+      request.unidadeDeConsumo = unidadeSelecionada || this.currentMaterialType().unidadeDeConsumo;
+    }
+
+    if (this.isEditMode() && this.isNoOpUpdate(request as MaterialTypeRequest)) {
       this.entityDialog.showInfoSnackbar(MaterialTypeForm.NO_CHANGES_MESSAGE);
       return;
     }
 
     const operation = this.isEditMode()
-      ? this.materialTypeService.update(this.data.template._links!['update']!.href, request)
-      : this.materialTypeService.create(request);
+      ? this.materialTypeService.update(this.currentMaterialType()._links!['update']!.href, request as MaterialTypeRequest)
+      : this.materialTypeService.create(request as MaterialTypeRequest);
 
     operation.subscribe({
       next: () => this.dialogRef.close(true),
-      error: (err) => this.entityDialog.showErrorSnackbar(err?.error?.detail || err?.error?.message || MaterialTypeForm.Texts.saveError)
+      error: (err) => {
+        clearApiFieldErrors(this.form, MaterialTypeForm.BACKEND_ERROR_FIELDS);
+        const hasFieldErrors = applyApiFieldErrors(this.form, err, {
+          fieldMap: MaterialTypeForm.BACKEND_FIELD_MAP,
+          ...stockApiErrorOptions
+        });
+        if (hasFieldErrors) {
+          this.entityDialog.showErrorSnackbar('Revise os campos destacados.');
+        } else {
+          this.entityDialog.showApiErrorSnackbar(err, MaterialTypeForm.Texts.saveError, stockApiErrorOptions);
+        }
+      }
     });
   }
 
@@ -198,18 +274,24 @@ export class MaterialTypeForm implements OnInit {
   }
 
   private applyFieldLocks(): void {
-    if (!this.isEditMode()) {
+    const unidadeDeConsumoControl = this.form.get('unidadeDeConsumo');
+
+    if (!this.isEditMode() || !unidadeDeConsumoControl) {
       return;
     }
 
     if (this.isFieldLocked('unidadeDeConsumo')) {
-      this.form.get('unidadeDeConsumo')?.disable({ emitEvent: false });
+      unidadeDeConsumoControl.disable({ emitEvent: false });
     }
   }
 
   private isNoOpUpdate(request: MaterialTypeRequest): boolean {
-    return this.normalizeText(this.data.template.nome) === this.normalizeText(request.nome)
-      && String(this.data.template.unidadeDeConsumo ?? '') === String(request.unidadeDeConsumo ?? '');
+    const currentMaterialType = this.currentMaterialType();
+    return this.normalizeText(currentMaterialType.nome) === this.normalizeText(request.nome)
+      && (
+        request.unidadeDeConsumo == null
+        || String(currentMaterialType.unidadeDeConsumo ?? '') === String(request.unidadeDeConsumo ?? '')
+      );
   }
 
   private normalizeText(value: unknown): string | null {

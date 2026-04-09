@@ -214,7 +214,8 @@
 // Quando um campo tem erro (invalid) e foi modificado (dirty),
 // a borda do Material Design fica vermelha com 3px de espessura para destaque.
 :host ::ng-deep {
-  mat-form-field.ng-invalid.ng-dirty {
+  mat-form-field.ng-invalid.ng-dirty,
+  mat-form-field.ng-invalid.ng-touched {
     &.mdc-text-field--invalid .mdc-notched-outline,
     .mdc-notched-outline {
       .mdc-notched-outline__leading,

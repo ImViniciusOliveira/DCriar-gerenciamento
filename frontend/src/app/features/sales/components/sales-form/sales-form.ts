@@ -23,6 +23,9 @@ import { ProductService } from '../../../products/services/product.service';
 import { POSITIVE_DECIMAL_4_PATTERN, POSITIVE_INTEGER_PATTERN, POSITIVE_MONEY_2_PATTERN } from '../../../../shared/utils/number-patterns';
 import { scrollDialogToElement } from '../../../../shared/utils/dialog-scroll';
 import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
+import { applyApiFieldErrors, clearApiFieldErrors } from '../../../../shared/utils/api-errors';
+import { clearControlError } from '../../../../shared/utils/control-errors';
+import { salesApiErrorOptions } from '../../utils/sales-api-errors';
 
 type SalePriceType = 'PRECO_PADRAO' | 'PRECO_ALTERADO' | 'DESCONTO_TOTAL';
 
@@ -137,6 +140,16 @@ function stockAvailabilityValidator(formArray: AbstractControl): ValidationError
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SalesForm implements OnInit {
+  private static readonly BACKEND_FIELD_MAP: Record<string, string> = {
+    canalVendaId: 'canalVendaId',
+    cpf: 'cpf',
+    cep: 'cep',
+    estado: 'estado',
+    observacao: 'observacao'
+  };
+
+  private static readonly BACKEND_ERROR_FIELDS = Object.values(SalesForm.BACKEND_FIELD_MAP);
+
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<SalesForm>);
   private readonly salesService = inject(SalesService);
@@ -170,7 +183,9 @@ export class SalesForm implements OnInit {
     SAVE_ERROR: 'Falha ao registrar a venda. Verifique os dados e tente novamente.',
     NO_CHANGES: 'Nenhuma alteração detectada.',
     LOAD_ERROR: 'Não foi possível carregar os dados iniciais.',
-    LOCATION_CHANGE_TITLE: 'Confirmar mudança para Brasil'
+    LOCATION_CHANGE_TITLE: 'Confirmar mudança para Brasil',
+    FORM_VALIDATION_ERROR: 'Revise os campos destacados.',
+    ITEMS_REQUIRED_ERROR: 'Adicione pelo menos um produto à venda.'
   };
 
   constructor() {
@@ -217,11 +232,11 @@ export class SalesForm implements OnInit {
       .pipe(takeUntilDestroyed())
       .subscribe(value => this.handleStateValueChange(value));
 
-    ['cpf', 'cep', 'pais', 'estado', 'cidade', 'nomeCompleto', 'apelido', 'endereco', 'numero', 'bairro', 'observacao']
+    ['canalVendaId', 'cpf', 'cep', 'pais', 'estado', 'cidade', 'nomeCompleto', 'apelido', 'endereco', 'numero', 'bairro', 'observacao']
       .forEach(field => {
         this.form.get(field)?.valueChanges
           .pipe(takeUntilDestroyed())
-          .subscribe(() => this.clearControlError(this.form.get(field)!, 'backend'));
+          .subscribe(() => clearApiFieldErrors(this.form, [field]));
       });
   }
 
@@ -727,19 +742,19 @@ export class SalesForm implements OnInit {
     }
 
     if (!this.isBrazilLocationMode()) {
-      this.clearControlError(stateControl, 'invalidBrazilState');
+      clearControlError(stateControl, 'invalidBrazilState');
       return;
     }
 
     const query = this.normalizeSearch(rawValue);
     if (!query) {
-      this.clearControlError(stateControl, 'invalidBrazilState');
+      clearControlError(stateControl, 'invalidBrazilState');
       return;
     }
 
     const matches = this.resolveBrazilStateMatches(query);
     if (matches.length === 1) {
-      this.clearControlError(stateControl, 'invalidBrazilState');
+      clearControlError(stateControl, 'invalidBrazilState');
       return;
     }
 
@@ -755,15 +770,6 @@ export class SalesForm implements OnInit {
       const normalizedUf = this.normalizeSearch(state.uf);
       return normalizedName.startsWith(query) || normalizedUf.startsWith(query);
     });
-  }
-
-  private clearControlError(control: AbstractControl, errorKey: string): void {
-    if (!control.hasError(errorKey)) {
-      return;
-    }
-
-    const { [errorKey]: _, ...otherErrors } = control.errors || {};
-    control.setErrors(Object.keys(otherErrors).length ? otherErrors : null);
   }
 
   private shouldConfirmBrazilSwitch(): boolean {
@@ -793,60 +799,6 @@ export class SalesForm implements OnInit {
     this.filteredBrazilStates.set(this.brazilStates());
     this.applyStateCompatibilityValidation(this.form.get('estado')?.value);
     this.resolveLocationConfig('Brasil');
-  }
-
-  private applyBackendValidationErrors(details: Record<string, string> | undefined): void {
-    if (!details) {
-      return;
-    }
-
-    for (const [field, message] of Object.entries(details)) {
-      const control = this.form.get(field);
-      if (!control) {
-        continue;
-      }
-      control.setErrors({
-        ...(control.errors || {}),
-        backend: this.simplifyBackendFieldMessage(field, message)
-      });
-      control.markAsTouched();
-    }
-  }
-
-  private simplifyBackendFieldMessage(field: string, message: string): string {
-    if (field === 'cpf' && message.startsWith('CPF inválido')) {
-      return 'CPF inválido.';
-    }
-    if (field === 'cep' && message.startsWith('CEP inválido')) {
-      return 'CEP inválido.';
-    }
-    if (field === 'estado' && message.startsWith('Estado inválido')) {
-      return 'Estado inválido.';
-    }
-
-    return message;
-  }
-
-  private resolveSaveErrorMessage(error: any): string {
-    const details = error?.details;
-    if (details && typeof details === 'object') {
-      const firstDetail = Object.values(details).find(value => typeof value === 'string' && value.trim().length > 0);
-      if (typeof firstDetail === 'string') {
-        return firstDetail;
-      }
-    }
-
-    const detail = error?.detail;
-    if (typeof detail === 'string' && detail.trim() && !detail.startsWith('Erro de validação')) {
-      return detail;
-    }
-
-    const message = error?.message;
-    if (typeof message === 'string' && message.trim() && !message.startsWith('Erro de validação')) {
-      return message;
-    }
-
-    return SalesForm.Texts.SAVE_ERROR;
   }
 
   private normalizeSearch(value?: string | null): string {
@@ -929,8 +881,15 @@ export class SalesForm implements OnInit {
   }
 
   onSave(): void {
+    if (this.items.length === 0) {
+      this.form.markAllAsTouched();
+      this.entityDialog.showErrorSnackbar(SalesForm.Texts.ITEMS_REQUIRED_ERROR);
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.entityDialog.showErrorSnackbar(SalesForm.Texts.FORM_VALIDATION_ERROR);
       return;
     }
 
@@ -975,9 +934,16 @@ export class SalesForm implements OnInit {
         this.dialogRef.close(true);
       },
       error: (err) => {
-        this.applyBackendValidationErrors(err.error?.details);
-        const errorMsg = this.resolveSaveErrorMessage(err.error);
-        this.entityDialog.showErrorSnackbar(errorMsg);
+        clearApiFieldErrors(this.form, SalesForm.BACKEND_ERROR_FIELDS);
+        const hasFieldErrors = applyApiFieldErrors(this.form, err, {
+          fieldMap: SalesForm.BACKEND_FIELD_MAP,
+          ...salesApiErrorOptions
+        });
+        if (hasFieldErrors) {
+          this.entityDialog.showErrorSnackbar('Revise os campos destacados.');
+        } else {
+          this.entityDialog.showApiErrorSnackbar(err, SalesForm.Texts.SAVE_ERROR, salesApiErrorOptions);
+        }
         this.isSaving.set(false);
       }
     });

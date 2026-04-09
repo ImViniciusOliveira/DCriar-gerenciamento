@@ -1,3 +1,11 @@
-.full-width {
+@use '../../../../shared/styles/validation-state' as vs;
+
+mat-form-field {
   width: 100%;
 }
+
+.mat-mdc-dialog-actions {
+  justify-content: flex-end;
+}
+
+@include vs.strong-invalid-outline;

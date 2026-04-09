@@ -28,6 +28,7 @@ import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { POSITIVE_DECIMAL_4_PATTERN, SIGNED_DECIMAL_4_PATTERN } from '../../../../shared/utils/number-patterns';
 import { getLogicalMapValue } from '../../../../shared/utils/logical-map-key';
+import { productionApiErrorOptions } from '../../utils/production-api-errors';
 
 export interface ProductionFormData {
   template?: ProductionOrder;
@@ -827,7 +828,7 @@ export class ProductionForm implements OnInit {
           }, { emitEvent: false });
           this.isVerifying.set(false);
           this.needsVerification.set(this.checkIfVerificationIsNeeded());
-          this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.AUTOMATIC_RESTORE_ERROR);
+          this.entityDialog.showApiErrorSnackbar(err, ProductionForm.Texts.AUTOMATIC_RESTORE_ERROR, productionApiErrorOptions);
           this.cdr.markForCheck();
         }
       });
@@ -891,7 +892,7 @@ export class ProductionForm implements OnInit {
             this.simulationResult.set(null);
             this.simulationFormSnapshot.set(null);
             this.isSimulating.set(false);
-            this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.LOAD_ERROR);
+            this.entityDialog.showApiErrorSnackbar(err, ProductionForm.Texts.LOAD_ERROR, productionApiErrorOptions);
           }
         });
     } else if (produto.tipoProduto === 'CONSUMO') {
@@ -915,7 +916,7 @@ export class ProductionForm implements OnInit {
             this.simulationFormSnapshot.set(null);
             this.consumptionSimulationSnapshot.set(null);
             this.isSimulating.set(false);
-            this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.LOAD_ERROR);
+            this.entityDialog.showApiErrorSnackbar(err, ProductionForm.Texts.LOAD_ERROR, productionApiErrorOptions);
           }
         });
     } else {
@@ -1006,7 +1007,7 @@ export class ProductionForm implements OnInit {
           },
           error: (err) => {
             this.isVerifying.set(false);
-            this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.LOAD_ERROR);
+            this.entityDialog.showApiErrorSnackbar(err, ProductionForm.Texts.LOAD_ERROR, productionApiErrorOptions);
           }
         });
       return;
@@ -1051,7 +1052,7 @@ export class ProductionForm implements OnInit {
         },
         error: (err) => {
           this.isVerifying.set(false);
-          this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.LOAD_ERROR);
+          this.entityDialog.showApiErrorSnackbar(err, ProductionForm.Texts.LOAD_ERROR, productionApiErrorOptions);
         }
       });
   }
@@ -1291,7 +1292,7 @@ export class ProductionForm implements OnInit {
             this.cdr.markForCheck();
           },
           error: (err) => {
-            this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.SAVE_ERROR);
+            this.entityDialog.showApiErrorSnackbar(err, ProductionForm.Texts.SAVE_ERROR, productionApiErrorOptions);
             this.isSaving.set(false);
             this.cdr.markForCheck();
           }
@@ -1321,7 +1322,7 @@ export class ProductionForm implements OnInit {
             this.cdr.markForCheck();
           },
           error: (err) => {
-            this.entityDialog.showErrorSnackbar(err.error?.detail || err.error?.message || ProductionForm.Texts.SAVE_ERROR);
+            this.entityDialog.showApiErrorSnackbar(err, ProductionForm.Texts.SAVE_ERROR, productionApiErrorOptions);
             this.isSaving.set(false);
             this.cdr.markForCheck();
           }

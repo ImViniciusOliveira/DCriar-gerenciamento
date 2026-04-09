@@ -250,7 +250,7 @@ export class BatchAdjustmentForm {
       },
       error: err => {
         this.isCalculating.set(false);
-        this.entityDialog.showErrorSnackbar(err?.error?.detail || err?.error?.message || BatchAdjustmentForm.Texts.CALCULATE_ERROR);
+        this.entityDialog.showApiErrorSnackbar(err, BatchAdjustmentForm.Texts.CALCULATE_ERROR);
       }
     });
   }
@@ -306,7 +306,7 @@ export class BatchAdjustmentForm {
       },
       error: err => {
         this.isApplying.set(false);
-        this.entityDialog.showErrorSnackbar(err?.error?.detail || err?.error?.message || BatchAdjustmentForm.Texts.APPLY_ERROR);
+        this.entityDialog.showApiErrorSnackbar(err, BatchAdjustmentForm.Texts.APPLY_ERROR);
       }
     });
   }
