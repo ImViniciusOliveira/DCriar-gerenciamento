@@ -92,11 +92,11 @@ export class SalesList extends BaseList<Sale> implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.tableColumns = [
-      { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', cellTemplate: this.dataTemplate },
-      { key: 'nomeCompleto', header: 'Nome', sortable: false, className: 'col-customer-name', widthPx: 250, cellTemplate: this.nomeTemplate },
+      { key: 'dataCriacao', header: 'Criado em', sortable: true, className: 'col-created', widthPx: 150, cellTemplate: this.dataTemplate },
+      { key: 'nomeCompleto', header: 'Nome', sortable: false, className: 'col-customer-name', cellTemplate: this.nomeTemplate },
       { key: 'apelido', header: 'Apelido', sortable: false, className: 'col-customer-nickname', widthPx: 200, cellTemplate: this.apelidoTemplate },
       { key: 'cidadeEstado', header: 'Cidade / Estado', sortable: false, className: 'col-customer-city-state', widthPx: 200, cellTemplate: this.cidadeEstadoTemplate },
-      { key: 'valorTotal', header: 'Total', sortable: true, className: 'col-price', widthPx: 200, cellTemplate: this.valorTemplate },
+      { key: 'valorTotal', header: 'Total', sortable: true, className: 'col-price', widthPx: 100, cellTemplate: this.valorTemplate },
       { key: 'itens', header: 'Itens', sortable: false, className: 'col-trigger col-fit-center', widthPx: 150, cellTemplate: this.itensTemplate },
       { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions col-actions-main', widthPx: 150, cellTemplate: this.acoesTemplate },
     ];
