@@ -62,7 +62,7 @@
         <div class="stock-home__history-table">
           <app-base-table
             [items]="historyItems()"
-            [columns]="tableColumns"
+            [columns]="historyTableColumns"
             [totalElements]="pagination.totalElements()"
             [pageSize]="pagination.pageSize()"
             [pageIndex]="pagination.pageIndex()"
@@ -70,6 +70,35 @@
             [sortDirection]="pagination.sortDirection()"
             (pageChange)="onPageChange($event)"
             (sortChange)="onSortChange($event)">
+          </app-base-table>
+        </div>
+      </div>
+    } @else if (isAdjustmentsSection()) {
+      <div class="stock-home__adjustments">
+        <div class="stock-home__adjustment-filters">
+          <mat-form-field appearance="outline" class="stock-home__movement-field">
+            <mat-label>Base do ajuste</mat-label>
+            <mat-select
+              [value]="activeAdjustmentView().key"
+              (selectionChange)="setActiveAdjustmentViewByKey($event.value)">
+              @for (view of adjustmentViews; track view.key) {
+                <mat-option [value]="view.key">{{ view.title }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="stock-home__adjustment-table">
+          <app-base-table
+            [items]="adjustmentItems()"
+            [columns]="adjustmentTableColumns"
+            [totalElements]="adjustmentTotalElements()"
+            [pageSize]="adjustmentPageSize()"
+            [pageIndex]="adjustmentPageIndex()"
+            [sortActive]="adjustmentSortActive()"
+            [sortDirection]="adjustmentSortDirection()"
+            (pageChange)="onAdjustmentPageChange($event)"
+            (sortChange)="onAdjustmentSortChange($event)">
           </app-base-table>
         </div>
       </div>
@@ -144,5 +173,72 @@
     aria-label="Visualizar motivo"
     (click)="openReasonDetails(item)">
     <mat-icon>visibility</mat-icon>
+  </button>
+</ng-template>
+
+<ng-template #adjustmentNameTemplate let-row>
+  @if (row.lot; as lot) {
+    {{ lot.nomeTipoMateriaPrima || 'Matéria-prima sem nome' }}
+  } @else if (row.product; as product) {
+    {{ product.nomeProduto }}
+  } @else if (row.channel; as channel) {
+    {{ channel.nomeProduto }}
+  }
+</ng-template>
+
+<ng-template #adjustmentBatchTemplate let-row>
+  @if (row.lot; as lot) {
+    <div class="stock-home__adjustment-batch">
+      <span class="stock-home__adjustment-batch-id">{{ lot.identificadorPublico }}</span>
+      @if (lot.tipoEstrutural === 'RETALHO' && lot.identificadorOrigemPublico) {
+        <span class="stock-home__adjustment-batch-origin">Origem: {{ lot.identificadorOrigemPublico }}</span>
+      }
+    </div>
+  }
+</ng-template>
+
+<ng-template #adjustmentSaldoTemplate let-row>
+  {{ formatBatchSaldo(row) }}
+</ng-template>
+
+<ng-template #adjustmentValueTemplate let-row>
+  {{ formatCurrency(row.lot?.valorAtualLote) }}
+</ng-template>
+
+<ng-template #adjustmentUnitCostTemplate let-row>
+  {{ formatCurrency(row.lot?.custoUnitarioAtual) }}
+</ng-template>
+
+<ng-template #adjustmentSkuTemplate let-row>
+  {{ row.product?.skuProduto || row.channel?.skuProduto }}
+</ng-template>
+
+<ng-template #adjustmentPhysicalStockTemplate let-row>
+  {{ formatProductStock(row.product?.estoqueFisicoTotal ?? row.channel?.estoqueFisicoTotal) }}
+</ng-template>
+
+<ng-template #adjustmentDistributedStockTemplate let-row>
+  {{ formatProductStock(row.product?.estoqueDistribuidoTotal ?? row.channel?.estoqueDistribuidoTotal) }}
+</ng-template>
+
+<ng-template #adjustmentAvailableStockTemplate let-row>
+  {{ formatProductStock(row.product?.estoqueDisponivelParaAlocar ?? row.channel?.estoqueDisponivelParaAlocar) }}
+</ng-template>
+
+<ng-template #adjustmentChannelNameTemplate let-row>
+  {{ row.channel?.nomeCanalVenda }}
+</ng-template>
+
+<ng-template #adjustmentChannelQuantityTemplate let-row>
+  {{ formatChannelQuantity(row) }}
+</ng-template>
+
+<ng-template #adjustmentActionsTemplate>
+  <button
+    mat-stroked-button
+    type="button"
+    disabled
+    class="stock-home__adjustment-action">
+    {{ getAdjustmentActionLabel() }}
   </button>
 </ng-template>

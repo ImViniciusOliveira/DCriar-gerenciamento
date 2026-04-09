@@ -4,6 +4,22 @@
   min-height: 480px;
 }
 
+.stock-home__adjustments {
+  display: grid;
+}
+
+.stock-home__adjustment-filters {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+  padding: 0 4px 4px;
+}
+
+.stock-home__adjustment-table {
+  min-height: 480px;
+}
+
 .stock-home__placeholder {
   display: flex;
   align-items: center;
@@ -109,14 +125,42 @@
   margin-right: 4px;
 }
 
+.stock-home__adjustment-batch {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stock-home__adjustment-batch-id {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.stock-home__adjustment-batch-origin {
+  color: #757575;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
+.stock-home__adjustment-action {
+  width: 100%;
+}
+
 :host ::ng-deep td.col-product-history .cell-content,
-:host ::ng-deep td.col-sku-history .cell-content {
+:host ::ng-deep td.col-sku-history .cell-content,
+:host ::ng-deep td.col-adjustment-name .cell-content,
+:host ::ng-deep td.col-adjustment-batch .cell-content,
+:host ::ng-deep td.col-adjustment-channel-name .cell-content {
   min-height: auto;
   max-height: none;
   display: flex;
   align-items: center;
   white-space: normal;
   text-overflow: initial;
+}
+
+:host ::ng-deep td.col-adjustment-batch .cell-content {
+  align-items: flex-start;
 }
 
 .stock-home__history-quantity {
@@ -132,6 +176,10 @@
 }
 
 @media (max-width: 768px) {
+  .stock-home__adjustment-filters {
+    width: 100%;
+  }
+
   .stock-home__history-filters {
     flex-direction: column;
     align-items: flex-start;
