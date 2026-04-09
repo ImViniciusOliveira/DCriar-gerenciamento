@@ -149,14 +149,6 @@ export class MaterialTypeForm implements OnInit {
 
       await this.loadMeasurementUnits();
       this.applyFieldLocks();
-      if (this.isEditMode()) {
-        console.log('[MaterialTypeForm] campos bloqueados carregados', {
-          id: this.currentMaterialType().id,
-          nome: this.currentMaterialType().nome,
-          camposBloqueados: this.currentMaterialType().camposBloqueados ?? [],
-          motivosBloqueio: this.currentMaterialType().motivosBloqueio ?? {}
-        });
-      }
       this.cdr.markForCheck();
     } catch {
       this.entityDialog.showErrorSnackbar(MaterialTypeForm.Texts.loadError);

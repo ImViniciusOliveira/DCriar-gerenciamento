@@ -122,12 +122,6 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
    * Abre o formulário de edição para o item selecionado.
    */
   onEdit(item: MaterialType): void {
-    console.log('[MaterialTypeList] editar materia-prima', {
-      id: item.id,
-      nome: item.nome,
-      camposBloqueados: item.camposBloqueados ?? [],
-      motivosBloqueio: item.motivosBloqueio ?? {}
-    });
     const itemCopy = structuredClone(item);
     this.openFormDialog({
       template: itemCopy,
@@ -150,18 +144,11 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
       MaterialTypeList.Texts.deleteConfirmTitle
     ).subscribe(confirmed => {
       if (confirmed) {
-        console.log('[MaterialTypeList] excluir materia-prima', {
-          id: item.id,
-          nome: item.nome,
-          camposBloqueados: item.camposBloqueados ?? [],
-          motivosBloqueio: item.motivosBloqueio ?? {}
-        });
         this.materialTypeService.delete(deleteUrl).subscribe({
           next: () => {
             this.entityDialog.showSuccessSnackbar(MaterialTypeList.Texts.deleteSuccess);
           },
           error: (err) => {
-            console.log('[MaterialTypeList] erro ao excluir materia-prima', err);
             this.entityDialog.showApiErrorSnackbar(err, MaterialTypeList.Texts.deleteError);
           }
         });

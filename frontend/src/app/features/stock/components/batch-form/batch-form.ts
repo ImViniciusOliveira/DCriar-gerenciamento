@@ -256,14 +256,6 @@ export class BatchForm implements OnInit {
         await this.loadMovements(fullBatch);
         this.syncStockUnitControlState();
         this.applyFieldLocks();
-        if (this.isEditMode()) {
-          console.log('[BatchForm] campos bloqueados carregados', {
-            id: this.batch().id,
-            identificadorPublico: this.batch().identificadorPublico,
-            camposBloqueados: this.batch().camposBloqueados ?? [],
-            motivosBloqueio: this.batch().motivosBloqueio ?? {}
-          });
-        }
         this.cdr.markForCheck();
       } catch {
         this.entityDialog.showErrorSnackbar(BatchForm.Texts.LOAD_ERROR);
