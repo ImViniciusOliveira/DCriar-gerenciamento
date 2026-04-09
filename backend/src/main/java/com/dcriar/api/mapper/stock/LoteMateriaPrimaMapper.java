@@ -47,8 +47,5 @@ public interface LoteMateriaPrimaMapper {
      * @param dto O DTO de origem.
      * @param model O Modelo HATEOAS de destino a ser atualizado.
      */
-    @Mapping(target = "saldoInternoAtual", ignore = true)
-    @Mapping(target = "valorAtualLote", ignore = true)
-    @Mapping(target = "custoUnitarioAtual", ignore = true)
     void updateModelFromDto(LoteMateriaPrimaResponseDTO dto, @MappingTarget LoteMateriaPrimaModel model);
 }
