@@ -91,7 +91,7 @@ public class LoteMateriaPrimaController {
             @Parameter(name = "sort", description = "Critério de ordenação no formato: propriedade,asc|desc.", example = "tipoMateriaPrima.nome,asc")
     })
     public ResponseEntity<PagedModel<EntityModel<AjusteLoteResumoDTO>>> searchAllForAdjustments(
-            @Parameter(description = "Busca textual pelo nome da matéria-prima.", example = "Adesivo")
+            @Parameter(description = "Busca textual pelo nome da matéria-prima ou identificador público do lote.", example = "LT-000004")
             @RequestParam(required = false) String nomeMateriaPrima,
             @Parameter(description = "Filtrar por tipo estrutural do item.", example = "RETALHO")
             @RequestParam(required = false) TipoEstruturalLoteFiltro tipoEstrutural,

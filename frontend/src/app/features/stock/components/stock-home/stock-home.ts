@@ -437,7 +437,7 @@ export class StockHome implements AfterViewInit {
   protected getAdjustmentSearchPlaceholder(): string {
     switch (this.activeAdjustmentView().key) {
       case 'lotes':
-        return 'Digite o nome da matéria-prima';
+        return 'Digite o nome da matéria-prima ou LT/RT';
       case 'produtos':
       case 'canais':
         return 'Digite o nome ou SKU do produto';

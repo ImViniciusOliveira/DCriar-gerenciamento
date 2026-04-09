@@ -9,6 +9,8 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Fornece especificações (critérios de busca) dinâmicas para a entidade {@link LoteMateriaPrima}.
@@ -17,6 +19,7 @@ import java.util.List;
  * permitindo a combinação de múltiplos filtros opcionais.
  */
 public final class LoteMateriaPrimaSpecification {
+    private static final Pattern IDENTIFICADOR_PUBLICO_PATTERN = Pattern.compile("^(LT|RT)-(\\d{1,6})$");
 
     /**
      * Construtor privado para impedir a instanciação, já que esta é uma classe utilitária.
@@ -58,13 +61,26 @@ public final class LoteMateriaPrimaSpecification {
             List<Predicate> predicates = new ArrayList<>();
 
             if (nomeMateriaPrima != null && !nomeMateriaPrima.isBlank()) {
-                String termo = PostgresSearchUtils.likeTerm(nomeMateriaPrima);
-                predicates.add(
-                        criteriaBuilder.like(
-                                PostgresSearchUtils.unaccentedLower(criteriaBuilder, root.get("tipoMateriaPrima").get("nome")),
-                                termo
-                        )
-                );
+                String termoNormalizado = PostgresSearchUtils.normalize(nomeMateriaPrima).toUpperCase();
+                Matcher identificadorMatcher = IDENTIFICADOR_PUBLICO_PATTERN.matcher(termoNormalizado);
+
+                if (identificadorMatcher.matches()) {
+                    Long loteId = Long.parseLong(identificadorMatcher.group(2));
+                    predicates.add(criteriaBuilder.equal(root.get("id"), loteId));
+                    if ("LT".equals(identificadorMatcher.group(1))) {
+                        predicates.add(criteriaBuilder.isNull(root.get("loteDeOrigem")));
+                    } else {
+                        predicates.add(criteriaBuilder.isNotNull(root.get("loteDeOrigem")));
+                    }
+                } else {
+                    String termo = PostgresSearchUtils.likeTerm(nomeMateriaPrima);
+                    predicates.add(
+                            criteriaBuilder.like(
+                                    PostgresSearchUtils.unaccentedLower(criteriaBuilder, root.get("tipoMateriaPrima").get("nome")),
+                                    termo
+                            )
+                    );
+                }
             }
 
             if (tipoEstrutural != null) {
