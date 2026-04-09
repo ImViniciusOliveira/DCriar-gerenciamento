@@ -19,7 +19,8 @@ import java.util.regex.Pattern;
  * permitindo a combinação de múltiplos filtros opcionais.
  */
 public final class LoteMateriaPrimaSpecification {
-    private static final Pattern IDENTIFICADOR_PUBLICO_PATTERN = Pattern.compile("^(LT|RT)-(\\d{1,6})$");
+    private static final Pattern IDENTIFICADOR_PUBLICO_PATTERN = Pattern.compile("^(LT|RT)[\\s-]*(\\d{1,6})$");
+    private static final Pattern IDENTIFICADOR_NUMERICO_PATTERN = Pattern.compile("^(\\d{1,6})$");
 
     /**
      * Construtor privado para impedir a instanciação, já que esta é uma classe utilitária.
@@ -61,15 +62,14 @@ public final class LoteMateriaPrimaSpecification {
             List<Predicate> predicates = new ArrayList<>();
 
             if (nomeMateriaPrima != null && !nomeMateriaPrima.isBlank()) {
-                String termoNormalizado = PostgresSearchUtils.normalize(nomeMateriaPrima).toUpperCase();
-                Matcher identificadorMatcher = IDENTIFICADOR_PUBLICO_PATTERN.matcher(termoNormalizado);
+                BuscaIdentificadorPublico buscaIdentificador = parseBuscaIdentificadorPublico(nomeMateriaPrima);
 
-                if (identificadorMatcher.matches()) {
-                    Long loteId = Long.parseLong(identificadorMatcher.group(2));
+                if (buscaIdentificador != null) {
+                    Long loteId = buscaIdentificador.loteId();
                     predicates.add(criteriaBuilder.equal(root.get("id"), loteId));
-                    if ("LT".equals(identificadorMatcher.group(1))) {
+                    if ("LT".equals(buscaIdentificador.prefixo())) {
                         predicates.add(criteriaBuilder.isNull(root.get("loteDeOrigem")));
-                    } else {
+                    } else if ("RT".equals(buscaIdentificador.prefixo())) {
                         predicates.add(criteriaBuilder.isNotNull(root.get("loteDeOrigem")));
                     }
                 } else {
@@ -96,5 +96,27 @@ public final class LoteMateriaPrimaSpecification {
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    private static BuscaIdentificadorPublico parseBuscaIdentificadorPublico(String valor) {
+        String termoNormalizado = PostgresSearchUtils.normalize(valor).toUpperCase().trim();
+
+        Matcher identificadorPublicoMatcher = IDENTIFICADOR_PUBLICO_PATTERN.matcher(termoNormalizado);
+        if (identificadorPublicoMatcher.matches()) {
+            return new BuscaIdentificadorPublico(
+                    identificadorPublicoMatcher.group(1),
+                    Long.parseLong(identificadorPublicoMatcher.group(2))
+            );
+        }
+
+        Matcher identificadorNumericoMatcher = IDENTIFICADOR_NUMERICO_PATTERN.matcher(termoNormalizado);
+        if (identificadorNumericoMatcher.matches()) {
+            return new BuscaIdentificadorPublico(null, Long.parseLong(identificadorNumericoMatcher.group(1)));
+        }
+
+        return null;
+    }
+
+    private record BuscaIdentificadorPublico(String prefixo, Long loteId) {
     }
 }
