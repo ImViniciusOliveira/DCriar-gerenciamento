@@ -2,6 +2,7 @@ package com.dcriar.exception.custom;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import lombok.Getter;
 
 /**
  * Exceção lançada quando um arquivo esperado não é encontrado no sistema de armazenamento.
@@ -11,15 +12,19 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * por um controller e não é capturada por um handler específico.
  */
 @ResponseStatus(HttpStatus.NOT_FOUND)
+@Getter
 public class ArquivoNaoEncontradoException extends RuntimeException {
+
+    private final String nomeArquivo;
 
     /**
      * Constrói a exceção com uma mensagem de erro.
      *
      * @param message A mensagem detalhando o erro.
      */
-    private ArquivoNaoEncontradoException(String message) {
+    private ArquivoNaoEncontradoException(String message, String nomeArquivo) {
         super(message);
+        this.nomeArquivo = nomeArquivo;
     }
 
     /**
@@ -30,9 +35,10 @@ public class ArquivoNaoEncontradoException extends RuntimeException {
      */
     public ArquivoNaoEncontradoException(String message, Throwable cause) {
         super(message, cause);
+        this.nomeArquivo = null;
     }
 
     public static ArquivoNaoEncontradoException noStorage(String fileName) {
-        return new ArquivoNaoEncontradoException("Arquivo não encontrado no storage: " + fileName);
+        return new ArquivoNaoEncontradoException("Arquivo não encontrado no storage: " + fileName, fileName);
     }
 }

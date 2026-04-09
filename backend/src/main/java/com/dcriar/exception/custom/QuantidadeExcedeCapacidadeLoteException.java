@@ -1,16 +1,34 @@
 package com.dcriar.exception.custom;
 
+import lombok.Getter;
+
 import java.math.BigDecimal;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
+@Getter
 public class QuantidadeExcedeCapacidadeLoteException extends RuntimeException {
     private static final BigDecimal COMPRIMENTO_INDISPONIVEL = BigDecimal.valueOf(Long.MAX_VALUE);
 
-    private QuantidadeExcedeCapacidadeLoteException(String message) {
+    private final int quantidadeSolicitada;
+    private final BigDecimal comprimentoNecessarioNormalCm;
+    private final BigDecimal comprimentoNecessarioRotacionadoCm;
+    private final BigDecimal comprimentoDisponivelLoteCm;
+
+    private QuantidadeExcedeCapacidadeLoteException(
+            int quantidadeSolicitada,
+            BigDecimal comprimentoNecessarioNormalCm,
+            BigDecimal comprimentoNecessarioRotacionadoCm,
+            BigDecimal comprimentoDisponivelLoteCm,
+            String message
+    ) {
         super(message);
+        this.quantidadeSolicitada = quantidadeSolicitada;
+        this.comprimentoNecessarioNormalCm = comprimentoNecessarioNormalCm;
+        this.comprimentoNecessarioRotacionadoCm = comprimentoNecessarioRotacionadoCm;
+        this.comprimentoDisponivelLoteCm = comprimentoDisponivelLoteCm;
     }
 
     public static QuantidadeExcedeCapacidadeLoteException ambasOrientacoes(
@@ -20,6 +38,10 @@ public class QuantidadeExcedeCapacidadeLoteException extends RuntimeException {
             BigDecimal comprimentoDisponivelLoteCm
     ) {
         return new QuantidadeExcedeCapacidadeLoteException(
+                quantidadeSolicitada,
+                comprimentoNecessarioNormalCm,
+                comprimentoNecessarioRotacionadoCm,
+                comprimentoDisponivelLoteCm,
                 String.format(
                         "A quantidade solicitada (%d) excede a capacidade do lote em ambas as orientações. " +
                                 "Comprimento necessário no layout normal: %s, no layout rotacionado: %s. " +

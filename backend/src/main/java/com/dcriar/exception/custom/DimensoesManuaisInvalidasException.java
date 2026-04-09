@@ -1,19 +1,40 @@
 package com.dcriar.exception.custom;
 
+import lombok.Getter;
+
 import java.math.BigDecimal;
 
 /**
  * Exceção lançada quando os parâmetros fornecidos para um corte em modo manual são inválidos ou inconsistentes.
  * Cobre cenários como dimensões que não comportam o produto ou que excedem os limites do lote.
  */
+@Getter
 public class DimensoesManuaisInvalidasException extends RuntimeException {
+
+    private final String codigo;
+    private final BigDecimal larguraCorteManual;
+    private final BigDecimal larguraLote;
+    private final BigDecimal comprimentoCorteManual;
+    private final BigDecimal comprimentoLote;
 
     /**
      * Construtor genérico para mensagens de erro simples.
      * @param message A mensagem de erro.
      */
-    private DimensoesManuaisInvalidasException(String message) {
+    private DimensoesManuaisInvalidasException(
+            String codigo,
+            BigDecimal larguraCorteManual,
+            BigDecimal larguraLote,
+            BigDecimal comprimentoCorteManual,
+            BigDecimal comprimentoLote,
+            String message
+    ) {
         super(message);
+        this.codigo = codigo;
+        this.larguraCorteManual = larguraCorteManual;
+        this.larguraLote = larguraLote;
+        this.comprimentoCorteManual = comprimentoCorteManual;
+        this.comprimentoLote = comprimentoLote;
     }
 
     /**
@@ -25,22 +46,36 @@ public class DimensoesManuaisInvalidasException extends RuntimeException {
             BigDecimal larguraCorteManual,
             BigDecimal larguraLote
     ) {
-        return new DimensoesManuaisInvalidasException(String.format(
+        return new DimensoesManuaisInvalidasException(
+                "LARGURA_CORTE_MAIOR_QUE_LOTE",
+                larguraCorteManual,
+                larguraLote,
+                null,
+                null,
+                String.format(
                 "A largura do corte manual (%.2f cm) não pode ser maior que a largura do lote (%.2f cm).",
                 larguraCorteManual,
                 larguraLote
-        ));
+                )
+        );
     }
 
     public static DimensoesManuaisInvalidasException comprimentoMaiorQueLote(
             BigDecimal comprimentoCorteManual,
             BigDecimal comprimentoLote
     ) {
-        return new DimensoesManuaisInvalidasException(String.format(
+        return new DimensoesManuaisInvalidasException(
+                "COMPRIMENTO_CORTE_MAIOR_QUE_LOTE",
+                null,
+                null,
+                comprimentoCorteManual,
+                comprimentoLote,
+                String.format(
                 "O comprimento do corte manual (%.2f cm) não pode ser maior que o comprimento do lote (%.2f cm).",
                 comprimentoCorteManual,
                 comprimentoLote
-        ));
+                )
+        );
     }
 
 }

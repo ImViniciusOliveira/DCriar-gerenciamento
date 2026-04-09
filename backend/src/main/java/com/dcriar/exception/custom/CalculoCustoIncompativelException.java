@@ -10,6 +10,9 @@ import lombok.Getter;
 @Getter
 public class CalculoCustoIncompativelException extends RuntimeException {
 
+    private final UnidadeDeMedida unidadeEstoque;
+    private final UnidadeDeMedida unidadeConsumo;
+
     /**
      * Constrói a exceção com a mensagem de erro.
      *
@@ -21,5 +24,7 @@ public class CalculoCustoIncompativelException extends RuntimeException {
                 "Cálculo de custo para %s só é suportado com consumo em %s.",
                 unidadeEstoque.getDescricao(), unidadeConsumo.getDescricao()
         ));
+        this.unidadeEstoque = unidadeEstoque;
+        this.unidadeConsumo = unidadeConsumo;
     }
 }

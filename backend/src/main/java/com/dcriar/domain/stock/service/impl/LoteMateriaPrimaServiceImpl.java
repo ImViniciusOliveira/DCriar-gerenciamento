@@ -383,7 +383,11 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                     .forEach(subArvoreRelacionada::add);
 
             throw ExclusaoLoteBloqueadaException.retalhoNaoPodeSerExcluidoManualmente(
-                    new ExclusaoLoteBloqueadaException.ContextoExclusaoLoteBloqueada(id, subArvoreRelacionada)
+                    new ExclusaoLoteBloqueadaException.ContextoExclusaoLoteBloqueada(
+                            id,
+                            LotePublicIdentifierFormatter.format(lote),
+                            subArvoreRelacionada
+                    )
             );
         }
 
@@ -400,7 +404,11 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
 
         if (!itensBloqueados.isEmpty()) {
             throw ExclusaoLoteBloqueadaException.arvoreComAlteracoesAtivas(
-                    new ExclusaoLoteBloqueadaException.ContextoExclusaoLoteBloqueada(id, itensBloqueados)
+                    new ExclusaoLoteBloqueadaException.ContextoExclusaoLoteBloqueada(
+                            id,
+                            LotePublicIdentifierFormatter.format(lote),
+                            itensBloqueados
+                    )
             );
         }
 
@@ -415,9 +423,11 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     private ExclusaoLoteBloqueadaException.ItemBloqueioLote construirItemBloqueio(LoteMateriaPrima lote) {
         return new ExclusaoLoteBloqueadaException.ItemBloqueioLote(
                 lote.getId(),
+                LotePublicIdentifierFormatter.format(lote),
                 loteRetalhoHierarchyService.listarCadeiaAteRaiz(lote).stream()
                         .map(item -> new ExclusaoLoteBloqueadaException.CadeiaRetalhoItem(
                                 item.getId(),
+                                LotePublicIdentifierFormatter.format(item),
                                 item.getOrdemDeProducaoOrigem() != null ? item.getOrdemDeProducaoOrigem().getId() : null
                         ))
                         .toList(),

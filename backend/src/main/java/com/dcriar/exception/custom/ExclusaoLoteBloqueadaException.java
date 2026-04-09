@@ -13,61 +13,66 @@ import java.util.stream.Collectors;
 @Getter
 public class ExclusaoLoteBloqueadaException extends RuntimeException {
 
-    private ExclusaoLoteBloqueadaException(String mensagem) {
+    private final String codigoBloqueio;
+    private final Long loteRaizId;
+    private final String identificadorPublicoRaiz;
+    private final List<ItemBloqueioLote> itensBloqueados;
+
+    private ExclusaoLoteBloqueadaException(
+            String mensagem,
+            String codigoBloqueio,
+            Long loteRaizId,
+            String identificadorPublicoRaiz,
+            List<ItemBloqueioLote> itensBloqueados
+    ) {
         super(mensagem);
+        this.codigoBloqueio = codigoBloqueio;
+        this.loteRaizId = loteRaizId;
+        this.identificadorPublicoRaiz = identificadorPublicoRaiz;
+        this.itensBloqueados = List.copyOf(itensBloqueados);
     }
 
     public static ExclusaoLoteBloqueadaException arvoreComAlteracoesAtivas(ContextoExclusaoLoteBloqueada contexto) {
+        int quantidadeItensBloqueados = contexto.itensBloqueados().size();
+        String sufixoQuantidade = quantidadeItensBloqueados == 1
+                ? "Há 1 item com alteração ativa na árvore vinculada."
+                : String.format("Há %d itens com alteração ativa na árvore vinculada.", quantidadeItensBloqueados);
+
         return new ExclusaoLoteBloqueadaException(
                 String.format(
-                        "Não é possível excluir o lote #%d porque a árvore de retalhos ainda possui alterações ativas. " +
-                                "Itens que exigem ação antes da exclusão: %s.",
-                        contexto.loteRaizId(),
-                        formatarItensBloqueados(contexto.itensBloqueados())
-                )
+                        "Não é possível excluir o lote %s porque a árvore de retalhos ainda possui alterações ativas. %s",
+                        contexto.identificadorPublicoRaiz(),
+                        sufixoQuantidade
+                ),
+                "ARVORE_COM_ALTERACOES_ATIVAS",
+                contexto.loteRaizId(),
+                contexto.identificadorPublicoRaiz(),
+                contexto.itensBloqueados()
         );
     }
 
     public static ExclusaoLoteBloqueadaException retalhoNaoPodeSerExcluidoManualmente(ContextoExclusaoLoteBloqueada contexto) {
+        int quantidadeItensRelacionados = contexto.itensBloqueados().size();
+        String sufixoQuantidade = quantidadeItensRelacionados == 1
+                ? "Há 1 item relacionado que precisa ser tratado pela árvore de origem."
+                : String.format("Há %d itens relacionados que precisam ser tratados pela árvore de origem.", quantidadeItensRelacionados);
+
         return new ExclusaoLoteBloqueadaException(
                 String.format(
-                        "Não é possível excluir manualmente o retalho #%d. " +
-                                "Retalhos representam material real e devem ser tratados por perda/descarte, " +
-                                "ou removidos apenas pela reversão completa da árvore que os originou. " +
-                                "Subárvore relacionada: %s.",
-                        contexto.loteRaizId(),
-                        formatarItensBloqueados(contexto.itensBloqueados())
-                )
+                        "Não é possível excluir manualmente o retalho %s. Retalhos representam material real e devem ser tratados por perda/descarte ou pela reversão completa da árvore que os originou. %s",
+                        contexto.identificadorPublicoRaiz(),
+                        sufixoQuantidade
+                ),
+                "RETALHO_EXCLUSAO_MANUAL_NAO_PERMITIDA",
+                contexto.loteRaizId(),
+                contexto.identificadorPublicoRaiz(),
+                contexto.itensBloqueados()
         );
     }
 
-    private static String formatarItensBloqueados(List<ItemBloqueioLote> itensBloqueados) {
+    public String formatarIdentificadoresBloqueados() {
         return itensBloqueados.stream()
-                .map(item -> String.format(
-                        "[Lote #%d | Cadeia: %s | Ordens relacionadas: %s | Motivo: %s]",
-                        item.loteId(),
-                        formatarCadeiaRetalhos(item.cadeiaRetalhos()),
-                        formatarOrdensRelacionadas(item.ordensRelacionadasIds()),
-                        formatarDetalheUsoAtivo(item.tipoAlteracaoAtiva(), item.ordemConsumidoraAtivaId())
-                ))
-                .collect(Collectors.joining("; "));
-    }
-
-    private static String formatarCadeiaRetalhos(List<CadeiaRetalhoItem> cadeiaRetalhos) {
-        return cadeiaRetalhos.stream()
-                .map(item -> item.ordemDeProducaoOrigemId() == null
-                        ? String.format("Lote raiz #%d", item.loteId())
-                        : String.format("Retalho #%d (OP #%d)", item.loteId(), item.ordemDeProducaoOrigemId()))
-                .collect(Collectors.joining(" -> "));
-    }
-
-    private static String formatarOrdensRelacionadas(List<Long> ordensRelacionadasIds) {
-        if (ordensRelacionadasIds.isEmpty()) {
-            return "nenhuma";
-        }
-
-        return ordensRelacionadasIds.stream()
-                .map(id -> "OP #" + id)
+                .map(ItemBloqueioLote::identificadorPublicoLote)
                 .collect(Collectors.joining(", "));
     }
 
@@ -88,22 +93,59 @@ public class ExclusaoLoteBloqueadaException extends RuntimeException {
 
     public record ContextoExclusaoLoteBloqueada(
             Long loteRaizId,
+            String identificadorPublicoRaiz,
             List<ItemBloqueioLote> itensBloqueados
     ) {
     }
 
     public record ItemBloqueioLote(
             Long loteId,
+            String identificadorPublicoLote,
             List<CadeiaRetalhoItem> cadeiaRetalhos,
             List<Long> ordensRelacionadasIds,
             TipoMovimentacao tipoAlteracaoAtiva,
             Long ordemConsumidoraAtivaId
     ) {
+        public String resumoDetalhado() {
+            return String.format(
+                    "[%s | Cadeia: %s | Ordens relacionadas: %s | Motivo: %s]",
+                    identificadorPublicoLote,
+                    formatarCadeiaRetalhos(),
+                    formatarOrdensRelacionadas(),
+                    formatarDetalheUsoAtivo(tipoAlteracaoAtiva, ordemConsumidoraAtivaId)
+            );
+        }
+
+        public String formatarCadeiaRetalhos() {
+            return cadeiaRetalhos.stream()
+                    .map(CadeiaRetalhoItem::descricao)
+                    .collect(Collectors.joining(" -> "));
+        }
+
+        public String formatarOrdensRelacionadas() {
+            if (ordensRelacionadasIds.isEmpty()) {
+                return "nenhuma";
+            }
+
+            return ordensRelacionadasIds.stream()
+                    .map(id -> "OP #" + id)
+                    .collect(Collectors.joining(", "));
+        }
+
+        public String formatarMotivo() {
+            return formatarDetalheUsoAtivo(tipoAlteracaoAtiva, ordemConsumidoraAtivaId);
+        }
     }
 
     public record CadeiaRetalhoItem(
             Long loteId,
+            String identificadorPublicoLote,
             Long ordemDeProducaoOrigemId
     ) {
+        public String descricao() {
+            return ordemDeProducaoOrigemId == null
+                    ? String.format("%s (lote raiz)", identificadorPublicoLote)
+                    : String.format("%s (OP #%d)", identificadorPublicoLote, ordemDeProducaoOrigemId);
+        }
     }
 }

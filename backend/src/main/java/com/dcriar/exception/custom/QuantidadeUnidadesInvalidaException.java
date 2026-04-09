@@ -11,11 +11,14 @@ import java.math.BigDecimal;
 @Getter
 public class QuantidadeUnidadesInvalidaException extends RuntimeException {
 
+    private final BigDecimal totalUnidadesBase;
+
     /**
      * Constrói a exceção com uma mensagem de erro padrão.
      */
     public QuantidadeUnidadesInvalidaException() {
         super("A quantidade total de unidades base para cálculo de custo deve ser maior que zero.");
+        this.totalUnidadesBase = null;
     }
 
     public QuantidadeUnidadesInvalidaException(BigDecimal totalUnidadesBase) {
@@ -23,5 +26,6 @@ public class QuantidadeUnidadesInvalidaException extends RuntimeException {
                 "A quantidade total de unidades base para cálculo de custo deve ser maior que zero. Valor calculado: %s.",
                 totalUnidadesBase.stripTrailingZeros().toPlainString()
         ));
+        this.totalUnidadesBase = totalUnidadesBase;
     }
 }

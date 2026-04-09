@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
         details.put("valorCalculado", ex.getValorEnviado());
         details.put("limite", ex.getLimiteMaximo());
 
-        logWarnException(ex);
+        logInfoException(ex, details);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
 
@@ -72,7 +72,11 @@ public class GlobalExceptionHandler {
         else if (ex instanceof LoteMateriaPrimaNaoEncontradoException e) { details.put("loteId", String.valueOf(e.getId())); }
         else if (ex instanceof TipoMateriaPrimaNaoEncontradoException e) { details.put("materiaPrimaId", String.valueOf(e.getMateriaPrimaId())); }
         else if (ex instanceof VendaNaoEncontradaException e) { details.put("vendaId", String.valueOf(e.getVendaId())); }
-        else if (ex instanceof ArquivoNaoEncontradoException) { details.put("info", ex.getMessage()); }
+        else if (ex instanceof ArquivoNaoEncontradoException e) {
+            if (e.getNomeArquivo() != null) {
+                details.put("nomeArquivo", e.getNomeArquivo());
+            }
+        }
         else if (ex instanceof CorteRealizadoNaoEncontradoException e) { details.put("corteRealizadoId", String.valueOf(e.getId())); }
         else if (ex instanceof MovimentacaoEstoqueProdutoNaoEncontradoException e) { details.put("movimentacaoId", String.valueOf(e.getId())); }
         else if (ex instanceof OrdemDeProducaoNaoEncontradaException e) { details.put("ordemDeProducaoId", String.valueOf(e.getId())); }
@@ -84,7 +88,7 @@ public class GlobalExceptionHandler {
             details.put("canalVendaId", String.valueOf(e.getCanalVendaId()));
         }
 
-        logWarnException(ex, details);
+        logInfoException(ex, details);
         return buildErrorResponse(ex, HttpStatus.NOT_FOUND, details);
     }
 
@@ -130,20 +134,161 @@ public class GlobalExceptionHandler {
                 details.put("operadorFornecido", e.getOperadorFornecido());
                 details.put("operadoresValidos", "GTE (≥), LTE (≤)");
             }
+            case PrecoComercialNaoDefinidoException e -> {
+                details.put("codigo", "PRECO_COMERCIAL_NAO_DEFINIDO");
+                details.put("produtoId", String.valueOf(e.getProdutoId()));
+            }
+            case TipoPrecoAplicadoInvalidoException e -> {
+                details.put("codigo", "TIPO_PRECO_APLICADO_INVALIDO");
+                details.put("valorInformado", e.getValorInformado());
+                details.put("valoresAceitos", "PRECO_PADRAO, PRECO_ALTERADO, DESCONTO_TOTAL");
+            }
+            case PrecoVendaInvalidoException e -> {
+                details.put("codigo", e.getCodigo());
+                details.put("precoComercialOriginal", String.valueOf(e.getPrecoComercialOriginal()));
+                details.put("precoAplicado", String.valueOf(e.getPrecoAplicado()));
+            }
             case AjusteLoteInvalidoException e -> details.put("campo", e.getDetalhe());
+            case AtributoLoteInvalidoException e -> {
+                details.put("codigo", e.getCodigo());
+                details.put("campo", e.getCampo());
+                if (e.getUnidadeDescricao() != null) {
+                    details.put("unidadeDescricao", e.getUnidadeDescricao());
+                }
+            }
+            case CalculoCustoIncompativelException e -> {
+                details.put("codigo", "CALCULO_CUSTO_INCOMPATIVEL");
+                details.put("unidadeEstoque", e.getUnidadeEstoque().name());
+                details.put("unidadeConsumo", e.getUnidadeConsumo().name());
+            }
+            case DimensoesManuaisInvalidasException e -> {
+                details.put("codigo", e.getCodigo());
+                if (e.getLarguraCorteManual() != null) {
+                    details.put("larguraCorteManual", String.valueOf(e.getLarguraCorteManual()));
+                }
+                if (e.getLarguraLote() != null) {
+                    details.put("larguraLote", String.valueOf(e.getLarguraLote()));
+                }
+                if (e.getComprimentoCorteManual() != null) {
+                    details.put("comprimentoCorteManual", String.valueOf(e.getComprimentoCorteManual()));
+                }
+                if (e.getComprimentoLote() != null) {
+                    details.put("comprimentoLote", String.valueOf(e.getComprimentoLote()));
+                }
+            }
+            case MargemInvalidaException e -> {
+                details.put("codigo", e.getCodigo());
+                if (e.getLarguraFinal() != null) {
+                    details.put("larguraFinal", String.valueOf(e.getLarguraFinal()));
+                }
+                if (e.getLarguraProdutos() != null) {
+                    details.put("larguraProdutos", String.valueOf(e.getLarguraProdutos()));
+                }
+                if (e.getSomaMargens() != null) {
+                    details.put("somaMargens", String.valueOf(e.getSomaMargens()));
+                }
+                if (e.getMargemEsquerda() != null) {
+                    details.put("margemEsquerda", String.valueOf(e.getMargemEsquerda()));
+                }
+                if (e.getMargemDireita() != null) {
+                    details.put("margemDireita", String.valueOf(e.getMargemDireita()));
+                }
+                if (e.getLarguraLote() != null) {
+                    details.put("larguraLote", String.valueOf(e.getLarguraLote()));
+                }
+                if (e.getComprimentoFinal() != null) {
+                    details.put("comprimentoFinal", String.valueOf(e.getComprimentoFinal()));
+                }
+            }
+            case LotePrincipalNaoEspecificadoException ignored -> {
+                details.put("codigo", "LOTE_PRINCIPAL_NAO_ESPECIFICADO");
+                details.put("campo", "loteId");
+                details.put("operacao", "PRODUCAO_POR_CORTE");
+            }
+            case ProdutoNaoCabeNoLoteException ignored -> {
+                details.put("codigo", "PRODUTO_NAO_CABE_NO_LOTE");
+                details.put("motivoBloqueio", ex.getMessage());
+            }
+            case QuantidadeUnidadesInvalidaException e -> {
+                details.put("codigo", "QUANTIDADE_UNIDADES_INVALIDA");
+                if (e.getTotalUnidadesBase() != null) {
+                    details.put("totalUnidadesBase", e.getTotalUnidadesBase().stripTrailingZeros().toPlainString());
+                }
+            }
+            case TipoProducaoIncompativelException e -> {
+                details.put("codigo", e.getCodigo());
+                if (e.getNomeProduto() != null) {
+                    details.put("nomeProduto", e.getNomeProduto());
+                }
+                if (e.getUnidadeDeConsumo() != null) {
+                    details.put("unidadeDeConsumo", e.getUnidadeDeConsumo());
+                }
+                if (e.getNomeMateriaPrimaProduto() != null) {
+                    details.put("nomeMateriaPrimaProduto", e.getNomeMateriaPrimaProduto());
+                }
+                if (e.getLoteId() != null) {
+                    details.put("loteId", String.valueOf(e.getLoteId()));
+                }
+                if (e.getNomeMateriaPrimaLote() != null) {
+                    details.put("nomeMateriaPrimaLote", e.getNomeMateriaPrimaLote());
+                }
+            }
+            case ImpossivelExcluirProducaoException ignored -> {
+                details.put("codigo", "IMPOSSIVEL_EXCLUIR_PRODUCAO");
+                details.put("motivoBloqueio", ex.getMessage());
+            }
+            case IncompatibilidadeMaterialException e -> {
+                details.put("codigo", "INCOMPATIBILIDADE_MATERIAL");
+                details.put("nomeMateriaPrimaProduto", e.getNomeMateriaPrimaProduto());
+                details.put("nomeMateriaPrimaLote", e.getNomeMateriaPrimaLote());
+            }
+            case QuantidadeExcedeCapacidadeLoteException e -> {
+                details.put("codigo", "QUANTIDADE_EXCEDE_CAPACIDADE_LOTE");
+                details.put("quantidadeSolicitada", String.valueOf(e.getQuantidadeSolicitada()));
+                details.put("comprimentoNecessarioNormalCm", String.valueOf(e.getComprimentoNecessarioNormalCm()));
+                details.put("comprimentoNecessarioRotacionadoCm", String.valueOf(e.getComprimentoNecessarioRotacionadoCm()));
+                details.put("comprimentoDisponivelLoteCm", String.valueOf(e.getComprimentoDisponivelLoteCm()));
+            }
+            case UnidadeCadastroConsumoInvalidaException e -> {
+                details.put("codigo", "UNIDADE_CADASTRO_CONSUMO_INVALIDA");
+                details.put("unidadeMateriaPrima", e.getUnidadeMateriaPrima().name());
+                details.put("unidadeInformada", e.getUnidadeInformada().name());
+                if (e.getUnidadeMenorCompativel() != null) {
+                    details.put("unidadeMenorCompativel", e.getUnidadeMenorCompativel().name());
+                }
+            }
+            case UnidadeEstoqueLoteInvalidaException e -> {
+                details.put("codigo", "UNIDADE_ESTOQUE_LOTE_INVALIDA");
+                details.put("unidadeMateriaPrima", e.getUnidadeMateriaPrima().name());
+                details.put("unidadeEstoqueInformada", e.getUnidadeEstoqueInformada().name());
+                if (e.getUnidadeMenorCompativel() != null) {
+                    details.put("unidadeMenorCompativel", e.getUnidadeMenorCompativel().name());
+                }
+            }
+            case UnidadeEstoqueCorteInvalidaException e -> {
+                details.put("codigo", "UNIDADE_ESTOQUE_CORTE_INVALIDA");
+                details.put("unidadeDeEstoque", e.getUnidadeDeEstoque().name());
+            }
             case LogicalMapKeyInvalidaException e -> {
                 details.put("campo", e.getFieldPath());
-                details.put("info", e.getMessage());
+                details.put("codigo", e.getCodigo());
+                if (e.getPrimeiraChave() != null) {
+                    details.put("primeiraChave", e.getPrimeiraChave());
+                }
+                if (e.getSegundaChave() != null) {
+                    details.put("segundaChave", e.getSegundaChave());
+                }
             }
             case OperacaoNaoSuportadaException e -> {
                 details.put("recurso", e.getRecurso());
                 details.put("operacao", e.getOperacao());
                 details.put("alternativaSugerida", e.getAlternativaSugerida());
             }
-            default -> details.put("info", ex.getMessage());
+            default -> {
+            }
         }
 
-        logWarnException(ex);
+        logInfoException(ex, details);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
 
@@ -195,7 +340,22 @@ public class GlobalExceptionHandler {
         }
         else if (ex instanceof ProdutoNomeDuplicadoException e) { details.put("nome", e.getNome()); }
         else if (ex instanceof ProdutoSkuDuplicadoException e) { details.put("sku", e.getSku()); }
-        else if (ex instanceof ExclusaoLoteBloqueadaException e) { details.put("info", e.getMessage()); }
+        else if (ex instanceof ExclusaoLoteBloqueadaException e) {
+            details.put("codigoBloqueio", e.getCodigoBloqueio());
+            details.put("identificadorPublico", e.getIdentificadorPublicoRaiz());
+            details.put("quantidadeItensBloqueados", String.valueOf(e.getItensBloqueados().size()));
+            details.put("itensBloqueadosLabels", e.formatarIdentificadoresBloqueados());
+            for (int i = 0; i < e.getItensBloqueados().size(); i++) {
+                ExclusaoLoteBloqueadaException.ItemBloqueioLote item = e.getItensBloqueados().get(i);
+                String prefixo = "itemBloqueado." + (i + 1);
+                details.put(prefixo + ".identificadorPublico", item.identificadorPublicoLote());
+                details.put(prefixo + ".cadeia", item.formatarCadeiaRetalhos());
+                details.put(prefixo + ".ordensRelacionadas", item.formatarOrdensRelacionadas());
+                details.put(prefixo + ".motivo", item.formatarMotivo());
+                details.put(prefixo + ".loteId", String.valueOf(item.loteId()));
+            }
+            details.put("loteId", String.valueOf(e.getLoteRaizId()));
+        }
         else if (ex instanceof ProdutoCamposBloqueadosException e) {
             details.put("nomeProduto", e.getNomeProduto());
             preencherDetalhesCamposBloqueados(details, "produtoId", e.getProdutoId(), e);
@@ -213,7 +373,7 @@ public class GlobalExceptionHandler {
             details.put("recursoId", String.valueOf(e.getRecursoId()));
         }
 
-        logExceptionWithDetails(ex, details, ex instanceof AtualizacaoSemAlteracoesException);
+        logInfoException(ex, details);
         return buildErrorResponse(ex, HttpStatus.CONFLICT, details);
     }
 
@@ -252,7 +412,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ProdutoInvalidoException.class)
     public ResponseEntity<ErrorResponseDTO> handleMultiFieldValidation(ProdutoInvalidoException ex) {
-        logExceptionWithDetails(ex, ex.getErrors(), false);
+        logInfoException(ex, ex.getErrors());
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, ex.getErrors());
     }
 
@@ -297,7 +457,7 @@ public class GlobalExceptionHandler {
             details.put("quantidadeRequisitada", String.valueOf(e.getQuantidadeRequisitada()));
             details.put("saldoDisponivel", String.valueOf(e.getSaldoDisponivel()));
         }
-        logExceptionWithDetails(ex, details, false);
+        logInfoException(ex, details);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
     }
 
@@ -318,7 +478,7 @@ public class GlobalExceptionHandler {
         ex.getBindingResult().getFieldErrors().forEach(error ->
                 errors.put(error.getField(), error.getDefaultMessage()));
 
-        log.warn(
+        log.info(
                 "Erros de validação de argumento de método: method={} uri={} errors={}",
                 request.getMethod(),
                 request.getRequestURI(),
@@ -354,7 +514,7 @@ public class GlobalExceptionHandler {
             details.put("causa", simplifyJsonCause(ex.getMostSpecificCause().getMessage()));
         }
 
-        log.warn(
+        log.info(
                 "JSON inválido: method={} uri={} details={}",
                 request.getMethod(),
                 request.getRequestURI(),
@@ -381,7 +541,7 @@ public class GlobalExceptionHandler {
         details.put("parametro", parameterName);
         details.put("orientacao", "Informe o parâmetro obrigatório e tente novamente.");
 
-        log.warn(
+        log.info(
                 "Parâmetro obrigatório ausente: method={} uri={} parametro={}",
                 request != null ? request.getMethod() : "N/A",
                 request != null ? request.getRequestURI() : "N/A",
@@ -407,7 +567,7 @@ public class GlobalExceptionHandler {
         String msg = String.format("Método HTTP '%s' não permitido para este recurso.", ex.getMethod());
         String metodosPermitidos = Objects.requireNonNull(ex.getSupportedHttpMethods()).stream().map(HttpMethod::name).collect(Collectors.joining(", "));
         // Log mais informativo: método + URI + métodos permitidos
-        log.warn("Método HTTP não permitido: method={} uri={} permitted={}", ex.getMethod(), request.getRequestURI(), metodosPermitidos);
+        log.info("Método HTTP não permitido: method={} uri={} permitted={}", ex.getMethod(), request.getRequestURI(), metodosPermitidos);
         return buildErrorResponse(msg, HttpStatus.METHOD_NOT_ALLOWED, Map.of("metodosPermitidos", metodosPermitidos));
     }
 
@@ -467,12 +627,11 @@ public class GlobalExceptionHandler {
         details.put("causa", "VIOLACAO_DE_INTEGRIDADE");
         details.put("orientacao", "Verifique se o registro já existe ou se ainda está vinculado a outros dados.");
 
-        log.error(
+        log.warn(
                 "Conflito de integridade no banco: method={} uri={} rootCause={}",
                 request.getMethod(),
                 request.getRequestURI(),
-                sanitizeLogValue(resolveRootCauseMessage(ex)),
-                ex
+                sanitizeLogValue(resolveRootCauseMessage(ex))
         );
         return buildErrorResponse(
                 "A operação violou uma regra de integridade dos dados. Verifique se o registro já existe ou se ainda possui vínculos ativos.",
@@ -606,20 +765,12 @@ public class GlobalExceptionHandler {
                 .trim();
     }
 
-    private void logWarnException(Exception ex) {
-        log.warn("{}: {}", ex.getClass().getSimpleName(), ex.getMessage());
+    private void logInfoException(Exception ex, Map<String, String> details) {
+        logExceptionWithDetails(ex, details);
     }
 
-    private void logWarnException(Exception ex, Map<String, String> details) {
-        logExceptionWithDetails(ex, details, false);
-    }
-
-    private void logExceptionWithDetails(Exception ex, Map<String, String> details, boolean info) {
-        if (info) {
-            log.info("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
-            return;
-        }
-        log.warn("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+    private void logExceptionWithDetails(Exception ex, Map<String, String> details) {
+        log.info("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
     }
 
     private String simplifyJsonCause(String cause) {
