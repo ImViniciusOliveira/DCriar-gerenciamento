@@ -87,6 +87,20 @@
               <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
 
+            @if (activeAdjustmentView().key === 'lotes') {
+              <mat-form-field appearance="outline" class="stock-home__movement-field">
+                <mat-label>Unidade</mat-label>
+                <mat-select [formControl]="adjustmentUnitControl">
+                  <mat-option value="">Todas</mat-option>
+                  @for (unit of lotMeasurementUnits(); track unit.value) {
+                    <mat-option [value]="unit.value">
+                      {{ unit.viewValue || unit.value }}
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+
             @if (activeAdjustmentView().key === 'canais') {
               <mat-form-field appearance="outline" class="stock-home__movement-field">
                 <mat-label>Canal</mat-label>

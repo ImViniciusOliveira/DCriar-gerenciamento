@@ -3,6 +3,7 @@ package com.dcriar.domain.stock.repository.specification;
 import com.dcriar.api.dto.request.stock.TipoEstruturalLoteFiltro;
 import com.dcriar.domain.common.util.PostgresSearchUtils;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -50,7 +51,8 @@ public final class LoteMateriaPrimaSpecification {
 
     public static Specification<LoteMateriaPrima> comFiltrosAjuste(
             String nomeMateriaPrima,
-            TipoEstruturalLoteFiltro tipoEstrutural
+            TipoEstruturalLoteFiltro tipoEstrutural,
+            UnidadeDeMedida unidadeDeMedida
     ) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -70,6 +72,10 @@ public final class LoteMateriaPrimaSpecification {
                     case LOTE_PRINCIPAL -> predicates.add(criteriaBuilder.isNull(root.get("loteDeOrigem")));
                     case RETALHO -> predicates.add(criteriaBuilder.isNotNull(root.get("loteDeOrigem")));
                 }
+            }
+
+            if (unidadeDeMedida != null) {
+                predicates.add(criteriaBuilder.equal(root.get("unidadeCadastroEstoque"), unidadeDeMedida));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

@@ -66,17 +66,21 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
             "id", "id",
             "loteId", "id",
             "identificadorPublico", "id",
+            "saldoEstoque", "saldoEstoque",
+            "saldoAtual", "saldoEstoque",
             "valorAtualLote", "valorAtualLote",
             "custoUnitarioAtual", "custoUnitarioAtual"
     );
     private static final Map<String, String> AJUSTE_LOTES_STABLE_SORTS = Map.of(
             "tipoMateriaPrima.nome", "id",
             "id", "id",
+            "saldoEstoque", "id",
             "valorAtualLote", "id",
             "custoUnitarioAtual", "id"
     );
+    private static final Set<String> SORTS_CONDICIONAIS_UNIDADE = Set.of("saldoEstoque", "saldoAtual");
     private static final String SORTS_ACEITOS_AJUSTE_LOTES =
-            "tipoMateriaPrima.nome, nome, nomeTipoMateriaPrima, id, loteId, identificadorPublico, valorAtualLote, custoUnitarioAtual";
+            "tipoMateriaPrima.nome, nome, nomeTipoMateriaPrima, id, loteId, identificadorPublico, saldoEstoque, saldoAtual, valorAtualLote, custoUnitarioAtual";
 
     private static final int MAX_INTEGER_DIGITS_SUPPORTED = 19;
     private static final String CAMPO_LARGURA_MM = "atributos.larguraMm";
@@ -337,9 +341,15 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     public Page<AjusteLoteResumoDTO> findAllForAdjustments(
             String nomeMateriaPrima,
             TipoEstruturalLoteFiltro tipoEstrutural,
+            UnidadeDeMedida unidadeDeMedida,
             Pageable pageable
     ) {
-        Specification<LoteMateriaPrima> spec = LoteMateriaPrimaSpecification.comFiltrosAjuste(nomeMateriaPrima, tipoEstrutural);
+        Specification<LoteMateriaPrima> spec = LoteMateriaPrimaSpecification.comFiltrosAjuste(
+                nomeMateriaPrima,
+                tipoEstrutural,
+                unidadeDeMedida
+        );
+        validarSortCondicionalDeUnidade(pageable, unidadeDeMedida);
         Pageable pageableComSortTraduzido = translatePageable(
                 pageable,
                 AJUSTE_LOTES_SORT_ALIASES,
@@ -561,6 +571,24 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .toList();
 
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(translatedOrders));
+    }
+
+    private void validarSortCondicionalDeUnidade(Pageable pageable, UnidadeDeMedida unidadeDeMedida) {
+        if (unidadeDeMedida != null || !pageable.getSort().isSorted()) {
+            return;
+        }
+
+        pageable.getSort().stream()
+                .map(Sort.Order::getProperty)
+                .filter(SORTS_CONDICIONAIS_UNIDADE::contains)
+                .findFirst()
+                .ifPresent(sortCondicional -> {
+                    throw new OrdenacaoInvalidaException(
+                            "ajustes-lotes",
+                            sortCondicional,
+                            "tipoMateriaPrima.nome, nome, nomeTipoMateriaPrima, id, loteId, identificadorPublico, valorAtualLote, custoUnitarioAtual"
+                    );
+                });
     }
 
     private void validarCamposBloqueadosNaEdicao(LoteMateriaPrima lote, LoteMateriaPrimaRequestDTO requestDTO) {

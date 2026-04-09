@@ -6,6 +6,7 @@ import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
 import com.dcriar.api.dto.response.stock.MovimentacaoResponseDTO;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -45,7 +46,12 @@ public interface LoteMateriaPrimaService {
     /**
      * Lista lotes prontos para a área de ajustes operacionais, com filtros de busca e tipo estrutural.
      */
-    Page<AjusteLoteResumoDTO> findAllForAdjustments(String nomeMateriaPrima, TipoEstruturalLoteFiltro tipoEstrutural, Pageable pageable);
+    Page<AjusteLoteResumoDTO> findAllForAdjustments(
+            String nomeMateriaPrima,
+            TipoEstruturalLoteFiltro tipoEstrutural,
+            UnidadeDeMedida unidadeDeMedida,
+            Pageable pageable
+    );
 
     /**
      * Registra uma nova movimentação de estoque para um lote de matéria-prima.

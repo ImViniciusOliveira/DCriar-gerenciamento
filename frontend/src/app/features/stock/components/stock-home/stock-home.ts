@@ -24,6 +24,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { Sort } from '@angular/material/sort';
 import { Observable, catchError, debounceTime, distinctUntilChanged, map, of } from 'rxjs';
 
+import { EnumOption, EnumService } from '../../../../core/services/enum.service';
+import { environment } from '../../../../core/services/environment';
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { DetailsDialog } from '../../../../shared/components/details-dialog/details-dialog';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
@@ -96,6 +98,7 @@ export class StockHome implements AfterViewInit {
   private readonly stockService = inject(StockService);
   private readonly batchService = inject(BatchService);
   private readonly channelService = inject(ChannelService);
+  private readonly enumService = inject(EnumService);
   private readonly entityDialog = inject(EntityDialogService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly pagination = inject(PaginationHandler);
@@ -167,9 +170,12 @@ export class StockHome implements AfterViewInit {
   protected readonly adjustmentSortDirection = signal<Sort['direction']>('asc');
   protected readonly adjustmentSearchControl = new FormControl('', { nonNullable: true });
   protected readonly adjustmentChannelControl = new FormControl<number | ''>('', { nonNullable: true });
+  protected readonly adjustmentUnitControl = new FormControl('', { nonNullable: true });
   protected readonly adjustmentSearch = signal('');
   protected readonly selectedAdjustmentChannelId = signal<number | null>(null);
+  protected readonly selectedAdjustmentUnit = signal('');
   protected readonly channels = signal<Channel[]>([]);
+  protected readonly lotMeasurementUnits = signal<EnumOption[]>([]);
   protected readonly adjustmentRefreshVersion = signal(0);
 
   historyTableColumns: TableColumn<StockHistoryItem>[] = [];
@@ -234,6 +240,15 @@ export class StockHome implements AfterViewInit {
       ),
       { initialValue: [] }
     );
+    const lotMeasurementUnitsResponse = toSignal(
+      this.enumService.getEnumOptions(
+        `${environment.apiVersionPath}/enums/stock/unidades-de-medida`,
+        'unidadesDeMedida'
+      ).pipe(
+        catchError(() => of([]))
+      ),
+      { initialValue: [] }
+    );
 
     effect(() => {
       const response = historyResponse();
@@ -250,6 +265,10 @@ export class StockHome implements AfterViewInit {
       this.channels.set(channelsResponse());
     });
 
+    effect(() => {
+      this.lotMeasurementUnits.set(lotMeasurementUnitsResponse());
+    });
+
     this.adjustmentSearchControl.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
@@ -264,6 +283,19 @@ export class StockHome implements AfterViewInit {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(value => {
       this.selectedAdjustmentChannelId.set(value === '' ? null : Number(value));
+      this.resetAdjustmentPage();
+    });
+
+    this.adjustmentUnitControl.valueChanges.pipe(
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(value => {
+      this.selectedAdjustmentUnit.set(value);
+      if (!value && this.activeAdjustmentView().key === 'lotes' && this.adjustmentSortActive() === 'saldoEstoque') {
+        const defaults = this.getAdjustmentDefaultSort('lotes');
+        this.adjustmentSortActive.set(defaults.active);
+        this.adjustmentSortDirection.set(defaults.direction);
+      }
       this.resetAdjustmentPage();
     });
 
@@ -299,6 +331,7 @@ export class StockHome implements AfterViewInit {
       const sortDirection = this.adjustmentSortDirection();
       const search = this.adjustmentSearch();
       const channelId = this.selectedAdjustmentChannelId();
+      const unit = this.selectedAdjustmentUnit();
       this.adjustmentRefreshVersion();
 
       this.updateAdjustmentColumns(view.key);
@@ -310,7 +343,7 @@ export class StockHome implements AfterViewInit {
       }
 
       const sort = sortDirection ? `${sortActive},${sortDirection}` : sortActive;
-      const subscription = this.getAdjustmentRows$(view.key, pageIndex, pageSize, sort, search, channelId)
+      const subscription = this.getAdjustmentRows$(view.key, pageIndex, pageSize, sort, search, channelId, unit)
         .subscribe(result => {
           this.adjustmentItems.set(result.items);
           this.adjustmentTotalElements.set(result.total);
@@ -350,6 +383,10 @@ export class StockHome implements AfterViewInit {
     if (view.key !== 'canais') {
       this.adjustmentChannelControl.setValue('', { emitEvent: false });
       this.selectedAdjustmentChannelId.set(null);
+    }
+    if (view.key !== 'lotes') {
+      this.adjustmentUnitControl.setValue('', { emitEvent: false });
+      this.selectedAdjustmentUnit.set('');
     }
     this.resetAdjustmentTable(view.key);
   }
@@ -405,6 +442,10 @@ export class StockHome implements AfterViewInit {
       case 'canais':
         return 'Digite o nome ou SKU do produto';
     }
+  }
+
+  protected isLotSaldoSortEnabled(): boolean {
+    return this.activeAdjustmentView().key === 'lotes' && !!this.selectedAdjustmentUnit();
   }
 
   protected hasProductNameChanged(item: StockHistoryItem): boolean {
@@ -583,7 +624,7 @@ export class StockHome implements AfterViewInit {
         this.adjustmentTableColumns = [
           { key: 'nome', header: 'Matéria-Prima', sortable: true, sortKey: 'tipoMateriaPrima.nome', sortType: 'text', className: 'col-adjustment-name', cellTemplate: this.adjustmentNameTemplate },
           { key: 'lote', header: 'Lote', sortable: false, widthPx: 200, className: 'col-adjustment-batch', cellTemplate: this.adjustmentBatchTemplate },
-          { key: 'saldo', header: 'Saldo Atual', sortable: false, widthPx: 200, className: 'col-adjustment-balance', cellTemplate: this.adjustmentSaldoTemplate },
+          { key: 'saldo', header: 'Saldo Atual', sortable: this.isLotSaldoSortEnabled(), sortKey: 'saldoEstoque', widthPx: 200, className: 'col-adjustment-balance', cellTemplate: this.adjustmentSaldoTemplate },
           { key: 'valorAtual', header: 'Valor Atual', sortable: true, sortKey: 'valorAtualLote', widthPx: 200, className: 'col-adjustment-value', cellTemplate: this.adjustmentValueTemplate },
           { key: 'custoUnitario', header: 'Custo Unitário', sortable: true, sortKey: 'custoUnitarioAtual', widthPx: 200, className: 'col-adjustment-unit-cost', cellTemplate: this.adjustmentUnitCostTemplate },
           { key: 'divergencia', header: 'Divergência', sortable: false, widthPx: 170, className: 'col-adjustment-status', cellTemplate: this.adjustmentDivergenceTemplate },
@@ -624,7 +665,8 @@ export class StockHome implements AfterViewInit {
     size: number,
     sort: string,
     search: string,
-    channelId: number | null
+    channelId: number | null,
+    unit: string
   ): Observable<{ items: AdjustmentTableRow[]; total: number }> {
     switch (view) {
       case 'lotes':
@@ -632,7 +674,8 @@ export class StockHome implements AfterViewInit {
           page,
           size,
           sort,
-          nomeMateriaPrima: search || undefined
+          nomeMateriaPrima: search || undefined,
+          unidadeDeMedida: unit || undefined
         }).pipe(
           map(response => ({
             items: response.items.map(lot => ({ rowType: 'lotes' as const, lot })),

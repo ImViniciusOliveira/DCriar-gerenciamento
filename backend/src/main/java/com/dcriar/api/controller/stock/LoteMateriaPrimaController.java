@@ -15,6 +15,7 @@ import com.dcriar.api.hateoas.stock.model.LoteMateriaPrimaModel;
 import com.dcriar.api.hateoas.stock.model.MovimentacaoLoteModel;
 import com.dcriar.domain.stock.service.AjusteLoteService;
 import com.dcriar.domain.stock.service.LoteMateriaPrimaService;
+import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -94,10 +95,12 @@ public class LoteMateriaPrimaController {
             @RequestParam(required = false) String nomeMateriaPrima,
             @Parameter(description = "Filtrar por tipo estrutural do item.", example = "RETALHO")
             @RequestParam(required = false) TipoEstruturalLoteFiltro tipoEstrutural,
+            @Parameter(description = "Filtrar pela unidade de medida exibida no lote.", example = "METRO_QUADRADO")
+            @RequestParam(required = false) UnidadeDeMedida unidadeDeMedida,
             @ParameterObject @PageableDefault(sort = "tipoMateriaPrima.nome", direction = Sort.Direction.ASC) Pageable pageable,
             PagedResourcesAssembler<AjusteLoteResumoDTO> pagedResourcesAssembler
     ) {
-        Page<AjusteLoteResumoDTO> page = loteMateriaPrimaService.findAllForAdjustments(nomeMateriaPrima, tipoEstrutural, pageable);
+        Page<AjusteLoteResumoDTO> page = loteMateriaPrimaService.findAllForAdjustments(nomeMateriaPrima, tipoEstrutural, unidadeDeMedida, pageable);
         return ResponseEntity.ok(pagedResourcesAssembler.toModel(page));
     }
 

@@ -33,6 +33,7 @@ type AdjustmentLotsSearchParams = {
   sort: string;
   nomeMateriaPrima?: string;
   tipoEstrutural?: string;
+  unidadeDeMedida?: string;
 };
 
 type AdjustmentProductsSearchParams = {
@@ -186,6 +187,10 @@ export class StockService {
 
         if (params.tipoEstrutural) {
           httpParams = httpParams.set('tipoEstrutural', params.tipoEstrutural);
+        }
+
+        if (params.unidadeDeMedida) {
+          httpParams = httpParams.set('unidadeDeMedida', params.unidadeDeMedida);
         }
 
         return this.http.get<ApiResponseAdjustmentLots>(this.normalizeUrl(url), { params: httpParams }).pipe(

@@ -92,7 +92,7 @@ public class EstoqueProdutoController {
                 .withRel("ajustes-canais"));
 
         rootModel.add(linkTo(methodOn(LoteMateriaPrimaController.class)
-                .searchAllForAdjustments(null, null, null, null))
+                .searchAllForAdjustments(null, null, null, null, null))
                 .withRel("ajustes-lotes"));
 
         return ResponseEntity.ok(rootModel);
