@@ -18,6 +18,7 @@ public class EstoqueInsuficienteParaMovimentacaoException extends RuntimeExcepti
     private final Long loteId;
     private final String identificadorPublicoLote;
     private final String nomeTipoMateriaPrima;
+    private final String unidadeApresentacao;
 
     /**
      * A quantidade (em kg, m, etc.) que a operação tentou movimentar.
@@ -40,20 +41,30 @@ public class EstoqueInsuficienteParaMovimentacaoException extends RuntimeExcepti
             Long loteId,
             String identificadorPublicoLote,
             String nomeTipoMateriaPrima,
+            String unidadeApresentacao,
             double quantidadeRequisitada,
             double saldoDisponivel
     ) {
         super(String.format(
-                "Não é possível registrar a movimentação no lote '%s' da matéria-prima '%s'. Foram solicitadas %.4f unidades, mas o saldo disponível é %.4f.",
+                "Não é possível registrar a movimentação no lote '%s' da matéria-prima '%s'. Foram solicitadas %s, mas o saldo disponível é %s.",
                 identificadorPublicoLote,
                 nomeTipoMateriaPrima,
-                Math.abs(quantidadeRequisitada),
-                saldoDisponivel
+                formatarQuantidade(Math.abs(quantidadeRequisitada), unidadeApresentacao),
+                formatarQuantidade(saldoDisponivel, unidadeApresentacao)
         ));
         this.loteId = loteId;
         this.identificadorPublicoLote = identificadorPublicoLote;
         this.nomeTipoMateriaPrima = nomeTipoMateriaPrima;
+        this.unidadeApresentacao = unidadeApresentacao;
         this.quantidadeRequisitada = quantidadeRequisitada;
         this.saldoDisponivel = saldoDisponivel;
+    }
+
+    private static String formatarQuantidade(double quantidade, String unidadeApresentacao) {
+        String quantidadeFormatada = String.format("%.4f", quantidade);
+        if (unidadeApresentacao == null || unidadeApresentacao.isBlank()) {
+            return quantidadeFormatada + " unidades";
+        }
+        return quantidadeFormatada + " " + unidadeApresentacao;
     }
 }

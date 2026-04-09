@@ -70,6 +70,25 @@ public class ExclusaoLoteBloqueadaException extends RuntimeException {
         );
     }
 
+    public static ExclusaoLoteBloqueadaException loteComVinculosPersistidos(ContextoExclusaoLoteBloqueada contexto) {
+        int quantidadeItensRelacionados = contexto.itensBloqueados().size();
+        String sufixoQuantidade = quantidadeItensRelacionados == 1
+                ? "Há 1 item com vínculo persistido na árvore ou no histórico do lote."
+                : String.format("Há %d itens com vínculos persistidos na árvore ou no histórico do lote.", quantidadeItensRelacionados);
+
+        return new ExclusaoLoteBloqueadaException(
+                String.format(
+                        "Não é possível excluir o lote %s porque ele ainda possui vínculos ativos ou histórico persistido associado. %s",
+                        contexto.identificadorPublicoRaiz(),
+                        sufixoQuantidade
+                ),
+                "LOTE_COM_VINCULOS_PERSISTIDOS",
+                contexto.loteRaizId(),
+                contexto.identificadorPublicoRaiz(),
+                contexto.itensBloqueados()
+        );
+    }
+
     public String formatarIdentificadoresBloqueados() {
         return itensBloqueados.stream()
                 .map(ItemBloqueioLote::identificadorPublicoLote)

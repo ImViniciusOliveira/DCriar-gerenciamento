@@ -53,7 +53,5 @@ public interface TipoMateriaPrimaMapper {
      * @param dto O DTO de origem.
      * @param model O Modelo HATEOAS de destino a ser atualizado.
      */
-    @Mapping(target = "camposBloqueados", ignore = true)
-    @Mapping(target = "motivosBloqueio", ignore = true)
     void updateModelFromDto(TipoMateriaPrimaResponseDTO dto, @MappingTarget TipoMateriaPrimaModel model);
 }

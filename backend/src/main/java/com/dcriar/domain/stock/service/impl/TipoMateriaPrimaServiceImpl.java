@@ -9,6 +9,7 @@ import com.dcriar.domain.common.util.CamposBloqueadosUtils;
 import com.dcriar.domain.common.util.HumanTextNormalizer;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.common.util.UniqueComparisonNormalizer;
+import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.TipoMateriaPrima;
@@ -129,13 +130,18 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     public void deleteById(Long id) {
         TipoMateriaPrima tipo = findTipoById(id);
 
+        List<Produto> produtos = produtoRepository.findAllByTipoMateriaPrima(tipo);
         List<LoteMateriaPrima> lotes = loteMateriaPrimaRepository.findAllByTipoMateriaPrima(tipo);
-        if (!lotes.isEmpty()) {
+        if (!produtos.isEmpty() || !lotes.isEmpty()) {
+            Set<Long> produtoIds = produtos.stream().map(Produto::getId).collect(Collectors.toSet());
+            Set<String> produtoLabels = produtos.stream()
+                    .map(this::formatarProdutoLabel)
+                    .collect(Collectors.toSet());
             Set<Long> loteIds = lotes.stream().map(LoteMateriaPrima::getId).collect(Collectors.toSet());
             Set<String> loteLabels = lotes.stream()
                     .map(LotePublicIdentifierFormatter::format)
                     .collect(Collectors.toSet());
-            throw new TipoMateriaPrimaEmUsoException(id, tipo.getNome(), loteIds, loteLabels);
+            throw new TipoMateriaPrimaEmUsoException(id, tipo.getNome(), produtoIds, produtoLabels, loteIds, loteLabels);
         }
 
         tipoMateriaPrimaRepository.delete(tipo);
@@ -201,8 +207,12 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     }
 
     private boolean tipoMateriaPrimaPossuiUsoOperacional(TipoMateriaPrima tipo) {
-        return produtoRepository.existsByTipoMateriaPrima(tipo)
-                || loteMateriaPrimaRepository.existsByTipoMateriaPrima(tipo);
+        return !produtoRepository.findAllByTipoMateriaPrima(tipo).isEmpty()
+                || !loteMateriaPrimaRepository.findAllByTipoMateriaPrima(tipo).isEmpty();
+    }
+
+    private String formatarProdutoLabel(Produto produto) {
+        return produto.getSku() + " - " + produto.getNome();
     }
 
     private boolean isNoOpUpdate(TipoMateriaPrima tipo, TipoMateriaPrimaRequestDTO requestDTO) {

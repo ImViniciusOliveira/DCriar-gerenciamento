@@ -32,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -341,6 +342,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                     lote.getId(),
                     LotePublicIdentifierFormatter.format(lote),
                     lote.getTipoMateriaPrima().getNome(),
+                    lote.getUnidadeCadastroEstoque() != null ? lote.getUnidadeCadastroEstoque().getSimbolo() : null,
                     requestDTO.getQuantidade().abs().doubleValue(),
                     saldoAtual.doubleValue()
             );
@@ -416,8 +418,29 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .sorted(java.util.Comparator.comparingInt(LoteRetalhoHierarchyItem::nivel).reversed())
                 .map(LoteRetalhoHierarchyItem::lote)
                 .toList();
-        loteMateriaPrimaRepository.deleteAll(descendentesParaExcluir);
-        loteMateriaPrimaRepository.delete(lote);
+        try {
+            descendentesParaExcluir.forEach(item -> movimentacaoEstoqueLoteRepository.deleteAll(
+                    movimentacaoEstoqueLoteRepository.findAllByLote(item)
+            ));
+            movimentacaoEstoqueLoteRepository.deleteAll(movimentacaoEstoqueLoteRepository.findAllByLote(lote));
+            loteMateriaPrimaRepository.deleteAll(descendentesParaExcluir);
+            loteMateriaPrimaRepository.delete(lote);
+            loteMateriaPrimaRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            List<ExclusaoLoteBloqueadaException.ItemBloqueioLote> itensComVinculo = new java.util.ArrayList<>();
+            itensComVinculo.add(construirItemBloqueio(lote));
+            descendentesParaExcluir.stream()
+                    .map(this::construirItemBloqueio)
+                    .forEach(itensComVinculo::add);
+
+            throw ExclusaoLoteBloqueadaException.loteComVinculosPersistidos(
+                    new ExclusaoLoteBloqueadaException.ContextoExclusaoLoteBloqueada(
+                            id,
+                            LotePublicIdentifierFormatter.format(lote),
+                            itensComVinculo
+                    )
+            );
+        }
     }
 
     private ExclusaoLoteBloqueadaException.ItemBloqueioLote construirItemBloqueio(LoteMateriaPrima lote) {
@@ -519,8 +542,12 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     }
 
     private boolean lotePossuiUsoOperacional(LoteMateriaPrima lote) {
+        boolean possuiMovimentacaoOperacional = movimentacaoEstoqueLoteRepository.findAllByLote(lote).stream()
+                .anyMatch(movimentacao -> movimentacao.getTipo() != TipoMovimentacao.ENTRADA_COMPRA);
+
         return lote.getLoteDeOrigem() != null
                 || lote.getOrdemDeProducaoOrigem() != null
+                || possuiMovimentacaoOperacional
                 || loteRetalhoHierarchyService.possuiAlteracaoAtivaNoEstadoAtual(lote)
                 || !loteRetalhoHierarchyService.listarOrdensRelacionadasIds(lote).isEmpty();
     }

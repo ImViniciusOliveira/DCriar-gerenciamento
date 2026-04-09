@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -33,5 +34,7 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long>, JpaSpec
     Optional<Produto> findByIdWithTipoMateriaPrima(@Param("id") Long id);
 
     boolean existsByTipoMateriaPrima(TipoMateriaPrima tipoMateriaPrima);
+
+    List<Produto> findAllByTipoMateriaPrima(TipoMateriaPrima tipoMateriaPrima);
 
 }

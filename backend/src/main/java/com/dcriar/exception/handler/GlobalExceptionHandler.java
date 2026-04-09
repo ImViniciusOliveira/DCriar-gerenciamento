@@ -323,8 +323,10 @@ public class GlobalExceptionHandler {
         }
         else if (ex instanceof TipoMateriaPrimaEmUsoException e) {
             details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima());
+            details.put("produtosEmUsoLabels", formatarColecao(e.getProdutoLabels()));
             details.put("lotesEmUsoLabels", formatarColecao(e.getLoteLabels()));
             details.put("tipoMateriaPrimaId", String.valueOf(e.getTipoMateriaPrimaId()));
+            details.put("produtosEmUso", formatarColecao(e.getProdutoIds()));
             details.put("lotesEmUso", formatarColecao(e.getLoteIds()));
         }
         else if (ex instanceof CanalVendaNomeDuplicadoException e) { details.put("nome", e.getNome()); }

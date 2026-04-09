@@ -125,14 +125,16 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
         BigDecimal saldoAtualInterno = valorizacaoAtual.saldoInterno();
         BigDecimal quantidadeAjusteInterna = converterQuantidadeParaUnidadeInterna(lote, quantidadeInformada);
         BigDecimal quantidadeMovimentacao = resolverQuantidadeMovimentacao(tipoOperacao, direcao, quantidadeAjusteInterna);
+        BigDecimal saldoAtualApresentacao = converterQuantidadeParaApresentacao(lote, saldoAtualInterno);
 
         if (saldoAtualInterno.add(quantidadeMovimentacao).compareTo(BigDecimal.ZERO) < 0) {
             throw new EstoqueInsuficienteParaMovimentacaoException(
                     lote.getId(),
                     LotePublicIdentifierFormatter.format(lote),
                     lote.getTipoMateriaPrima().getNome(),
-                    quantidadeMovimentacao.abs().doubleValue(),
-                    saldoAtualInterno.doubleValue()
+                    lote.getUnidadeCadastroEstoque().getSimbolo(),
+                    quantidadeInformada.abs().doubleValue(),
+                    saldoAtualApresentacao.doubleValue()
             );
         }
 
@@ -145,7 +147,6 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
             case AJUSTE -> valorAtualLote;
         };
 
-        BigDecimal saldoAtualApresentacao = converterQuantidadeParaApresentacao(lote, saldoAtualInterno);
         BigDecimal saldoProjetadoApresentacao = converterQuantidadeParaApresentacao(lote, saldoProjetadoInterno);
         BigDecimal custoUnitarioAtualApresentacao = saldoAtualApresentacao.compareTo(BigDecimal.ZERO) == 0
                 ? BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP)
