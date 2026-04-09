@@ -233,12 +233,24 @@
   {{ formatChannelQuantity(row) }}
 </ng-template>
 
-<ng-template #adjustmentActionsTemplate>
+<ng-template #adjustmentDivergenceTemplate let-row>
+  <span
+    class="stock-home__status-badge"
+    [class.stock-home__status-badge--ok]="isAdjustmentConsistent(row)"
+    [class.stock-home__status-badge--error]="!isAdjustmentConsistent(row)">
+    <span class="stock-home__status-dot"></span>
+    {{ isAdjustmentConsistent(row) ? 'Consistente' : 'Inconsistente' }}
+  </span>
+</ng-template>
+
+<ng-template #adjustmentActionsTemplate let-row>
   <button
-    mat-stroked-button
+    mat-icon-button
     type="button"
-    disabled
-    class="stock-home__adjustment-action">
-    {{ getAdjustmentActionLabel() }}
+    color="primary"
+    class="stock-home__adjustment-action"
+    [attr.aria-label]="getAdjustmentActionLabel()"
+    (click)="openAdjustment(row)">
+    <mat-icon>edit</mat-icon>
   </button>
 </ng-template>

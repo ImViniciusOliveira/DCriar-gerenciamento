@@ -185,6 +185,7 @@
       <p><strong>Unidade de Estoque:</strong> {{ getUnitDescription(batch().unidadeCadastroEstoque ?? batch().unidadeDeEstoque) }}</p>
       <p><strong>Saldo em Estoque:</strong> {{ batch().saldoEstoque }}</p>
       <p><strong>Custo Total do Lote:</strong> {{ batch().custoTotalLote | currency:'BRL' }}</p>
+      <p><strong>Custo Unitário Atual:</strong> {{ batch().custoUnitarioAtual | currency:'BRL' }}{{ batch().unidadeSimbolo ? '/' + batch().unidadeSimbolo : '' }}</p>
       <hr>
       @if (batch().atributos) {
         @for (attr of batch().atributos | keyvalue; track attr.key) {

@@ -1,0 +1,97 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="onSave()">
+  <mat-dialog-content class="adjustment-dialog">
+    <div class="adjustment-dialog__explanation">
+      <strong>O que este ajuste altera</strong>
+      <p>Este ajuste move saldo entre o produto e este canal de venda.</p>
+      <ul>
+        <li><strong>No canal:</strong> quantidade atualmente alocada neste canal.</li>
+        <li><strong>Físico total:</strong> quantidade real do produto, não muda aqui.</li>
+        <li><strong>Distribuído:</strong> soma total alocada em todos os canais.</li>
+        <li><strong>Disponível:</strong> saldo ainda livre para distribuição.</li>
+      </ul>
+      <p>Adicionar ao canal aumenta “No canal” e “Distribuído”. Retirar do canal faz o inverso. O físico total permanece o mesmo.</p>
+    </div>
+
+    <div class="adjustment-dialog__summary">
+      <div class="summary-card">
+        <span>Produto</span>
+        <strong>{{ data.template.nomeProduto }}</strong>
+      </div>
+
+      <div class="summary-card">
+        <span>Canal</span>
+        <strong>{{ data.template.nomeCanalVenda }}</strong>
+      </div>
+
+      <div class="summary-card">
+        <span>No canal</span>
+        <strong>{{ formatInteger(data.template.quantidadeNoCanal) }}</strong>
+      </div>
+
+      <div class="summary-card">
+        <span>Físico total</span>
+        <strong>{{ formatInteger(data.template.estoqueFisicoTotal) }}</strong>
+      </div>
+
+      <div class="summary-card">
+        <span>Distribuído</span>
+        <strong>{{ formatInteger(data.template.estoqueDistribuidoTotal) }}</strong>
+      </div>
+
+      <div class="summary-card">
+        <span>Disponível</span>
+        <strong>{{ formatInteger(data.template.estoqueDisponivelParaAlocar) }}</strong>
+      </div>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Direção</mat-label>
+      <mat-select formControlName="direcao" [errorStateMatcher]="matcher">
+        @for (option of options; track option.value) {
+          <mat-option [value]="option.value" [disabled]="isDirectionLocked(option.value)">
+            {{ option.label }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (selectedDirectionLockReason()) {
+      <div class="adjustment-dialog__lock-reason">
+        {{ selectedDirectionLockReason() }}
+      </div>
+    }
+
+    @if (!hasAvailableDirection()) {
+      <div class="adjustment-dialog__lock-reason">
+        Nenhuma direção de ajuste está disponível para este canal no momento.
+      </div>
+    }
+
+    <mat-form-field appearance="outline">
+      <mat-label>Quantidade</mat-label>
+      <input
+        matInput
+        type="text"
+        inputmode="numeric"
+        formControlName="quantidade"
+        [errorStateMatcher]="matcher">
+
+      @if (form.controls.quantidade.hasError('required')) {
+        <mat-error>Informe a quantidade.</mat-error>
+      } @else if (form.controls.quantidade.hasError('pattern')) {
+        <mat-error>Informe um número inteiro maior que zero.</mat-error>
+      } @else if (form.controls.quantidade.hasError('backend')) {
+        <mat-error>{{ form.controls.quantidade.getError('backend') }}</mat-error>
+      }
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="onCancel()">Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="isSaving() || !hasAvailableDirection()">
+      Ajustar canal
+    </button>
+  </mat-dialog-actions>
+</form>

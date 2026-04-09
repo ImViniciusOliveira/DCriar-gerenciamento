@@ -143,7 +143,38 @@
 }
 
 .stock-home__adjustment-action {
-  width: 100%;
+  margin-inline: auto;
+}
+
+.stock-home__status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.stock-home__status-badge--ok {
+  color: #1b5e20;
+  background: #e8f5e9;
+  border-color: #a5d6a7;
+}
+
+.stock-home__status-badge--error {
+  color: #b71c1c;
+  background: #ffebee;
+  border-color: #ef9a9a;
+}
+
+.stock-home__status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 :host ::ng-deep td.col-product-history .cell-content,

@@ -1,6 +1,11 @@
 import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
 
-export interface AdjustmentLotSummary {
+export interface AdjustmentActionMetadata {
+  camposBloqueados?: string[];
+  motivosBloqueio?: Record<string, string>;
+}
+
+export interface AdjustmentLotSummary extends AdjustmentActionMetadata {
   loteId: number;
   identificadorPublico: string;
   identificadorOrigemPublico?: string | null;
@@ -13,7 +18,7 @@ export interface AdjustmentLotSummary {
   custoUnitarioAtual: number;
 }
 
-export interface AdjustmentProductSummary {
+export interface AdjustmentProductSummary extends AdjustmentActionMetadata {
   produtoId: number;
   nomeProduto: string;
   skuProduto: string;
@@ -22,7 +27,7 @@ export interface AdjustmentProductSummary {
   estoqueDisponivelParaAlocar: number;
 }
 
-export interface AdjustmentChannelSummary {
+export interface AdjustmentChannelSummary extends AdjustmentActionMetadata {
   produtoId: number;
   nomeProduto: string;
   skuProduto: string;

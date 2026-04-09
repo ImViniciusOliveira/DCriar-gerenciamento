@@ -26,6 +26,7 @@ import { Observable, catchError, debounceTime, distinctUntilChanged, map, of } f
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { DetailsDialog } from '../../../../shared/components/details-dialog/details-dialog';
+import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 import {
   AdjustmentChannelSummary,
@@ -33,7 +34,11 @@ import {
   AdjustmentProductSummary
 } from '../../models/stock-adjustment.model';
 import { ApiResponseStockHistory, StockHistoryItem, StockMovementTypeOption } from '../../models/stock-history.model';
+import { BatchService } from '../../services/batch.service';
 import { StockService } from '../../services/stock.service';
+import { BatchForm } from '../batch-form/batch-form';
+import { ChannelStockAdjustmentForm } from '../channel-stock-adjustment-form/channel-stock-adjustment-form';
+import { ProductStockAdjustmentForm } from '../product-stock-adjustment-form/product-stock-adjustment-form';
 
 type StockSectionKey = 'consultas' | 'ajustes' | 'historico';
 type HistoryRangeKey = '1d' | '1m' | '6m' | '1a' | 'all';
@@ -87,6 +92,8 @@ export class StockHome implements AfterViewInit {
   private readonly dialog = inject(MatDialog);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly stockService = inject(StockService);
+  private readonly batchService = inject(BatchService);
+  private readonly entityDialog = inject(EntityDialogService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly pagination = inject(PaginationHandler);
 
@@ -155,6 +162,7 @@ export class StockHome implements AfterViewInit {
   protected readonly adjustmentPageIndex = signal(0);
   protected readonly adjustmentSortActive = signal('tipoMateriaPrima.nome');
   protected readonly adjustmentSortDirection = signal<Sort['direction']>('asc');
+  protected readonly adjustmentRefreshVersion = signal(0);
 
   historyTableColumns: TableColumn<StockHistoryItem>[] = [];
   adjustmentTableColumns: TableColumn<AdjustmentTableRow>[] = [];
@@ -177,6 +185,7 @@ export class StockHome implements AfterViewInit {
   @ViewChild('adjustmentAvailableStockTemplate') adjustmentAvailableStockTemplate!: TemplateRef<any>;
   @ViewChild('adjustmentChannelNameTemplate') adjustmentChannelNameTemplate!: TemplateRef<any>;
   @ViewChild('adjustmentChannelQuantityTemplate') adjustmentChannelQuantityTemplate!: TemplateRef<any>;
+  @ViewChild('adjustmentDivergenceTemplate') adjustmentDivergenceTemplate!: TemplateRef<any>;
   @ViewChild('adjustmentActionsTemplate') adjustmentActionsTemplate!: TemplateRef<any>;
 
   constructor() {
@@ -253,6 +262,7 @@ export class StockHome implements AfterViewInit {
       const pageSize = this.adjustmentPageSize();
       const sortActive = this.adjustmentSortActive();
       const sortDirection = this.adjustmentSortDirection();
+      this.adjustmentRefreshVersion();
 
       this.updateAdjustmentColumns(view.key);
 
@@ -451,6 +461,37 @@ export class StockHome implements AfterViewInit {
     return 'Ajustar';
   }
 
+  protected openAdjustment(row: AdjustmentTableRow): void {
+    switch (row.rowType) {
+      case 'lotes':
+        if (row.lot) {
+          this.openLotAdjustment(row.lot);
+        }
+        break;
+      case 'produtos':
+        if (row.product) {
+          this.openProductAdjustment(row.product);
+        }
+        break;
+      case 'canais':
+        if (row.channel) {
+          this.openChannelAdjustment(row.channel);
+        }
+        break;
+    }
+  }
+
+  protected isAdjustmentConsistent(row: AdjustmentTableRow): boolean {
+    switch (row.rowType) {
+      case 'lotes':
+        return (row.lot?.camposBloqueados?.length ?? 0) === 0;
+      case 'produtos':
+        return (row.product?.camposBloqueados?.length ?? 0) === 0;
+      case 'canais':
+        return (row.channel?.camposBloqueados?.length ?? 0) === 0;
+    }
+  }
+
   private resetAdjustmentTable(view: AdjustmentViewKey): void {
     const defaultSort = this.getAdjustmentDefaultSort(view);
     this.adjustmentPageIndex.set(0);
@@ -480,7 +521,8 @@ export class StockHome implements AfterViewInit {
           { key: 'saldo', header: 'Saldo Atual', sortable: false, widthPx: 200, className: 'col-adjustment-balance', cellTemplate: this.adjustmentSaldoTemplate },
           { key: 'valorAtual', header: 'Valor Atual', sortable: true, sortKey: 'valorAtualLote', widthPx: 200, className: 'col-adjustment-value', cellTemplate: this.adjustmentValueTemplate },
           { key: 'custoUnitario', header: 'Custo Unitário', sortable: true, sortKey: 'custoUnitarioAtual', widthPx: 200, className: 'col-adjustment-unit-cost', cellTemplate: this.adjustmentUnitCostTemplate },
-          { key: 'acoes', header: 'Ações', sortable: false, widthPx: 150, className: 'col-trigger col-fit-center', cellTemplate: this.adjustmentActionsTemplate }
+          { key: 'divergencia', header: 'Divergência', sortable: false, widthPx: 170, className: 'col-adjustment-status', cellTemplate: this.adjustmentDivergenceTemplate },
+          { key: 'acoes', header: 'Ações', sortable: false, widthPx: 90, className: 'col-trigger col-fit-center', cellTemplate: this.adjustmentActionsTemplate }
         ];
         break;
       case 'produtos':
@@ -490,7 +532,8 @@ export class StockHome implements AfterViewInit {
           { key: 'estoqueFisicoTotal', header: 'Físico', sortable: true, sortKey: 'estoqueFisicoTotal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.adjustmentPhysicalStockTemplate },
           { key: 'estoqueDistribuidoTotal', header: 'Distribuído', sortable: true, sortKey: 'estoqueDistribuidoTotal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.adjustmentDistributedStockTemplate },
           { key: 'estoqueDisponivelParaAlocar', header: 'Disponível', sortable: true, sortKey: 'estoqueDisponivelParaAlocar', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.adjustmentAvailableStockTemplate },
-          { key: 'acoes', header: 'Ações', sortable: false, widthPx: 150, className: 'col-trigger col-fit-center', cellTemplate: this.adjustmentActionsTemplate }
+          { key: 'divergencia', header: 'Divergência', sortable: false, widthPx: 170, className: 'col-adjustment-status', cellTemplate: this.adjustmentDivergenceTemplate },
+          { key: 'acoes', header: 'Ações', sortable: false, widthPx: 90, className: 'col-trigger col-fit-center', cellTemplate: this.adjustmentActionsTemplate }
         ];
         break;
       case 'canais':
@@ -502,7 +545,8 @@ export class StockHome implements AfterViewInit {
           { key: 'estoqueFisicoTotal', header: 'Físico', sortable: true, sortKey: 'estoqueFisicoTotal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.adjustmentPhysicalStockTemplate },
           { key: 'estoqueDistribuidoTotal', header: 'Distribuído', sortable: true, sortKey: 'estoqueDistribuidoTotal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.adjustmentDistributedStockTemplate },
           { key: 'estoqueDisponivelParaAlocar', header: 'Disponível', sortable: true, sortKey: 'estoqueDisponivelParaAlocar', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.adjustmentAvailableStockTemplate },
-          { key: 'acoes', header: 'Ações', sortable: false, widthPx: 150, className: 'col-trigger col-fit-center', cellTemplate: this.adjustmentActionsTemplate }
+          { key: 'divergencia', header: 'Divergência', sortable: false, widthPx: 170, className: 'col-adjustment-status', cellTemplate: this.adjustmentDivergenceTemplate },
+          { key: 'acoes', header: 'Ações', sortable: false, widthPx: 90, className: 'col-trigger col-fit-center', cellTemplate: this.adjustmentActionsTemplate }
         ];
         break;
     }
@@ -548,5 +592,67 @@ export class StockHome implements AfterViewInit {
       minimumFractionDigits: 0,
       maximumFractionDigits: 4
     }).format(value);
+  }
+
+  private openLotAdjustment(lot: AdjustmentLotSummary): void {
+    this.batchService.findById(lot.loteId).subscribe({
+      next: batch => {
+        const dialogRef = this.dialog.open(BatchForm, {
+          data: {
+            template: batch,
+            title: `Ajustar lote ${lot.identificadorPublico}`,
+            isViewMode: true
+          },
+          width: '800px',
+          maxWidth: '95vw',
+          autoFocus: false
+        });
+
+        dialogRef.afterClosed().subscribe(() => this.refreshAdjustments());
+      },
+      error: err => {
+        this.entityDialog.showApiErrorSnackbar(err, 'Não foi possível abrir o lote para ajuste.');
+      }
+    });
+  }
+
+  private openProductAdjustment(product: AdjustmentProductSummary): void {
+    this.entityDialog.openFormDialog({
+      component: ProductStockAdjustmentForm,
+      formData: {
+        template: product,
+        title: `Ajustar produto ${product.nomeProduto}`
+      },
+      title: `Ajustar produto ${product.nomeProduto}`,
+      width: '680px',
+      maxWidth: '95vw'
+    }).subscribe(saved => {
+      if (saved) {
+        this.entityDialog.showSuccessSnackbar('Estoque físico do produto ajustado com sucesso.');
+        this.refreshAdjustments();
+      }
+    });
+  }
+
+  private openChannelAdjustment(channel: AdjustmentChannelSummary): void {
+    this.entityDialog.openFormDialog({
+      component: ChannelStockAdjustmentForm,
+      formData: {
+        template: channel,
+        title: `Ajustar canal ${channel.nomeCanalVenda}`
+      },
+      title: `Ajustar canal ${channel.nomeCanalVenda}`,
+      width: '680px',
+      maxWidth: '95vw'
+    }).subscribe(saved => {
+      if (saved) {
+        this.entityDialog.showSuccessSnackbar('Estoque do canal ajustado com sucesso.');
+        this.refreshAdjustments();
+      }
+    });
+  }
+
+  private refreshAdjustments(): void {
+    this.adjustmentRefreshVersion.update(current => current + 1);
   }
 }

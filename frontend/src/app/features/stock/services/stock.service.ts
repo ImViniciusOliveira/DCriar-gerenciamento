@@ -51,6 +51,18 @@ type AdjustmentChannelsSearchParams = {
   canalVendaId?: number;
 };
 
+export interface ProductPhysicalAdjustmentRequest {
+  produtoId: number;
+  quantidade: number;
+  motivo: string;
+}
+
+export interface ChannelStockAdjustmentRequest {
+  produtoId: number;
+  canalVendaId: number;
+  quantidade: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -245,6 +257,14 @@ export class StockService {
         );
       })
     );
+  }
+
+  adjustPhysicalStock(request: ProductPhysicalAdjustmentRequest): Observable<void> {
+    return this.http.post<void>(`${environment.apiVersionPath}/estoques/ajuste-fisico`, request);
+  }
+
+  adjustChannelStock(request: ChannelStockAdjustmentRequest): Observable<Hateoas> {
+    return this.http.post<Hateoas>(`${environment.apiVersionPath}/estoques/ajustar-canal`, request);
   }
 
   private createEmptyHistoryResponse(): ApiResponseStockHistory {
