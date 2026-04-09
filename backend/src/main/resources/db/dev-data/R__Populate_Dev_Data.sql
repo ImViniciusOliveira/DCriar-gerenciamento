@@ -94,7 +94,7 @@ INSERT INTO movimentacoes_estoque_lote (lote_id, data, tipo, quantidade, motivo)
 
 -- Inserção de Estoque Distribuído (dependem de Produtos e Canais de Venda)
 INSERT INTO estoques (produto_id, canal_venda_id, quantidade) VALUES
-    ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 4000),
+    ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 3800),
     ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), 1000),
     ((SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), (SELECT id FROM canais_venda WHERE nome = 'Equipe de Vendas'), 10),
     ((SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), (SELECT id FROM canais_venda WHERE nome = 'Shopee'), 500),
@@ -104,8 +104,8 @@ INSERT INTO estoques (produto_id, canal_venda_id, quantidade) VALUES
     ((SELECT id FROM produtos WHERE sku = 'TIN-PRE-ES-1L'), (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), 10),
     ((SELECT id FROM produtos WHERE sku = 'FITA-DF-25MM'), (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), 5),
     ((SELECT id FROM produtos WHERE sku = 'ILHOS-BNR-100'), (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), 20),
-    ((SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'), (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), 8),
-    ((SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'), (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 15),
+    ((SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'), (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), 7),
+    ((SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'), (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 13),
     ((SELECT id FROM produtos WHERE sku = 'VERN-UV-250'), (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), 12),
     ((SELECT id FROM produtos WHERE sku = 'PAP-SEDA-A4-100'), (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 20);
 
@@ -133,10 +133,6 @@ INSERT INTO precos (produto_id, valor, data_criacao, data_atualizacao) VALUES
 INSERT INTO ordens_de_producao (produto_id, quantidade_produzida, modo_calculo, largura_final_cm, comprimento_final_cm, data_criacao, data_atualizacao, motivo, canal_venda_destino_id, margem_superior_cm, margem_inferior_cm, margem_esquerda_cm, margem_direita_cm) VALUES
     ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), 100, 'AUTOMATICO', 5.2, 500.4, NOW() - INTERVAL '2 day', NOW() - INTERVAL '2 day', 'PEDIDO-SHP-101', (SELECT id FROM canais_venda WHERE nome = 'Shopee'), 0.2, 0.2, 0.1, 0.1),
     ((SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), 50, 'MANUAL', 10.0, 260.0, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 'PEDIDO-LJA-205', (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), 0.0, 0.0, 0.0, 0.0),
-    ((SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), 50, 'MANUAL', 100.0, 10.0, NOW() - INTERVAL '3 hour', NOW() - INTERVAL '3 hour', 'Teste Estorno Válido', null, 0, 0, 0, 0),
-    ((SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), 1000, 'MANUAL', 50.0, 100.0, NOW() - INTERVAL '2 hour', NOW() - INTERVAL '2 hour', 'Teste Bloqueio por Venda', null, 0, 0, 0, 0),
-    ((SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), 20, 'MANUAL', 80.0, 2400.0, NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour', 'Teste Bloqueio por Retalho - Geradora', null, 0, 0, 0, 0),
-    ((SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), 10, 'MANUAL', 20.0, 50.0, NOW() - INTERVAL '30 minute', NOW() - INTERVAL '30 minute', 'Teste Bloqueio por Retalho - Consumidora', null, 0, 0, 0, 0),
     ((SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'), 8, null, null, null, NOW() - INTERVAL '20 hour', NOW() - INTERVAL '20 hour', 'LOTE-INT-RESINA-201', (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), null, null, null, null),
     ((SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'), 15, null, null, null, NOW() - INTERVAL '18 hour', NOW() - INTERVAL '18 hour', 'REPOSICAO-DTF-305', (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), null, null, null, null),
     ((SELECT id FROM produtos WHERE sku = 'VERN-UV-250'), 12, null, null, null, NOW() - INTERVAL '16 hour', NOW() - INTERVAL '16 hour', 'REPOSICAO-UV-410', (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), null, null, null, null),
@@ -144,9 +140,9 @@ INSERT INTO ordens_de_producao (produto_id, quantidade_produzida, modo_calculo, 
 
 -- Inserção de Lotes de Retalho (dependem de Lotes de Compra e Ordens de Produção)
 -- É crucial que esta etapa venha DEPOIS da criação das Ordens de Produção.
-INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, unidade_cadastro_estoque, custo_total_lote, motivo, atributos, lote_de_origem_id, ordem_producao_origem_id, data_criacao, data_atualizacao) VALUES
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 'METRO_QUADRADO', 'METRO_QUADRADO', 0.24000000, 'Retalho da Ordem #3', '{ "larguraMm": 200 }', (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1003'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'), NOW() - INTERVAL '3 hour', NOW() - INTERVAL '3 hour'),
-    ((SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 'METRO_QUADRADO', 'METRO_QUADRADO', 25.00000000, 'Retalho da Ordem #5', '{ "larguraMm": 300 }', (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour');
+INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, unidade_cadastro_estoque, custo_total_lote, motivo, atributos, lote_de_origem_id, ordem_producao_origem_id, data_criacao, data_atualizacao)
+SELECT NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+WHERE FALSE;
 
 -- Inserção de Vendas (dependem de Canais de Venda)
 -- Observação:
@@ -168,10 +164,6 @@ INSERT INTO vendas (data_criacao, data_atualizacao, canal_venda_id, valor_total,
 INSERT INTO ordem_producao_lotes_consumidos (ordem_producao_id, lote_materia_prima_id) VALUES
     ((SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-SHP-101'), (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1001')),
     ((SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-LJA-205'), (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002')),
-    ((SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'), (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1003')),
-    ((SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Venda'), (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1001')),
-    ((SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002')),
-    ((SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Consumidora'), (SELECT id FROM lotes_materia_prima WHERE motivo = 'Retalho da Ordem #5')),
     ((SELECT id FROM ordens_de_producao WHERE motivo = 'LOTE-INT-RESINA-201'), (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1009')),
     ((SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-DTF-305'), (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1010')),
     ((SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-UV-410'), (SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1011')),
@@ -181,10 +173,7 @@ INSERT INTO ordem_producao_lotes_consumidos (ordem_producao_id, lote_materia_pri
 INSERT INTO cortes_realizados (ordem_de_producao_id, largura_cm, comprimento_cm, quantidade, tipo, retalho_categoria) VALUES
     ((SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-SHP-101'), 5.0, 5.0, 100, 'PRODUTO', NULL),
     ((SELECT id FROM ordens_de_producao WHERE motivo = 'PEDIDO-LJA-205'), 9.0, 5.0, 50, 'PRODUTO', NULL),
-    ((SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'), 5.0, 5.0, 50, 'PRODUTO', NULL),
-    ((SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Venda'), 9.0, 5.0, 1000, 'PRODUTO', NULL),
-    ((SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), 80.0, 120.0, 20, 'PRODUTO', NULL),
-    ((SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Consumidora'), 5.0, 5.0, 10, 'PRODUTO', NULL);
+    ((SELECT id FROM ordens_de_producao WHERE motivo = 'ESTOQUE-PAPEL-SEDA-112'), 21.0, 29.7, 20, 'PRODUTO', NULL);
 
 -- Itens de Venda (dependem de Vendas e Produtos)
 INSERT INTO itens_venda (venda_id, produto_id, quantidade, preco_comercial_original, preco_unitario, preco_total, tipo_preco_aplicado, motivo_alteracao_preco) VALUES
@@ -348,30 +337,6 @@ INSERT INTO movimentacoes_estoque_produto (
         NULL
     ),
     (
-        (SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'),
-        (SELECT nome FROM produtos WHERE sku = 'ADSV-RD-5'),
-        (SELECT sku FROM produtos WHERE sku = 'ADSV-RD-5'),
-        NOW() - INTERVAL '3 hour',
-        'ENTRADA_PRODUCAO',
-        50,
-        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido')),
-        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'),
-        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'),
-        NULL
-    ),
-    (
-        (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'),
-        (SELECT nome FROM produtos WHERE sku = 'CV-PREM-9X5'),
-        (SELECT sku FROM produtos WHERE sku = 'CV-PREM-9X5'),
-        NOW() - INTERVAL '2 hour',
-        'ENTRADA_PRODUCAO',
-        1000,
-        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Venda')),
-        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Venda'),
-        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Venda'),
-        NULL
-    ),
-    (
         (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'),
         (SELECT nome FROM produtos WHERE sku = 'CV-PREM-9X5'),
         (SELECT sku FROM produtos WHERE sku = 'CV-PREM-9X5'),
@@ -382,18 +347,6 @@ INSERT INTO movimentacoes_estoque_produto (
         NULL,
         NULL,
         (SELECT id FROM vendas WHERE valor_total = 99.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'))
-    ),
-    (
-        (SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'),
-        (SELECT nome FROM produtos WHERE sku = 'BNR-COM-120X80'),
-        (SELECT sku FROM produtos WHERE sku = 'BNR-COM-120X80'),
-        NOW() - INTERVAL '1 hour',
-        'ENTRADA_PRODUCAO',
-        20,
-        CONCAT('Lançamento da OP #', (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora')),
-        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'),
-        (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'),
-        NULL
     ),
     (
         (SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'),
@@ -422,12 +375,6 @@ INSERT INTO movimentacoes_estoque_produto (
 
 -- Histórico de Movimentações de Estoque de Lote (dependem de Lotes e Ordens de Produção)
 INSERT INTO movimentacoes_estoque_lote (lote_id, ordem_producao_id, data, tipo, quantidade, motivo) VALUES
-    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1003'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'), NOW() - INTERVAL '3 hour', 'SAIDA_PRODUCAO', -1, 'Consumo para Ordem #3'),
-    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Retalho da Ordem #3'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Estorno Válido'), NOW() - INTERVAL '3 hour', 'ENTRADA_SOBRA', 0.2, 'Retalho gerado pela Ordem #3'),
-    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1001'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Venda'), NOW() - INTERVAL '2 hour', 'SAIDA_PRODUCAO', -20, 'Consumo para Ordem #4'),
-    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), NOW() - INTERVAL '1 hour', 'SAIDA_PRODUCAO', -25, 'Consumo para Ordem #5'),
-    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Retalho da Ordem #5'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Geradora'), NOW() - INTERVAL '1 hour', 'ENTRADA_SOBRA', 5, 'Retalho gerado pela Ordem #5'),
-    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Retalho da Ordem #5'), (SELECT id FROM ordens_de_producao WHERE motivo = 'Teste Bloqueio por Retalho - Consumidora'), NOW() - INTERVAL '30 minute', 'SAIDA_PRODUCAO', -1, 'Consumo do retalho da Ordem #5'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1009'), (SELECT id FROM ordens_de_producao WHERE motivo = 'LOTE-INT-RESINA-201'), NOW() - INTERVAL '20 hour', 'SAIDA_PRODUCAO', -16, 'Consumo para Ordem LOTE-INT-RESINA-201'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1010'), (SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-DTF-305'), NOW() - INTERVAL '18 hour', 'SAIDA_PRODUCAO', -7500, 'Consumo para Ordem REPOSICAO-DTF-305'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1011'), (SELECT id FROM ordens_de_producao WHERE motivo = 'REPOSICAO-UV-410'), NOW() - INTERVAL '16 hour', 'SAIDA_PRODUCAO', -3000, 'Consumo para Ordem REPOSICAO-UV-410'),

@@ -44,6 +44,9 @@ public class AjusteEstoqueCanalResumoDTO {
     @Schema(description = "Saldo ainda disponível para distribuição.", example = "3")
     private Integer estoqueDisponivelParaAlocar;
 
+    @Schema(description = "Status de consistência do estoque para a tela de ajustes.", example = "CONSISTENTE")
+    private String statusDivergencia;
+
     @Schema(description = "Ações atualmente bloqueadas para esse canal na UI.", example = "[\"ajusteCanalPositivo\"]")
     private Set<String> camposBloqueados;
 

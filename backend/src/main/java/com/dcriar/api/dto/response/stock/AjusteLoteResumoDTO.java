@@ -48,6 +48,9 @@ public class AjusteLoteResumoDTO {
     @Schema(description = "Custo unitário atual na unidade de apresentação.", example = "12.07")
     private BigDecimal custoUnitarioAtual;
 
+    @Schema(description = "Status de consistência do lote para a tela de ajustes.", example = "CONSISTENTE")
+    private String statusDivergencia;
+
     @Schema(description = "Ações atualmente bloqueadas para esse lote na UI.", example = "[\"ajusteLoteNegativo\", \"usarEmProducao\"]")
     private Set<String> camposBloqueados;
 

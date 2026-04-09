@@ -35,6 +35,9 @@ public class AjusteEstoqueProdutoResumoDTO {
     @Schema(description = "Saldo ainda disponível para distribuição.", example = "3")
     private Integer estoqueDisponivelParaAlocar;
 
+    @Schema(description = "Status de consistência do estoque para a tela de ajustes.", example = "CONSISTENTE")
+    private String statusDivergencia;
+
     @Schema(description = "Ações atualmente bloqueadas para esse produto na UI.", example = "[\"ajusteFisicoNegativo\", \"usarEmProducao\"]")
     private Set<String> camposBloqueados;
 

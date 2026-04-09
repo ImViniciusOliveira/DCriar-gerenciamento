@@ -19,6 +19,7 @@ import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.BloqueioOperacionalEstoqueUtils;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.common.util.PostgresSearchUtils;
+import com.dcriar.domain.common.util.StatusDivergenciaEstoqueUtils;
 import com.dcriar.domain.product.entity.CanalVenda;
 import com.dcriar.domain.product.entity.Estoque;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
@@ -382,6 +383,11 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .estoqueFisicoTotal(produto.getEstoqueFisicoTotal())
                 .estoqueDistribuidoTotal(produto.getEstoqueDistribuidoTotal())
                 .estoqueDisponivelParaAlocar(produto.getEstoqueDisponivelParaAlocar())
+                .statusDivergencia(StatusDivergenciaEstoqueUtils.resolverParaProduto(
+                        produto.getEstoqueFisicoTotal(),
+                        produto.getEstoqueDistribuidoTotal(),
+                        produto.getEstoqueDisponivelParaAlocar()
+                ))
                 .camposBloqueados(camposBloqueados.camposBloqueados())
                 .motivosBloqueio(camposBloqueados.motivosBloqueio())
                 .build();
@@ -406,6 +412,12 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .estoqueFisicoTotal(estoque.getEstoqueFisicoTotal())
                 .estoqueDistribuidoTotal(estoque.getEstoqueDistribuidoTotal())
                 .estoqueDisponivelParaAlocar(estoque.getEstoqueDisponivelParaAlocar())
+                .statusDivergencia(StatusDivergenciaEstoqueUtils.resolverParaCanal(
+                        estoque.getQuantidade(),
+                        estoque.getEstoqueFisicoTotal(),
+                        estoque.getEstoqueDistribuidoTotal(),
+                        estoque.getEstoqueDisponivelParaAlocar()
+                ))
                 .camposBloqueados(camposBloqueados.camposBloqueados())
                 .motivosBloqueio(camposBloqueados.motivosBloqueio())
                 .build();

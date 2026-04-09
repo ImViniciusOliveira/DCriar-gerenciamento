@@ -14,6 +14,7 @@ import com.dcriar.domain.common.util.CamposBloqueadosUtils;
 import com.dcriar.domain.common.util.LogicalMapKeySupport;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.common.util.MapStringValueTrimmer;
+import com.dcriar.domain.common.util.StatusDivergenciaEstoqueUtils;
 import com.dcriar.domain.common.util.TrimTextNormalizer;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
@@ -533,6 +534,7 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
                 .unidadeSimbolo(lote.getUnidadeCadastroEstoque().getSimbolo())
                 .valorAtualLote(lote.getValorAtualLote())
                 .custoUnitarioAtual(lote.getCustoUnitarioAtual())
+                .statusDivergencia(StatusDivergenciaEstoqueUtils.resolverParaLote(lote.getSaldoEstoque()))
                 .camposBloqueados(camposBloqueados.camposBloqueados())
                 .motivosBloqueio(camposBloqueados.motivosBloqueio())
                 .build();
