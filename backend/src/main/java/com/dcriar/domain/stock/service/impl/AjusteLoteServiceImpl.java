@@ -15,12 +15,10 @@ import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import com.dcriar.domain.stock.entity.enums.TipoOperacaoAjusteLote;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.model.LoteRetalhoHierarchyItem;
-import com.dcriar.domain.stock.model.ValorizacaoAtualLoteMateriaPrima;
 import com.dcriar.domain.stock.repository.LoteMateriaPrimaRepository;
 import com.dcriar.domain.stock.repository.MovimentacaoEstoqueLoteRepository;
 import com.dcriar.domain.stock.service.AjusteLoteService;
 import com.dcriar.domain.stock.service.LoteRetalhoHierarchyService;
-import com.dcriar.domain.stock.service.ValorizacaoLoteMateriaPrimaService;
 import com.dcriar.domain.stock.util.LotePublicIdentifierFormatter;
 import com.dcriar.exception.custom.AjusteLoteInvalidoException;
 import com.dcriar.exception.custom.EstoqueInsuficienteParaMovimentacaoException;
@@ -51,7 +49,6 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
     private final MovimentacaoEstoqueLoteRepository movimentacaoEstoqueLoteRepository;
     private final LoteMateriaPrimaMapper loteMateriaPrimaMapper;
     private final LoteRetalhoHierarchyService loteRetalhoHierarchyService;
-    private final ValorizacaoLoteMateriaPrimaService valorizacaoLoteMateriaPrimaService;
     private final EntityManager entityManager;
 
     @Override
@@ -121,11 +118,13 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
     ) {
         validarRequest(tipoOperacao, direcao, quantidadeInformada);
 
-        ValorizacaoAtualLoteMateriaPrima valorizacaoAtual = valorizacaoLoteMateriaPrimaService.calcularValorizacaoAtual(lote);
-        BigDecimal saldoAtualInterno = valorizacaoAtual.saldoInterno();
+        BigDecimal saldoAtualInterno = calcularSaldo(lote);
         BigDecimal quantidadeAjusteInterna = converterQuantidadeParaUnidadeInterna(lote, quantidadeInformada);
         BigDecimal quantidadeMovimentacao = resolverQuantidadeMovimentacao(tipoOperacao, direcao, quantidadeAjusteInterna);
-        BigDecimal saldoAtualApresentacao = converterQuantidadeParaApresentacao(lote, saldoAtualInterno);
+        BigDecimal saldoAtualApresentacao = calcularSaldoApresentacao(lote, saldoAtualInterno);
+        BigDecimal valorAtualLote = calcularValorAtualLote(lote);
+        BigDecimal custoUnitarioAtualInterno = calcularCustoUnitarioAtualInterno(lote, saldoAtualInterno, valorAtualLote);
+        BigDecimal custoUnitarioAtualApresentacao = calcularCustoUnitarioAtualApresentacao(lote);
 
         if (saldoAtualInterno.add(quantidadeMovimentacao).compareTo(BigDecimal.ZERO) < 0) {
             throw new EstoqueInsuficienteParaMovimentacaoException(
@@ -138,8 +137,6 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
             );
         }
 
-        BigDecimal custoUnitarioAtualInterno = valorizacaoAtual.custoUnitarioAtualInterno();
-        BigDecimal valorAtualLote = valorizacaoAtual.valorAtualLote();
         BigDecimal saldoProjetadoInterno = saldoAtualInterno.add(quantidadeMovimentacao);
 
         BigDecimal valorProjetadoLote = switch (tipoOperacao) {
@@ -148,9 +145,6 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
         };
 
         BigDecimal saldoProjetadoApresentacao = converterQuantidadeParaApresentacao(lote, saldoProjetadoInterno);
-        BigDecimal custoUnitarioAtualApresentacao = saldoAtualApresentacao.compareTo(BigDecimal.ZERO) == 0
-                ? BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP)
-                : valorAtualLote.divide(saldoAtualApresentacao, SCALE_MONEY, RoundingMode.HALF_UP);
         BigDecimal custoUnitarioProjetadoInterno = saldoProjetadoInterno.compareTo(BigDecimal.ZERO) == 0
                 ? BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP)
                 : valorProjetadoLote.divide(saldoProjetadoInterno, SCALE_MONEY, RoundingMode.HALF_UP);
@@ -270,9 +264,8 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
                     if (saldoAtualFilho.compareTo(BigDecimal.ZERO) <= 0) {
                         return null;
                     }
-                    ValorizacaoAtualLoteMateriaPrima valorizacaoAtualImpactado = valorizacaoLoteMateriaPrimaService.calcularValorizacaoAtual(loteImpactado);
                     BigDecimal saldoApresentacaoFilho = converterQuantidadeParaApresentacao(loteImpactado, saldoAtualFilho);
-                    BigDecimal valorAtual = valorizacaoAtualImpactado.valorAtualLote().setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+                    BigDecimal valorAtual = calcularValorAtualLote(loteImpactado);
                     BigDecimal valorProjetado = custoUnitarioProjetado.multiply(saldoAtualFilho).setScale(SCALE_MONEY, RoundingMode.HALF_UP);
                     List<LoteMateriaPrima> cadeiaAteRaiz = loteRetalhoHierarchyService.listarCadeiaAteRaiz(loteImpactado);
                     String identificadorPublico = LotePublicIdentifierFormatter.format(loteImpactado);
@@ -428,29 +421,50 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
 
     private void popularDadosDeApresentacao(LoteMateriaPrimaResponseDTO responseDTO, LoteMateriaPrima lote, BigDecimal saldoInterno) {
         UnidadeDeMedida unidadeCadastro = lote.getUnidadeCadastroEstoque();
-        UnidadeDeMedida unidadePrincipal = lote.getTipoMateriaPrima().getUnidadeDeConsumo();
-        BigDecimal saldoApresentacao = saldoInterno;
-
-        if (unidadePrincipal.isConsumo() && !unidadePrincipal.isPermiteCorte()) {
-            saldoApresentacao = unidadePrincipal.converterQuantidadeDaUnidadeInternaParaInformada(
-                    saldoInterno,
-                    unidadeCadastro
-            );
-        }
-
         responseDTO.setUnidadeDeEstoque(unidadeCadastro);
         responseDTO.setUnidadeCadastroEstoque(unidadeCadastro);
         responseDTO.setUnidadeSimbolo(unidadeCadastro.getSimbolo());
-        responseDTO.setSaldoEstoque(saldoApresentacao);
+        responseDTO.setSaldoEstoque(calcularSaldoApresentacao(lote, saldoInterno));
         responseDTO.setSaldoInternoAtual(saldoInterno);
-        ValorizacaoAtualLoteMateriaPrima valorizacaoAtual = valorizacaoLoteMateriaPrimaService.calcularValorizacaoAtual(lote);
-        responseDTO.setValorAtualLote(valorizacaoAtual.valorAtualLote());
-        responseDTO.setCustoUnitarioAtual(valorizacaoAtual.custoUnitarioAtualApresentacao());
+        responseDTO.setValorAtualLote(calcularValorAtualLote(lote));
+        responseDTO.setCustoUnitarioAtual(calcularCustoUnitarioAtualApresentacao(lote));
         responseDTO.setIdentificadorPublico(LotePublicIdentifierFormatter.format(lote));
         responseDTO.setIdentificadorOrigemPublico(lote.getLoteDeOrigem() != null
                 ? LotePublicIdentifierFormatter.format(lote.getLoteDeOrigem())
                 : null);
         responseDTO.setTipoEstrutural(LotePublicIdentifierFormatter.resolverTipoEstrutural(lote));
+    }
+
+    private BigDecimal calcularSaldoApresentacao(LoteMateriaPrima lote, BigDecimal saldoInterno) {
+        if (lote.getSaldoEstoque() != null) {
+            return lote.getSaldoEstoque();
+        }
+        return converterQuantidadeParaApresentacao(lote, saldoInterno);
+    }
+
+    private BigDecimal calcularValorAtualLote(LoteMateriaPrima lote) {
+        if (lote.getValorAtualLote() != null) {
+            return lote.getValorAtualLote().setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+        }
+        return BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calcularCustoUnitarioAtualApresentacao(LoteMateriaPrima lote) {
+        if (lote.getCustoUnitarioAtual() != null) {
+            return lote.getCustoUnitarioAtual().setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+        }
+        return BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calcularCustoUnitarioAtualInterno(
+            LoteMateriaPrima lote,
+            BigDecimal saldoAtualInterno,
+            BigDecimal valorAtualLote
+    ) {
+        if (saldoAtualInterno.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO.setScale(SCALE_MONEY, RoundingMode.HALF_UP);
+        }
+        return valorAtualLote.divide(saldoAtualInterno, SCALE_MONEY, RoundingMode.HALF_UP);
     }
 
     private record ResultadoCalculoAjuste(
