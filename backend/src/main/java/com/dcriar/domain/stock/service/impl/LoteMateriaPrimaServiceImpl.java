@@ -1,5 +1,7 @@
 package com.dcriar.domain.stock.service.impl;
 
+import com.dcriar.api.dto.request.stock.TipoEstruturalLoteFiltro;
+import com.dcriar.api.dto.response.stock.AjusteLoteResumoDTO;
 import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
@@ -329,6 +331,20 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<AjusteLoteResumoDTO> findAllForAdjustments(
+            String nomeMateriaPrima,
+            TipoEstruturalLoteFiltro tipoEstrutural,
+            Pageable pageable
+    ) {
+        Specification<LoteMateriaPrima> spec = LoteMateriaPrimaSpecification.comFiltrosAjuste(nomeMateriaPrima, tipoEstrutural);
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, STABLE_SORTS);
+
+        return loteMateriaPrimaRepository.findAll(spec, pageableComDesempate)
+                .map(this::mapToAjusteResumoDTO);
+    }
+
+    @Override
     @Transactional
     public MovimentacaoResponseDTO registrarMovimentacao(Long loteId, MovimentacaoRequestDTO requestDTO) {
         // 1. Busca o lote e calcula seu saldo atual.
@@ -500,6 +516,25 @@ public class LoteMateriaPrimaServiceImpl implements LoteMateriaPrimaService {
         CamposBloqueadosInfo camposBloqueados = resolverCamposBloqueados(lote);
         responseDTO.setCamposBloqueados(camposBloqueados.camposBloqueados());
         responseDTO.setMotivosBloqueio(camposBloqueados.motivosBloqueio());
+    }
+
+    private AjusteLoteResumoDTO mapToAjusteResumoDTO(LoteMateriaPrima lote) {
+        BigDecimal saldoInterno = calcularSaldo(lote);
+        LoteMateriaPrimaResponseDTO responseDTO = loteMateriaPrimaMapper.toResponseDTO(lote);
+        popularDadosDeApresentacao(responseDTO, lote, saldoInterno);
+
+        return AjusteLoteResumoDTO.builder()
+                .loteId(lote.getId())
+                .identificadorPublico(responseDTO.getIdentificadorPublico())
+                .identificadorOrigemPublico(responseDTO.getIdentificadorOrigemPublico())
+                .tipoMateriaPrimaId(lote.getTipoMateriaPrima().getId())
+                .nomeTipoMateriaPrima(lote.getTipoMateriaPrima().getNome())
+                .tipoEstrutural(responseDTO.getTipoEstrutural())
+                .saldoEstoque(responseDTO.getSaldoEstoque())
+                .unidadeSimbolo(responseDTO.getUnidadeSimbolo())
+                .valorAtualLote(responseDTO.getValorAtualLote())
+                .custoUnitarioAtual(responseDTO.getCustoUnitarioAtual())
+                .build();
     }
 
     private void validarCamposBloqueadosNaEdicao(LoteMateriaPrima lote, LoteMateriaPrimaRequestDTO requestDTO) {

@@ -2,6 +2,8 @@ package com.dcriar.api.controller.product;
 
 import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
+import com.dcriar.api.dto.response.product.AjusteEstoqueCanalResumoDTO;
+import com.dcriar.api.dto.response.product.AjusteEstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
@@ -13,6 +15,7 @@ import com.dcriar.api.hateoas.product.model.EstoqueProdutoModel;
 import com.dcriar.api.hateoas.product.model.MovimentacaoProdutoModel;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
+import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -76,9 +79,21 @@ public class EstoqueProdutoController {
                 .listarEstoqueDeTodosOsProdutosPorCanal())
                 .withRel("todos-por-canais"));
 
-        rootModel.add(linkTo(EstoqueProdutoController.class)
-                .slash("historico")
+        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarHistoricoConsolidado("all", null, null, null, null, null))
                 .withRel("historico"));
+
+        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarProdutosParaAjuste(null, null, null, null))
+                .withRel("ajustes-produtos"));
+
+        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarCanaisParaAjuste(null, null, null, null))
+                .withRel("ajustes-canais"));
+
+        rootModel.add(linkTo(methodOn(LoteMateriaPrimaController.class)
+                .searchAllForAdjustments(null, null, null, null))
+                .withRel("ajustes-lotes"));
 
         return ResponseEntity.ok(rootModel);
     }
@@ -129,6 +144,40 @@ public class EstoqueProdutoController {
         PagedModel<EntityModel<EstoqueProdutoResumoDTO>> pagedModel = pagedResourcesAssembler.toModel(page);
         
         return ResponseEntity.ok(pagedModel);
+    }
+
+    @GetMapping("/ajustes/produtos")
+    @Operation(summary = "Listar produtos prontos para ajuste físico")
+    @Parameters({
+            @Parameter(name = "sort", description = "Critério de ordenação.", example = "nome,asc")
+    })
+    public ResponseEntity<PagedModel<EntityModel<AjusteEstoqueProdutoResumoDTO>>> listarProdutosParaAjuste(
+            @Parameter(description = "Filtrar por nome ou SKU do produto.", example = "Resina")
+            @RequestParam(required = false) String nomeProduto,
+            @Parameter(description = "Filtrar por tipo de produto.", example = "CONSUMO")
+            @RequestParam(required = false) String tipoProduto,
+            @ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
+            PagedResourcesAssembler<AjusteEstoqueProdutoResumoDTO> pagedResourcesAssembler
+    ) {
+        Page<AjusteEstoqueProdutoResumoDTO> page = estoqueProdutoService.listarProdutosParaAjuste(nomeProduto, tipoProduto, pageable);
+        return ResponseEntity.ok(pagedResourcesAssembler.toModel(page));
+    }
+
+    @GetMapping("/ajustes/canais")
+    @Operation(summary = "Listar distribuições por canal prontas para ajuste")
+    @Parameters({
+            @Parameter(name = "sort", description = "Critério de ordenação.", example = "produto.nome,asc")
+    })
+    public ResponseEntity<PagedModel<EntityModel<AjusteEstoqueCanalResumoDTO>>> listarCanaisParaAjuste(
+            @Parameter(description = "Filtrar por nome ou SKU do produto.", example = "Resina")
+            @RequestParam(required = false) String nomeProduto,
+            @Parameter(description = "Filtrar por um canal de venda específico.", example = "1")
+            @RequestParam(required = false) Long canalVendaId,
+            @ParameterObject @PageableDefault(sort = "produto.nome", direction = Sort.Direction.ASC) Pageable pageable,
+            PagedResourcesAssembler<AjusteEstoqueCanalResumoDTO> pagedResourcesAssembler
+    ) {
+        Page<AjusteEstoqueCanalResumoDTO> page = estoqueProdutoService.listarCanaisParaAjuste(nomeProduto, canalVendaId, pageable);
+        return ResponseEntity.ok(pagedResourcesAssembler.toModel(page));
     }
 
     @GetMapping("/por-produto-canais")

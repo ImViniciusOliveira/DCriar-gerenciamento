@@ -4,6 +4,8 @@ import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.request.product.EstoqueRequestDTO;
 import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
+import com.dcriar.api.dto.response.product.AjusteEstoqueCanalResumoDTO;
+import com.dcriar.api.dto.response.product.AjusteEstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
@@ -24,6 +26,8 @@ import com.dcriar.domain.product.repository.CanalVendaRepository;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
+import com.dcriar.domain.product.repository.spec.EstoqueSpecifications;
+import com.dcriar.domain.product.repository.spec.ProdutoSpecifications;
 import com.dcriar.domain.product.repository.spec.MovimentacaoEstoqueProdutoSpecifications;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.exception.custom.*;
@@ -52,6 +56,8 @@ import static java.util.stream.Collectors.groupingBy;
 public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     private static final Map<String, String> HISTORICO_STABLE_SORTS = Map.of("data", "id");
     private static final Map<String, String> RESUMO_STABLE_SORTS = Map.of("produto.nome", "produto.id");
+    private static final Map<String, String> AJUSTE_PRODUTOS_STABLE_SORTS = Map.of("nome", "id");
+    private static final Map<String, String> AJUSTE_CANAIS_STABLE_SORTS = Map.of("produto.nome", "produto.id", "canalVenda.nome", "canalVenda.id");
 
     private final EstoqueRepository estoqueRepository;
     private final ProdutoRepository produtoRepository;
@@ -167,6 +173,41 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<AjusteEstoqueProdutoResumoDTO> listarProdutosParaAjuste(String nomeProduto, String tipoProduto, Pageable pageable) {
+        if (tipoProduto != null
+                && !tipoProduto.isBlank()
+                && !tipoProduto.equalsIgnoreCase("CORTE")
+                && !tipoProduto.equalsIgnoreCase("CONSUMO")) {
+            throw new TipoProdutoInvalidoException(tipoProduto);
+        }
+
+        Specification<Produto> spec = (root, query, builder) -> builder.conjunction();
+        spec = spec.and(ProdutoSpecifications.comNomeLike(nomeProduto));
+        spec = spec.and(ProdutoSpecifications.comTipo(tipoProduto));
+
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, AJUSTE_PRODUTOS_STABLE_SORTS);
+        return produtoRepository.findAll(spec, pageableComDesempate)
+                .map(this::mapProdutoParaAjusteResumo);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AjusteEstoqueCanalResumoDTO> listarCanaisParaAjuste(String nomeProduto, Long canalVendaId, Pageable pageable) {
+        if (canalVendaId != null && !canalVendaRepository.existsById(canalVendaId)) {
+            throw new CanalVendaNaoEncontradoException(canalVendaId);
+        }
+
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageable, AJUSTE_CANAIS_STABLE_SORTS);
+        Specification<Estoque> spec = (root, query, builder) -> builder.conjunction();
+        spec = spec.and(EstoqueSpecifications.comNomeProdutoLike(nomeProduto));
+        spec = spec.and(EstoqueSpecifications.comCanalVendaId(canalVendaId));
+
+        return estoqueRepository.findAll(spec, pageableComDesempate)
+                .map(this::mapEstoqueParaAjusteCanalResumo);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<MovimentacaoProdutoResponseDTO> listarMovimentacoesPorProduto(Long produtoId) {
         Produto produto = findProdutoById(produtoId);
         return movimentacaoEstoqueProdutoRepository.findAllByProduto(produto)
@@ -241,6 +282,42 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
     private String formatarProdutoLabel(Produto produto) {
         return produto.getSku() + " - " + produto.getNome();
+    }
+
+    private AjusteEstoqueProdutoResumoDTO mapProdutoParaAjusteResumo(Produto produto) {
+        Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
+        int estoqueDistribuidoTotal = estoqueRepository.findAllByProduto(produto).stream()
+                .mapToInt(Estoque::getQuantidade)
+                .sum();
+
+        return AjusteEstoqueProdutoResumoDTO.builder()
+                .produtoId(produto.getId())
+                .nomeProduto(produto.getNome())
+                .skuProduto(produto.getSku())
+                .estoqueFisicoTotal(estoqueFisicoTotal)
+                .estoqueDistribuidoTotal(estoqueDistribuidoTotal)
+                .estoqueDisponivelParaAlocar(estoqueFisicoTotal - estoqueDistribuidoTotal)
+                .build();
+    }
+
+    private AjusteEstoqueCanalResumoDTO mapEstoqueParaAjusteCanalResumo(Estoque estoque) {
+        Produto produto = estoque.getProduto();
+        Integer estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.findSaldoByProduto(produto);
+        int estoqueDistribuidoTotal = estoqueRepository.findAllByProduto(produto).stream()
+                .mapToInt(Estoque::getQuantidade)
+                .sum();
+
+        return AjusteEstoqueCanalResumoDTO.builder()
+                .produtoId(produto.getId())
+                .nomeProduto(produto.getNome())
+                .skuProduto(produto.getSku())
+                .canalVendaId(estoque.getCanalVenda().getId())
+                .nomeCanalVenda(estoque.getCanalVenda().getNome())
+                .quantidadeNoCanal(estoque.getQuantidade())
+                .estoqueFisicoTotal(estoqueFisicoTotal)
+                .estoqueDistribuidoTotal(estoqueDistribuidoTotal)
+                .estoqueDisponivelParaAlocar(estoqueFisicoTotal - estoqueDistribuidoTotal)
+                .build();
     }
 
     private String resolveNomeProdutoTermo(String nomeProduto) {

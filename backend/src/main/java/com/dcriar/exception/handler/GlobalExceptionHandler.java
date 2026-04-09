@@ -16,6 +16,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -554,6 +555,41 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 details
         );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponseDTO> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request
+    ) {
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("parametro", ex.getName());
+        details.put("valorInformado", String.valueOf(ex.getValue()));
+
+        String message = String.format(
+                "O parâmetro '%s' recebeu um valor inválido: '%s'.",
+                ex.getName(),
+                ex.getValue()
+        );
+
+        Class<?> requiredType = ex.getRequiredType();
+        if (requiredType != null && requiredType.isEnum()) {
+            Object[] enumConstants = requiredType.getEnumConstants();
+            if (enumConstants != null && enumConstants.length > 0) {
+                String valoresAceitos = java.util.Arrays.stream(enumConstants)
+                        .map(Object::toString)
+                        .collect(Collectors.joining(", "));
+                details.put("valoresAceitos", valoresAceitos);
+            }
+        }
+
+        log.info(
+                "Parâmetro com tipo inválido: method={} uri={} details={}",
+                request != null ? request.getMethod() : "N/A",
+                request != null ? request.getRequestURI() : "N/A",
+                sanitizeLogMap(details)
+        );
+        return buildErrorResponse(message, HttpStatus.BAD_REQUEST, details);
     }
 
     /**

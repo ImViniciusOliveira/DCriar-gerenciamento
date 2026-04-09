@@ -1,5 +1,7 @@
 package com.dcriar.domain.stock.repository.specification;
 
+import com.dcriar.api.dto.request.stock.TipoEstruturalLoteFiltro;
+import com.dcriar.domain.common.util.PostgresSearchUtils;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -42,6 +44,34 @@ public final class LoteMateriaPrimaSpecification {
             }
 
             // ETAPA 3: Combinar todos os predicados com um "AND" lógico.
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    public static Specification<LoteMateriaPrima> comFiltrosAjuste(
+            String nomeMateriaPrima,
+            TipoEstruturalLoteFiltro tipoEstrutural
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (nomeMateriaPrima != null && !nomeMateriaPrima.isBlank()) {
+                String termo = PostgresSearchUtils.likeTerm(nomeMateriaPrima);
+                predicates.add(
+                        criteriaBuilder.like(
+                                PostgresSearchUtils.unaccentedLower(criteriaBuilder, root.get("tipoMateriaPrima").get("nome")),
+                                termo
+                        )
+                );
+            }
+
+            if (tipoEstrutural != null) {
+                switch (tipoEstrutural) {
+                    case LOTE_PRINCIPAL -> predicates.add(criteriaBuilder.isNull(root.get("loteDeOrigem")));
+                    case RETALHO -> predicates.add(criteriaBuilder.isNotNull(root.get("loteDeOrigem")));
+                }
+            }
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }

@@ -2,6 +2,8 @@ package com.dcriar.domain.product.service;
 
 import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
+import com.dcriar.api.dto.response.product.AjusteEstoqueCanalResumoDTO;
+import com.dcriar.api.dto.response.product.AjusteEstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
@@ -55,6 +57,16 @@ public interface EstoqueProdutoService {
      * @return Página de DTOs de resumo.
      */
     Page<EstoqueProdutoResumoDTO> buscarEstoqueResumido(Long canalId, String nomeProduto, boolean apenasComSaldo, Pageable pageable);
+
+    /**
+     * Lista produtos prontos para ajuste físico, com busca textual e filtro opcional por tipo.
+     */
+    Page<AjusteEstoqueProdutoResumoDTO> listarProdutosParaAjuste(String nomeProduto, String tipoProduto, Pageable pageable);
+
+    /**
+     * Lista distribuições por canal prontas para ajuste, com busca textual e filtro opcional por canal.
+     */
+    Page<AjusteEstoqueCanalResumoDTO> listarCanaisParaAjuste(String nomeProduto, Long canalVendaId, Pageable pageable);
 
     /**
      * Lista todo o histórico de movimentações (o "Livro-Razão") do Estoque Físico Total de um produto.

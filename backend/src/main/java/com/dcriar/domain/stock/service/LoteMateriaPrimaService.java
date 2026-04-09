@@ -1,5 +1,7 @@
 package com.dcriar.domain.stock.service;
 
+import com.dcriar.api.dto.request.stock.TipoEstruturalLoteFiltro;
+import com.dcriar.api.dto.response.stock.AjusteLoteResumoDTO;
 import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
@@ -39,6 +41,11 @@ public interface LoteMateriaPrimaService {
      * @return Uma {@link Page} de {@link LoteMateriaPrimaResponseDTO} com os lotes filtrados.
      */
     Page<LoteMateriaPrimaResponseDTO> findAll(Long tipoMateriaPrimaId, Boolean apenasLotesPrincipais, Pageable pageable);
+
+    /**
+     * Lista lotes prontos para a área de ajustes operacionais, com filtros de busca e tipo estrutural.
+     */
+    Page<AjusteLoteResumoDTO> findAllForAdjustments(String nomeMateriaPrima, TipoEstruturalLoteFiltro tipoEstrutural, Pageable pageable);
 
     /**
      * Registra uma nova movimentação de estoque para um lote de matéria-prima.

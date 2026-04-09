@@ -4,6 +4,8 @@ import com.dcriar.api.dto.request.stock.AplicarAjusteLoteRequestDTO;
 import com.dcriar.api.dto.request.stock.CalcularAjusteLoteRequestDTO;
 import com.dcriar.api.dto.request.stock.LoteMateriaPrimaRequestDTO;
 import com.dcriar.api.dto.request.stock.MovimentacaoRequestDTO;
+import com.dcriar.api.dto.request.stock.TipoEstruturalLoteFiltro;
+import com.dcriar.api.dto.response.stock.AjusteLoteResumoDTO;
 import com.dcriar.api.dto.response.stock.CalcularAjusteLoteResponseDTO;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
 import com.dcriar.api.dto.response.stock.MovimentacaoResponseDTO;
@@ -30,6 +32,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -78,6 +81,24 @@ public class LoteMateriaPrimaController {
         Page<LoteMateriaPrimaResponseDTO> lotesPage = loteMateriaPrimaService.findAll(tipoMateriaPrimaId, apenasLotesPrincipais, pageable);
         PagedModel<LoteMateriaPrimaModel> pagedModel = pagedResourcesAssembler.toModel(lotesPage, loteMateriaPrimaModelAssembler);
         return ResponseEntity.ok(pagedModel);
+    }
+
+    @GetMapping("/ajustes")
+    @Operation(summary = "Listar lotes prontos para ajuste operacional")
+    @ApiResponse(responseCode = "200", description = "Lista de lotes para ajuste retornada com sucesso")
+    @Parameters({
+            @Parameter(name = "sort", description = "Critério de ordenação no formato: propriedade,asc|desc.", example = "tipoMateriaPrima.nome,asc")
+    })
+    public ResponseEntity<PagedModel<EntityModel<AjusteLoteResumoDTO>>> searchAllForAdjustments(
+            @Parameter(description = "Busca textual pelo nome da matéria-prima.", example = "Adesivo")
+            @RequestParam(required = false) String nomeMateriaPrima,
+            @Parameter(description = "Filtrar por tipo estrutural do item.", example = "RETALHO")
+            @RequestParam(required = false) TipoEstruturalLoteFiltro tipoEstrutural,
+            @ParameterObject @PageableDefault(sort = "tipoMateriaPrima.nome", direction = Sort.Direction.ASC) Pageable pageable,
+            PagedResourcesAssembler<AjusteLoteResumoDTO> pagedResourcesAssembler
+    ) {
+        Page<AjusteLoteResumoDTO> page = loteMateriaPrimaService.findAllForAdjustments(nomeMateriaPrima, tipoEstrutural, pageable);
+        return ResponseEntity.ok(pagedResourcesAssembler.toModel(page));
     }
 
     @GetMapping("/new")
