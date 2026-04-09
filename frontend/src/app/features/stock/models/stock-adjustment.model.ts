@@ -3,6 +3,7 @@ import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
 export interface AdjustmentActionMetadata {
   camposBloqueados?: string[];
   motivosBloqueio?: Record<string, string>;
+  statusDivergencia?: 'CONSISTENTE' | 'INCONSISTENTE' | string;
 }
 
 export interface AdjustmentLotSummary extends AdjustmentActionMetadata {

@@ -484,11 +484,11 @@ export class StockHome implements AfterViewInit {
   protected isAdjustmentConsistent(row: AdjustmentTableRow): boolean {
     switch (row.rowType) {
       case 'lotes':
-        return (row.lot?.camposBloqueados?.length ?? 0) === 0;
+        return row.lot?.statusDivergencia !== 'INCONSISTENTE';
       case 'produtos':
-        return (row.product?.camposBloqueados?.length ?? 0) === 0;
+        return row.product?.statusDivergencia !== 'INCONSISTENTE';
       case 'canais':
-        return (row.channel?.camposBloqueados?.length ?? 0) === 0;
+        return row.channel?.statusDivergencia !== 'INCONSISTENTE';
     }
   }
 
