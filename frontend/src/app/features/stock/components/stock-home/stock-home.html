@@ -152,7 +152,9 @@
                   type="text"
                   placeholder="Digite o nome ou SKU do produto"
                   [formControl]="consultationProductControl"
-                  [matAutocomplete]="consultationProductAuto">
+                  [matAutocomplete]="consultationProductAuto"
+                  #consultationProductTrigger="matAutocompleteTrigger"
+                  (click)="openConsultationProductOptions()">
                 <mat-icon matSuffix>search</mat-icon>
                 <mat-autocomplete
                   #consultationProductAuto="matAutocomplete"
@@ -169,20 +171,12 @@
               <mat-form-field appearance="outline" class="stock-home__movement-field">
                 <mat-label>Canal</mat-label>
                 <mat-select [formControl]="consultationChannelControl">
-                  <mat-option value="">Selecione</mat-option>
+                  <mat-option value="">Todos</mat-option>
                   @for (channel of channels(); track channel.id) {
                     <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
-
-              <button
-                mat-stroked-button
-                type="button"
-                class="stock-home__consult-button"
-                (click)="runPointConsultation()">
-                Consultar
-              </button>
             }
           </div>
 
@@ -204,7 +198,7 @@
           </div>
         } @else if (!consultationRequest()) {
           <div class="stock-home__placeholder">
-            Use os filtros opcionais e clique em Consultar para listar os estoques.
+            Carregando consultas de estoque...
           </div>
         } @else {
           <div class="stock-home__consultation-table">

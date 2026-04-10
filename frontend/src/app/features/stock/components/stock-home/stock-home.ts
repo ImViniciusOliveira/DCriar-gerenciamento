@@ -17,6 +17,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -201,18 +202,18 @@ export class StockHome implements AfterViewInit {
   protected readonly adjustmentRefreshVersion = signal(0);
   protected readonly consultationViews: ConsultationViewOption[] = [
     {
+      key: 'pontual',
+      title: 'Geral',
+      subtitle: 'Consulta dinâmica por produto e canal',
+      buttonLabel: 'Geral',
+      implemented: true
+    },
+    {
       key: 'canal',
       title: 'Por canal',
       subtitle: 'Visão do canal com seus produtos e saldos',
       buttonLabel: 'Por canal',
       implemented: false
-    },
-    {
-      key: 'pontual',
-      title: 'Pontual',
-      subtitle: 'Consulta exata de produto + canal',
-      buttonLabel: 'Pontual',
-      implemented: true
     },
     {
       key: 'produto',
@@ -222,7 +223,7 @@ export class StockHome implements AfterViewInit {
       implemented: false
     }
   ];
-  protected readonly activeConsultationView = signal<ConsultationViewOption>(this.consultationViews[1]);
+  protected readonly activeConsultationView = signal<ConsultationViewOption>(this.consultationViews[0]);
   protected readonly consultationItems = signal<ConsultationTableRow[]>([]);
   protected readonly consultationTotalElements = signal(0);
   protected readonly consultationPageSize = signal(10);
@@ -238,7 +239,7 @@ export class StockHome implements AfterViewInit {
     produtoId?: number;
     nomeProduto?: string;
     canalVendaId?: number;
-  } | null>(null);
+  } | null>({});
 
   historyTableColumns: TableColumn<StockHistoryItem>[] = [];
   adjustmentTableColumns: TableColumn<AdjustmentTableRow>[] = [];
@@ -272,6 +273,7 @@ export class StockHome implements AfterViewInit {
   @ViewChild('consultationDistributedStockTemplate') consultationDistributedStockTemplate!: TemplateRef<any>;
   @ViewChild('consultationAvailableStockTemplate') consultationAvailableStockTemplate!: TemplateRef<any>;
   @ViewChild('consultationDivergenceTemplate') consultationDivergenceTemplate!: TemplateRef<any>;
+  @ViewChild('consultationProductTrigger', { read: MatAutocompleteTrigger }) consultationProductTrigger?: MatAutocompleteTrigger;
 
   constructor() {
     this.pagination.initialize('stock-history', { active: 'data', direction: 'desc' });
@@ -385,17 +387,14 @@ export class StockHome implements AfterViewInit {
       this.consultationItems.set([]);
       this.consultationTotalElements.set(0);
       const term = value.trim();
-      if (term.length < 2) {
-        this.consultationProductOptions.set([]);
-        return;
-      }
-
-      this.productService.searchProducts(term).pipe(
+      this.productService.searchProducts(term, undefined, false, 100).pipe(
         catchError(() => of([]))
       ).subscribe(products => {
         this.consultationProductOptions.set(products);
         this.cdr.markForCheck();
       });
+
+      this.runPointConsultation();
     });
 
     this.consultationChannelControl.valueChanges.pipe(
@@ -403,9 +402,7 @@ export class StockHome implements AfterViewInit {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(value => {
       this.selectedConsultationChannelId.set(value === '' ? null : Number(value));
-      this.consultationRequest.set(null);
-      this.consultationItems.set([]);
-      this.consultationTotalElements.set(0);
+      this.runPointConsultation();
     });
 
     effect(() => {
@@ -491,8 +488,7 @@ export class StockHome implements AfterViewInit {
       }
 
       if (!request) {
-        this.consultationItems.set([]);
-        this.consultationTotalElements.set(0);
+        this.runPointConsultation();
         return;
       }
 
@@ -542,6 +538,17 @@ export class StockHome implements AfterViewInit {
     this.activeSection.set(section);
     if (section.key === 'historico') {
       this.stockService.refreshHistory();
+      return;
+    }
+
+    if (section.key === 'consultas') {
+      this.activeConsultationView.set(this.consultationViews[0]);
+      this.consultationProductControl.setValue('', { emitEvent: false });
+      this.consultationChannelControl.setValue('', { emitEvent: false });
+      this.consultationProductOptions.set([]);
+      this.selectedConsultationProduct.set(null);
+      this.selectedConsultationChannelId.set(null);
+      this.resetConsultationTable();
     }
   }
 
@@ -654,7 +661,20 @@ export class StockHome implements AfterViewInit {
     this.selectedConsultationProduct.set(product);
     this.consultationProductControl.setValue(product, { emitEvent: false });
     this.consultationProductOptions.set([]);
-    this.resetConsultationTable();
+    this.runPointConsultation();
+  }
+
+  protected openConsultationProductOptions(): void {
+    const currentValue = this.consultationProductControl.value;
+    const term = typeof currentValue === 'string' ? currentValue.trim() : '';
+
+    this.productService.searchProducts(term, undefined, false, 100).pipe(
+      catchError(() => of([]))
+    ).subscribe(products => {
+      this.consultationProductOptions.set(products);
+      this.consultationProductTrigger?.openPanel();
+      this.cdr.markForCheck();
+    });
   }
 
   protected isConsultationViewImplemented(): boolean {
@@ -1018,7 +1038,7 @@ export class StockHome implements AfterViewInit {
     const defaultSort = this.getConsultationDefaultSort(this.activeConsultationView().key);
     this.consultationSortActive.set(defaultSort.active);
     this.consultationSortDirection.set(defaultSort.direction);
-    this.consultationRequest.set(null);
+    this.consultationRequest.set(this.activeConsultationView().key === 'pontual' ? {} : null);
     this.consultationItems.set([]);
     this.consultationTotalElements.set(0);
     this.consultationPageIndex.set(0);

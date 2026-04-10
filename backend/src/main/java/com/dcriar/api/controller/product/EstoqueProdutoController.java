@@ -152,7 +152,7 @@ public class EstoqueProdutoController {
             @RequestParam(required = false) String nomeProduto,
             @RequestParam(required = false) Long canalVendaId,
             @RequestParam(required = false, defaultValue = "false") boolean apenasComSaldo,
-            @ParameterObject @PageableDefault(sort = "produto.nome", direction = Sort.Direction.ASC) Pageable pageable,
+            @ParameterObject @PageableDefault(size = 10, sort = "produto.nome", direction = Sort.Direction.ASC) Pageable pageable,
             PagedResourcesAssembler<ConsultaEstoqueCanalResponseDTO> pagedResourcesAssembler
     ) {
         Page<ConsultaEstoqueCanalResponseDTO> page = estoqueProdutoService
