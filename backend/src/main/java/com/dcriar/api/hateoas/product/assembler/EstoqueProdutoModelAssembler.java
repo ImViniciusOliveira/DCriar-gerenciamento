@@ -4,6 +4,8 @@ import com.dcriar.api.controller.product.EstoqueProdutoController;
 import com.dcriar.api.controller.product.ProdutoController;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.hateoas.product.model.EstoqueProdutoModel;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +34,16 @@ public class EstoqueProdutoModelAssembler extends RepresentationModelAssemblerSu
     public EstoqueProdutoModel toModel(@NonNull EstoqueResponseDTO dto) {
         EstoqueProdutoModel model = EstoqueProdutoModel.fromDto(dto);
 
-        model.add(linkTo(methodOn(EstoqueProdutoController.class).consultarEstoque(model.getProdutoId(), model.getCanalVendaId())).withSelfRel());
+        model.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarConsultasEstoque(
+                        model.getProdutoId(),
+                        null,
+                        model.getCanalVendaId(),
+                        false,
+                        PageRequest.of(0, 10, Sort.by("produto.nome").ascending()),
+                        null
+                ))
+                .withSelfRel());
         model.add(linkTo(methodOn(EstoqueProdutoController.class).ajustarEstoqueCanal(null)).withRel("ajustar-estoque-canal"));
         model.add(linkTo(methodOn(ProdutoController.class).findById(model.getProdutoId())).withRel("produto"));
 
@@ -47,7 +58,9 @@ public class EstoqueProdutoModelAssembler extends RepresentationModelAssemblerSu
         CollectionModel<EstoqueProdutoModel> collectionModel = CollectionModel.of(estoqueModels);
 
         collectionModel.add(linkTo(methodOn(EstoqueProdutoController.class).ajustarEstoqueFisico(null)).withRel("ajustar-estoque-fisico"));
-        collectionModel.add(linkTo(methodOn(EstoqueProdutoController.class).listarMovimentacoesPorProduto(produtoId)).withRel("historico-movimentacoes"));
+        collectionModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarHistoricoPorProduto(produtoId, "all", null, PageRequest.of(0, 10, Sort.by("data").descending()), null))
+                .withRel("historico-do-produto"));
         collectionModel.add(linkTo(methodOn(ProdutoController.class).findById(produtoId)).withRel("produto"));
 
         return collectionModel;

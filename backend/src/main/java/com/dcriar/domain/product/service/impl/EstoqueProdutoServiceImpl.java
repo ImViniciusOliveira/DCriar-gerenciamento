@@ -10,11 +10,9 @@ import com.dcriar.api.dto.response.product.ConsultaEstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
-import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
 import com.dcriar.api.mapper.product.EstoqueMapper;
 import com.dcriar.api.mapper.product.HistoricoEstoqueConsolidadoMapper;
-import com.dcriar.api.mapper.product.MovimentacaoProdutoMapper;
 import com.dcriar.api.mapper.product.ProdutoEstoqueDTOMapper;
 import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.BloqueioOperacionalEstoqueUtils;
@@ -141,7 +139,6 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     private final EstoqueMapper estoqueMapper;
     private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
     private final HistoricoEstoqueConsolidadoMapper historicoEstoqueConsolidadoMapper;
-    private final MovimentacaoProdutoMapper movimentacaoProdutoMapper;
     private final ProdutoEstoqueDTOMapper produtoEstoqueDTOMapper;
 
     @Override
@@ -265,19 +262,6 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
     @Override
     @Transactional(readOnly = true)
-    public ConsultaEstoqueResponseDTO consultarEstoqueParaConsulta(Long produtoId, Long canalVendaId) {
-        Produto produto = findProdutoById(produtoId);
-        CanalVenda canalVenda = findCanalVendaById(canalVendaId);
-
-        int quantidadeNoCanal = estoqueRepository.findByProdutoAndCanalVenda(produto, canalVenda)
-                .map(Estoque::getQuantidade)
-                .orElse(0);
-
-        return mapConsultaEstoque(produto, canalVenda, quantidadeNoCanal);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public Page<ConsultaEstoqueResponseDTO> listarConsultasEstoque(
             Long produtoId,
             String nomeProduto,
@@ -371,16 +355,6 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<MovimentacaoProdutoResponseDTO> listarMovimentacoesPorProduto(Long produtoId) {
-        Produto produto = findProdutoById(produtoId);
-        return movimentacaoEstoqueProdutoRepository.findAllByProduto(produto)
-                .stream()
-                .map(movimentacaoProdutoMapper::toResponseDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public Page<HistoricoEstoqueConsolidadoResponseDTO> listarHistoricoConsolidado(
             String periodo,
             Long produtoId,
@@ -398,19 +372,6 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
         return movimentacaoEstoqueProdutoRepository.findAll(spec, pageableComDesempate)
                 .map(historicoEstoqueConsolidadoMapper::toResponseDTO);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ProdutoEstoqueResponseDTO> listarEstoqueDeTodosOsProdutosPorCanal() {
-        // 1. Busca todos os registros de estoque do banco de dados.
-        // 2. Agrupa os registros pelo ID do produto, criando um Map<Long, List<Estoque>>.
-        // 3. Transforma cada entrada do mapa (ID do produto e sua lista de estoques) em um ProdutoEstoqueDTO.
-        return estoqueRepository.findAll().stream()
-                .collect(groupingBy(estoque -> estoque.getProduto().getId()))
-                .entrySet().stream()
-                .map(entry -> produtoEstoqueDTOMapper.toDto(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
     }
 
     @Override

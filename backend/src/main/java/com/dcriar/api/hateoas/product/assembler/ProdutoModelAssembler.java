@@ -101,7 +101,9 @@ public class ProdutoModelAssembler extends RepresentationModelAssemblerSupport<P
                 model.setFotoPrincipalUrl(fullUrl);
             }
 
-            model.add(linkTo(methodOn(EstoqueProdutoController.class).listarMovimentacoesPorProduto(dto.getId())).withRel("historico-movimentacoes"));
+            model.add(linkTo(methodOn(EstoqueProdutoController.class)
+                    .listarHistoricoPorProduto(dto.getId(), "all", null, null, null))
+                    .withRel("historico-do-produto"));
         }
 
         return model;

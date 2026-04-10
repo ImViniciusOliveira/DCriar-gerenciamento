@@ -8,14 +8,11 @@ import com.dcriar.api.dto.response.product.ConsultaEstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
-import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
 import com.dcriar.api.hateoas.product.assembler.ConsultaEstoqueModelAssembler;
 import com.dcriar.api.hateoas.product.assembler.EstoqueProdutoModelAssembler;
-import com.dcriar.api.hateoas.product.assembler.MovimentacaoProdutoModelAssembler;
 import com.dcriar.api.hateoas.product.model.ConsultaEstoqueModel;
 import com.dcriar.api.hateoas.product.model.EstoqueProdutoModel;
-import com.dcriar.api.hateoas.product.model.MovimentacaoProdutoModel;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
@@ -59,7 +56,6 @@ public class EstoqueProdutoController {
     private final EstoqueProdutoService estoqueProdutoService;
     private final ConsultaEstoqueModelAssembler consultaEstoqueModelAssembler;
     private final EstoqueProdutoModelAssembler estoqueProdutoModelAssembler;
-    private final MovimentacaoProdutoModelAssembler movimentacaoProdutoModelAssembler;
 
     @GetMapping
     @Operation(summary = "Ponto de entrada para recursos de Estoque", description = "Retorna links para as operações disponíveis de estoque.")
@@ -78,18 +74,9 @@ public class EstoqueProdutoController {
                 .listarEstoquesPorListaDeProdutos(null))
                 .withRel("por-lista-produtos"));
                 
-        // Link para listagem completa agrupada por canais
-        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
-                .listarEstoqueDeTodosOsProdutosPorCanal())
-                .withRel("todos-por-canais"));
-
         rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
                 .listarHistoricoConsolidado("all", null, null, null, null, null))
                 .withRel("historico"));
-
-        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
-                .consultarEstoque(null, null))
-                .withRel("consulta"));
 
         rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
                 .listarConsultasEstoque(null, null, null, false, null, null))
@@ -127,15 +114,6 @@ public class EstoqueProdutoController {
     public ResponseEntity<Void> ajustarEstoqueFisico(@RequestBody @Valid AjusteEstoqueProdutoRequestDTO requestDTO) {
         estoqueProdutoService.ajustarEstoqueFisico(requestDTO);
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/consulta") // Alterado de @GetMapping raiz para evitar conflito com getRoot
-    @Operation(summary = "Consultar o estoque de um produto em um canal específico")
-    public ResponseEntity<ConsultaEstoqueModel> consultarEstoque(
-            @Parameter(description = "ID do produto.", example = "1") @RequestParam Long produtoId,
-            @Parameter(description = "ID do canal de venda.", example = "1") @RequestParam Long canalVendaId) {
-        ConsultaEstoqueResponseDTO consultaDTO = estoqueProdutoService.consultarEstoqueParaConsulta(produtoId, canalVendaId);
-        return consultaEstoqueModelAssembler.toOkResponseEntity(consultaDTO);
     }
 
     @GetMapping("/consultas")
@@ -215,24 +193,6 @@ public class EstoqueProdutoController {
         return ResponseEntity.ok(pagedResourcesAssembler.toModel(page));
     }
 
-    @GetMapping("/por-produto-canais")
-    @Operation(summary = "Listar o estoque de todos os produtos, agrupados por canal de venda")
-    public ResponseEntity<List<ProdutoEstoqueResponseDTO>> listarEstoqueDeTodosOsProdutosPorCanal() {
-        return ResponseEntity.ok(estoqueProdutoService.listarEstoqueDeTodosOsProdutosPorCanal());
-    }
-
-    @GetMapping("/por-produto/{produtoId}/canais")
-    @Operation(summary = "Listar o estoque de um produto, agrupado por canal de venda")
-    public ResponseEntity<ProdutoEstoqueResponseDTO> listarEstoquesPorProduto(@Parameter(description = "ID do produto.", example = "1") @PathVariable Long produtoId) {
-        // Reutiliza o serviço que busca todos os estoques e filtra pelo produtoId desejado.
-        // Isso evita a criação de uma nova consulta no banco de dados para um caso de uso específico.
-        return estoqueProdutoService.listarEstoqueDeTodosOsProdutosPorCanal().stream()
-                .filter(p -> p.getProdutoId().equals(produtoId))
-                .findFirst()
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
     @GetMapping("/por-lista-produtos")
     @Operation(summary = "Listar estoques de múltiplos produtos (Otimizado)")
     public ResponseEntity<CollectionModel<ProdutoEstoqueResponseDTO>> listarEstoquesPorListaDeProdutos(
@@ -248,17 +208,6 @@ public class EstoqueProdutoController {
                 .listarEstoquesPorListaDeProdutos(produtoIds)).withSelfRel());
 
         return ResponseEntity.ok(collectionModel);
-    }
-
-    @GetMapping("/fisico/por-produto/{produtoId}")
-    @Operation(summary = "Consultar o histórico do Estoque Físico Total de um produto")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso."),
-            @ApiResponse(responseCode = "404", description = "Produto não encontrado.", content = @Content)
-    })
-    public ResponseEntity<CollectionModel<MovimentacaoProdutoModel>> listarMovimentacoesPorProduto(@Parameter(description = "ID do produto.", example = "1") @PathVariable Long produtoId) {
-        List<MovimentacaoProdutoResponseDTO> historicoDTO = estoqueProdutoService.listarMovimentacoesPorProduto(produtoId);
-        return movimentacaoProdutoModelAssembler.toOkResponseEntity(historicoDTO, produtoId);
     }
 
     @GetMapping("/historico")
@@ -277,6 +226,25 @@ public class EstoqueProdutoController {
     ) {
         Page<HistoricoEstoqueConsolidadoResponseDTO> page = estoqueProdutoService
                 .listarHistoricoConsolidado(periodo, produtoId, nomeProduto, tipoMovimentacao, pageable);
+
+        return ResponseEntity.ok(pagedResourcesAssembler.toModel(page));
+    }
+
+    @GetMapping("/historico/produto/{produtoId}")
+    @Operation(summary = "Consultar o histórico consolidado de um produto específico")
+    @Parameters({
+            @Parameter(name = "periodo", description = "Filtro rápido por período.", example = "1m"),
+            @Parameter(name = "sort", description = "Critério de ordenação.", example = "data,desc")
+    })
+    public ResponseEntity<PagedModel<EntityModel<HistoricoEstoqueConsolidadoResponseDTO>>> listarHistoricoPorProduto(
+            @Parameter(description = "ID do produto.", example = "1") @PathVariable Long produtoId,
+            @RequestParam(required = false, defaultValue = "all") String periodo,
+            @RequestParam(required = false) TipoMovimentacaoProduto tipoMovimentacao,
+            @ParameterObject @PageableDefault(sort = "data", direction = Sort.Direction.DESC) Pageable pageable,
+            PagedResourcesAssembler<HistoricoEstoqueConsolidadoResponseDTO> pagedResourcesAssembler
+    ) {
+        Page<HistoricoEstoqueConsolidadoResponseDTO> page = estoqueProdutoService
+                .listarHistoricoConsolidado(periodo, produtoId, null, tipoMovimentacao, pageable);
 
         return ResponseEntity.ok(pagedResourcesAssembler.toModel(page));
     }

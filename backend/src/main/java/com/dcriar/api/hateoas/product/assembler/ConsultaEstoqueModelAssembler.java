@@ -37,8 +37,9 @@ public class ConsultaEstoqueModelAssembler extends RepresentationModelAssemblerS
                 ))
                 .withSelfRel());
         model.add(linkTo(methodOn(ProdutoController.class).findById(model.getProdutoId())).withRel("produto"));
-        model.add(linkTo(methodOn(EstoqueProdutoController.class).listarEstoquesPorProduto(model.getProdutoId())).withRel("canais-do-produto"));
-        model.add(linkTo(methodOn(EstoqueProdutoController.class).listarMovimentacoesPorProduto(model.getProdutoId())).withRel("historico-fisico"));
+        model.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarHistoricoPorProduto(model.getProdutoId(), "all", null, PageRequest.of(0, 10, Sort.by("data").descending()), null))
+                .withRel("historico-do-produto"));
 
         return model;
     }

@@ -8,7 +8,6 @@ import com.dcriar.api.dto.response.product.ConsultaEstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
-import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import org.springframework.data.domain.Page;
@@ -49,25 +48,6 @@ public interface EstoqueProdutoService {
     EstoqueResponseDTO consultarEstoque(Long produtoId, Long canalVendaId);
 
     /**
-     * Consulta operacional detalhada de um produto em um canal específico.
-     * Essa resposta é voltada para a tela de consultas e traz o contexto completo
-     * de físico, distribuído, disponível e divergência para o vínculo produto + canal.
-    */
-    ConsultaEstoqueResponseDTO consultarEstoqueParaConsulta(Long produtoId, Long canalVendaId);
-
-    /**
-     * Lista consultas de estoque em um contrato único para a tela de consultas.
-     * Permite combinar produto, nome/SKU, canal e filtro de saldo em uma resposta paginada.
-     */
-    Page<ConsultaEstoqueResponseDTO> listarConsultasEstoque(
-            Long produtoId,
-            String nomeProduto,
-            Long canalVendaId,
-            boolean apenasComSaldo,
-            Pageable pageable
-    );
-
-    /**
      * Busca resumida de estoque filtrada por canal e nome do produto.
      *
      * @param canalId ID do canal de venda.
@@ -89,13 +69,16 @@ public interface EstoqueProdutoService {
     Page<AjusteEstoqueCanalResumoDTO> listarCanaisParaAjuste(String nomeProduto, Long canalVendaId, Pageable pageable);
 
     /**
-     * Lista todo o histórico de movimentações (o "Livro-Razão") do Estoque Físico Total de um produto.
-     * Isso permite rastrear todas as entradas e saídas que compõem o estoque atual.
-     *
-     * @param produtoId O ID do produto cujo histórico de movimentações será consultado.
-     * @return Uma lista de DTOs, cada um representando uma movimentação de estoque (entrada, saída, ajuste).
+     * Lista consultas de estoque em um contrato único para a tela de consultas.
+     * Permite combinar produto, nome/SKU, canal e filtro de saldo em uma resposta paginada.
      */
-    List<MovimentacaoProdutoResponseDTO> listarMovimentacoesPorProduto(Long produtoId);
+    Page<ConsultaEstoqueResponseDTO> listarConsultasEstoque(
+            Long produtoId,
+            String nomeProduto,
+            Long canalVendaId,
+            boolean apenasComSaldo,
+            Pageable pageable
+    );
 
     /**
      * Lista o histórico consolidado das movimentações de estoque de produtos acabados.
@@ -116,14 +99,6 @@ public interface EstoqueProdutoService {
             TipoMovimentacaoProduto tipoMovimentacao,
             Pageable pageable
     );
-
-    /**
-     * Lista o estoque de todos os produtos, agrupados por produto e seus respectivos canais de venda.
-     * Este método é otimizado para o frontend, que precisa exibir o estoque de vários produtos de uma só vez.
-     *
-     * @return Uma lista de DTOs, onde cada DTO contém o ID do produto e uma lista de seus estoques por canal.
-     */
-    List<ProdutoEstoqueResponseDTO> listarEstoqueDeTodosOsProdutosPorCanal();
 
     /**
      * Lista o estoque de múltiplos produtos, agrupados por canal de venda.
