@@ -1,84 +1,60 @@
+@use '../stock-adjustment-shell' as shell;
 @use '../../../../shared/styles/validation-state' as vs;
 
-.adjustment-dialog {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: min(560px, 100%);
+@include shell.styles;
+
+.stock-adjustment-dialog {
+  min-width: min(760px, 100%);
 }
 
-.adjustment-dialog__explanation {
-  padding: 14px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--mat-sys-outline-variant);
-  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 90%, white 10%);
+.adjustment-form--product {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0 12px;
 }
 
-.adjustment-dialog__explanation strong {
-  display: block;
-  margin-bottom: 6px;
+.adjustment-form--product .adjustment-form__direction,
+.adjustment-form--product .adjustment-form__quantity {
+  grid-column: span 3;
 }
 
-.adjustment-dialog__explanation p,
-.adjustment-dialog__explanation ul {
-  margin: 0;
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.92rem;
-  line-height: 1.45;
+.adjustment-form--product .adjustment-form__motivo,
+.adjustment-form--product .adjustment-form__metrics,
+.adjustment-form--product .adjustment-form__notice {
+  grid-column: 1 / -1;
 }
 
-.adjustment-dialog__explanation ul {
-  padding-left: 18px;
-  margin: 8px 0;
-}
-
-.adjustment-dialog__summary {
-  display: grid;
+.adjustment-form--product .metrics-grid--identity {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  margin-bottom: 20px;
 }
 
-.summary-card {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 92%, white 8%);
-}
-
-.summary-card span {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.82rem;
-}
-
-.adjustment-dialog__lock-reason {
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--mat-sys-error) 28%, transparent);
-  background: color-mix(in srgb, var(--mat-sys-error-container) 80%, white 20%);
-  color: var(--mat-sys-on-error-container);
-  font-size: 0.92rem;
-  line-height: 1.4;
-}
-
-mat-form-field {
-  width: 100%;
-}
-
-.mat-mdc-dialog-actions {
-  justify-content: flex-end;
+.adjustment-form--product .metrics-grid--stock {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 @include vs.strong-invalid-outline;
 
 @media (max-width: 720px) {
-  .adjustment-dialog {
+  .stock-adjustment-dialog {
     min-width: 0;
   }
 
-  .adjustment-dialog__summary {
+  .adjustment-form--product {
     grid-template-columns: 1fr;
+  }
+
+  .adjustment-form--product .adjustment-form__direction,
+  .adjustment-form--product .adjustment-form__quantity,
+  .adjustment-form--product .adjustment-form__motivo,
+  .adjustment-form--product .adjustment-form__metrics,
+  .adjustment-form--product .adjustment-form__notice,
+  .adjustment-form--product .metric-card {
+    grid-column: 1;
+  }
+
+  .adjustment-form--product .metrics-grid--identity,
+  .adjustment-form--product .metrics-grid--stock {
+    grid-template-columns: 1fr;
+    margin-bottom: 0;
   }
 }

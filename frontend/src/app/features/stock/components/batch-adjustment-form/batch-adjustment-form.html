@@ -1,5 +1,5 @@
-<section class="batch-adjustment">
-  <div class="batch-adjustment__header">
+<section class="stock-adjustment">
+  <div class="stock-adjustment__header">
     <div>
       <h4>Ajuste Operacional do Lote</h4>
       <p>Revise o impacto da operação antes de aplicar a mudança no lote.</p>
@@ -73,7 +73,7 @@
 
       <div class="metrics-grid adjustment-form__full adjustment-form__metrics">
         @for (metric of currentLotMetrics(); track metric.label) {
-          <div class="metric-card">
+          <div class="metric-card metric-card--field">
             <span>{{ metric.label }}</span>
             <strong>{{ metric.value }}</strong>
           </div>
@@ -98,7 +98,7 @@
 
       <div class="metrics-grid">
         @for (metric of projectedLotMetrics(); track metric.label) {
-          <div class="metric-card">
+          <div class="metric-card metric-card--field">
             <span>{{ metric.label }}</span>
             <strong>{{ metric.value }}</strong>
           </div>
@@ -107,12 +107,12 @@
 
       @if (resultMessage(); as message) {
         <div class="adjustment-summary">
-          <div class="adjustment-summary__item">
+          <div class="adjustment-summary__item adjustment-summary__item--field">
             <span>Registro da operação</span>
             <strong>{{ message.movementLabel }}</strong>
           </div>
 
-          <div class="adjustment-summary__item">
+          <div class="adjustment-summary__item adjustment-summary__item--field">
             <span>Quantidade movimentada</span>
             <strong>{{ movementQuantityLabel() }}</strong>
           </div>

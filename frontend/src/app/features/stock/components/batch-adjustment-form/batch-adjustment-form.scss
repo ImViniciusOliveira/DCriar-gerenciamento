@@ -1,72 +1,6 @@
-@use '../../../../shared/styles/form-layout' as fl;
+@use '../stock-adjustment-shell' as shell;
 
-.batch-adjustment {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.batch-adjustment__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.batch-adjustment__header h4,
-.adjustment-card__title h5 {
-  margin: 0;
-}
-
-.adjustment-card__title h5 {
-  font-size: 1.08rem;
-  font-weight: 700;
-}
-
-.batch-adjustment__header p,
-.adjustment-card__title p {
-  margin: 4px 0 0;
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.92rem;
-}
-
-.adjustment-dialog__explanation {
-  padding: 14px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--mat-sys-outline-variant);
-  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 90%, white 10%);
-}
-
-.adjustment-dialog__explanation strong {
-  display: block;
-  margin-bottom: 6px;
-}
-
-.adjustment-dialog__explanation p,
-.adjustment-dialog__explanation ul {
-  margin: 0;
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.92rem;
-  line-height: 1.45;
-}
-
-.adjustment-dialog__explanation ul {
-  padding-left: 18px;
-  margin: 8px 0;
-}
-
-.adjustment-card {
-  @include fl.std-border-mixin;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 18px;
-  background: color-mix(in srgb, var(--mat-sys-surface) 92%, var(--mat-sys-primary) 8%);
-}
-
-.adjustment-card--result {
-  background: color-mix(in srgb, var(--mat-sys-surface) 94%, var(--mat-sys-secondary) 6%);
-}
+@include shell.styles;
 
 .adjustment-form {
   display: grid;
@@ -110,78 +44,11 @@
   margin-top: 12px;
 }
 
-.adjustment-form mat-form-field {
-  width: 100%;
-}
-
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.metric-card {
-  @include fl.std-border-mixin;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 88%, white 12%);
-}
-
-.metric-card span {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.8rem;
-}
-
-.adjustment-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.adjustment-summary__item {
-  @include fl.std-border-mixin;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
-  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 88%, white 12%);
-}
-
-.adjustment-summary__item span {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.8rem;
-}
-
-.adjustment-summary__item strong {
-  font-size: 0.96rem;
-}
-
-.adjustment-summary__message {
-  margin: 0;
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.92rem;
-  line-height: 1.45;
-}
-
-.result-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding-top: 4px;
-}
-
 @media (max-width: 900px) {
-  .batch-adjustment__header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .adjustment-form {
-    grid-template-columns: 1fr;
     grid-template-areas:
       'operation'
+      'direction'
       'quantity'
       'motivo'
       'metrics'
@@ -190,13 +57,5 @@
 
   .adjustment-form__direction {
     margin-left: 0;
-  }
-
-  .metrics-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .adjustment-summary {
-    grid-template-columns: 1fr;
   }
 }

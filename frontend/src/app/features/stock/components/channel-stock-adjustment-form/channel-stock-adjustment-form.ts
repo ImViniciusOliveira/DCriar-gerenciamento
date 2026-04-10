@@ -22,6 +22,17 @@ interface ChannelAdjustmentOption {
   label: string;
 }
 
+interface AdjustmentMetric {
+  label: string;
+  value: string;
+}
+
+interface ChannelAdjustmentLayoutMetrics {
+  availableToAllocate: AdjustmentMetric;
+  identity: AdjustmentMetric[];
+  stock: AdjustmentMetric[];
+}
+
 export interface ChannelStockAdjustmentFormData {
   template: AdjustmentChannelSummary;
   title: string;
@@ -63,6 +74,7 @@ export class ChannelStockAdjustmentForm {
 
   readonly matcher = new InstantErrorStateMatcher();
   readonly isSaving = signal(false);
+  readonly showExplanation = signal(false);
   readonly backendMaxQuantity = signal<number | null>(null);
   readonly options: ChannelAdjustmentOption[] = [
     { value: 'ADICIONAR', label: 'Adicionar ao canal' },
@@ -76,8 +88,37 @@ export class ChannelStockAdjustmentForm {
 
   readonly selectedDirectionLockReason = computed(() => this.getDirectionLockReason(this.form.controls.direcao.getRawValue()));
   readonly maxAllowedQuantity = computed(() => this.resolveEffectiveMaxQuantity());
-
   readonly hasAvailableDirection = computed(() => this.options.some(option => !this.isDirectionLocked(option.value)));
+  readonly currentChannelMetrics = computed<ChannelAdjustmentLayoutMetrics>(() => ({
+    availableToAllocate: {
+      label: 'Disponível',
+      value: this.formatInteger(this.data.template.estoqueDisponivelParaAlocar)
+    },
+    identity: [
+      {
+        label: 'Produto',
+        value: this.data.template.nomeProduto
+      },
+      {
+        label: 'Canal',
+        value: this.data.template.nomeCanalVenda
+      }
+    ],
+    stock: [
+      {
+        label: 'Físico total',
+        value: this.formatInteger(this.data.template.estoqueFisicoTotal)
+      },
+      {
+        label: 'Distribuído',
+        value: this.formatInteger(this.data.template.estoqueDistribuidoTotal)
+      },
+      {
+        label: 'No canal',
+        value: this.formatInteger(this.data.template.quantidadeNoCanal)
+      }
+    ]
+  }));
 
   constructor() {
     ChannelStockAdjustmentForm.BACKEND_ERROR_FIELDS.forEach(controlPath => {
@@ -143,6 +184,10 @@ export class ChannelStockAdjustmentForm {
     this.dialogRef.close(false);
   }
 
+  toggleExplanation(): void {
+    this.showExplanation.update(current => !current);
+  }
+
   formatInteger(value: number): string {
     return new Intl.NumberFormat('pt-BR', {
       maximumFractionDigits: 0
@@ -161,7 +206,7 @@ export class ChannelStockAdjustmentForm {
   }
 
   private toAbsoluteQuantity(): number {
-    return Number(this.form.controls.quantidade.getRawValue());
+    return Number(this.form.controls.quantidade.getRawValue().trim());
   }
 
   private handleApiError(err: unknown): void {

@@ -1039,7 +1039,7 @@ export class StockHome implements AfterViewInit {
         title: `Ajustar produto ${product.nomeProduto}`
       },
       title: `Ajustar produto ${product.nomeProduto}`,
-      width: '680px',
+      width: '800px',
       maxWidth: '95vw'
     }).subscribe(saved => {
       if (saved) {
@@ -1057,7 +1057,7 @@ export class StockHome implements AfterViewInit {
         title: `Ajustar canal ${channel.nomeCanalVenda}`
       },
       title: `Ajustar canal ${channel.nomeCanalVenda}`,
-      width: '680px',
+      width: '800px',
       maxWidth: '95vw'
     }).subscribe(saved => {
       if (saved) {

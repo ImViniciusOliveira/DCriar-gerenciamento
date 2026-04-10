@@ -22,6 +22,16 @@ interface ProductAdjustmentOption {
   label: string;
 }
 
+interface AdjustmentMetric {
+  label: string;
+  value: string;
+}
+
+interface ProductAdjustmentLayoutMetrics {
+  identity: AdjustmentMetric[];
+  stock: AdjustmentMetric[];
+}
+
 export interface ProductStockAdjustmentFormData {
   template: AdjustmentProductSummary;
   title: string;
@@ -64,6 +74,7 @@ export class ProductStockAdjustmentForm {
 
   readonly matcher = new InstantErrorStateMatcher();
   readonly isSaving = signal(false);
+  readonly showExplanation = signal(false);
   readonly backendMaxQuantity = signal<number | null>(null);
   readonly options: ProductAdjustmentOption[] = [
     { value: 'ADICIONAR', label: 'Adicionar' },
@@ -78,6 +89,32 @@ export class ProductStockAdjustmentForm {
 
   readonly selectedDirectionLockReason = computed(() => this.getDirectionLockReason(this.form.controls.direcao.getRawValue()));
   readonly maxAllowedQuantity = computed(() => this.resolveEffectiveMaxQuantity());
+  readonly currentProductMetrics = computed<ProductAdjustmentLayoutMetrics>(() => ({
+    identity: [
+      {
+        label: 'Produto',
+        value: this.data.template.nomeProduto
+      },
+      {
+        label: 'SKU',
+        value: this.data.template.skuProduto
+      }
+    ],
+    stock: [
+      {
+        label: 'Físico atual',
+        value: this.formatInteger(this.data.template.estoqueFisicoTotal)
+      },
+      {
+        label: 'Distribuído',
+        value: this.formatInteger(this.data.template.estoqueDistribuidoTotal)
+      },
+      {
+        label: 'Disponível',
+        value: this.formatInteger(this.data.template.estoqueDisponivelParaAlocar)
+      }
+    ]
+  }));
 
   constructor() {
     ProductStockAdjustmentForm.BACKEND_ERROR_FIELDS.forEach(controlPath => {
@@ -152,6 +189,10 @@ export class ProductStockAdjustmentForm {
     this.dialogRef.close(false);
   }
 
+  toggleExplanation(): void {
+    this.showExplanation.update(current => !current);
+  }
+
   formatInteger(value: number): string {
     return new Intl.NumberFormat('pt-BR', {
       maximumFractionDigits: 0
@@ -171,7 +212,7 @@ export class ProductStockAdjustmentForm {
   }
 
   private toAbsoluteQuantity(): number {
-    return Number(this.form.controls.quantidade.getRawValue());
+    return Number(this.form.controls.quantidade.getRawValue().trim());
   }
 
   private handleApiError(err: unknown): void {
