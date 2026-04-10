@@ -100,17 +100,17 @@
 
       <!-- Botão de Ação -->
       <div class="simulation-actions">
+        <button mat-stroked-button color="primary" type="button" class="action-button" (click)="onPrimaryAction()" [disabled]="isPrimaryActionDisabled()">
+          <mat-icon>{{ isEditMode() ? 'check_circle' : 'model_training' }}</mat-icon>
+          {{ isEditMode() ? 'Verificar' : 'Simular' }}
+        </button>
+
         @if (!isEditMode() && produto()?.tipoProduto === 'CORTE') {
           <button mat-stroked-button color="accent" type="button" (click)="toggleModoCalculo()">
             <mat-icon>swap_horiz</mat-icon>
             {{ modoCalculoControl.value === 'MANUAL' ? 'Manual' : 'Automático' }}
           </button>
         }
-
-        <button mat-stroked-button color="primary" type="button" class="action-button" (click)="onPrimaryAction()" [disabled]="isPrimaryActionDisabled()">
-          <mat-icon>{{ isEditMode() ? 'check_circle' : 'model_training' }}</mat-icon>
-          {{ isEditMode() ? 'Verificar' : 'Simular' }}
-        </button>
       </div>
     </div>
 
