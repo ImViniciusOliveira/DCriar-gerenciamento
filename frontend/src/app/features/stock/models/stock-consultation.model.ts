@@ -18,7 +18,7 @@ export interface StockConsultationSummary {
 
 export interface ApiResponseStockConsultations {
   _embedded?: {
-    consultasEstoqueCanal?: StockConsultationSummary[];
+    consultasEstoque?: StockConsultationSummary[];
   };
   page?: {
     size: number;

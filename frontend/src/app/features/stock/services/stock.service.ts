@@ -305,7 +305,7 @@ export class StockService {
 
         return this.http.get<ApiResponseStockConsultations>(baseUrl, { params: httpParams }).pipe(
           map(response => ({
-            items: response._embedded?.consultasEstoqueCanal ?? [],
+            items: response._embedded?.consultasEstoque ?? [],
             total: response.page?.totalElements ?? 0
           }))
         );

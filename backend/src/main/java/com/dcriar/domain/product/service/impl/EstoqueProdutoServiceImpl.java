@@ -6,7 +6,7 @@ import com.dcriar.api.dto.request.product.EstoqueRequestDTO;
 import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.AjusteEstoqueCanalResumoDTO;
 import com.dcriar.api.dto.response.product.AjusteEstoqueProdutoResumoDTO;
-import com.dcriar.api.dto.response.product.ConsultaEstoqueCanalResponseDTO;
+import com.dcriar.api.dto.response.product.ConsultaEstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
@@ -265,7 +265,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
     @Override
     @Transactional(readOnly = true)
-    public ConsultaEstoqueCanalResponseDTO consultarEstoqueParaConsulta(Long produtoId, Long canalVendaId) {
+    public ConsultaEstoqueResponseDTO consultarEstoqueParaConsulta(Long produtoId, Long canalVendaId) {
         Produto produto = findProdutoById(produtoId);
         CanalVenda canalVenda = findCanalVendaById(canalVendaId);
 
@@ -278,7 +278,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ConsultaEstoqueCanalResponseDTO> listarConsultasEstoque(
+    public Page<ConsultaEstoqueResponseDTO> listarConsultasEstoque(
             Long produtoId,
             String nomeProduto,
             Long canalVendaId,
@@ -508,11 +508,11 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .build();
     }
 
-    private ConsultaEstoqueCanalResponseDTO mapEstoqueParaConsulta(Estoque estoque) {
+    private ConsultaEstoqueResponseDTO mapEstoqueParaConsulta(Estoque estoque) {
         return mapConsultaEstoque(estoque.getProduto(), estoque.getCanalVenda(), estoque.getQuantidade());
     }
 
-    private ConsultaEstoqueCanalResponseDTO mapConsultaEstoque(Produto produto, CanalVenda canalVenda, int quantidadeNoCanal) {
+    private ConsultaEstoqueResponseDTO mapConsultaEstoque(Produto produto, CanalVenda canalVenda, int quantidadeNoCanal) {
         CamposBloqueadosInfo camposBloqueados = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisCanal(
                 quantidadeNoCanal,
                 produto.getEstoqueFisicoTotal(),
@@ -520,7 +520,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 produto.getEstoqueDisponivelParaAlocar()
         );
 
-        return ConsultaEstoqueCanalResponseDTO.builder()
+        return ConsultaEstoqueResponseDTO.builder()
                 .produtoId(produto.getId())
                 .nomeProduto(produto.getNome())
                 .skuProduto(produto.getSku())

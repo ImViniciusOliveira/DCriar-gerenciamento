@@ -15,7 +15,7 @@ import java.util.Set;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConsultaEstoqueCanalResponseDTO {
+public class ConsultaEstoqueResponseDTO {
 
     @Schema(description = "ID do produto.", example = "11")
     private Long produtoId;

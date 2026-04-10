@@ -53,7 +53,6 @@ import { Product } from '../../../products/models/product.model';
 type StockSectionKey = 'consultas' | 'ajustes' | 'historico';
 type HistoryRangeKey = '1d' | '1m' | '6m' | '1a' | 'all';
 type AdjustmentViewKey = 'lotes' | 'produtos' | 'canais';
-type ConsultationViewKey = 'canal' | 'pontual' | 'produto';
 
 interface StockSection {
   key: StockSectionKey;
@@ -72,14 +71,6 @@ interface AdjustmentViewOption {
   title: string;
   subtitle: string;
   buttonLabel: string;
-}
-
-interface ConsultationViewOption {
-  key: ConsultationViewKey;
-  title: string;
-  subtitle: string;
-  buttonLabel: string;
-  implemented: boolean;
 }
 
 interface AdjustmentTableRow {
@@ -200,30 +191,6 @@ export class StockHome implements AfterViewInit {
   protected readonly channels = signal<Channel[]>([]);
   protected readonly lotMeasurementUnits = signal<EnumOption[]>([]);
   protected readonly adjustmentRefreshVersion = signal(0);
-  protected readonly consultationViews: ConsultationViewOption[] = [
-    {
-      key: 'pontual',
-      title: 'Geral',
-      subtitle: 'Consulta dinâmica por produto e canal',
-      buttonLabel: 'Geral',
-      implemented: true
-    },
-    {
-      key: 'canal',
-      title: 'Por canal',
-      subtitle: 'Visão do canal com seus produtos e saldos',
-      buttonLabel: 'Por canal',
-      implemented: false
-    },
-    {
-      key: 'produto',
-      title: 'Por produto',
-      subtitle: 'Distribuição de um produto por todos os canais',
-      buttonLabel: 'Por produto',
-      implemented: false
-    }
-  ];
-  protected readonly activeConsultationView = signal<ConsultationViewOption>(this.consultationViews[0]);
   protected readonly consultationItems = signal<ConsultationTableRow[]>([]);
   protected readonly consultationTotalElements = signal(0);
   protected readonly consultationPageSize = signal(10);
@@ -466,22 +433,15 @@ export class StockHome implements AfterViewInit {
 
     effect((onCleanup) => {
       const isConsultationsActive = this.isConsultationsSection();
-      const view = this.activeConsultationView();
       const request = this.consultationRequest();
       const pageIndex = this.consultationPageIndex();
       const pageSize = this.consultationPageSize();
       const sortActive = this.consultationSortActive();
       const sortDirection = this.consultationSortDirection();
 
-      this.updateConsultationColumns(view.key);
+      this.updateConsultationColumns();
 
       if (!isConsultationsActive) {
-        this.consultationItems.set([]);
-        this.consultationTotalElements.set(0);
-        return;
-      }
-
-      if (view.key !== 'pontual') {
         this.consultationItems.set([]);
         this.consultationTotalElements.set(0);
         return;
@@ -529,7 +489,7 @@ export class StockHome implements AfterViewInit {
     ];
 
     this.updateAdjustmentColumns(this.activeAdjustmentView().key);
-    this.updateConsultationColumns(this.activeConsultationView().key);
+    this.updateConsultationColumns();
 
     this.cdr.detectChanges();
   }
@@ -542,7 +502,6 @@ export class StockHome implements AfterViewInit {
     }
 
     if (section.key === 'consultas') {
-      this.activeConsultationView.set(this.consultationViews[0]);
       this.consultationProductControl.setValue('', { emitEvent: false });
       this.consultationChannelControl.setValue('', { emitEvent: false });
       this.consultationProductOptions.set([]);
@@ -571,19 +530,6 @@ export class StockHome implements AfterViewInit {
       return;
     }
     this.setActiveAdjustmentView(view);
-  }
-
-  protected setActiveConsultationView(view: ConsultationViewOption): void {
-    this.activeConsultationView.set(view);
-    this.resetConsultationTable();
-  }
-
-  protected setActiveConsultationViewByKey(viewKey: ConsultationViewKey): void {
-    const view = this.consultationViews.find(option => option.key === viewKey);
-    if (!view) {
-      return;
-    }
-    this.setActiveConsultationView(view);
   }
 
   protected setHistoryRange(range: HistoryRangeKey): void {
@@ -617,7 +563,7 @@ export class StockHome implements AfterViewInit {
   }
 
   protected onConsultationSortChange(sort: Sort): void {
-    const defaults = this.getConsultationDefaultSort(this.activeConsultationView().key);
+    const defaults = this.getConsultationDefaultSort();
     this.consultationSortActive.set(sort.direction ? sort.active : defaults.active);
     this.consultationSortDirection.set(sort.direction || defaults.direction);
     this.resetConsultationPage();
@@ -675,10 +621,6 @@ export class StockHome implements AfterViewInit {
       this.consultationProductTrigger?.openPanel();
       this.cdr.markForCheck();
     });
-  }
-
-  protected isConsultationViewImplemented(): boolean {
-    return this.activeConsultationView().implemented;
   }
 
   protected runPointConsultation(): void {
@@ -919,25 +861,17 @@ export class StockHome implements AfterViewInit {
     this.cdr.markForCheck();
   }
 
-  private updateConsultationColumns(view: ConsultationViewKey): void {
-    switch (view) {
-      case 'pontual':
-        this.consultationTableColumns = [
-          { key: 'nome', header: 'Produto', sortable: true, sortKey: 'nomeProduto', sortType: 'text', className: 'col-adjustment-name', cellTemplate: this.consultationNameTemplate },
-          { key: 'sku', header: 'SKU', sortable: true, sortKey: 'skuProduto', sortType: 'text', widthPx: 250, className: 'col-adjustment-sku', cellTemplate: this.consultationSkuTemplate },
-          { key: 'canal', header: 'Canal', sortable: true, sortKey: 'nomeCanalVenda', widthPx: 200, className: 'col-adjustment-channel-name', cellTemplate: this.consultationChannelNameTemplate },
-          { key: 'quantidadeNoCanal', header: 'No Canal', sortable: true, sortKey: 'quantidadeNoCanal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationChannelQuantityTemplate },
-          { key: 'estoqueFisicoTotal', header: 'Físico', sortable: true, sortKey: 'estoqueFisicoTotal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationPhysicalStockTemplate },
-          { key: 'estoqueDistribuidoTotal', header: 'Distribuído', sortable: true, sortKey: 'estoqueDistribuidoTotal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationDistributedStockTemplate },
-          { key: 'estoqueDisponivelParaAlocar', header: 'Disponível', sortable: true, sortKey: 'estoqueDisponivelParaAlocar', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationAvailableStockTemplate },
-          { key: 'divergencia', header: 'Divergência', sortable: false, widthPx: 170, className: 'col-adjustment-status', cellTemplate: this.consultationDivergenceTemplate }
-        ];
-        break;
-      case 'canal':
-      case 'produto':
-        this.consultationTableColumns = [];
-        break;
-    }
+  private updateConsultationColumns(): void {
+    this.consultationTableColumns = [
+      { key: 'nome', header: 'Produto', sortable: true, sortKey: 'nomeProduto', sortType: 'text', className: 'col-adjustment-name', cellTemplate: this.consultationNameTemplate },
+      { key: 'sku', header: 'SKU', sortable: true, sortKey: 'skuProduto', sortType: 'text', widthPx: 250, className: 'col-adjustment-sku', cellTemplate: this.consultationSkuTemplate },
+      { key: 'canal', header: 'Canal', sortable: true, sortKey: 'nomeCanalVenda', widthPx: 200, className: 'col-adjustment-channel-name', cellTemplate: this.consultationChannelNameTemplate },
+      { key: 'quantidadeNoCanal', header: 'No Canal', sortable: true, sortKey: 'quantidadeNoCanal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationChannelQuantityTemplate },
+      { key: 'estoqueFisicoTotal', header: 'Físico', sortable: true, sortKey: 'estoqueFisicoTotal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationPhysicalStockTemplate },
+      { key: 'estoqueDistribuidoTotal', header: 'Distribuído', sortable: true, sortKey: 'estoqueDistribuidoTotal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationDistributedStockTemplate },
+      { key: 'estoqueDisponivelParaAlocar', header: 'Disponível', sortable: true, sortKey: 'estoqueDisponivelParaAlocar', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationAvailableStockTemplate },
+      { key: 'divergencia', header: 'Divergência', sortable: false, widthPx: 170, className: 'col-adjustment-status', cellTemplate: this.consultationDivergenceTemplate }
+    ];
     this.cdr.markForCheck();
   }
 
@@ -1020,14 +954,8 @@ export class StockHome implements AfterViewInit {
     );
   }
 
-  private getConsultationDefaultSort(view: ConsultationViewKey): Sort {
-    switch (view) {
-      case 'pontual':
-        return { active: 'nomeProduto', direction: 'asc' };
-      case 'canal':
-      case 'produto':
-        return { active: 'nomeProduto', direction: 'asc' };
-    }
+  private getConsultationDefaultSort(): Sort {
+    return { active: 'nomeProduto', direction: 'asc' };
   }
 
   private resetConsultationPage(): void {
@@ -1035,10 +963,10 @@ export class StockHome implements AfterViewInit {
   }
 
   private resetConsultationTable(): void {
-    const defaultSort = this.getConsultationDefaultSort(this.activeConsultationView().key);
+    const defaultSort = this.getConsultationDefaultSort();
     this.consultationSortActive.set(defaultSort.active);
     this.consultationSortDirection.set(defaultSort.direction);
-    this.consultationRequest.set(this.activeConsultationView().key === 'pontual' ? {} : null);
+    this.consultationRequest.set({});
     this.consultationItems.set([]);
     this.consultationTotalElements.set(0);
     this.consultationPageIndex.set(0);

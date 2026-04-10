@@ -144,59 +144,42 @@
       <div class="stock-home__consultations">
         <div class="stock-home__adjustment-filters">
           <div class="stock-home__adjustment-filter-group">
-            @if (activeConsultationView().key === 'pontual') {
-              <mat-form-field appearance="outline" class="stock-home__search-field stock-home__search-field--adjustments">
-                <mat-label>Produto</mat-label>
-                <input
-                  matInput
-                  type="text"
-                  placeholder="Digite o nome ou SKU do produto"
-                  [formControl]="consultationProductControl"
-                  [matAutocomplete]="consultationProductAuto"
-                  #consultationProductTrigger="matAutocompleteTrigger"
-                  (click)="openConsultationProductOptions()">
-                <mat-icon matSuffix>search</mat-icon>
-                <mat-autocomplete
-                  #consultationProductAuto="matAutocomplete"
-                  [displayWith]="displayConsultationProduct"
-                  (optionSelected)="selectConsultationProduct($event.option.value)">
-                  @for (product of consultationProductOptions(); track product.id) {
-                    <mat-option [value]="product">
-                      {{ displayConsultationProduct(product) }}
-                    </mat-option>
-                  }
-                </mat-autocomplete>
-              </mat-form-field>
+            <mat-form-field appearance="outline" class="stock-home__search-field stock-home__search-field--adjustments">
+              <mat-label>Produto</mat-label>
+              <input
+                matInput
+                type="text"
+                placeholder="Digite o nome ou SKU do produto"
+                [formControl]="consultationProductControl"
+                [matAutocomplete]="consultationProductAuto"
+                #consultationProductTrigger="matAutocompleteTrigger"
+                (click)="openConsultationProductOptions()">
+              <mat-icon matSuffix>search</mat-icon>
+              <mat-autocomplete
+                #consultationProductAuto="matAutocomplete"
+                [displayWith]="displayConsultationProduct"
+                (optionSelected)="selectConsultationProduct($event.option.value)">
+                @for (product of consultationProductOptions(); track product.id) {
+                  <mat-option [value]="product">
+                    {{ displayConsultationProduct(product) }}
+                  </mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
 
-              <mat-form-field appearance="outline" class="stock-home__movement-field">
-                <mat-label>Canal</mat-label>
-                <mat-select [formControl]="consultationChannelControl">
-                  <mat-option value="">Todos</mat-option>
-                  @for (channel of channels(); track channel.id) {
-                    <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-            }
+            <mat-form-field appearance="outline" class="stock-home__movement-field">
+              <mat-label>Canal</mat-label>
+              <mat-select [formControl]="consultationChannelControl">
+                <mat-option value="">Todos</mat-option>
+                @for (channel of channels(); track channel.id) {
+                  <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
           </div>
-
-          <mat-form-field appearance="outline" class="stock-home__movement-field stock-home__movement-field--adjustments">
-            <mat-label>Base da consulta</mat-label>
-            <mat-select
-              [value]="activeConsultationView().key"
-              (selectionChange)="setActiveConsultationViewByKey($event.value)">
-              @for (view of consultationViews; track view.key) {
-                <mat-option [value]="view.key">{{ view.title }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
         </div>
 
-        @if (!isConsultationViewImplemented()) {
-          <div class="stock-home__placeholder">
-            {{ activeConsultationView().subtitle }}
-          </div>
-        } @else if (!consultationRequest()) {
+        @if (!consultationRequest()) {
           <div class="stock-home__placeholder">
             Carregando consultas de estoque...
           </div>

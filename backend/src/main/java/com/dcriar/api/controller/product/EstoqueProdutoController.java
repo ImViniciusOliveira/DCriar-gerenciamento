@@ -4,16 +4,16 @@ import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.response.product.AjusteEstoqueCanalResumoDTO;
 import com.dcriar.api.dto.response.product.AjusteEstoqueProdutoResumoDTO;
-import com.dcriar.api.dto.response.product.ConsultaEstoqueCanalResponseDTO;
+import com.dcriar.api.dto.response.product.ConsultaEstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
-import com.dcriar.api.hateoas.product.assembler.ConsultaEstoqueCanalModelAssembler;
+import com.dcriar.api.hateoas.product.assembler.ConsultaEstoqueModelAssembler;
 import com.dcriar.api.hateoas.product.assembler.EstoqueProdutoModelAssembler;
 import com.dcriar.api.hateoas.product.assembler.MovimentacaoProdutoModelAssembler;
-import com.dcriar.api.hateoas.product.model.ConsultaEstoqueCanalModel;
+import com.dcriar.api.hateoas.product.model.ConsultaEstoqueModel;
 import com.dcriar.api.hateoas.product.model.EstoqueProdutoModel;
 import com.dcriar.api.hateoas.product.model.MovimentacaoProdutoModel;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
@@ -57,7 +57,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class EstoqueProdutoController {
 
     private final EstoqueProdutoService estoqueProdutoService;
-    private final ConsultaEstoqueCanalModelAssembler consultaEstoqueCanalModelAssembler;
+    private final ConsultaEstoqueModelAssembler consultaEstoqueModelAssembler;
     private final EstoqueProdutoModelAssembler estoqueProdutoModelAssembler;
     private final MovimentacaoProdutoModelAssembler movimentacaoProdutoModelAssembler;
 
@@ -131,11 +131,11 @@ public class EstoqueProdutoController {
 
     @GetMapping("/consulta") // Alterado de @GetMapping raiz para evitar conflito com getRoot
     @Operation(summary = "Consultar o estoque de um produto em um canal específico")
-    public ResponseEntity<ConsultaEstoqueCanalModel> consultarEstoque(
+    public ResponseEntity<ConsultaEstoqueModel> consultarEstoque(
             @Parameter(description = "ID do produto.", example = "1") @RequestParam Long produtoId,
             @Parameter(description = "ID do canal de venda.", example = "1") @RequestParam Long canalVendaId) {
-        ConsultaEstoqueCanalResponseDTO consultaDTO = estoqueProdutoService.consultarEstoqueParaConsulta(produtoId, canalVendaId);
-        return consultaEstoqueCanalModelAssembler.toOkResponseEntity(consultaDTO);
+        ConsultaEstoqueResponseDTO consultaDTO = estoqueProdutoService.consultarEstoqueParaConsulta(produtoId, canalVendaId);
+        return consultaEstoqueModelAssembler.toOkResponseEntity(consultaDTO);
     }
 
     @GetMapping("/consultas")
@@ -147,18 +147,18 @@ public class EstoqueProdutoController {
             @Parameter(name = "apenasComSaldo", description = "Quando true, retorna apenas vínculos com saldo positivo no canal.", example = "true"),
             @Parameter(name = "sort", description = "Critério de ordenação.", example = "nomeProduto,asc")
     })
-    public ResponseEntity<PagedModel<ConsultaEstoqueCanalModel>> listarConsultasEstoque(
+    public ResponseEntity<PagedModel<ConsultaEstoqueModel>> listarConsultasEstoque(
             @RequestParam(required = false) Long produtoId,
             @RequestParam(required = false) String nomeProduto,
             @RequestParam(required = false) Long canalVendaId,
             @RequestParam(required = false, defaultValue = "false") boolean apenasComSaldo,
             @ParameterObject @PageableDefault(size = 10, sort = "produto.nome", direction = Sort.Direction.ASC) Pageable pageable,
-            PagedResourcesAssembler<ConsultaEstoqueCanalResponseDTO> pagedResourcesAssembler
+            PagedResourcesAssembler<ConsultaEstoqueResponseDTO> pagedResourcesAssembler
     ) {
-        Page<ConsultaEstoqueCanalResponseDTO> page = estoqueProdutoService
+        Page<ConsultaEstoqueResponseDTO> page = estoqueProdutoService
                 .listarConsultasEstoque(produtoId, nomeProduto, canalVendaId, apenasComSaldo, pageable);
 
-        return ResponseEntity.ok(pagedResourcesAssembler.toModel(page, consultaEstoqueCanalModelAssembler));
+        return ResponseEntity.ok(pagedResourcesAssembler.toModel(page, consultaEstoqueModelAssembler));
     }
 
     @GetMapping("/resumo")
