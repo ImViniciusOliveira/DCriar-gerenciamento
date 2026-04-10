@@ -14,7 +14,7 @@ import {
   ApiResponseAdjustmentLots,
   ApiResponseAdjustmentProducts
 } from '../models/stock-adjustment.model';
-import { StockConsultationPointSummary } from '../models/stock-consultation.model';
+import { ApiResponseStockConsultations, StockConsultationSummary } from '../models/stock-consultation.model';
 import { ApiResponseStockHistory, ApiResponseStockMovementTypes, StockMovementTypeOption } from '../models/stock-history.model';
 
 type StockHistoryPeriod = '1d' | '1m' | '6m' | '1a' | 'all';
@@ -53,9 +53,14 @@ type AdjustmentChannelsSearchParams = {
   canalVendaId?: number;
 };
 
-type StockPointConsultationParams = {
-  produtoId: number;
-  canalVendaId: number;
+type StockConsultationSearchParams = {
+  page: number;
+  size: number;
+  sort: string;
+  produtoId?: number;
+  nomeProduto?: string;
+  canalVendaId?: number;
+  apenasComSaldo?: boolean;
 };
 
 export type StockAdjustmentDirection = 'ADICIONAR' | 'RETIRAR';
@@ -271,18 +276,39 @@ export class StockService {
     );
   }
 
-  consultPointStock(params: StockPointConsultationParams): Observable<StockConsultationPointSummary> {
+  searchConsultations(params: StockConsultationSearchParams): Observable<{ items: StockConsultationSummary[]; total: number }> {
     return this.getStockRoot().pipe(
-      take(1),
       switchMap(stockRoot => {
-        const url = stockRoot._links?.['consulta']?.href;
-        const baseUrl = this.normalizeUrl(url || `${environment.apiVersionPath}/estoques/consulta`);
+        const url = stockRoot._links?.['consultas']?.href;
+        const baseUrl = this.normalizeUrl(url || `${environment.apiVersionPath}/estoques/consultas`);
 
-        const httpParams = new HttpParams()
-          .set('produtoId', params.produtoId.toString())
-          .set('canalVendaId', params.canalVendaId.toString());
+        let httpParams = new HttpParams()
+          .set('page', params.page.toString())
+          .set('size', params.size.toString())
+          .set('sort', params.sort);
 
-        return this.http.get<StockConsultationPointSummary>(baseUrl, { params: httpParams });
+        if (params.produtoId) {
+          httpParams = httpParams.set('produtoId', params.produtoId.toString());
+        }
+
+        if (params.nomeProduto) {
+          httpParams = httpParams.set('nomeProduto', params.nomeProduto);
+        }
+
+        if (params.canalVendaId) {
+          httpParams = httpParams.set('canalVendaId', params.canalVendaId.toString());
+        }
+
+        if (params.apenasComSaldo) {
+          httpParams = httpParams.set('apenasComSaldo', String(params.apenasComSaldo));
+        }
+
+        return this.http.get<ApiResponseStockConsultations>(baseUrl, { params: httpParams }).pipe(
+          map(response => ({
+            items: response._embedded?.consultasEstoqueCanal ?? [],
+            total: response.page?.totalElements ?? 0
+          }))
+        );
       })
     );
   }

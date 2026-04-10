@@ -1,6 +1,6 @@
 import { Hateoas } from '../../../core/models/hateoas.model';
 
-export interface StockConsultationPointSummary {
+export interface StockConsultationSummary {
   produtoId: number;
   nomeProduto: string;
   skuProduto: string;
@@ -14,4 +14,16 @@ export interface StockConsultationPointSummary {
   camposBloqueados?: string[];
   motivosBloqueio?: Record<string, string>;
   _links?: Hateoas['_links'];
+}
+
+export interface ApiResponseStockConsultations {
+  _embedded?: {
+    consultasEstoqueCanal?: StockConsultationSummary[];
+  };
+  page?: {
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    number: number;
+  };
 }

@@ -180,7 +180,6 @@
                 mat-stroked-button
                 type="button"
                 class="stock-home__consult-button"
-                [disabled]="!hasPointConsultationSelection()"
                 (click)="runPointConsultation()">
                 Consultar
               </button>
@@ -203,9 +202,9 @@
           <div class="stock-home__placeholder">
             {{ activeConsultationView().subtitle }}
           </div>
-        } @else if (!hasPointConsultationSelection()) {
+        } @else if (!consultationRequest()) {
           <div class="stock-home__placeholder">
-            Selecione um produto da lista e um canal para consultar o estoque pontual.
+            Use os filtros opcionais e clique em Consultar para listar os estoques.
           </div>
         } @else {
           <div class="stock-home__consultation-table">
@@ -216,7 +215,9 @@
               [pageSize]="consultationPageSize()"
               [pageIndex]="consultationPageIndex()"
               [sortActive]="consultationSortActive()"
-              [sortDirection]="consultationSortDirection()">
+              [sortDirection]="consultationSortDirection()"
+              (pageChange)="onConsultationPageChange($event)"
+              (sortChange)="onConsultationSortChange($event)">
             </app-base-table>
           </div>
         }
