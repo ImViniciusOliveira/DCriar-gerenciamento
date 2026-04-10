@@ -6,6 +6,7 @@ import com.dcriar.api.dto.request.product.EstoqueRequestDTO;
 import com.dcriar.api.dto.request.product.MovimentacaoEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.response.product.AjusteEstoqueCanalResumoDTO;
 import com.dcriar.api.dto.response.product.AjusteEstoqueProdutoResumoDTO;
+import com.dcriar.api.dto.response.product.ConsultaEstoqueCanalResponseDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
@@ -234,6 +235,44 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                         canalVendaId,
                         canalVenda.getNome()
                 ));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ConsultaEstoqueCanalResponseDTO consultarEstoqueParaConsulta(Long produtoId, Long canalVendaId) {
+        Produto produto = findProdutoById(produtoId);
+        CanalVenda canalVenda = findCanalVendaById(canalVendaId);
+
+        int quantidadeNoCanal = estoqueRepository.findByProdutoAndCanalVenda(produto, canalVenda)
+                .map(Estoque::getQuantidade)
+                .orElse(0);
+
+        CamposBloqueadosInfo camposBloqueados = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisCanal(
+                quantidadeNoCanal,
+                produto.getEstoqueFisicoTotal(),
+                produto.getEstoqueDistribuidoTotal(),
+                produto.getEstoqueDisponivelParaAlocar()
+        );
+
+        return ConsultaEstoqueCanalResponseDTO.builder()
+                .produtoId(produto.getId())
+                .nomeProduto(produto.getNome())
+                .skuProduto(produto.getSku())
+                .canalVendaId(canalVenda.getId())
+                .nomeCanalVenda(canalVenda.getNome())
+                .quantidadeNoCanal(quantidadeNoCanal)
+                .estoqueFisicoTotal(produto.getEstoqueFisicoTotal())
+                .estoqueDistribuidoTotal(produto.getEstoqueDistribuidoTotal())
+                .estoqueDisponivelParaAlocar(produto.getEstoqueDisponivelParaAlocar())
+                .statusDivergencia(StatusDivergenciaEstoqueUtils.resolverParaCanal(
+                        quantidadeNoCanal,
+                        produto.getEstoqueFisicoTotal(),
+                        produto.getEstoqueDistribuidoTotal(),
+                        produto.getEstoqueDisponivelParaAlocar()
+                ))
+                .camposBloqueados(camposBloqueados.camposBloqueados())
+                .motivosBloqueio(camposBloqueados.motivosBloqueio())
+                .build();
     }
 
     @Override

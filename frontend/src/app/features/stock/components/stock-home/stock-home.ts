@@ -16,6 +16,7 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -41,13 +42,17 @@ import { ApiResponseStockHistory, StockHistoryItem, StockMovementTypeOption } fr
 import { BatchService } from '../../services/batch.service';
 import { ChannelService } from '../../services/channel.service';
 import { StockService } from '../../services/stock.service';
+import { StockConsultationPointSummary } from '../../models/stock-consultation.model';
 import { BatchForm } from '../batch-form/batch-form';
 import { ChannelStockAdjustmentForm } from '../channel-stock-adjustment-form/channel-stock-adjustment-form';
 import { ProductStockAdjustmentForm } from '../product-stock-adjustment-form/product-stock-adjustment-form';
+import { ProductService } from '../../../products/services/product.service';
+import { Product } from '../../../products/models/product.model';
 
 type StockSectionKey = 'consultas' | 'ajustes' | 'historico';
 type HistoryRangeKey = '1d' | '1m' | '6m' | '1a' | 'all';
 type AdjustmentViewKey = 'lotes' | 'produtos' | 'canais';
+type ConsultationViewKey = 'canal' | 'pontual' | 'produto';
 
 interface StockSection {
   key: StockSectionKey;
@@ -68,11 +73,24 @@ interface AdjustmentViewOption {
   buttonLabel: string;
 }
 
+interface ConsultationViewOption {
+  key: ConsultationViewKey;
+  title: string;
+  subtitle: string;
+  buttonLabel: string;
+  implemented: boolean;
+}
+
 interface AdjustmentTableRow {
   rowType: AdjustmentViewKey;
   lot?: AdjustmentLotSummary;
   product?: AdjustmentProductSummary;
   channel?: AdjustmentChannelSummary;
+}
+
+interface ConsultationTableRow {
+  rowType: 'pontual';
+  point: StockConsultationPointSummary;
 }
 
 @Component({
@@ -82,6 +100,7 @@ interface AdjustmentTableRow {
     CommonModule,
     ReactiveFormsModule,
     MatButtonModule,
+    MatAutocompleteModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -99,6 +118,7 @@ export class StockHome implements AfterViewInit {
   private readonly stockService = inject(StockService);
   private readonly batchService = inject(BatchService);
   private readonly channelService = inject(ChannelService);
+  private readonly productService = inject(ProductService);
   private readonly enumService = inject(EnumService);
   private readonly entityDialog = inject(EntityDialogService);
   private readonly destroyRef = inject(DestroyRef);
@@ -128,6 +148,7 @@ export class StockHome implements AfterViewInit {
   protected readonly activeSection = signal<StockSection>(this.sections[0]);
   protected readonly isHistorySection = computed(() => this.activeSection().key === 'historico');
   protected readonly isAdjustmentsSection = computed(() => this.activeSection().key === 'ajustes');
+  protected readonly isConsultationsSection = computed(() => this.activeSection().key === 'consultas');
   protected readonly selectedRange = signal<HistoryRangeKey>('1d');
   protected readonly historyItems = signal<StockHistoryItem[]>([]);
   protected readonly movementTypes = signal<StockMovementTypeOption[]>([]);
@@ -178,9 +199,46 @@ export class StockHome implements AfterViewInit {
   protected readonly channels = signal<Channel[]>([]);
   protected readonly lotMeasurementUnits = signal<EnumOption[]>([]);
   protected readonly adjustmentRefreshVersion = signal(0);
+  protected readonly consultationViews: ConsultationViewOption[] = [
+    {
+      key: 'canal',
+      title: 'Por canal',
+      subtitle: 'Visão do canal com seus produtos e saldos',
+      buttonLabel: 'Por canal',
+      implemented: false
+    },
+    {
+      key: 'pontual',
+      title: 'Pontual',
+      subtitle: 'Consulta exata de produto + canal',
+      buttonLabel: 'Pontual',
+      implemented: true
+    },
+    {
+      key: 'produto',
+      title: 'Por produto',
+      subtitle: 'Distribuição de um produto por todos os canais',
+      buttonLabel: 'Por produto',
+      implemented: false
+    }
+  ];
+  protected readonly activeConsultationView = signal<ConsultationViewOption>(this.consultationViews[1]);
+  protected readonly consultationItems = signal<ConsultationTableRow[]>([]);
+  protected readonly consultationTotalElements = signal(0);
+  protected readonly consultationPageSize = signal(10);
+  protected readonly consultationPageIndex = signal(0);
+  protected readonly consultationSortActive = signal('');
+  protected readonly consultationSortDirection = signal<Sort['direction']>('');
+  protected readonly consultationProductControl = new FormControl<string | Partial<Product>>('', { nonNullable: true });
+  protected readonly consultationChannelControl = new FormControl<number | ''>('', { nonNullable: true });
+  protected readonly consultationProductOptions = signal<Partial<Product>[]>([]);
+  protected readonly selectedConsultationProduct = signal<Partial<Product> | null>(null);
+  protected readonly selectedConsultationChannelId = signal<number | null>(null);
+  protected readonly consultationRequest = signal<{ produtoId: number; canalVendaId: number } | null>(null);
 
   historyTableColumns: TableColumn<StockHistoryItem>[] = [];
   adjustmentTableColumns: TableColumn<AdjustmentTableRow>[] = [];
+  consultationTableColumns: TableColumn<ConsultationTableRow>[] = [];
 
   @ViewChild('dataTemplate') dataTemplate!: TemplateRef<any>;
   @ViewChild('produtoTemplate') produtoTemplate!: TemplateRef<any>;
@@ -202,6 +260,14 @@ export class StockHome implements AfterViewInit {
   @ViewChild('adjustmentChannelQuantityTemplate') adjustmentChannelQuantityTemplate!: TemplateRef<any>;
   @ViewChild('adjustmentDivergenceTemplate') adjustmentDivergenceTemplate!: TemplateRef<any>;
   @ViewChild('adjustmentActionsTemplate') adjustmentActionsTemplate!: TemplateRef<any>;
+  @ViewChild('consultationNameTemplate') consultationNameTemplate!: TemplateRef<any>;
+  @ViewChild('consultationSkuTemplate') consultationSkuTemplate!: TemplateRef<any>;
+  @ViewChild('consultationChannelNameTemplate') consultationChannelNameTemplate!: TemplateRef<any>;
+  @ViewChild('consultationChannelQuantityTemplate') consultationChannelQuantityTemplate!: TemplateRef<any>;
+  @ViewChild('consultationPhysicalStockTemplate') consultationPhysicalStockTemplate!: TemplateRef<any>;
+  @ViewChild('consultationDistributedStockTemplate') consultationDistributedStockTemplate!: TemplateRef<any>;
+  @ViewChild('consultationAvailableStockTemplate') consultationAvailableStockTemplate!: TemplateRef<any>;
+  @ViewChild('consultationDivergenceTemplate') consultationDivergenceTemplate!: TemplateRef<any>;
 
   constructor() {
     this.pagination.initialize('stock-history', { active: 'data', direction: 'desc' });
@@ -300,6 +366,44 @@ export class StockHome implements AfterViewInit {
       this.resetAdjustmentPage();
     });
 
+    this.consultationProductControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged((previous, current) => this.resolveConsultationProductTerm(previous) === this.resolveConsultationProductTerm(current)),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(value => {
+      if (typeof value !== 'string') {
+        this.consultationProductOptions.set([]);
+        return;
+      }
+
+      this.selectedConsultationProduct.set(null);
+      this.consultationRequest.set(null);
+      this.consultationItems.set([]);
+      this.consultationTotalElements.set(0);
+      const term = value.trim();
+      if (term.length < 2) {
+        this.consultationProductOptions.set([]);
+        return;
+      }
+
+      this.productService.searchProducts(term).pipe(
+        catchError(() => of([]))
+      ).subscribe(products => {
+        this.consultationProductOptions.set(products);
+        this.cdr.markForCheck();
+      });
+    });
+
+    this.consultationChannelControl.valueChanges.pipe(
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(value => {
+      this.selectedConsultationChannelId.set(value === '' ? null : Number(value));
+      this.consultationRequest.set(null);
+      this.consultationItems.set([]);
+      this.consultationTotalElements.set(0);
+    });
+
     effect(() => {
       const isHistoryActive = this.isHistorySection();
       const page = this.pagination.pageIndex();
@@ -359,6 +463,48 @@ export class StockHome implements AfterViewInit {
       onCleanup(() => subscription.unsubscribe());
     });
 
+    effect((onCleanup) => {
+      const isConsultationsActive = this.isConsultationsSection();
+      const view = this.activeConsultationView();
+      const request = this.consultationRequest();
+
+      this.updateConsultationColumns(view.key);
+
+      if (!isConsultationsActive) {
+        this.consultationItems.set([]);
+        this.consultationTotalElements.set(0);
+        return;
+      }
+
+      if (view.key !== 'pontual') {
+        this.consultationItems.set([]);
+        this.consultationTotalElements.set(0);
+        return;
+      }
+
+      if (!request) {
+        this.consultationItems.set([]);
+        this.consultationTotalElements.set(0);
+        return;
+      }
+
+      const subscription = this.stockService.consultPointStock({
+        produtoId: request.produtoId,
+        canalVendaId: request.canalVendaId
+      }).subscribe({
+        next: result => {
+          this.consultationItems.set([{ rowType: 'pontual', point: result }]);
+          this.consultationTotalElements.set(1);
+          this.cdr.markForCheck();
+        },
+        error: err => {
+          this.handleConsultationError(err);
+        }
+      });
+
+      onCleanup(() => subscription.unsubscribe());
+    });
+
   }
 
   ngAfterViewInit(): void {
@@ -373,6 +519,7 @@ export class StockHome implements AfterViewInit {
     ];
 
     this.updateAdjustmentColumns(this.activeAdjustmentView().key);
+    this.updateConsultationColumns(this.activeConsultationView().key);
 
     this.cdr.detectChanges();
   }
@@ -403,6 +550,20 @@ export class StockHome implements AfterViewInit {
       return;
     }
     this.setActiveAdjustmentView(view);
+  }
+
+  protected setActiveConsultationView(view: ConsultationViewOption): void {
+    this.activeConsultationView.set(view);
+    this.consultationItems.set([]);
+    this.consultationTotalElements.set(0);
+  }
+
+  protected setActiveConsultationViewByKey(viewKey: ConsultationViewKey): void {
+    const view = this.consultationViews.find(option => option.key === viewKey);
+    if (!view) {
+      return;
+    }
+    this.setActiveConsultationView(view);
   }
 
   protected setHistoryRange(range: HistoryRangeKey): void {
@@ -448,6 +609,50 @@ export class StockHome implements AfterViewInit {
       case 'canais':
         return 'Digite o nome ou SKU do produto';
     }
+  }
+
+  protected displayConsultationProduct(value: string | Partial<Product> | null): string {
+    if (!value) {
+      return '';
+    }
+
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    const nome = value?.nome ?? '';
+    const sku = value?.sku ? ` (${value.sku})` : '';
+    return `${nome}${sku}`;
+  }
+
+  protected selectConsultationProduct(product: Partial<Product>): void {
+    this.selectedConsultationProduct.set(product);
+    this.consultationProductControl.setValue(product, { emitEvent: false });
+    this.consultationProductOptions.set([]);
+    this.consultationRequest.set(null);
+    this.consultationItems.set([]);
+    this.consultationTotalElements.set(0);
+  }
+
+  protected isConsultationViewImplemented(): boolean {
+    return this.activeConsultationView().implemented;
+  }
+
+  protected hasPointConsultationSelection(): boolean {
+    return !!this.selectedConsultationProduct()?.id && !!this.selectedConsultationChannelId();
+  }
+
+  protected runPointConsultation(): void {
+    const productId = this.selectedConsultationProduct()?.id;
+    const channelId = this.selectedConsultationChannelId();
+    if (!productId || !channelId) {
+      return;
+    }
+
+    this.consultationRequest.set({
+      produtoId: productId,
+      canalVendaId: channelId
+    });
   }
 
   protected isLotSaldoSortEnabled(): boolean {
@@ -555,6 +760,14 @@ export class StockHome implements AfterViewInit {
 
   protected formatChannelQuantity(row: AdjustmentTableRow): string {
     return this.formatDecimal(row.channel?.quantidadeNoCanal ?? 0);
+  }
+
+  protected formatConsultationChannelQuantity(row: ConsultationTableRow): string {
+    return this.formatDecimal(row.point.quantidadeNoCanal ?? 0);
+  }
+
+  protected isConsultationConsistent(row: ConsultationTableRow): boolean {
+    return row.point.statusDivergencia !== 'INCONSISTENTE';
   }
 
   protected getAdjustmentActionLabel(): string {
@@ -665,6 +878,28 @@ export class StockHome implements AfterViewInit {
     this.cdr.markForCheck();
   }
 
+  private updateConsultationColumns(view: ConsultationViewKey): void {
+    switch (view) {
+      case 'pontual':
+        this.consultationTableColumns = [
+          { key: 'nome', header: 'Produto', sortable: false, className: 'col-adjustment-name', cellTemplate: this.consultationNameTemplate },
+          { key: 'sku', header: 'SKU', sortable: false, widthPx: 250, className: 'col-adjustment-sku', cellTemplate: this.consultationSkuTemplate },
+          { key: 'canal', header: 'Canal', sortable: false, widthPx: 200, className: 'col-adjustment-channel-name', cellTemplate: this.consultationChannelNameTemplate },
+          { key: 'quantidadeNoCanal', header: 'No Canal', sortable: false, widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationChannelQuantityTemplate },
+          { key: 'estoqueFisicoTotal', header: 'Físico', sortable: false, widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationPhysicalStockTemplate },
+          { key: 'estoqueDistribuidoTotal', header: 'Distribuído', sortable: false, widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationDistributedStockTemplate },
+          { key: 'estoqueDisponivelParaAlocar', header: 'Disponível', sortable: false, widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationAvailableStockTemplate },
+          { key: 'divergencia', header: 'Divergência', sortable: false, widthPx: 170, className: 'col-adjustment-status', cellTemplate: this.consultationDivergenceTemplate }
+        ];
+        break;
+      case 'canal':
+      case 'produto':
+        this.consultationTableColumns = [];
+        break;
+    }
+    this.cdr.markForCheck();
+  }
+
   private getAdjustmentRows$(
     view: AdjustmentViewKey,
     page: number,
@@ -734,6 +969,16 @@ export class StockHome implements AfterViewInit {
     }
   }
 
+  private handleConsultationError(error: unknown): void {
+    this.consultationItems.set([]);
+    this.consultationTotalElements.set(0);
+    this.cdr.markForCheck();
+    this.entityDialog.showApiErrorSnackbar(
+      error,
+      'Não foi possível consultar o estoque informado.'
+    );
+  }
+
   private tryRecoverInvalidAdjustmentSort(view: AdjustmentViewKey, error: unknown): boolean {
     if (!(error instanceof HttpErrorResponse)) {
       return false;
@@ -766,6 +1011,16 @@ export class StockHome implements AfterViewInit {
       minimumFractionDigits: 0,
       maximumFractionDigits: 4
     }).format(value);
+  }
+
+  private resolveConsultationProductTerm(value: string | Partial<Product>): string {
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+
+    const nome = value?.nome ?? '';
+    const sku = value?.sku ?? '';
+    return `${nome}|${sku}`;
   }
 
   private openLotAdjustment(lot: AdjustmentLotSummary): void {

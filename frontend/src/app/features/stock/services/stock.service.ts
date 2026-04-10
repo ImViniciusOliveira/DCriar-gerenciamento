@@ -14,6 +14,7 @@ import {
   ApiResponseAdjustmentLots,
   ApiResponseAdjustmentProducts
 } from '../models/stock-adjustment.model';
+import { StockConsultationPointSummary } from '../models/stock-consultation.model';
 import { ApiResponseStockHistory, ApiResponseStockMovementTypes, StockMovementTypeOption } from '../models/stock-history.model';
 
 type StockHistoryPeriod = '1d' | '1m' | '6m' | '1a' | 'all';
@@ -50,6 +51,11 @@ type AdjustmentChannelsSearchParams = {
   sort: string;
   nomeProduto?: string;
   canalVendaId?: number;
+};
+
+type StockPointConsultationParams = {
+  produtoId: number;
+  canalVendaId: number;
 };
 
 export type StockAdjustmentDirection = 'ADICIONAR' | 'RETIRAR';
@@ -261,6 +267,22 @@ export class StockService {
             total: response.page?.totalElements ?? 0
           }))
         );
+      })
+    );
+  }
+
+  consultPointStock(params: StockPointConsultationParams): Observable<StockConsultationPointSummary> {
+    return this.getStockRoot().pipe(
+      take(1),
+      switchMap(stockRoot => {
+        const url = stockRoot._links?.['consulta']?.href;
+        const baseUrl = this.normalizeUrl(url || `${environment.apiVersionPath}/estoques/consulta`);
+
+        const httpParams = new HttpParams()
+          .set('produtoId', params.produtoId.toString())
+          .set('canalVendaId', params.canalVendaId.toString());
+
+        return this.http.get<StockConsultationPointSummary>(baseUrl, { params: httpParams });
       })
     );
   }

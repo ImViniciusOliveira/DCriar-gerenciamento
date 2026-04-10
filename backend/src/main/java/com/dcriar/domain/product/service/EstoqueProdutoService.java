@@ -4,6 +4,7 @@ import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.response.product.AjusteEstoqueCanalResumoDTO;
 import com.dcriar.api.dto.response.product.AjusteEstoqueProdutoResumoDTO;
+import com.dcriar.api.dto.response.product.ConsultaEstoqueCanalResponseDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
@@ -46,6 +47,13 @@ public interface EstoqueProdutoService {
      * @return O DTO com as informações do estoque para o produto e canal especificados.
      */
     EstoqueResponseDTO consultarEstoque(Long produtoId, Long canalVendaId);
+
+    /**
+     * Consulta operacional detalhada de um produto em um canal específico.
+     * Essa resposta é voltada para a tela de consultas e traz o contexto completo
+     * de físico, distribuído, disponível e divergência para o vínculo produto + canal.
+     */
+    ConsultaEstoqueCanalResponseDTO consultarEstoqueParaConsulta(Long produtoId, Long canalVendaId);
 
     /**
      * Busca resumida de estoque filtrada por canal e nome do produto.

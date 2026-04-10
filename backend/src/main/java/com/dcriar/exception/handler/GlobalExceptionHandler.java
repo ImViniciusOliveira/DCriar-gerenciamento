@@ -35,6 +35,25 @@ import java.util.stream.Collectors;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Map<String, String> PARAMETRO_LABELS = Map.ofEntries(
+            Map.entry("produtoId", "produto"),
+            Map.entry("canalVendaId", "canal de venda"),
+            Map.entry("canalId", "canal de venda"),
+            Map.entry("canalVendaIds", "canais de venda"),
+            Map.entry("nomeProduto", "produto"),
+            Map.entry("nomeMateriaPrima", "matéria-prima"),
+            Map.entry("tipoProduto", "tipo de produto"),
+            Map.entry("tipoEstrutural", "tipo estrutural"),
+            Map.entry("unidadeDeMedida", "unidade de medida"),
+            Map.entry("periodo", "período"),
+            Map.entry("tipoMovimentacao", "tipo de movimentação"),
+            Map.entry("page", "página"),
+            Map.entry("size", "quantidade por página"),
+            Map.entry("sort", "ordenação"),
+            Map.entry("loteId", "lote"),
+            Map.entry("id", "identificador")
+    );
+
     //region Exceções de Domínio
 
     @ExceptionHandler(ValorNumericoExcedeLimiteException.class)
@@ -559,9 +578,11 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         String parameterName = ex.getParameterName();
+        String parameterLabel = resolveFriendlyParameterLabel(parameterName);
 
         Map<String, String> details = new LinkedHashMap<>();
         details.put("parametro", parameterName);
+        details.put("campo", parameterLabel);
         details.put("orientacao", "Informe o parâmetro obrigatório e tente novamente.");
 
         log.info(
@@ -571,7 +592,7 @@ public class GlobalExceptionHandler {
                 parameterName
         );
         return buildErrorResponse(
-                String.format("O parâmetro obrigatório '%s' não foi informado na requisição.", parameterName),
+                String.format("O campo obrigatório '%s' não foi informado na requisição.", parameterLabel),
                 HttpStatus.BAD_REQUEST,
                 details
         );
@@ -582,13 +603,15 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException ex,
             HttpServletRequest request
     ) {
+        String parameterLabel = resolveFriendlyParameterLabel(ex.getName());
         Map<String, String> details = new LinkedHashMap<>();
         details.put("parametro", ex.getName());
+        details.put("campo", parameterLabel);
         details.put("valorInformado", String.valueOf(ex.getValue()));
 
         String message = String.format(
-                "O parâmetro '%s' recebeu um valor inválido: '%s'.",
-                ex.getName(),
+                "O campo '%s' recebeu um valor inválido: '%s'.",
+                parameterLabel,
                 ex.getValue()
         );
 
@@ -610,6 +633,10 @@ public class GlobalExceptionHandler {
                 sanitizeLogMap(details)
         );
         return buildErrorResponse(message, HttpStatus.BAD_REQUEST, details);
+    }
+
+    private String resolveFriendlyParameterLabel(String parameterName) {
+        return PARAMETRO_LABELS.getOrDefault(parameterName, parameterName);
     }
 
     /**

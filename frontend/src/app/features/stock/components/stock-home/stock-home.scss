@@ -8,6 +8,10 @@
   display: grid;
 }
 
+.stock-home__consultations {
+  display: grid;
+}
+
 .stock-home__adjustment-filters {
   display: flex;
   flex-wrap: wrap;
@@ -27,6 +31,14 @@
 
 .stock-home__adjustment-table {
   min-height: 480px;
+}
+
+.stock-home__consultation-table {
+  min-height: 480px;
+}
+
+.stock-home__consult-button {
+  height: 56px;
 }
 
 .stock-home__placeholder {
@@ -259,6 +271,10 @@
   .stock-home__movement-field {
     width: 100%;
     min-width: 0;
+  }
+
+  .stock-home__consult-button {
+    width: 100%;
   }
 
   .stock-home__filter-group--right {

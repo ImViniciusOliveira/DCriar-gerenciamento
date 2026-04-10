@@ -4,13 +4,16 @@ import com.dcriar.api.dto.request.product.AjusteEstoqueProdutoRequestDTO;
 import com.dcriar.api.dto.request.product.AjusteEstoqueRequestDTO;
 import com.dcriar.api.dto.response.product.AjusteEstoqueCanalResumoDTO;
 import com.dcriar.api.dto.response.product.AjusteEstoqueProdutoResumoDTO;
+import com.dcriar.api.dto.response.product.ConsultaEstoqueCanalResponseDTO;
 import com.dcriar.api.dto.response.product.EstoqueProdutoResumoDTO;
 import com.dcriar.api.dto.response.product.EstoqueResponseDTO;
 import com.dcriar.api.dto.response.product.HistoricoEstoqueConsolidadoResponseDTO;
 import com.dcriar.api.dto.response.product.MovimentacaoProdutoResponseDTO;
 import com.dcriar.api.dto.response.product.ProdutoEstoqueResponseDTO;
+import com.dcriar.api.hateoas.product.assembler.ConsultaEstoqueCanalModelAssembler;
 import com.dcriar.api.hateoas.product.assembler.EstoqueProdutoModelAssembler;
 import com.dcriar.api.hateoas.product.assembler.MovimentacaoProdutoModelAssembler;
+import com.dcriar.api.hateoas.product.model.ConsultaEstoqueCanalModel;
 import com.dcriar.api.hateoas.product.model.EstoqueProdutoModel;
 import com.dcriar.api.hateoas.product.model.MovimentacaoProdutoModel;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
@@ -54,6 +57,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class EstoqueProdutoController {
 
     private final EstoqueProdutoService estoqueProdutoService;
+    private final ConsultaEstoqueCanalModelAssembler consultaEstoqueCanalModelAssembler;
     private final EstoqueProdutoModelAssembler estoqueProdutoModelAssembler;
     private final MovimentacaoProdutoModelAssembler movimentacaoProdutoModelAssembler;
 
@@ -82,6 +86,10 @@ public class EstoqueProdutoController {
         rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
                 .listarHistoricoConsolidado("all", null, null, null, null, null))
                 .withRel("historico"));
+
+        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .consultarEstoque(null, null))
+                .withRel("consulta"));
 
         rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
                 .listarProdutosParaAjuste(null, null, null, null))
@@ -119,11 +127,11 @@ public class EstoqueProdutoController {
 
     @GetMapping("/consulta") // Alterado de @GetMapping raiz para evitar conflito com getRoot
     @Operation(summary = "Consultar o estoque de um produto em um canal específico")
-    public ResponseEntity<EstoqueProdutoModel> consultarEstoque(
+    public ResponseEntity<ConsultaEstoqueCanalModel> consultarEstoque(
             @Parameter(description = "ID do produto.", example = "1") @RequestParam Long produtoId,
             @Parameter(description = "ID do canal de venda.", example = "1") @RequestParam Long canalVendaId) {
-        EstoqueResponseDTO estoqueDTO = estoqueProdutoService.consultarEstoque(produtoId, canalVendaId);
-        return estoqueProdutoModelAssembler.toOkResponseEntity(estoqueDTO);
+        ConsultaEstoqueCanalResponseDTO consultaDTO = estoqueProdutoService.consultarEstoqueParaConsulta(produtoId, canalVendaId);
+        return consultaEstoqueCanalModelAssembler.toOkResponseEntity(consultaDTO);
     }
 
     @GetMapping("/resumo")

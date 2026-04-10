@@ -140,6 +140,87 @@
           </app-base-table>
         </div>
       </div>
+    } @else if (isConsultationsSection()) {
+      <div class="stock-home__consultations">
+        <div class="stock-home__adjustment-filters">
+          <div class="stock-home__adjustment-filter-group">
+            @if (activeConsultationView().key === 'pontual') {
+              <mat-form-field appearance="outline" class="stock-home__search-field stock-home__search-field--adjustments">
+                <mat-label>Produto</mat-label>
+                <input
+                  matInput
+                  type="text"
+                  placeholder="Digite o nome ou SKU do produto"
+                  [formControl]="consultationProductControl"
+                  [matAutocomplete]="consultationProductAuto">
+                <mat-icon matSuffix>search</mat-icon>
+                <mat-autocomplete
+                  #consultationProductAuto="matAutocomplete"
+                  [displayWith]="displayConsultationProduct"
+                  (optionSelected)="selectConsultationProduct($event.option.value)">
+                  @for (product of consultationProductOptions(); track product.id) {
+                    <mat-option [value]="product">
+                      {{ displayConsultationProduct(product) }}
+                    </mat-option>
+                  }
+                </mat-autocomplete>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="stock-home__movement-field">
+                <mat-label>Canal</mat-label>
+                <mat-select [formControl]="consultationChannelControl">
+                  <mat-option value="">Selecione</mat-option>
+                  @for (channel of channels(); track channel.id) {
+                    <mat-option [value]="channel.id">{{ channel.nome }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <button
+                mat-stroked-button
+                type="button"
+                class="stock-home__consult-button"
+                [disabled]="!hasPointConsultationSelection()"
+                (click)="runPointConsultation()">
+                Consultar
+              </button>
+            }
+          </div>
+
+          <mat-form-field appearance="outline" class="stock-home__movement-field stock-home__movement-field--adjustments">
+            <mat-label>Base da consulta</mat-label>
+            <mat-select
+              [value]="activeConsultationView().key"
+              (selectionChange)="setActiveConsultationViewByKey($event.value)">
+              @for (view of consultationViews; track view.key) {
+                <mat-option [value]="view.key">{{ view.title }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        @if (!isConsultationViewImplemented()) {
+          <div class="stock-home__placeholder">
+            {{ activeConsultationView().subtitle }}
+          </div>
+        } @else if (!hasPointConsultationSelection()) {
+          <div class="stock-home__placeholder">
+            Selecione um produto da lista e um canal para consultar o estoque pontual.
+          </div>
+        } @else {
+          <div class="stock-home__consultation-table">
+            <app-base-table
+              [items]="consultationItems()"
+              [columns]="consultationTableColumns"
+              [totalElements]="consultationTotalElements()"
+              [pageSize]="consultationPageSize()"
+              [pageIndex]="consultationPageIndex()"
+              [sortActive]="consultationSortActive()"
+              [sortDirection]="consultationSortDirection()">
+            </app-base-table>
+          </div>
+        }
+      </div>
     } @else {
       <div class="stock-home__placeholder">
         {{ activeSection().key }} works
@@ -291,4 +372,42 @@
     (click)="openAdjustment(row)">
     <mat-icon>edit</mat-icon>
   </button>
+</ng-template>
+
+<ng-template #consultationNameTemplate let-row>
+  {{ row.point.nomeProduto }}
+</ng-template>
+
+<ng-template #consultationSkuTemplate let-row>
+  {{ row.point.skuProduto }}
+</ng-template>
+
+<ng-template #consultationChannelNameTemplate let-row>
+  {{ row.point.nomeCanalVenda }}
+</ng-template>
+
+<ng-template #consultationChannelQuantityTemplate let-row>
+  {{ formatConsultationChannelQuantity(row) }}
+</ng-template>
+
+<ng-template #consultationPhysicalStockTemplate let-row>
+  {{ formatProductStock(row.point.estoqueFisicoTotal) }}
+</ng-template>
+
+<ng-template #consultationDistributedStockTemplate let-row>
+  {{ formatProductStock(row.point.estoqueDistribuidoTotal) }}
+</ng-template>
+
+<ng-template #consultationAvailableStockTemplate let-row>
+  {{ formatProductStock(row.point.estoqueDisponivelParaAlocar) }}
+</ng-template>
+
+<ng-template #consultationDivergenceTemplate let-row>
+  <span
+    class="stock-home__status-badge"
+    [class.stock-home__status-badge--ok]="isConsultationConsistent(row)"
+    [class.stock-home__status-badge--error]="!isConsultationConsistent(row)">
+    <span class="stock-home__status-dot"></span>
+    {{ isConsultationConsistent(row) ? 'Consistente' : 'Inconsistente' }}
+  </span>
 </ng-template>
