@@ -28,6 +28,15 @@ type StockHistorySearchParams = {
   tipoMovimentacao: string;
 };
 
+type StockProductHistorySearchParams = {
+  produtoId: number;
+  page: number;
+  size: number;
+  sort: string;
+  periodo: StockHistoryPeriod;
+  tipoMovimentacao?: string;
+};
+
 type AdjustmentLotsSearchParams = {
   page: number;
   size: number;
@@ -310,6 +319,24 @@ export class StockService {
           }))
         );
       })
+    );
+  }
+
+  searchHistoryByProduct(params: StockProductHistorySearchParams): Observable<ApiResponseStockHistory> {
+    const baseUrl = `${environment.apiVersionPath}/estoques/historico/produto/${params.produtoId}`;
+
+    let httpParams = new HttpParams()
+      .set('page', params.page.toString())
+      .set('size', params.size.toString())
+      .set('sort', params.sort)
+      .set('periodo', params.periodo);
+
+    if (params.tipoMovimentacao) {
+      httpParams = httpParams.set('tipoMovimentacao', params.tipoMovimentacao);
+    }
+
+    return this.http.get<ApiResponseStockHistory>(baseUrl, { params: httpParams }).pipe(
+      catchError(() => of(this.createEmptyHistoryResponse()))
     );
   }
 

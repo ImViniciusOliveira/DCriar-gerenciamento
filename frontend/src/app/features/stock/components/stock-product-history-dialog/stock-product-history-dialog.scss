@@ -1,0 +1,29 @@
+.stock-product-history-dialog {
+  min-width: min(960px, 86vw);
+}
+
+.stock-product-history-dialog__header {
+  margin-bottom: 12px;
+}
+
+.stock-product-history-dialog__subtitle {
+  color: rgba(0, 0, 0, 0.64);
+  font-size: 0.9rem;
+}
+
+.stock-product-history-dialog__placeholder {
+  padding: 24px 0;
+  color: rgba(0, 0, 0, 0.64);
+}
+
+.stock-product-history-dialog__quantity {
+  font-weight: 600;
+}
+
+.stock-product-history-dialog__quantity--positive {
+  color: #2e7d32;
+}
+
+.stock-product-history-dialog__quantity--negative {
+  color: #c62828;
+}

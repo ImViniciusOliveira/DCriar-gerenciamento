@@ -1,0 +1,50 @@
+<h2 mat-dialog-title>{{ title() }}</h2>
+
+<mat-dialog-content class="stock-product-history-dialog">
+  <div class="stock-product-history-dialog__header">
+    <span class="stock-product-history-dialog__subtitle">{{ subtitle() }}</span>
+  </div>
+
+  @if (isLoading()) {
+    <div class="stock-product-history-dialog__placeholder">
+      Carregando movimentações...
+    </div>
+  } @else {
+    <app-base-table
+      [items]="items()"
+      [columns]="tableColumns"
+      [totalElements]="totalElements()"
+      [pageSize]="pageSize()"
+      [pageIndex]="pageIndex()"
+      [sortActive]="sortActive()"
+      [sortDirection]="sortDirection()"
+      (pageChange)="onPageChange($event)"
+      (sortChange)="onSortChange($event)">
+    </app-base-table>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="close()">Fechar</button>
+</mat-dialog-actions>
+
+<ng-template #dataTemplate let-item>
+  {{ item.data | date:'dd/MM/yyyy HH:mm' }}
+</ng-template>
+
+<ng-template #movementTemplate let-item>
+  {{ item.tipoDescricao || item.tipo }}
+</ng-template>
+
+<ng-template #quantityTemplate let-item>
+  <span
+    class="stock-product-history-dialog__quantity"
+    [class.stock-product-history-dialog__quantity--positive]="isPositiveQuantity(item.quantidade)"
+    [class.stock-product-history-dialog__quantity--negative]="!isPositiveQuantity(item.quantidade)">
+    {{ formatSignedQuantity(item.quantidade) }}
+  </span>
+</ng-template>
+
+<ng-template #reasonTemplate let-item>
+  {{ item.motivo || '-' }}
+</ng-template>

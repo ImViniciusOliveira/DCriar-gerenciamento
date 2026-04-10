@@ -266,9 +266,10 @@
   <button
     mat-icon-button
     type="button"
-    title="Visualizar"
-    aria-label="Visualizar motivo"
-    (click)="openReasonDetails(item)">
+    color="primary"
+    title="Exibir Movimentações"
+    aria-label="Exibir movimentações do produto"
+    (click)="openProductHistory(item)">
     <mat-icon>visibility</mat-icon>
   </button>
 </ng-template>
@@ -388,4 +389,16 @@
     <span class="stock-home__status-dot"></span>
     {{ isConsultationConsistent(row) ? 'Consistente' : 'Inconsistente' }}
   </span>
+</ng-template>
+
+<ng-template #consultationActionsTemplate let-row>
+  <button
+    mat-icon-button
+    type="button"
+    color="primary"
+    title="Exibir Movimentações"
+    aria-label="Exibir movimentações do produto"
+    (click)="openConsultationProductHistory(row.point)">
+    <mat-icon>visibility</mat-icon>
+  </button>
 </ng-template>

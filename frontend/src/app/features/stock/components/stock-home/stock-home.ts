@@ -30,7 +30,6 @@ import { Observable, catchError, debounceTime, distinctUntilChanged, map, of } f
 import { EnumOption, EnumService } from '../../../../core/services/enum.service';
 import { environment } from '../../../../core/services/environment';
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
-import { DetailsDialog } from '../../../../shared/components/details-dialog/details-dialog';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { PaginationHandler } from '../../../../shared/services/pagination-handler';
 import {
@@ -47,6 +46,7 @@ import { StockConsultationSummary } from '../../models/stock-consultation.model'
 import { BatchForm } from '../batch-form/batch-form';
 import { ChannelStockAdjustmentForm } from '../channel-stock-adjustment-form/channel-stock-adjustment-form';
 import { ProductStockAdjustmentForm } from '../product-stock-adjustment-form/product-stock-adjustment-form';
+import { StockProductHistoryDialog, StockProductHistoryDialogData } from '../stock-product-history-dialog/stock-product-history-dialog';
 import { ProductService } from '../../../products/services/product.service';
 import { Product } from '../../../products/models/product.model';
 
@@ -240,6 +240,7 @@ export class StockHome implements AfterViewInit {
   @ViewChild('consultationDistributedStockTemplate') consultationDistributedStockTemplate!: TemplateRef<any>;
   @ViewChild('consultationAvailableStockTemplate') consultationAvailableStockTemplate!: TemplateRef<any>;
   @ViewChild('consultationDivergenceTemplate') consultationDivergenceTemplate!: TemplateRef<any>;
+  @ViewChild('consultationActionsTemplate') consultationActionsTemplate!: TemplateRef<any>;
   @ViewChild('consultationProductTrigger', { read: MatAutocompleteTrigger }) consultationProductTrigger?: MatAutocompleteTrigger;
 
   constructor() {
@@ -666,39 +667,31 @@ export class StockHome implements AfterViewInit {
     return `${motivo.slice(0, 97)}...`;
   }
 
-  protected openReasonDetails(item: StockHistoryItem): void {
-    const details = [
-      this.hasProductNameChanged(item)
-        ? { label: 'Nome registrado', value: `${item.produtoNomeSnapshot} -> Nome atual: ${item.produtoNome}` }
-        : { label: 'Nome atual', value: item.produtoNome },
-      this.hasProductSkuChanged(item)
-        ? { label: 'SKU registrado', value: `${item.produtoSkuSnapshot} -> SKU atual: ${item.produtoSku}` }
-        : { label: 'SKU atual', value: item.produtoSku },
-      { label: 'Movimentação', value: item.tipoDescricao || item.tipo },
-      { label: 'Quantidade', value: this.formatSignedQuantity(item.quantidade) },
-      { label: 'Data da movimentação', value: new Intl.DateTimeFormat('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-      }).format(new Date(item.data)) },
-      { label: 'Motivo', value: item.motivo }
-    ];
+  protected openProductHistory(item: StockHistoryItem): void {
+    const dialogData: StockProductHistoryDialogData = {
+      produtoId: item.produtoId,
+      nomeProduto: item.produtoNome,
+      skuProduto: item.produtoSku
+    };
 
-    if (item.ordemProducaoId) {
-      details.push({ label: 'Ordem de produção', value: `#${item.ordemProducaoId}` });
-    }
+    this.openStockProductHistoryDialog(dialogData);
+  }
 
-    if (item.vendaId) {
-      details.push({ label: 'Venda', value: `#${item.vendaId}` });
-    }
+  protected openConsultationProductHistory(point: StockConsultationSummary): void {
+    const dialogData: StockProductHistoryDialogData = {
+      produtoId: point.produtoId,
+      nomeProduto: point.nomeProduto,
+      skuProduto: point.skuProduto
+    };
 
-    this.dialog.open(DetailsDialog, {
-      data: {
-        title: `Motivo da movimentação #${item.id}`,
-        items: details,
-        showLabels: true
-      },
-      width: '680px',
-      maxWidth: '90vw',
+    this.openStockProductHistoryDialog(dialogData);
+  }
+
+  private openStockProductHistoryDialog(dialogData: StockProductHistoryDialogData): void {
+    this.dialog.open(StockProductHistoryDialog, {
+      data: dialogData,
+      width: '1100px',
+      maxWidth: '95vw',
       autoFocus: false
     });
   }
@@ -870,7 +863,8 @@ export class StockHome implements AfterViewInit {
       { key: 'estoqueFisicoTotal', header: 'Físico', sortable: true, sortKey: 'estoqueFisicoTotal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationPhysicalStockTemplate },
       { key: 'estoqueDistribuidoTotal', header: 'Distribuído', sortable: true, sortKey: 'estoqueDistribuidoTotal', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationDistributedStockTemplate },
       { key: 'estoqueDisponivelParaAlocar', header: 'Disponível', sortable: true, sortKey: 'estoqueDisponivelParaAlocar', widthPx: 150, className: 'col-adjustment-stock', cellTemplate: this.consultationAvailableStockTemplate },
-      { key: 'divergencia', header: 'Divergência', sortable: false, widthPx: 170, className: 'col-adjustment-status', cellTemplate: this.consultationDivergenceTemplate }
+      { key: 'divergencia', header: 'Divergência', sortable: false, widthPx: 170, className: 'col-adjustment-status', cellTemplate: this.consultationDivergenceTemplate },
+      { key: 'acoes', header: 'Ações', sortable: false, widthPx: 90, className: 'col-trigger col-fit-center', cellTemplate: this.consultationActionsTemplate }
     ];
     this.cdr.markForCheck();
   }
