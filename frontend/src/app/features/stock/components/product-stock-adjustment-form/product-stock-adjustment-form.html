@@ -51,6 +51,7 @@
             <input
               matInput
               type="text"
+              [attr.maxlength]="quantityInputMaxLength"
               [attr.max]="maxAllowedQuantity() ?? null"
               inputmode="numeric"
               formControlName="quantidade"

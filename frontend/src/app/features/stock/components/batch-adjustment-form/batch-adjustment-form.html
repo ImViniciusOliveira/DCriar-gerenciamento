@@ -35,9 +35,9 @@
     <form class="adjustment-form" [formGroup]="form">
       <mat-form-field appearance="outline" class="adjustment-form__operation">
         <mat-label>Tipo de Operação</mat-label>
-        <mat-select formControlName="tipoOperacao">
+        <mat-select formControlName="tipoOperacao" [errorStateMatcher]="matcher">
           @for (option of operationOptions; track option.value) {
-            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+            <mat-option [value]="option.value" [disabled]="isOperationLocked(option.value)">{{ option.label }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
@@ -45,28 +45,42 @@
       @if (shouldShowDirection()) {
         <mat-form-field appearance="outline" class="adjustment-form__direction">
           <mat-label>Direção</mat-label>
-          <mat-select formControlName="direcao">
+          <mat-select formControlName="direcao" [errorStateMatcher]="matcher">
             @for (option of directionOptions; track option.value) {
-              <mat-option [value]="option.value">{{ option.label }}</mat-option>
+              <mat-option [value]="option.value" [disabled]="isDirectionLocked(option.value)">{{ option.label }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
       }
 
+      @if (selectedOperationLockReason()) {
+        <div class="adjustment-dialog__lock-reason adjustment-form__full">
+          {{ selectedOperationLockReason() }}
+        </div>
+      }
+
       <mat-form-field appearance="outline" class="adjustment-form__quantity">
         <mat-label>Quantidade</mat-label>
-        <input matInput type="text" inputmode="decimal" formControlName="quantidade">
+        <input matInput type="text" inputmode="decimal" formControlName="quantidade" [attr.maxlength]="quantityInputMaxLength" [errorStateMatcher]="matcher">
         <span matTextSuffix>{{ adjustmentUnitSymbol() }}</span>
-        @if (form.controls.quantidade.hasError('backend')) {
+        @if (form.controls.quantidade.hasError('required')) {
+          <mat-error>Informe a quantidade do ajuste.</mat-error>
+        } @else if (form.controls.quantidade.hasError('pattern')) {
+          <mat-error>Informe uma quantidade maior que zero.</mat-error>
+        } @else if (form.controls.quantidade.hasError('max') && maxAllowedQuantity() !== null) {
+          <mat-error>O máximo permitido para esta operação é {{ formatNumber(maxAllowedQuantity()!) }}{{ adjustmentUnitSymbol() }}.</mat-error>
+        } @else if (form.controls.quantidade.hasError('backend')) {
           <mat-error>{{ form.controls.quantidade.getError('backend') }}</mat-error>
         }
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="adjustment-form__full adjustment-form__motivo">
         <mat-label>Motivo</mat-label>
-        <textarea matInput rows="3" maxlength="100" formControlName="motivo"></textarea>
+        <textarea matInput rows="3" maxlength="100" formControlName="motivo" [errorStateMatcher]="matcher"></textarea>
         <mat-hint align="end">{{ form.controls.motivo.value.length || 0 }}/100</mat-hint>
-        @if (form.controls.motivo.hasError('maxlength')) {
+        @if (form.controls.motivo.hasError('required')) {
+          <mat-error>Informe o motivo do ajuste.</mat-error>
+        } @else if (form.controls.motivo.hasError('maxlength')) {
           <mat-error>O motivo deve ter no máximo 100 caracteres.</mat-error>
         }
       </mat-form-field>
@@ -81,7 +95,7 @@
       </div>
 
       <div class="adjustment-form__actions adjustment-form__full">
-        <button type="button" mat-raised-button color="primary" [disabled]="isCalculating()" (click)="calculateAdjustment()">
+        <button type="button" mat-raised-button color="primary" [disabled]="isCalculating() || hasSelectedOperationLock()" (click)="calculateAdjustment()">
           {{ isCalculating() ? 'Calculando...' : 'Calcular' }}
         </button>
       </div>
@@ -125,7 +139,7 @@
         @if (hasImpactedItems()) {
           <button type="button" mat-stroked-button [disabled]="isApplying()" (click)="openImpactedItemsDialog()">Selecionar itens impactados</button>
         } @else {
-          <button type="button" mat-raised-button color="primary" [disabled]="isApplying()" (click)="applyOperation()">
+          <button type="button" mat-raised-button color="primary" [disabled]="isApplying() || hasSelectedOperationLock()" (click)="applyOperation()">
             {{ isApplying() ? 'Aplicando...' : 'Aplicar operação' }}
           </button>
         }

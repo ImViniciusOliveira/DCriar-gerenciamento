@@ -6,13 +6,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
 import { AdjustmentProductSummary } from '../../models/stock-adjustment.model';
 import { ProductPhysicalAdjustmentRequest, StockAdjustmentDirection, StockService } from '../../services/stock.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
-import { clearApiFieldErrors, applyApiFieldErrors, extractApiErrorPayload, resolveApiErrorMessage } from '../../../../shared/utils/api-errors';
+import { clearApiFieldErrors, applyApiFieldErrors, extractApiErrorPayload } from '../../../../shared/utils/api-errors';
 import { clearControlError, setControlError } from '../../../../shared/utils/control-errors';
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
 import { stockApiErrorOptions } from '../../utils/stock-api-errors';
@@ -54,6 +54,8 @@ export interface ProductStockAdjustmentFormData {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ProductStockAdjustmentForm {
+  protected readonly quantityInputMaxLength = 10;
+
   private static readonly BACKEND_FIELD_MAP: Record<string, string> = {
     quantidade: 'quantidade',
     motivo: 'motivo'
@@ -87,7 +89,11 @@ export class ProductStockAdjustmentForm {
     motivo: this.fb.control('', [Validators.required, Validators.maxLength(100)])
   });
 
-  readonly selectedDirectionLockReason = computed(() => this.getDirectionLockReason(this.form.controls.direcao.getRawValue()));
+  private readonly selectedDirection = toSignal(this.form.controls.direcao.valueChanges, {
+    initialValue: this.form.controls.direcao.getRawValue()
+  });
+
+  readonly selectedDirectionLockReason = computed(() => this.getDirectionLockReason(this.selectedDirection()));
   readonly maxAllowedQuantity = computed(() => this.resolveEffectiveMaxQuantity());
   readonly currentProductMetrics = computed<ProductAdjustmentLayoutMetrics>(() => ({
     identity: [
@@ -228,15 +234,15 @@ export class ProductStockAdjustmentForm {
       setControlError(
         this.form.controls.quantidade,
         'backend',
-        resolveApiErrorMessage(err, ProductStockAdjustmentForm.Texts.saveError, stockApiErrorOptions)
+        this.buildQuantityBackendMessage()
       );
       this.form.controls.quantidade.markAsTouched();
-      this.entityDialog.showErrorSnackbar(ProductStockAdjustmentForm.Texts.validationError);
+      this.entityDialog.showApiErrorSnackbar(err, ProductStockAdjustmentForm.Texts.saveError, stockApiErrorOptions);
       return;
     }
 
     if (hasFieldErrors) {
-      this.entityDialog.showErrorSnackbar(ProductStockAdjustmentForm.Texts.validationError);
+      this.entityDialog.showApiErrorSnackbar(err, ProductStockAdjustmentForm.Texts.saveError, stockApiErrorOptions);
       return;
     }
 
@@ -249,7 +255,7 @@ export class ProductStockAdjustmentForm {
       return backendMax;
     }
 
-    const direction = this.form.controls.direcao.getRawValue();
+    const direction = this.selectedDirection();
     if (direction === 'RETIRAR') {
       return Math.max(this.data.template.estoqueFisicoTotal ?? 0, 0);
     }
@@ -277,5 +283,14 @@ export class ProductStockAdjustmentForm {
 
     this.backendMaxQuantity.set(maxAllowed);
     this.updateQuantityValidators();
+  }
+
+  private buildQuantityBackendMessage(): string {
+    const maxAllowed = this.maxAllowedQuantity();
+    if (maxAllowed != null) {
+      return `O máximo permitido para esta operação é ${this.formatInteger(maxAllowed)}.`;
+    }
+
+    return 'Revise a quantidade informada para o ajuste.';
   }
 }

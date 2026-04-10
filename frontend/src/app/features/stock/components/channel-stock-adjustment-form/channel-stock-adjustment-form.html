@@ -64,6 +64,7 @@
             <input
               matInput
               type="text"
+              [attr.maxlength]="quantityInputMaxLength"
               [attr.max]="maxAllowedQuantity() ?? null"
               inputmode="numeric"
               formControlName="quantidade"
@@ -74,7 +75,7 @@
             } @else if (form.controls.quantidade.hasError('pattern')) {
               <mat-error>Informe um número inteiro maior que zero.</mat-error>
             } @else if (form.controls.quantidade.hasError('max') && maxAllowedQuantity() !== null) {
-              <mat-error>O máximo permitido para esta operação é {{ formatInteger(maxAllowedQuantity()!) }}.</mat-error>
+              <mat-error>O máximo permitido com base em {{ currentQuantityReferenceLabel() }} é {{ formatInteger(maxAllowedQuantity()!) }}.</mat-error>
             } @else if (form.controls.quantidade.hasError('backend')) {
               <mat-error>{{ form.controls.quantidade.getError('backend') }}</mat-error>
             }

@@ -6,13 +6,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
 import { AdjustmentChannelSummary } from '../../models/stock-adjustment.model';
 import { ChannelStockAdjustmentRequest, StockAdjustmentDirection, StockService } from '../../services/stock.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
-import { clearApiFieldErrors, applyApiFieldErrors, extractApiErrorPayload, resolveApiErrorMessage } from '../../../../shared/utils/api-errors';
+import { clearApiFieldErrors, applyApiFieldErrors, extractApiErrorPayload } from '../../../../shared/utils/api-errors';
 import { clearControlError, setControlError } from '../../../../shared/utils/control-errors';
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
 import { stockApiErrorOptions } from '../../utils/stock-api-errors';
@@ -55,6 +55,8 @@ export interface ChannelStockAdjustmentFormData {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChannelStockAdjustmentForm {
+  protected readonly quantityInputMaxLength = 10;
+
   private static readonly BACKEND_FIELD_MAP: Record<string, string> = {
     quantidade: 'quantidade'
   };
@@ -86,9 +88,16 @@ export class ChannelStockAdjustmentForm {
     quantidade: this.fb.control('', [Validators.required, Validators.pattern(/^[1-9]\d*$/)])
   });
 
-  readonly selectedDirectionLockReason = computed(() => this.getDirectionLockReason(this.form.controls.direcao.getRawValue()));
+  private readonly selectedDirection = toSignal(this.form.controls.direcao.valueChanges, {
+    initialValue: this.form.controls.direcao.getRawValue()
+  });
+
+  readonly selectedDirectionLockReason = computed(() => this.getDirectionLockReason(this.selectedDirection()));
   readonly maxAllowedQuantity = computed(() => this.resolveEffectiveMaxQuantity());
   readonly hasAvailableDirection = computed(() => this.options.some(option => !this.isDirectionLocked(option.value)));
+  readonly currentQuantityReferenceLabel = computed(() =>
+    this.selectedDirection() === 'RETIRAR' ? 'No canal' : 'Disponível'
+  );
   readonly currentChannelMetrics = computed<ChannelAdjustmentLayoutMetrics>(() => ({
     availableToAllocate: {
       label: 'Disponível',
@@ -222,15 +231,15 @@ export class ChannelStockAdjustmentForm {
       setControlError(
         this.form.controls.quantidade,
         'backend',
-        resolveApiErrorMessage(err, ChannelStockAdjustmentForm.Texts.saveError, stockApiErrorOptions)
+        this.buildQuantityBackendMessage()
       );
       this.form.controls.quantidade.markAsTouched();
-      this.entityDialog.showErrorSnackbar(ChannelStockAdjustmentForm.Texts.validationError);
+      this.entityDialog.showApiErrorSnackbar(err, ChannelStockAdjustmentForm.Texts.saveError, stockApiErrorOptions);
       return;
     }
 
     if (hasFieldErrors) {
-      this.entityDialog.showErrorSnackbar(ChannelStockAdjustmentForm.Texts.validationError);
+      this.entityDialog.showApiErrorSnackbar(err, ChannelStockAdjustmentForm.Texts.saveError, stockApiErrorOptions);
       return;
     }
 
@@ -243,12 +252,11 @@ export class ChannelStockAdjustmentForm {
       return backendMax;
     }
 
-    const direction = this.form.controls.direcao.getRawValue();
-    if (direction === 'ADICIONAR') {
-      return Math.max(this.data.template.estoqueDisponivelParaAlocar ?? 0, 0);
+    if (this.selectedDirection() === 'RETIRAR') {
+      return Math.max(this.data.template.quantidadeNoCanal ?? 0, 0);
     }
 
-    return Math.max(this.data.template.quantidadeNoCanal ?? 0, 0);
+    return Math.max(this.data.template.estoqueDisponivelParaAlocar ?? 0, 0);
   }
 
   private updateQuantityValidators(): void {
@@ -271,5 +279,14 @@ export class ChannelStockAdjustmentForm {
 
     this.backendMaxQuantity.set(maxAllowed);
     this.updateQuantityValidators();
+  }
+
+  private buildQuantityBackendMessage(): string {
+    const maxAllowed = this.maxAllowedQuantity();
+    if (maxAllowed != null) {
+      return `O máximo permitido com base em ${this.currentQuantityReferenceLabel()} é ${this.formatInteger(maxAllowed)}.`;
+    }
+
+    return 'Revise a quantidade informada para o ajuste.';
   }
 }

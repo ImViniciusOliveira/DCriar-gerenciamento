@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnInit, ViewChild, computed, effect, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
@@ -20,8 +20,10 @@ import {
 import { BatchService } from '../../services/batch.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
 import { BatchAdjustmentImpactDialog, BatchAdjustmentImpactDialogResult } from '../batch-adjustment-impact-dialog/batch-adjustment-impact-dialog';
-import { clearApiFieldErrors, extractApiErrorPayload, resolveApiErrorMessage } from '../../../../shared/utils/api-errors';
-import { setControlError } from '../../../../shared/utils/control-errors';
+import { clearApiFieldErrors, extractApiErrorPayload } from '../../../../shared/utils/api-errors';
+import { clearControlError, setControlError } from '../../../../shared/utils/control-errors';
+import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
+import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 
 interface AdjustmentOption<T extends string> {
   value: T;
@@ -53,7 +55,9 @@ interface AdjustmentResultMessage {
   styleUrls: ['./batch-adjustment-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class BatchAdjustmentForm {
+export class BatchAdjustmentForm implements OnInit {
+  protected readonly quantityInputMaxLength = 15;
+
   private static readonly Texts = {
     MISSING_LINK: 'O lote não expõe o link de cálculo de ajuste.',
     MISSING_APPLY_LINK: 'O lote não expõe o link de aplicação do ajuste.',
@@ -61,7 +65,10 @@ export class BatchAdjustmentForm {
     APPLY_SUCCESS: 'Operação aplicada com sucesso.',
     APPLY_ERROR: 'Não foi possível aplicar a operação no lote.',
     FIELD_VALIDATION_ERROR: 'Revise os campos destacados.',
-    ADJUSTMENT_OPERATION_MESSAGE: 'Ajuste corrige divergências de registro no lote. O valor total é mantido e o custo unitário é recalculado com base na nova quantidade informada.'
+    ADJUSTMENT_OPERATION_MESSAGE: 'Ajuste corrige divergências de registro no lote. O valor total é mantido e o custo unitário é recalculado com base na nova quantidade informada.',
+    QUANTITY_REQUIRED: 'Informe a quantidade do ajuste.',
+    QUANTITY_INVALID: 'Informe uma quantidade maior que zero.',
+    MOTIVE_REQUIRED: 'Informe o motivo do ajuste.'
   };
 
   private readonly fb = inject(NonNullableFormBuilder);
@@ -77,8 +84,8 @@ export class BatchAdjustmentForm {
   readonly form = this.fb.group({
     tipoOperacao: this.fb.control<BatchAdjustmentOperation>('AJUSTE'),
     direcao: this.fb.control<BatchAdjustmentDirection | null>('RETIRAR'),
-    quantidade: this.fb.control(''),
-    motivo: this.fb.control('', Validators.maxLength(100))
+    quantidade: this.fb.control('', [Validators.required, Validators.pattern(/^(?:\d+|\d+[.,]\d{1,4})$/)]),
+    motivo: this.fb.control('', [Validators.required, Validators.maxLength(100)])
   });
 
   protected readonly isCalculating = signal(false);
@@ -86,6 +93,8 @@ export class BatchAdjustmentForm {
   protected readonly showExplanation = signal(false);
   protected readonly calculationResult = signal<BatchAdjustmentCalculateResponse | null>(null);
   protected readonly selectedImpactedIds = signal<number[]>([]);
+  protected readonly backendMaxQuantity = signal<number | null>(null);
+  protected readonly matcher = new InstantErrorStateMatcher();
   protected readonly selectedOperation = toSignal(this.form.controls.tipoOperacao.valueChanges, {
     initialValue: this.form.controls.tipoOperacao.getRawValue()
   });
@@ -102,6 +111,8 @@ export class BatchAdjustmentForm {
 
   protected readonly shouldShowDirection = computed(() => this.selectedOperation() === 'AJUSTE');
   protected readonly adjustmentUnitSymbol = computed(() => this.batch().unidadeSimbolo || 'un');
+  protected readonly selectedOperationLockReason = computed(() => this.getSelectedOperationLockReason());
+  protected readonly maxAllowedQuantity = computed(() => this.resolveEffectiveMaxQuantity());
 
   protected readonly currentLotMetrics = computed<AdjustmentMetric[]>(() => {
     const batch = this.batch();
@@ -197,6 +208,14 @@ export class BatchAdjustmentForm {
   });
 
   constructor() {
+    this.form.controls.quantidade.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => clearControlError(this.form.controls.quantidade, 'backend'));
+
+    this.form.controls.motivo.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => clearControlError(this.form.controls.motivo, 'backend'));
+
     this.form.controls.tipoOperacao.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(tipoOperacao => {
@@ -204,10 +223,22 @@ export class BatchAdjustmentForm {
         if (tipoOperacao === 'PERDA_DESCARTE') {
           directionControl.setValue(null, { emitEvent: false });
         } else {
-          if (!directionControl.value) {
+          if (this.isDirectionLocked('RETIRAR')) {
+            directionControl.setValue('ADICIONAR', { emitEvent: false });
+          } else if (!directionControl.value) {
             directionControl.setValue('RETIRAR', { emitEvent: false });
           }
         }
+
+        this.backendMaxQuantity.set(null);
+        this.updateQuantityValidators();
+      });
+
+    this.form.controls.direcao.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.backendMaxQuantity.set(null);
+        this.updateQuantityValidators();
       });
 
     this.form.valueChanges
@@ -221,9 +252,39 @@ export class BatchAdjustmentForm {
       });
   }
 
+  ngOnInit(): void {
+    effect(() => {
+      this.batch();
+      this.backendMaxQuantity.set(null);
+      this.updateQuantityValidators();
+    });
+
+    if (this.isOperationLocked('PERDA_DESCARTE')) {
+      this.form.controls.tipoOperacao.setValue('AJUSTE', { emitEvent: false });
+    }
+
+    if (this.isDirectionLocked('RETIRAR')) {
+      this.form.controls.direcao.setValue('ADICIONAR', { emitEvent: false });
+    }
+
+    this.updateQuantityValidators();
+  }
+
   protected calculateAdjustment(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.entityDialog.showErrorSnackbar(BatchAdjustmentForm.Texts.FIELD_VALIDATION_ERROR);
+      return;
+    }
+
+    if (this.hasSelectedOperationLock()) {
+      setControlError(
+        this.form.controls.quantidade,
+        'backend',
+        this.selectedOperationLockReason() ?? BatchAdjustmentForm.Texts.CALCULATE_ERROR
+      );
+      this.form.controls.quantidade.markAsTouched();
+      this.entityDialog.showErrorSnackbar(BatchAdjustmentForm.Texts.FIELD_VALIDATION_ERROR);
       return;
     }
 
@@ -291,6 +352,23 @@ export class BatchAdjustmentForm {
   }
 
   private applyOperationWithSelection(selectedIds?: number[]): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.entityDialog.showErrorSnackbar(BatchAdjustmentForm.Texts.FIELD_VALIDATION_ERROR);
+      return;
+    }
+
+    if (this.hasSelectedOperationLock()) {
+      setControlError(
+        this.form.controls.quantidade,
+        'backend',
+        this.selectedOperationLockReason() ?? BatchAdjustmentForm.Texts.APPLY_ERROR
+      );
+      this.form.controls.quantidade.markAsTouched();
+      this.entityDialog.showErrorSnackbar(BatchAdjustmentForm.Texts.FIELD_VALIDATION_ERROR);
+      return;
+    }
+
     const applyUrl = this.batch()._links?.['aplicar-ajuste']?.href;
     if (!applyUrl) {
       this.entityDialog.showErrorSnackbar(BatchAdjustmentForm.Texts.MISSING_APPLY_LINK);
@@ -324,12 +402,13 @@ export class BatchAdjustmentForm {
 
   private handleAdjustmentApiError(error: unknown, fallbackMessage: string): void {
     const payload = extractApiErrorPayload(error);
+    this.applyBackendQuantityLimit(error);
 
     if (payload.status === 400 || payload.status === 409) {
-      const message = resolveApiErrorMessage(error, fallbackMessage);
+      const message = this.buildQuantityBackendMessage();
       setControlError(this.form.controls.quantidade, 'backend', message);
       this.form.controls.quantidade.markAsTouched();
-      this.entityDialog.showErrorSnackbar(BatchAdjustmentForm.Texts.FIELD_VALIDATION_ERROR);
+      this.entityDialog.showApiErrorSnackbar(error, fallbackMessage);
       return;
     }
 
@@ -382,14 +461,91 @@ export class BatchAdjustmentForm {
     return `${currency}/${unit || 'un'}`;
   }
 
-  private formatNumber(value: number): string {
+  protected formatNumber(value: number): string {
     return new Intl.NumberFormat('pt-BR', {
       maximumFractionDigits: 4
     }).format(value);
   }
 
   private parseQuantity(value: string): number {
-    return Number(value.replace(',', '.'));
+    return Number(value.trim().replace(',', '.'));
+  }
+
+  protected isDirectionLocked(direction: BatchAdjustmentDirection): boolean {
+    return direction === 'RETIRAR' && hasLockedField(this.batch(), 'ajusteLoteNegativo');
+  }
+
+  protected isOperationLocked(operation: BatchAdjustmentOperation): boolean {
+    return operation === 'PERDA_DESCARTE' && hasLockedField(this.batch(), 'perdaDescarte');
+  }
+
+  private getSelectedOperationLockReason(): string | null {
+    if (this.selectedOperation() === 'PERDA_DESCARTE') {
+      return getLockedFieldReason(this.batch(), 'perdaDescarte');
+    }
+
+    const direction = this.form.controls.direcao.getRawValue();
+    if (direction === 'RETIRAR') {
+      return getLockedFieldReason(this.batch(), 'ajusteLoteNegativo');
+    }
+
+    return null;
+  }
+
+  protected hasSelectedOperationLock(): boolean {
+    if (this.selectedOperation() === 'PERDA_DESCARTE') {
+      return this.isOperationLocked('PERDA_DESCARTE');
+    }
+
+    return this.shouldShowDirection() && this.form.controls.direcao.getRawValue() === 'RETIRAR' && this.isDirectionLocked('RETIRAR');
+  }
+
+  private resolveEffectiveMaxQuantity(): number | null {
+    const backendMax = this.backendMaxQuantity();
+    if (backendMax != null) {
+      return backendMax;
+    }
+
+    if (this.selectedOperation() === 'PERDA_DESCARTE') {
+      return Math.max(this.batch().saldoEstoque ?? 0, 0);
+    }
+
+    if (this.form.controls.direcao.getRawValue() === 'RETIRAR') {
+      return Math.max(this.batch().saldoEstoque ?? 0, 0);
+    }
+
+    return null;
+  }
+
+  private updateQuantityValidators(): void {
+    const validators = [Validators.required, Validators.pattern(/^(?:\d+|\d+[.,]\d{1,4})$/)];
+    const maxAllowed = this.resolveEffectiveMaxQuantity();
+    if (maxAllowed != null) {
+      validators.push(Validators.max(maxAllowed));
+    }
+
+    this.form.controls.quantidade.setValidators(validators);
+    this.form.controls.quantidade.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private applyBackendQuantityLimit(error: unknown): void {
+    const payload = extractApiErrorPayload(error);
+    const maxAllowed = Number(payload.details?.['quantidadeMaximaPermitida']);
+    if (!Number.isFinite(maxAllowed)) {
+      return;
+    }
+
+    this.backendMaxQuantity.set(maxAllowed);
+    this.updateQuantityValidators();
+  }
+
+  private buildQuantityBackendMessage(): string {
+    const maxAllowed = this.maxAllowedQuantity();
+    if (maxAllowed != null) {
+      return `O máximo permitido para esta operação é ${this.formatNumber(maxAllowed)}${this.adjustmentUnitSymbol()}.`;
+    }
+
+    return 'Revise a quantidade informada para o ajuste do lote.';
   }
 
   private scrollToResult(): void {
