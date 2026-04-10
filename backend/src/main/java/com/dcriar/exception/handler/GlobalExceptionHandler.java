@@ -1,6 +1,7 @@
 package com.dcriar.exception.handler;
 
 import com.dcriar.api.dto.response.ErrorResponseDTO;
+import com.dcriar.api.support.ApiFieldLabels;
 import com.dcriar.exception.custom.*;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -34,25 +35,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
-
-    private static final Map<String, String> PARAMETRO_LABELS = Map.ofEntries(
-            Map.entry("produtoId", "produto"),
-            Map.entry("canalVendaId", "canal de venda"),
-            Map.entry("canalId", "canal de venda"),
-            Map.entry("canalVendaIds", "canais de venda"),
-            Map.entry("nomeProduto", "produto"),
-            Map.entry("nomeMateriaPrima", "matéria-prima"),
-            Map.entry("tipoProduto", "tipo de produto"),
-            Map.entry("tipoEstrutural", "tipo estrutural"),
-            Map.entry("unidadeDeMedida", "unidade de medida"),
-            Map.entry("periodo", "período"),
-            Map.entry("tipoMovimentacao", "tipo de movimentação"),
-            Map.entry("page", "página"),
-            Map.entry("size", "quantidade por página"),
-            Map.entry("sort", "ordenação"),
-            Map.entry("loteId", "lote"),
-            Map.entry("id", "identificador")
-    );
 
     //region Exceções de Domínio
 
@@ -543,13 +525,15 @@ public class GlobalExceptionHandler {
 
         if (ex.getMostSpecificCause() instanceof InvalidFormatException invalidFormat) {
             String campo = invalidFormat.getPath().stream().map(JsonMappingException.Reference::getFieldName).collect(Collectors.joining("."));
+            String campoLabel = ApiFieldLabels.resolve(campo);
             String valorInformado = String.valueOf(invalidFormat.getValue());
             message = String.format(
                     "O campo '%s' recebeu um valor em formato inválido: '%s'.",
-                    campo,
+                    campoLabel,
                     valorInformado
             );
             details.put("campo", campo);
+            details.put("campoLabel", campoLabel);
             details.put("valorInformado", valorInformado);
         } else {
             message = "O corpo da requisição está malformado ou contém dados inválidos.";
@@ -578,7 +562,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         String parameterName = ex.getParameterName();
-        String parameterLabel = resolveFriendlyParameterLabel(parameterName);
+        String parameterLabel = ApiFieldLabels.resolve(parameterName);
 
         Map<String, String> details = new LinkedHashMap<>();
         details.put("parametro", parameterName);
@@ -603,7 +587,7 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException ex,
             HttpServletRequest request
     ) {
-        String parameterLabel = resolveFriendlyParameterLabel(ex.getName());
+        String parameterLabel = ApiFieldLabels.resolve(ex.getName());
         Map<String, String> details = new LinkedHashMap<>();
         details.put("parametro", ex.getName());
         details.put("campo", parameterLabel);
@@ -633,10 +617,6 @@ public class GlobalExceptionHandler {
                 sanitizeLogMap(details)
         );
         return buildErrorResponse(message, HttpStatus.BAD_REQUEST, details);
-    }
-
-    private String resolveFriendlyParameterLabel(String parameterName) {
-        return PARAMETRO_LABELS.getOrDefault(parameterName, parameterName);
     }
 
     /**
