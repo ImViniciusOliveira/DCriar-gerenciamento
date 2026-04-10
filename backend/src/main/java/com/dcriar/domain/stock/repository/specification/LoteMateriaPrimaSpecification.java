@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 public final class LoteMateriaPrimaSpecification {
     private static final Pattern IDENTIFICADOR_PUBLICO_PATTERN = Pattern.compile("^(LT|RT)[\\s-]*(\\d{1,6})$");
     private static final Pattern IDENTIFICADOR_NUMERICO_PATTERN = Pattern.compile("^(\\d{1,6})$");
+    private static final Pattern IDENTIFICADOR_PREFIXO_INCOMPLETO_PATTERN = Pattern.compile("^(LT|RT)[\\s-]*$");
 
     /**
      * Construtor privado para impedir a instanciação, já que esta é uma classe utilitária.
@@ -64,7 +65,9 @@ public final class LoteMateriaPrimaSpecification {
             if (nomeMateriaPrima != null && !nomeMateriaPrima.isBlank()) {
                 BuscaIdentificadorPublico buscaIdentificador = parseBuscaIdentificadorPublico(nomeMateriaPrima);
 
-                if (buscaIdentificador != null) {
+                if (buscaIdentificador == BuscaIdentificadorPublico.IGNORAR) {
+                    // Não aplica filtro algum para entradas incompletas como LT, RT, LT-, 0 ou 0000.
+                } else if (buscaIdentificador != null) {
                     Long loteId = buscaIdentificador.loteId();
                     predicates.add(criteriaBuilder.equal(root.get("id"), loteId));
                     if ("LT".equals(buscaIdentificador.prefixo())) {
@@ -101,22 +104,35 @@ public final class LoteMateriaPrimaSpecification {
     private static BuscaIdentificadorPublico parseBuscaIdentificadorPublico(String valor) {
         String termoNormalizado = PostgresSearchUtils.normalize(valor).toUpperCase().trim();
 
+        if (termoNormalizado.isBlank() || IDENTIFICADOR_PREFIXO_INCOMPLETO_PATTERN.matcher(termoNormalizado).matches()) {
+            return BuscaIdentificadorPublico.IGNORAR;
+        }
+
         Matcher identificadorPublicoMatcher = IDENTIFICADOR_PUBLICO_PATTERN.matcher(termoNormalizado);
         if (identificadorPublicoMatcher.matches()) {
+            long loteId = Long.parseLong(identificadorPublicoMatcher.group(2));
+            if (loteId <= 0) {
+                return BuscaIdentificadorPublico.IGNORAR;
+            }
             return new BuscaIdentificadorPublico(
                     identificadorPublicoMatcher.group(1),
-                    Long.parseLong(identificadorPublicoMatcher.group(2))
+                    loteId
             );
         }
 
         Matcher identificadorNumericoMatcher = IDENTIFICADOR_NUMERICO_PATTERN.matcher(termoNormalizado);
         if (identificadorNumericoMatcher.matches()) {
-            return new BuscaIdentificadorPublico(null, Long.parseLong(identificadorNumericoMatcher.group(1)));
+            long loteId = Long.parseLong(identificadorNumericoMatcher.group(1));
+            if (loteId <= 0) {
+                return BuscaIdentificadorPublico.IGNORAR;
+            }
+            return new BuscaIdentificadorPublico(null, loteId);
         }
 
         return null;
     }
 
     private record BuscaIdentificadorPublico(String prefixo, Long loteId) {
+        private static final BuscaIdentificadorPublico IGNORAR = new BuscaIdentificadorPublico("__IGNORAR__", -1L);
     }
 }
