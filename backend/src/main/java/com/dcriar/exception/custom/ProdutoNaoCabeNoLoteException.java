@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -25,10 +26,8 @@ public class ProdutoNaoCabeNoLoteException extends RuntimeException {
      * @param larguraProduto A largura do produto.
      */
     public ProdutoNaoCabeNoLoteException(BigDecimal larguraCorteManual, BigDecimal larguraProduto) {
-        super(String.format(
-                "A largura do corte manual (%.2f cm) não comporta a largura do produto (%.2f cm).",
-                larguraCorteManual, larguraProduto
-        ));
+        super("A largura do corte manual (" + HumanNumberDisplayFormatter.formatLengthCm(larguraCorteManual) +
+                ") não comporta a largura do produto (" + HumanNumberDisplayFormatter.formatLengthCm(larguraProduto) + ").");
     }
 
     /**
@@ -38,10 +37,13 @@ public class ProdutoNaoCabeNoLoteException extends RuntimeException {
      * @param larguraLote A largura do lote.
      */
     public ProdutoNaoCabeNoLoteException(BigDecimal larguraProdutoComMargens, BigDecimal comprimentoProdutoComMargens, BigDecimal larguraLote) {
-        super(String.format(
-                "Produto com margens não cabe no lote. Largura necessária (%.2f cm) e Comprimento necessário (%.2f cm) excedem a largura do lote (%.2f cm).",
-                larguraProdutoComMargens, comprimentoProdutoComMargens, larguraLote
-        ));
+        super("Produto com margens não cabe no lote. Largura necessária (" +
+                HumanNumberDisplayFormatter.formatLengthCm(larguraProdutoComMargens) +
+                ") e Comprimento necessário (" +
+                HumanNumberDisplayFormatter.formatLengthCm(comprimentoProdutoComMargens) +
+                ") excedem a largura do lote (" +
+                HumanNumberDisplayFormatter.formatLengthCm(larguraLote) +
+                ").");
     }
 
     public static ProdutoNaoCabeNoLoteException margensLateraisExcedemLarguraLote() {
@@ -57,9 +59,9 @@ public class ProdutoNaoCabeNoLoteException extends RuntimeException {
             BigDecimal comprimentoLote
     ) {
         return new ProdutoNaoCabeNoLoteException(String.format(
-                "O comprimento do bloco de corte (%.2fcm) excede o comprimento do lote (%.2fcm).",
-                comprimentoBloco,
-                comprimentoLote
+                "O comprimento do bloco de corte (%s) excede o comprimento do lote (%s).",
+                HumanNumberDisplayFormatter.formatLengthCm(comprimentoBloco),
+                HumanNumberDisplayFormatter.formatLengthCm(comprimentoLote)
         ));
     }
 
@@ -68,9 +70,9 @@ public class ProdutoNaoCabeNoLoteException extends RuntimeException {
             BigDecimal larguraLote
     ) {
         return new ProdutoNaoCabeNoLoteException(String.format(
-                "A largura do bloco de corte (%.2fcm) excede a largura do lote (%.2fcm).",
-                larguraBloco,
-                larguraLote
+                "A largura do bloco de corte (%s) excede a largura do lote (%s).",
+                HumanNumberDisplayFormatter.formatLengthCm(larguraBloco),
+                HumanNumberDisplayFormatter.formatLengthCm(larguraLote)
         ));
     }
 }

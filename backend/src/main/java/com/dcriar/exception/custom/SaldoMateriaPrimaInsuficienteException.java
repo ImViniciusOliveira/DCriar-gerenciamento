@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ public class SaldoMateriaPrimaInsuficienteException extends RuntimeException {
 
     private final String identificadorLote;
     private final String nomeTipoMateriaPrima;
+    private final String unidadeApresentacao;
 
     /**
      * A quantidade de matéria-prima que a operação tentou consumir.
@@ -36,18 +38,16 @@ public class SaldoMateriaPrimaInsuficienteException extends RuntimeException {
     public SaldoMateriaPrimaInsuficienteException(
             String identificadorLote,
             String nomeTipoMateriaPrima,
+            String unidadeApresentacao,
             BigDecimal quantidadeRequisitada,
             BigDecimal saldoDisponivel
     ) {
-        super(String.format(
-                "Saldo insuficiente no lote '%s' da matéria-prima '%s'. Necessário: %.2f. Disponível: %.2f.",
-                identificadorLote,
-                nomeTipoMateriaPrima,
-                quantidadeRequisitada,
-                saldoDisponivel
-        ));
+        super("Saldo insuficiente no lote '" + identificadorLote + "' da matéria-prima '" + nomeTipoMateriaPrima +
+                "'. Necessário: " + HumanNumberDisplayFormatter.formatQuantityWithUnit(quantidadeRequisitada, unidadeApresentacao) +
+                ". Disponível: " + HumanNumberDisplayFormatter.formatQuantityWithUnit(saldoDisponivel, unidadeApresentacao) + ".");
         this.identificadorLote = identificadorLote;
         this.nomeTipoMateriaPrima = nomeTipoMateriaPrima;
+        this.unidadeApresentacao = unidadeApresentacao;
         this.quantidadeRequisitada = quantidadeRequisitada;
         this.saldoDisponivel = saldoDisponivel;
     }

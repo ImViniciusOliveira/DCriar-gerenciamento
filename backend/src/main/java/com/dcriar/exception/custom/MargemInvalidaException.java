@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -61,12 +62,13 @@ public class MargemInvalidaException extends RuntimeException {
                 null,
                 null,
                 null,
-                String.format(
-                "As margens aplicadas resultam em uma largura de bloco nula ou negativa (%.2fcm). A largura dos produtos é %.2fcm e as margens somam %.2fcm.",
-                larguraFinal,
-                larguraProdutos,
-                somaMargens
-                )
+                "As margens aplicadas resultam em uma largura de bloco nula ou negativa (" +
+                        HumanNumberDisplayFormatter.formatLengthCm(larguraFinal) +
+                        "). A largura dos produtos é " +
+                        HumanNumberDisplayFormatter.formatLengthCm(larguraProdutos) +
+                        " e as margens somam " +
+                        HumanNumberDisplayFormatter.formatLengthCm(somaMargens) +
+                        "."
         );
     }
 
@@ -85,13 +87,15 @@ public class MargemInvalidaException extends RuntimeException {
                 margemDireita,
                 larguraLote,
                 null,
-                String.format(
-                "A soma da largura dos produtos (%.2fcm) e das margens (%.2fcm + %.2fcm) excede a largura do lote (%.2fcm).",
-                larguraProdutos,
-                margemEsquerda,
-                margemDireita,
-                larguraLote
-                )
+                "A soma da largura dos produtos (" +
+                        HumanNumberDisplayFormatter.formatLengthCm(larguraProdutos) +
+                        ") e das margens (" +
+                        HumanNumberDisplayFormatter.formatLengthCm(margemEsquerda) +
+                        " + " +
+                        HumanNumberDisplayFormatter.formatLengthCm(margemDireita) +
+                        ") excede a largura do lote (" +
+                        HumanNumberDisplayFormatter.formatLengthCm(larguraLote) +
+                        ")."
         );
     }
 
@@ -105,10 +109,9 @@ public class MargemInvalidaException extends RuntimeException {
                 null,
                 null,
                 comprimentoFinal,
-                String.format(
-                "As margens aplicadas resultam em um comprimento final nulo ou negativo (%.2fcm).",
-                comprimentoFinal
-                )
+                "As margens aplicadas resultam em um comprimento final nulo ou negativo (" +
+                        HumanNumberDisplayFormatter.formatLengthCm(comprimentoFinal) +
+                        ")."
         );
     }
 }

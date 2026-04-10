@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -52,11 +53,11 @@ public class DimensoesManuaisInvalidasException extends RuntimeException {
                 larguraLote,
                 null,
                 null,
-                String.format(
-                "A largura do corte manual (%.2f cm) não pode ser maior que a largura do lote (%.2f cm).",
-                larguraCorteManual,
-                larguraLote
-                )
+                "A largura do corte manual (" +
+                        HumanNumberDisplayFormatter.formatLengthCm(larguraCorteManual) +
+                        ") não pode ser maior que a largura do lote (" +
+                        HumanNumberDisplayFormatter.formatLengthCm(larguraLote) +
+                        ")."
         );
     }
 
@@ -70,11 +71,11 @@ public class DimensoesManuaisInvalidasException extends RuntimeException {
                 null,
                 comprimentoCorteManual,
                 comprimentoLote,
-                String.format(
-                "O comprimento do corte manual (%.2f cm) não pode ser maior que o comprimento do lote (%.2f cm).",
-                comprimentoCorteManual,
-                comprimentoLote
-                )
+                "O comprimento do corte manual (" +
+                        HumanNumberDisplayFormatter.formatLengthCm(comprimentoCorteManual) +
+                        ") não pode ser maior que o comprimento do lote (" +
+                        HumanNumberDisplayFormatter.formatLengthCm(comprimentoLote) +
+                        ")."
         );
     }
 

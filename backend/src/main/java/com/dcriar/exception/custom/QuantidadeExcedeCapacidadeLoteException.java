@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -43,13 +44,13 @@ public class QuantidadeExcedeCapacidadeLoteException extends RuntimeException {
                 comprimentoNecessarioRotacionadoCm,
                 comprimentoDisponivelLoteCm,
                 String.format(
-                        "A quantidade solicitada (%d) excede a capacidade do lote em ambas as orientações. " +
+                        "A quantidade solicitada (%s) excede a capacidade do lote em ambas as orientações. " +
                                 "Comprimento necessário no layout normal: %s, no layout rotacionado: %s. " +
-                                "Comprimento disponível no lote: %.2f cm.",
-                        quantidadeSolicitada,
+                                "Comprimento disponível no lote: %s.",
+                        HumanNumberDisplayFormatter.formatInteger(quantidadeSolicitada),
                         formatarComprimento(comprimentoNecessarioNormalCm),
                         formatarComprimento(comprimentoNecessarioRotacionadoCm),
-                        comprimentoDisponivelLoteCm
+                        HumanNumberDisplayFormatter.formatLengthCm(comprimentoDisponivelLoteCm)
                 )
         );
     }
@@ -58,6 +59,6 @@ public class QuantidadeExcedeCapacidadeLoteException extends RuntimeException {
         if (comprimentoCm == null || comprimentoCm.compareTo(COMPRIMENTO_INDISPONIVEL) >= 0) {
             return "não aplicável";
         }
-        return String.format("%.2f cm", comprimentoCm);
+        return HumanNumberDisplayFormatter.formatLengthCm(comprimentoCm);
     }
 }

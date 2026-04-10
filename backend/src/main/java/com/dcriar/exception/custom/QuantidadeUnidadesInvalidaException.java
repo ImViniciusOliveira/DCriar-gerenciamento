@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -24,7 +25,7 @@ public class QuantidadeUnidadesInvalidaException extends RuntimeException {
     public QuantidadeUnidadesInvalidaException(BigDecimal totalUnidadesBase) {
         super(String.format(
                 "A quantidade total de unidades base para cálculo de custo deve ser maior que zero. Valor calculado: %s.",
-                totalUnidadesBase.stripTrailingZeros().toPlainString()
+                HumanNumberDisplayFormatter.formatQuantity(totalUnidadesBase)
         ));
         this.totalUnidadesBase = totalUnidadesBase;
     }

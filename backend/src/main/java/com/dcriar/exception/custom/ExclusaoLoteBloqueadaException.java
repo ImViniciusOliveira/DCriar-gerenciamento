@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import com.dcriar.domain.stock.entity.enums.TipoMovimentacao;
 import lombok.Getter;
 
@@ -36,7 +37,7 @@ public class ExclusaoLoteBloqueadaException extends RuntimeException {
         int quantidadeItensBloqueados = contexto.itensBloqueados().size();
         String sufixoQuantidade = quantidadeItensBloqueados == 1
                 ? "Há 1 item com alteração ativa na árvore vinculada."
-                : String.format("Há %d itens com alteração ativa na árvore vinculada.", quantidadeItensBloqueados);
+                : String.format("Há %s itens com alteração ativa na árvore vinculada.", HumanNumberDisplayFormatter.formatCount(quantidadeItensBloqueados));
 
         return new ExclusaoLoteBloqueadaException(
                 String.format(
@@ -55,7 +56,7 @@ public class ExclusaoLoteBloqueadaException extends RuntimeException {
         int quantidadeItensRelacionados = contexto.itensBloqueados().size();
         String sufixoQuantidade = quantidadeItensRelacionados == 1
                 ? "Há 1 item relacionado que precisa ser tratado pela árvore de origem."
-                : String.format("Há %d itens relacionados que precisam ser tratados pela árvore de origem.", quantidadeItensRelacionados);
+                : String.format("Há %s itens relacionados que precisam ser tratados pela árvore de origem.", HumanNumberDisplayFormatter.formatCount(quantidadeItensRelacionados));
 
         return new ExclusaoLoteBloqueadaException(
                 String.format(
@@ -74,7 +75,7 @@ public class ExclusaoLoteBloqueadaException extends RuntimeException {
         int quantidadeItensRelacionados = contexto.itensBloqueados().size();
         String sufixoQuantidade = quantidadeItensRelacionados == 1
                 ? "Há 1 item com vínculo persistido na árvore ou no histórico do lote."
-                : String.format("Há %d itens com vínculos persistidos na árvore ou no histórico do lote.", quantidadeItensRelacionados);
+                : String.format("Há %s itens com vínculos persistidos na árvore ou no histórico do lote.", HumanNumberDisplayFormatter.formatCount(quantidadeItensRelacionados));
 
         return new ExclusaoLoteBloqueadaException(
                 String.format(

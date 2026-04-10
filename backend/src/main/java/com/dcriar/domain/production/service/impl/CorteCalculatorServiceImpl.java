@@ -3,6 +3,7 @@ package com.dcriar.domain.production.service.impl;
 import com.dcriar.api.dto.request.production.MargensRequestDTO;
 import com.dcriar.api.dto.response.production.CorteRealizadoResponseDTO;
 import com.dcriar.domain.common.util.LogicalMapKeySupport;
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import com.dcriar.domain.product.entity.Dimensoes;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.ProdutoDeCorte;
@@ -351,9 +352,7 @@ public class CorteCalculatorServiceImpl implements CorteCalculatorService {
     }
 
     private String formatarDimensao(BigDecimal largura, BigDecimal comprimento) {
-        return String.format("%scm x %scm",
-                largura.stripTrailingZeros().toPlainString(),
-                comprimento.stripTrailingZeros().toPlainString());
+        return HumanNumberDisplayFormatter.formatDimensionCm(largura, comprimento);
     }
 
     // --- Métodos Auxiliares de Cálculo Base ---

@@ -474,6 +474,9 @@ public class GlobalExceptionHandler {
             details.put("nomeTipoMateriaPrima", e.getNomeTipoMateriaPrima());
             details.put("quantidadeRequisitada", String.valueOf(e.getQuantidadeRequisitada()));
             details.put("saldoDisponivel", String.valueOf(e.getSaldoDisponivel()));
+            if (e.getUnidadeApresentacao() != null) {
+                details.put("unidadeApresentacao", e.getUnidadeApresentacao());
+            }
         } else if (ex instanceof EstoqueFisicoInsuficienteProdutoException e) {
             details.put("produtoLabel", e.getProdutoLabel());
             details.put("quantidadeRequisitada", String.valueOf(Math.abs(e.getQuantidadeRequisitada())));
@@ -835,7 +838,7 @@ public class GlobalExceptionHandler {
     }
 
     private void logExceptionWithDetails(Exception ex, Map<String, String> details) {
-        log.info("{}: {}. Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
+        log.info("{}: {} Detalhes: {}", ex.getClass().getSimpleName(), ex.getMessage(), details);
     }
 
     private String simplifyJsonCause(String cause) {

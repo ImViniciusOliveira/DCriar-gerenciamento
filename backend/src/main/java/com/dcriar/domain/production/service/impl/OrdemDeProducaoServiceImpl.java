@@ -14,6 +14,7 @@ import com.dcriar.api.mapper.production.OrdemDeProducaoMapper;
 import com.dcriar.api.mapper.production.PlanoDeConsumoMapper;
 import com.dcriar.domain.common.model.CamposBloqueadosInfo;
 import com.dcriar.domain.common.util.BloqueioOperacionalEstoqueUtils;
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import com.dcriar.domain.common.util.UniqueComparisonNormalizer;
 import com.dcriar.domain.common.util.PageableSortUtils;
 import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
@@ -290,6 +291,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw new SaldoMateriaPrimaInsuficienteException(
                     LotePublicIdentifierFormatter.format(loteConsumido),
                     loteConsumido.getTipoMateriaPrima().getNome(),
+                    produto.getTipoMateriaPrima().getUnidadeDeConsumo().getSimbolo(),
                     consumoTotalNecessario,
                     saldoDisponivel
             );
@@ -520,6 +522,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw new SaldoMateriaPrimaInsuficienteException(
                     LotePublicIdentifierFormatter.format(loteConsumido),
                     loteConsumido.getTipoMateriaPrima().getNome(),
+                    produto.getTipoMateriaPrima().getUnidadeDeConsumo().getSimbolo(),
                     consumoTotalNecessario,
                     saldoDisponivel
             );
@@ -858,6 +861,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw new SaldoMateriaPrimaInsuficienteException(
                     LotePublicIdentifierFormatter.format(loteConsumido),
                     loteConsumido.getTipoMateriaPrima().getNome(),
+                    unidadeExibicao.getSimbolo(),
                     consumoTotalNecessario,
                     saldoTotalDisponivel
             );
@@ -968,6 +972,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
             throw new SaldoMateriaPrimaInsuficienteException(
                     LotePublicIdentifierFormatter.format(lote),
                     lote.getTipoMateriaPrima().getNome(),
+                    lote.getUnidadeCadastroEstoque() != null ? lote.getUnidadeCadastroEstoque().getSimbolo() : null,
                     consumoEmMetros,
                     saldoAtual
             );
@@ -1431,8 +1436,6 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private String formatarDimensao(BigDecimal largura, BigDecimal comprimento) {
-        return String.format("%scm x %scm",
-                largura.stripTrailingZeros().toPlainString(),
-                comprimento.stripTrailingZeros().toPlainString());
+        return HumanNumberDisplayFormatter.formatDimensionCm(largura, comprimento);
     }
 }

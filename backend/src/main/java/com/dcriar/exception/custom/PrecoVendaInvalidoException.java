@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -32,11 +33,11 @@ public class PrecoVendaInvalidoException extends RuntimeException {
                 "PRECO_PADRAO_DIVERGENTE",
                 precoComercialOriginal,
                 precoAplicado,
-                String.format(
-                "O item marcado como preço padrão deve usar exatamente o preço comercial atual do produto. Esperado: %s. Informado: %s.",
-                precoComercialOriginal,
-                precoAplicado
-                )
+                "O item marcado como preço padrão deve usar exatamente o preço comercial atual do produto. Esperado: " +
+                        HumanNumberDisplayFormatter.formatMoney(precoComercialOriginal) +
+                        ". Informado: " +
+                        HumanNumberDisplayFormatter.formatMoney(precoAplicado) +
+                        "."
         );
     }
 

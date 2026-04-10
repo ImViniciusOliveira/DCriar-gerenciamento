@@ -6,6 +6,7 @@ import com.dcriar.api.dto.response.stock.CalcularAjusteLoteResponseDTO;
 import com.dcriar.api.dto.response.stock.ItemImpactadoAjusteLoteDTO;
 import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
 import com.dcriar.api.mapper.stock.LoteMateriaPrimaMapper;
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import com.dcriar.domain.common.util.LogicalMapKeySupport;
 import com.dcriar.domain.stock.entity.LoteMateriaPrima;
 import com.dcriar.domain.stock.entity.MovimentacaoEstoqueLote;
@@ -31,9 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.NumberFormat;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Implementa o fluxo operacional de preview de ajuste de lote sem interferir no livro-razão técnico atual.
@@ -43,8 +42,6 @@ import java.util.Locale;
 public class AjusteLoteServiceImpl implements AjusteLoteService {
 
     private static final int SCALE_MONEY = 8;
-    private static final Locale PT_BR = Locale.forLanguageTag("pt-BR");
-
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
     private final MovimentacaoEstoqueLoteRepository movimentacaoEstoqueLoteRepository;
     private final LoteMateriaPrimaMapper loteMateriaPrimaMapper;
@@ -393,11 +390,7 @@ public class AjusteLoteServiceImpl implements AjusteLoteService {
     }
 
     private String formatarNumero(BigDecimal valor) {
-        NumberFormat formatter = NumberFormat.getNumberInstance(PT_BR);
-        formatter.setGroupingUsed(true);
-        formatter.setMaximumFractionDigits(2);
-        formatter.setMinimumFractionDigits(valor.stripTrailingZeros().scale() > 0 ? 2 : 0);
-        return formatter.format(valor);
+        return HumanNumberDisplayFormatter.format(valor, 2);
     }
 
     private void validarItensImpactadosSelecionados(Long loteId, List<Long> idsSelecionados, List<ItemImpactadoCalculado> itensImpactados) {

@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 /**
@@ -61,10 +62,6 @@ public class EstoqueInsuficienteParaMovimentacaoException extends RuntimeExcepti
     }
 
     private static String formatarQuantidade(double quantidade, String unidadeApresentacao) {
-        String quantidadeFormatada = String.format("%.4f", quantidade);
-        if (unidadeApresentacao == null || unidadeApresentacao.isBlank()) {
-            return quantidadeFormatada + " unidades";
-        }
-        return quantidadeFormatada + " " + unidadeApresentacao;
+        return HumanNumberDisplayFormatter.formatQuantityWithUnit(quantidade, unidadeApresentacao);
     }
 }

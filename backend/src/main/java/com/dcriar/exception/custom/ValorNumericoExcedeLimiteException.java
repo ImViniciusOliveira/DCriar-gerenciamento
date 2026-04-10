@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -27,9 +28,9 @@ public class ValorNumericoExcedeLimiteException extends RuntimeException {
      */
     public ValorNumericoExcedeLimiteException(String nomeDoCampo, BigDecimal valorEnviado, int limiteInteiro) {
         super(String.format(
-                "O valor calculado para '%s' (%s...) excede o limite de %d dígitos inteiros.",
+                "O valor calculado para '%s' (%s) excede o limite de %d dígitos inteiros.",
                 nomeDoCampo,
-                valorEnviado.toPlainString().substring(0, Math.min(valorEnviado.toPlainString().length(), 20)),
+                HumanNumberDisplayFormatter.summarize(valorEnviado, 4, 20),
                 limiteInteiro
         ));
         this.nomeDoCampo = nomeDoCampo;

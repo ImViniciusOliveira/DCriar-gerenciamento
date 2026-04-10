@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 /**
@@ -52,12 +53,12 @@ public class EstoqueInsuficienteCanalException extends RuntimeException {
             int estoqueAtual
     ) {
         super(String.format(
-                "Não é possível remover %d %s do produto '%s' no canal de venda '%s' porque há apenas %d %s disponíveis nesse canal.",
-                Math.abs(quantidadeRequisitada),
+                "Não é possível remover %s %s do produto '%s' no canal de venda '%s' porque há apenas %s %s disponíveis nesse canal.",
+                HumanNumberDisplayFormatter.formatInteger(Math.abs(quantidadeRequisitada)),
                 descreverUnidade(Math.abs(quantidadeRequisitada)),
                 produtoLabel,
                 nomeCanalVenda,
-                estoqueAtual,
+                HumanNumberDisplayFormatter.formatInteger(estoqueAtual),
                 descreverUnidade(estoqueAtual)
         ));
         this.produtoId = produtoId;

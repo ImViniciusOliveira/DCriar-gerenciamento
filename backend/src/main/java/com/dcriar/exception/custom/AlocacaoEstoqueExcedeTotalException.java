@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 /**
@@ -28,14 +29,14 @@ public class AlocacaoEstoqueExcedeTotalException extends RuntimeException {
             int estoqueFisicoTotal
     ) {
         super(String.format(
-                "Não é possível alocar %d %s do produto '%s' para o canal de venda '%s'. O total distribuído ficaria em %d %s, acima do estoque físico total de %d.",
-                quantidadeParaAlocar,
+                "Não é possível alocar %s %s do produto '%s' para o canal de venda '%s'. O total distribuído ficaria em %s %s, acima do estoque físico total de %s.",
+                HumanNumberDisplayFormatter.formatInteger(quantidadeParaAlocar),
                 quantidadeParaAlocar == 1 ? "unidade" : "unidades",
                 produtoLabel,
                 nomeCanalVenda,
-                novoTotalDistribuido,
+                HumanNumberDisplayFormatter.formatInteger(novoTotalDistribuido),
                 novoTotalDistribuido == 1 ? "unidade" : "unidades",
-                estoqueFisicoTotal
+                HumanNumberDisplayFormatter.formatInteger(estoqueFisicoTotal)
         ));
         this.produtoId = produtoId;
         this.produtoLabel = produtoLabel;

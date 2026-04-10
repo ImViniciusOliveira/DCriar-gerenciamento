@@ -1,5 +1,6 @@
 package com.dcriar.exception.custom;
 
+import com.dcriar.domain.common.util.HumanNumberDisplayFormatter;
 import lombok.Getter;
 
 /**
@@ -21,11 +22,11 @@ public class EstoqueFisicoInsuficienteProdutoException extends RuntimeException 
             int estoqueAtual
     ) {
         super(String.format(
-                "Nao e possivel remover %d %s do estoque fisico do produto '%s' porque ha apenas %d %s disponiveis.",
-                Math.abs(quantidadeRequisitada),
+                "Nao e possivel remover %s %s do estoque fisico do produto '%s' porque ha apenas %s %s disponiveis.",
+                HumanNumberDisplayFormatter.formatInteger(Math.abs(quantidadeRequisitada)),
                 descreverUnidade(Math.abs(quantidadeRequisitada)),
                 produtoLabel,
-                estoqueAtual,
+                HumanNumberDisplayFormatter.formatInteger(estoqueAtual),
                 descreverUnidade(estoqueAtual)
         ));
         this.produtoId = produtoId;
