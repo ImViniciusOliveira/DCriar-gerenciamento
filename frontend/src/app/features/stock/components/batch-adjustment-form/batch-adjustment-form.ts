@@ -83,6 +83,7 @@ export class BatchAdjustmentForm {
 
   protected readonly isCalculating = signal(false);
   protected readonly isApplying = signal(false);
+  protected readonly showExplanation = signal(false);
   protected readonly calculationResult = signal<BatchAdjustmentCalculateResponse | null>(null);
   protected readonly selectedImpactedIds = signal<number[]>([]);
   protected readonly selectedOperation = toSignal(this.form.controls.tipoOperacao.valueChanges, {
@@ -258,6 +259,10 @@ export class BatchAdjustmentForm {
         this.handleAdjustmentApiError(err, BatchAdjustmentForm.Texts.CALCULATE_ERROR);
       }
     });
+  }
+
+  protected toggleExplanation(): void {
+    this.showExplanation.update(current => !current);
   }
 
   protected applyOperation(): void {

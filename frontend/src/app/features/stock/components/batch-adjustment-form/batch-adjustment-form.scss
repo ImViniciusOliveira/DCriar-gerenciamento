@@ -4,8 +4,13 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding-top: 8px;
-  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.batch-adjustment__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
 }
 
 .batch-adjustment__header h4,
@@ -23,6 +28,31 @@
   margin: 4px 0 0;
   color: var(--mat-sys-on-surface-variant);
   font-size: 0.92rem;
+}
+
+.adjustment-dialog__explanation {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 90%, white 10%);
+}
+
+.adjustment-dialog__explanation strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.adjustment-dialog__explanation p,
+.adjustment-dialog__explanation ul {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.adjustment-dialog__explanation ul {
+  padding-left: 18px;
+  margin: 8px 0;
 }
 
 .adjustment-card {
@@ -143,6 +173,11 @@
 }
 
 @media (max-width: 900px) {
+  .batch-adjustment__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .adjustment-form {
     grid-template-columns: 1fr;
     grid-template-areas:

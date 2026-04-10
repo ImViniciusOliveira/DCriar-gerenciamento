@@ -11,6 +11,7 @@ import com.dcriar.api.dto.response.stock.LoteMateriaPrimaResponseDTO;
 import com.dcriar.api.dto.response.stock.MovimentacaoResponseDTO;
 import com.dcriar.api.hateoas.stock.assembler.LoteMateriaPrimaModelAssembler;
 import com.dcriar.api.hateoas.stock.assembler.MovimentacaoLoteModelAssembler;
+import com.dcriar.api.hateoas.stock.model.MovimentacaoLoteCollectionModel;
 import com.dcriar.api.hateoas.stock.model.LoteMateriaPrimaModel;
 import com.dcriar.api.hateoas.stock.model.MovimentacaoLoteModel;
 import com.dcriar.domain.stock.service.AjusteLoteService;
@@ -165,7 +166,7 @@ public class LoteMateriaPrimaController {
             @ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Lote não encontrado", content = @Content)
     })
-    public ResponseEntity<CollectionModel<MovimentacaoLoteModel>> listarMovimentacoes(@Parameter(description = "ID do lote.", example = "6") @PathVariable Long loteId) {
+    public ResponseEntity<MovimentacaoLoteCollectionModel> listarMovimentacoes(@Parameter(description = "ID do lote.", example = "6") @PathVariable Long loteId) {
         List<MovimentacaoResponseDTO> movimentacoes = loteMateriaPrimaService.listarMovimentacoesPorLote(loteId);
         return ResponseEntity.ok(movimentacaoLoteModelAssembler.toCollectionModel(movimentacoes, loteId));
     }

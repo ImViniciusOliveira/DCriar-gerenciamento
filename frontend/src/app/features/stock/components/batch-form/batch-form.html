@@ -202,41 +202,7 @@
     }
 
     <app-batch-adjustment-form [batch]="batch()" (operationApplied)="onAdjustmentApplied($event)"></app-batch-adjustment-form>
-
-    <div class="details-description details-description--movements">
-      <div class="details-description__header">
-        <h4>Movimentações do Lote</h4>
-        <button mat-stroked-button type="button" (click)="toggleMovements()">
-          {{ showMovements() ? 'Esconder movimentações' : 'Mostrar movimentações' }}
-        </button>
-      </div>
-
-      @if (showMovements()) {
-        @if (isLoadingMovements()) {
-          <p>Carregando movimentações...</p>
-        } @else if (movements().length > 0) {
-          <div class="movement-list">
-            @for (movement of movements(); track movement.id) {
-              <article class="movement-item">
-                <div class="movement-item__top">
-                  <strong>{{ movementLabel(movement.tipo) }}</strong>
-                  <span>{{ movement.data | date:'dd/MM/yyyy HH:mm' }}</span>
-                </div>
-
-                <div class="movement-item__meta">
-                  <span>{{ formatMovementQuantity(movement) }}</span>
-                  @if (movement.motivo) {
-                    <span>{{ movement.motivo }}</span>
-                  }
-                </div>
-              </article>
-            }
-          </div>
-        } @else {
-          <p>Nenhuma movimentação registrada para este lote.</p>
-        }
-      }
-    </div>
+    <app-batch-movements-section [batch]="batch()"></app-batch-movements-section>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button type="button" (click)="onCancel()">Fechar</button>

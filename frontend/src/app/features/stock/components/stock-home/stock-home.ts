@@ -43,7 +43,7 @@ import { BatchService } from '../../services/batch.service';
 import { ChannelService } from '../../services/channel.service';
 import { StockService } from '../../services/stock.service';
 import { StockConsultationSummary } from '../../models/stock-consultation.model';
-import { BatchForm } from '../batch-form/batch-form';
+import { BatchAdjustmentDialog } from '../batch-adjustment-dialog/batch-adjustment-dialog';
 import { ChannelStockAdjustmentForm } from '../channel-stock-adjustment-form/channel-stock-adjustment-form';
 import { ProductStockAdjustmentForm } from '../product-stock-adjustment-form/product-stock-adjustment-form';
 import { StockProductHistoryDialog, StockProductHistoryDialogData } from '../stock-product-history-dialog/stock-product-history-dialog';
@@ -1013,11 +1013,10 @@ export class StockHome implements AfterViewInit {
   private openLotAdjustment(lot: AdjustmentLotSummary): void {
     this.batchService.findById(lot.loteId).subscribe({
       next: batch => {
-        const dialogRef = this.dialog.open(BatchForm, {
+        const dialogRef = this.dialog.open(BatchAdjustmentDialog, {
           data: {
             template: batch,
-            title: `Ajustar lote ${lot.identificadorPublico}`,
-            isViewMode: true
+            title: `Ajustar lote ${lot.identificadorPublico}`
           },
           width: '800px',
           maxWidth: '95vw',

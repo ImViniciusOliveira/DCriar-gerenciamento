@@ -87,50 +87,9 @@
   gap: 10px;
 }
 
-.details-description--movements {
-  padding-top: 18px;
-  border-top: 1px solid var(--mat-sys-outline-variant);
-}
-
-.details-description__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
 .details-description h4,
 .details-description p {
   margin: 0;
-}
-
-.movement-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.movement-item {
-  @include fl.std-border-mixin;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
-  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 90%, white 10%);
-}
-
-.movement-item__top,
-.movement-item__meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.movement-item__top span,
-.movement-item__meta span {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.9rem;
 }
 
 @include vs.strong-invalid-outline;

@@ -1,0 +1,13 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<mat-dialog-content class="batch-adjustment-dialog">
+  <app-batch-adjustment-form [batch]="batch()" (operationApplied)="onAdjustmentApplied($event)"></app-batch-adjustment-form>
+  <app-batch-movements-section
+    [batch]="batch()"
+    [description]="'Use este histórico para acompanhar o impacto do ajuste no lote selecionado.'">
+  </app-batch-movements-section>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="close()">Fechar</button>
+</mat-dialog-actions>

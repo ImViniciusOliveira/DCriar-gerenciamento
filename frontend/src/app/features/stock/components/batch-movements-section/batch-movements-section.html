@@ -1,0 +1,43 @@
+<div class="batch-movements-section">
+  <div class="batch-movements-section__header">
+    <div class="batch-movements-section__heading">
+      <h4>{{ title() }}</h4>
+      @if (description()) {
+        <p>{{ description() }}</p>
+      }
+      <span class="batch-movements-section__total">{{ totalLabel() }}</span>
+    </div>
+
+    <button mat-stroked-button type="button" (click)="toggleMovements()">
+      {{ toggleLabel() }}
+    </button>
+  </div>
+
+  @if (showMovements()) {
+    @if (isLoadingMovements()) {
+      <p class="batch-movements-section__placeholder">Carregando movimentações...</p>
+    } @else if (movements().length > 0) {
+      <div
+        class="movement-list"
+        [class.movement-list--scrollable]="shouldUseScrollableList()">
+        @for (movement of movements(); track movement.id) {
+          <article class="movement-item">
+            <div class="movement-item__top">
+              <strong>{{ movementLabel(movement.tipo) }}</strong>
+              <span>{{ movement.data | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+
+            <div class="movement-item__meta">
+              <span>{{ formatMovementQuantity(movement) }}</span>
+              @if (movement.motivo) {
+                <span>{{ movement.motivo }}</span>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    } @else {
+      <p class="batch-movements-section__placeholder">Nenhuma movimentação registrada para este lote.</p>
+    }
+  }
+</div>

@@ -2,6 +2,7 @@ package com.dcriar.api.hateoas.stock.assembler;
 
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
 import com.dcriar.api.dto.response.stock.MovimentacaoResponseDTO;
+import com.dcriar.api.hateoas.stock.model.MovimentacaoLoteCollectionModel;
 import com.dcriar.api.hateoas.stock.model.MovimentacaoLoteModel;
 import com.dcriar.api.mapper.stock.MovimentacaoMapper;
 import org.springframework.hateoas.CollectionModel;
@@ -55,12 +56,15 @@ public class MovimentacaoLoteModelAssembler extends RepresentationModelAssembler
         throw new UnsupportedOperationException("Use o método toCollectionModel(entities, loteId) para garantir o contexto correto dos links.");
     }
 
-    public CollectionModel<MovimentacaoLoteModel> toCollectionModel(@NonNull Iterable<? extends MovimentacaoResponseDTO> entities, @NonNull Long loteId) {
+    public MovimentacaoLoteCollectionModel toCollectionModel(@NonNull Iterable<? extends MovimentacaoResponseDTO> entities, @NonNull Long loteId) {
         List<MovimentacaoLoteModel> movimentacaoModels = StreamSupport.stream(entities.spliterator(), false)
                 .map(dto -> this.toModel(dto, loteId))
                 .collect(Collectors.toList());
 
-        CollectionModel<MovimentacaoLoteModel> collectionModel = CollectionModel.of(movimentacaoModels);
+        MovimentacaoLoteCollectionModel collectionModel = new MovimentacaoLoteCollectionModel(
+                movimentacaoModels,
+                movimentacaoModels.size()
+        );
         collectionModel.add(linkTo(methodOn(LoteMateriaPrimaController.class).listarMovimentacoes(loteId)).withSelfRel());
         return collectionModel;
     }

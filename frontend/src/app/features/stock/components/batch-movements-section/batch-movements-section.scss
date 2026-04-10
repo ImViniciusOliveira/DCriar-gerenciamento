@@ -1,0 +1,81 @@
+@use '../../../../shared/styles/form-layout' as fl;
+
+.batch-movements-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.batch-movements-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.batch-movements-section__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.batch-movements-section__heading h4,
+.batch-movements-section__heading p {
+  margin: 0;
+}
+
+.batch-movements-section__heading p,
+.batch-movements-section__placeholder {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.92rem;
+}
+
+.batch-movements-section__total {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.84rem;
+}
+
+.movement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.movement-list--scrollable {
+  height: 26rem;
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+}
+
+.movement-item {
+  @include fl.std-border-mixin;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 90%, white 10%);
+}
+
+.movement-item__top,
+.movement-item__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.movement-item__top span,
+.movement-item__meta span {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 720px) {
+  .batch-movements-section__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

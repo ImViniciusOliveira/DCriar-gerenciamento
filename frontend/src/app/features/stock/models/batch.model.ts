@@ -68,6 +68,7 @@ export interface EmbeddedBatchMovements {
 
 export interface ApiResponseBatchMovements extends Hateoas {
   _embedded: EmbeddedBatchMovements;
+  totalMovimentacoes?: number;
 }
 
 /**

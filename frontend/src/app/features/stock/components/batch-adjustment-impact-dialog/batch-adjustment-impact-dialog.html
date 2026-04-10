@@ -10,7 +10,9 @@
     <span>{{ selectedCount() }} selecionado(s)</span>
   </div>
 
-  <div class="impact-dialog-list">
+  <div
+    class="impact-dialog-list"
+    [class.impact-dialog-list--scrollable]="shouldUseScrollableList()">
     @for (item of data.items; track item.id) {
       <label class="impact-dialog-item">
         <mat-checkbox

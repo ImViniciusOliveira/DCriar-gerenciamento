@@ -4,7 +4,26 @@
       <h4>Ajuste Operacional do Lote</h4>
       <p>Revise o impacto da operação antes de aplicar a mudança no lote.</p>
     </div>
+
+    <button mat-stroked-button type="button" (click)="toggleExplanation()">
+      {{ showExplanation() ? 'Ocultar explicação' : 'Explicar ajuste' }}
+    </button>
   </div>
+
+  @if (showExplanation()) {
+    <div class="adjustment-dialog__explanation">
+      <strong>O que este ajuste altera</strong>
+      <p>Este ajuste corrige o saldo operacional do lote ou registra perda e descarte do material.</p>
+      <ul>
+        <li><strong>Saldo do lote:</strong> quantidade atualmente disponível neste lote.</li>
+        <li><strong>Valor atual do lote:</strong> custo total ainda associado ao saldo remanescente.</li>
+        <li><strong>Custo unitário atual:</strong> valor médio por unidade calculado com base no saldo atual.</li>
+        <li><strong>Ajuste:</strong> corrige divergências de inventário e recalcula o custo unitário conforme a nova quantidade.</li>
+        <li><strong>Perda / descarte:</strong> reduz saldo e valor total do lote, preservando o custo unitário do material remanescente.</li>
+      </ul>
+      <p>Quando houver itens impactados, o sistema calcula os reflexos antes de permitir a aplicação final.</p>
+    </div>
+  }
 
   <article class="adjustment-card">
     <div class="adjustment-card__title">

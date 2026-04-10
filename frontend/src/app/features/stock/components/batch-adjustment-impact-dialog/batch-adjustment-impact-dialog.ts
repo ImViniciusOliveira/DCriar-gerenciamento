@@ -29,6 +29,7 @@ export class BatchAdjustmentImpactDialog {
 
   readonly selectedIds = signal<number[]>(this.data.selectedIds);
   readonly selectedCount = computed(() => this.selectedIds().length);
+  readonly shouldUseScrollableList = computed(() => this.data.items.length > 10);
 
   isSelected(itemId: number): boolean {
     return this.selectedIds().includes(itemId);
