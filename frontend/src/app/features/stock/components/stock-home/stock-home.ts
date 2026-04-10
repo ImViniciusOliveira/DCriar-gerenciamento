@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -344,10 +345,15 @@ export class StockHome implements AfterViewInit {
 
       const sort = sortDirection ? `${sortActive},${sortDirection}` : sortActive;
       const subscription = this.getAdjustmentRows$(view.key, pageIndex, pageSize, sort, search, channelId, unit)
-        .subscribe(result => {
-          this.adjustmentItems.set(result.items);
-          this.adjustmentTotalElements.set(result.total);
-          this.cdr.markForCheck();
+        .subscribe({
+          next: result => {
+            this.adjustmentItems.set(result.items);
+            this.adjustmentTotalElements.set(result.total);
+            this.cdr.markForCheck();
+          },
+          error: err => {
+            this.handleAdjustmentSearchError(view.key, err);
+          }
         });
 
       onCleanup(() => subscription.unsubscribe());
@@ -680,8 +686,7 @@ export class StockHome implements AfterViewInit {
           map(response => ({
             items: response.items.map(lot => ({ rowType: 'lotes' as const, lot })),
             total: response.total
-          })),
-          catchError(() => of({ items: [] as AdjustmentTableRow[], total: 0 }))
+          }))
         );
       case 'produtos':
         return this.stockService.searchAdjustmentProducts({
@@ -693,8 +698,7 @@ export class StockHome implements AfterViewInit {
           map(response => ({
             items: response.items.map(product => ({ rowType: 'produtos' as const, product })),
             total: response.total
-          })),
-          catchError(() => of({ items: [] as AdjustmentTableRow[], total: 0 }))
+          }))
         );
       case 'canais':
         return this.stockService.searchAdjustmentChannels({
@@ -707,11 +711,50 @@ export class StockHome implements AfterViewInit {
           map(response => ({
             items: response.items.map(channel => ({ rowType: 'canais' as const, channel })),
             total: response.total
-          })),
-          catchError(() => of({ items: [] as AdjustmentTableRow[], total: 0 }))
+          }))
         );
     }
     return of({ items: [], total: 0 });
+  }
+
+  private handleAdjustmentSearchError(view: AdjustmentViewKey, error: unknown): void {
+    this.adjustmentItems.set([]);
+    this.adjustmentTotalElements.set(0);
+
+    const sortCorrigido = this.tryRecoverInvalidAdjustmentSort(view, error);
+    this.cdr.markForCheck();
+
+    this.entityDialog.showApiErrorSnackbar(
+      error,
+      'Não foi possível atualizar a listagem de ajustes.'
+    );
+
+    if (sortCorrigido) {
+      return;
+    }
+  }
+
+  private tryRecoverInvalidAdjustmentSort(view: AdjustmentViewKey, error: unknown): boolean {
+    if (!(error instanceof HttpErrorResponse)) {
+      return false;
+    }
+
+    const details = error.error?.details;
+    const recurso = details?.recurso;
+    const campoOrdenacao = details?.campoOrdenacao;
+
+    if (recurso !== 'ajustes-lotes' || view !== 'lotes') {
+      return false;
+    }
+
+    if ((campoOrdenacao === 'saldoEstoque' || campoOrdenacao === 'saldoAtual') && !this.selectedAdjustmentUnit()) {
+      const defaults = this.getAdjustmentDefaultSort('lotes');
+      this.adjustmentSortActive.set(defaults.active);
+      this.adjustmentSortDirection.set(defaults.direction);
+      return true;
+    }
+
+    return false;
   }
 
   private formatDecimal(value: number): string {

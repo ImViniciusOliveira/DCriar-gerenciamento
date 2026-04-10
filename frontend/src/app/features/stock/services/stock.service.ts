@@ -197,8 +197,7 @@ export class StockService {
           map(response => ({
             items: response._embedded?.ajusteLoteResumoDTOList ?? [],
             total: response.page?.totalElements ?? 0
-          })),
-          catchError(() => of({ items: [], total: 0 }))
+          }))
         );
       })
     );
@@ -229,8 +228,7 @@ export class StockService {
           map(response => ({
             items: response._embedded?.ajusteEstoqueProdutoResumoDTOList ?? [],
             total: response.page?.totalElements ?? 0
-          })),
-          catchError(() => of({ items: [], total: 0 }))
+          }))
         );
       })
     );
@@ -261,8 +259,7 @@ export class StockService {
           map(response => ({
             items: response._embedded?.ajusteEstoqueCanalResumoDTOList ?? [],
             total: response.page?.totalElements ?? 0
-          })),
-          catchError(() => of({ items: [], total: 0 }))
+          }))
         );
       })
     );
