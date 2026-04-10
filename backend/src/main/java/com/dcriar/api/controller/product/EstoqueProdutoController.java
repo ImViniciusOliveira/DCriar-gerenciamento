@@ -92,6 +92,10 @@ public class EstoqueProdutoController {
                 .withRel("consulta"));
 
         rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
+                .listarConsultasEstoque(null, null, null, false, null, null))
+                .withRel("consultas"));
+
+        rootModel.add(linkTo(methodOn(EstoqueProdutoController.class)
                 .listarProdutosParaAjuste(null, null, null, null))
                 .withRel("ajustes-produtos"));
 
@@ -132,6 +136,29 @@ public class EstoqueProdutoController {
             @Parameter(description = "ID do canal de venda.", example = "1") @RequestParam Long canalVendaId) {
         ConsultaEstoqueCanalResponseDTO consultaDTO = estoqueProdutoService.consultarEstoqueParaConsulta(produtoId, canalVendaId);
         return consultaEstoqueCanalModelAssembler.toOkResponseEntity(consultaDTO);
+    }
+
+    @GetMapping("/consultas")
+    @Operation(summary = "Consultar estoques de forma dinâmica")
+    @Parameters({
+            @Parameter(name = "produtoId", description = "ID do produto para filtrar a consulta.", example = "1"),
+            @Parameter(name = "nomeProduto", description = "Parte do nome ou SKU do produto.", example = "adesivo"),
+            @Parameter(name = "canalVendaId", description = "ID do canal de venda para filtrar a consulta.", example = "2"),
+            @Parameter(name = "apenasComSaldo", description = "Quando true, retorna apenas vínculos com saldo positivo no canal.", example = "true"),
+            @Parameter(name = "sort", description = "Critério de ordenação.", example = "nomeProduto,asc")
+    })
+    public ResponseEntity<PagedModel<ConsultaEstoqueCanalModel>> listarConsultasEstoque(
+            @RequestParam(required = false) Long produtoId,
+            @RequestParam(required = false) String nomeProduto,
+            @RequestParam(required = false) Long canalVendaId,
+            @RequestParam(required = false, defaultValue = "false") boolean apenasComSaldo,
+            @ParameterObject @PageableDefault(sort = "produto.nome", direction = Sort.Direction.ASC) Pageable pageable,
+            PagedResourcesAssembler<ConsultaEstoqueCanalResponseDTO> pagedResourcesAssembler
+    ) {
+        Page<ConsultaEstoqueCanalResponseDTO> page = estoqueProdutoService
+                .listarConsultasEstoque(produtoId, nomeProduto, canalVendaId, apenasComSaldo, pageable);
+
+        return ResponseEntity.ok(pagedResourcesAssembler.toModel(page, consultaEstoqueCanalModelAssembler));
     }
 
     @GetMapping("/resumo")

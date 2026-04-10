@@ -29,4 +29,20 @@ public final class EstoqueSpecifications {
 
         return (root, query, builder) -> builder.equal(root.get("canalVenda").get("id"), canalVendaId);
     }
+
+    public static Specification<Estoque> comProdutoId(Long produtoId) {
+        if (produtoId == null) {
+            return null;
+        }
+
+        return (root, query, builder) -> builder.equal(root.get("produto").get("id"), produtoId);
+    }
+
+    public static Specification<Estoque> apenasComSaldo(boolean apenasComSaldo) {
+        if (!apenasComSaldo) {
+            return null;
+        }
+
+        return (root, query, builder) -> builder.greaterThan(root.get("quantidade"), 0);
+    }
 }

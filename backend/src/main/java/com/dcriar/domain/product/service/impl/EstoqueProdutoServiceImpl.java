@@ -104,9 +104,35 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
             "estoqueDistribuidoTotal", "id",
             "estoqueDisponivelParaAlocar", "id"
     );
+    private static final Map<String, String> CONSULTAS_SORT_ALIASES = Map.ofEntries(
+            Map.entry("produto.nome", "produto.nome"),
+            Map.entry("nome", "produto.nome"),
+            Map.entry("nomeProduto", "produto.nome"),
+            Map.entry("produto.sku", "produto.sku"),
+            Map.entry("sku", "produto.sku"),
+            Map.entry("skuProduto", "produto.sku"),
+            Map.entry("canalVenda.nome", "canalVenda.nome"),
+            Map.entry("nomeCanalVenda", "canalVenda.nome"),
+            Map.entry("quantidade", "quantidade"),
+            Map.entry("quantidadeNoCanal", "quantidade"),
+            Map.entry("estoqueFisicoTotal", "estoqueFisicoTotal"),
+            Map.entry("estoqueDistribuidoTotal", "estoqueDistribuidoTotal"),
+            Map.entry("estoqueDisponivelParaAlocar", "estoqueDisponivelParaAlocar")
+    );
+    private static final Map<String, String> CONSULTAS_STABLE_SORTS = Map.of(
+            "produto.nome", "id",
+            "produto.sku", "id",
+            "canalVenda.nome", "id",
+            "quantidade", "id",
+            "estoqueFisicoTotal", "id",
+            "estoqueDistribuidoTotal", "id",
+            "estoqueDisponivelParaAlocar", "id"
+    );
     private static final String SORTS_ACEITOS_AJUSTE_PRODUTOS =
             "nome, nomeProduto, sku, skuProduto, estoqueFisicoTotal, estoqueDistribuidoTotal, estoqueDisponivelParaAlocar";
     private static final String SORTS_ACEITOS_AJUSTE_CANAIS =
+            "produto.nome, nome, nomeProduto, produto.sku, sku, skuProduto, canalVenda.nome, nomeCanalVenda, quantidade, quantidadeNoCanal, estoqueFisicoTotal, estoqueDistribuidoTotal, estoqueDisponivelParaAlocar";
+    private static final String SORTS_ACEITOS_CONSULTAS =
             "produto.nome, nome, nomeProduto, produto.sku, sku, skuProduto, canalVenda.nome, nomeCanalVenda, quantidade, quantidadeNoCanal, estoqueFisicoTotal, estoqueDistribuidoTotal, estoqueDisponivelParaAlocar";
 
     private final EstoqueRepository estoqueRepository;
@@ -247,32 +273,41 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                 .map(Estoque::getQuantidade)
                 .orElse(0);
 
-        CamposBloqueadosInfo camposBloqueados = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisCanal(
-                quantidadeNoCanal,
-                produto.getEstoqueFisicoTotal(),
-                produto.getEstoqueDistribuidoTotal(),
-                produto.getEstoqueDisponivelParaAlocar()
-        );
+        return mapConsultaEstoque(produto, canalVenda, quantidadeNoCanal);
+    }
 
-        return ConsultaEstoqueCanalResponseDTO.builder()
-                .produtoId(produto.getId())
-                .nomeProduto(produto.getNome())
-                .skuProduto(produto.getSku())
-                .canalVendaId(canalVenda.getId())
-                .nomeCanalVenda(canalVenda.getNome())
-                .quantidadeNoCanal(quantidadeNoCanal)
-                .estoqueFisicoTotal(produto.getEstoqueFisicoTotal())
-                .estoqueDistribuidoTotal(produto.getEstoqueDistribuidoTotal())
-                .estoqueDisponivelParaAlocar(produto.getEstoqueDisponivelParaAlocar())
-                .statusDivergencia(StatusDivergenciaEstoqueUtils.resolverParaCanal(
-                        quantidadeNoCanal,
-                        produto.getEstoqueFisicoTotal(),
-                        produto.getEstoqueDistribuidoTotal(),
-                        produto.getEstoqueDisponivelParaAlocar()
-                ))
-                .camposBloqueados(camposBloqueados.camposBloqueados())
-                .motivosBloqueio(camposBloqueados.motivosBloqueio())
-                .build();
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ConsultaEstoqueCanalResponseDTO> listarConsultasEstoque(
+            Long produtoId,
+            String nomeProduto,
+            Long canalVendaId,
+            boolean apenasComSaldo,
+            Pageable pageable
+    ) {
+        if (produtoId != null) {
+            findProdutoById(produtoId);
+        }
+        if (canalVendaId != null) {
+            findCanalVendaById(canalVendaId);
+        }
+
+        Specification<Estoque> spec = (root, query, builder) -> builder.conjunction();
+        spec = spec.and(EstoqueSpecifications.comProdutoId(produtoId));
+        spec = spec.and(EstoqueSpecifications.comNomeProdutoLike(nomeProduto));
+        spec = spec.and(EstoqueSpecifications.comCanalVendaId(canalVendaId));
+        spec = spec.and(EstoqueSpecifications.apenasComSaldo(apenasComSaldo));
+
+        Pageable pageableComSortTraduzido = translatePageable(
+                pageable,
+                CONSULTAS_SORT_ALIASES,
+                "consultas-estoque",
+                SORTS_ACEITOS_CONSULTAS
+        );
+        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageableComSortTraduzido, CONSULTAS_STABLE_SORTS);
+
+        return estoqueRepository.findAll(spec, pageableComDesempate)
+                .map(this::mapEstoqueParaConsulta);
     }
 
     @Override
@@ -467,6 +502,39 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                         estoque.getEstoqueFisicoTotal(),
                         estoque.getEstoqueDistribuidoTotal(),
                         estoque.getEstoqueDisponivelParaAlocar()
+                ))
+                .camposBloqueados(camposBloqueados.camposBloqueados())
+                .motivosBloqueio(camposBloqueados.motivosBloqueio())
+                .build();
+    }
+
+    private ConsultaEstoqueCanalResponseDTO mapEstoqueParaConsulta(Estoque estoque) {
+        return mapConsultaEstoque(estoque.getProduto(), estoque.getCanalVenda(), estoque.getQuantidade());
+    }
+
+    private ConsultaEstoqueCanalResponseDTO mapConsultaEstoque(Produto produto, CanalVenda canalVenda, int quantidadeNoCanal) {
+        CamposBloqueadosInfo camposBloqueados = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisCanal(
+                quantidadeNoCanal,
+                produto.getEstoqueFisicoTotal(),
+                produto.getEstoqueDistribuidoTotal(),
+                produto.getEstoqueDisponivelParaAlocar()
+        );
+
+        return ConsultaEstoqueCanalResponseDTO.builder()
+                .produtoId(produto.getId())
+                .nomeProduto(produto.getNome())
+                .skuProduto(produto.getSku())
+                .canalVendaId(canalVenda.getId())
+                .nomeCanalVenda(canalVenda.getNome())
+                .quantidadeNoCanal(quantidadeNoCanal)
+                .estoqueFisicoTotal(produto.getEstoqueFisicoTotal())
+                .estoqueDistribuidoTotal(produto.getEstoqueDistribuidoTotal())
+                .estoqueDisponivelParaAlocar(produto.getEstoqueDisponivelParaAlocar())
+                .statusDivergencia(StatusDivergenciaEstoqueUtils.resolverParaCanal(
+                        quantidadeNoCanal,
+                        produto.getEstoqueFisicoTotal(),
+                        produto.getEstoqueDistribuidoTotal(),
+                        produto.getEstoqueDisponivelParaAlocar()
                 ))
                 .camposBloqueados(camposBloqueados.camposBloqueados())
                 .motivosBloqueio(camposBloqueados.motivosBloqueio())

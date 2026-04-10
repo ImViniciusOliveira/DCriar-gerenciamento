@@ -52,8 +52,20 @@ public interface EstoqueProdutoService {
      * Consulta operacional detalhada de um produto em um canal específico.
      * Essa resposta é voltada para a tela de consultas e traz o contexto completo
      * de físico, distribuído, disponível e divergência para o vínculo produto + canal.
-     */
+    */
     ConsultaEstoqueCanalResponseDTO consultarEstoqueParaConsulta(Long produtoId, Long canalVendaId);
+
+    /**
+     * Lista consultas de estoque em um contrato único para a tela de consultas.
+     * Permite combinar produto, nome/SKU, canal e filtro de saldo em uma resposta paginada.
+     */
+    Page<ConsultaEstoqueCanalResponseDTO> listarConsultasEstoque(
+            Long produtoId,
+            String nomeProduto,
+            Long canalVendaId,
+            boolean apenasComSaldo,
+            Pageable pageable
+    );
 
     /**
      * Busca resumida de estoque filtrada por canal e nome do produto.
