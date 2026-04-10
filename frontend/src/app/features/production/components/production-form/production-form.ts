@@ -772,6 +772,16 @@ export class ProductionForm implements OnInit {
     this.cdr.markForCheck();
   }
 
+  toggleModoCalculo(): void {
+    if (this.produto()?.tipoProduto !== 'CORTE') {
+      return;
+    }
+
+    const nextMode = this.modoCalculoControl.value === 'MANUAL' ? 'AUTOMATICO' : 'MANUAL';
+    this.modoCalculoControl.setValue(nextMode, { emitEvent: false });
+    this.onModoCalculoChange();
+  }
+
   private restoreAutomaticDimensionsForEdit(): void {
     if (!this.isEditMode() || this.produto()?.tipoProduto !== 'CORTE') {
       return;
@@ -852,6 +862,7 @@ export class ProductionForm implements OnInit {
     const produto = this.produto()!;
     const quantidade = this.parseDecimal(this.form.value.quantidade);
     const loteId = Number(this.form.value.loteId);
+    const formValue = this.form.getRawValue();
 
     this.isSimulating.set(true);
     this.needsVerification.set(false);
@@ -867,6 +878,35 @@ export class ProductionForm implements OnInit {
     };
 
     if (produto.tipoProduto === 'CORTE') {
+      if (this.modoCalculoControl.value === 'MANUAL') {
+        if (this.larguraBlocoProdutosCmControl.invalid || this.comprimentoBlocoProdutosCmControl.invalid) {
+          this.isSimulating.set(false);
+          this.handleInvalidFormAttempt();
+          return;
+        }
+
+        const payload = this.buildCutVerificationPayload(formValue);
+        this.productionService.verifyCutLayout(payload)
+          .pipe(take(1))
+          .subscribe({
+            next: (response) => {
+              this.simulationResult.set(response as SimulationResult);
+              this.stableSimulationResult.set(response as SimulationResult);
+              this.formSnapshot = this.form.getRawValue();
+              this.simulationFormSnapshot.set(this.formSnapshot);
+              this.isSimulating.set(false);
+              this.scrollToBottom();
+            },
+            error: (err) => {
+              this.simulationResult.set(null);
+              this.simulationFormSnapshot.set(null);
+              this.isSimulating.set(false);
+              this.entityDialog.showApiErrorSnackbar(err, ProductionForm.Texts.LOAD_ERROR, productionApiErrorOptions);
+            }
+          });
+        return;
+      }
+
       this.productionService.simulateProduction(url, payload)
         .pipe(take(1))
         .subscribe({
@@ -958,6 +998,33 @@ export class ProductionForm implements OnInit {
     };
   }
 
+  private buildCutVerificationPayload(formValue: any): VerificationRequest {
+    if (formValue.modoCalculo === 'MANUAL') {
+      return {
+        produtoId: Number(formValue.produtoId),
+        loteId: Number(formValue.loteId),
+        quantidade: this.parseDecimal(formValue.quantidade),
+        modoCalculo: formValue.modoCalculo,
+        ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined,
+        larguraBlocoProdutosCm: this.parseDecimal(formValue.larguraBlocoProdutosCm),
+        comprimentoBlocoProdutosCm: this.parseDecimal(formValue.comprimentoBlocoProdutosCm)
+      };
+    }
+
+    const payload: VerificationRequest = {
+      produtoId: Number(formValue.produtoId),
+      loteId: Number(formValue.loteId),
+      quantidade: this.parseDecimal(formValue.quantidade),
+      modoCalculo: formValue.modoCalculo,
+      ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined
+    };
+    const margens = this.buildMargensPayload(formValue);
+    if (margens) {
+      payload.margens = margens;
+    }
+    return payload;
+  }
+
   /**
    * Executa a verificação dos dados (re-simulação).
    */
@@ -1016,30 +1083,7 @@ export class ProductionForm implements OnInit {
     const oldResult = ((this.stableSimulationResult() ?? currentResult) as SimulationCutResult);
 
     // Montar payload para a API de verificação
-    let payload: VerificationRequest;
-    if (formValue.modoCalculo === 'MANUAL') {
-      payload = {
-        produtoId: Number(formValue.produtoId),
-        loteId: Number(formValue.loteId),
-        quantidade: this.parseDecimal(formValue.quantidade),
-        modoCalculo: formValue.modoCalculo,
-        ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined,
-        larguraBlocoProdutosCm: this.parseDecimal(formValue.larguraBlocoProdutosCm),
-        comprimentoBlocoProdutosCm: this.parseDecimal(formValue.comprimentoBlocoProdutosCm)
-      };
-    } else {
-      payload = {
-        produtoId: Number(formValue.produtoId),
-        loteId: Number(formValue.loteId),
-        quantidade: this.parseDecimal(formValue.quantidade),
-        modoCalculo: formValue.modoCalculo,
-        ordemId: this.isEditMode() ? this.currentOrder()?.id : undefined
-      };
-      const margens = this.buildMargensPayload(formValue);
-      if (margens) {
-        payload.margens = margens;
-      }
-    }
+    const payload = this.buildCutVerificationPayload(formValue);
 
     this.isVerifying.set(true);
 

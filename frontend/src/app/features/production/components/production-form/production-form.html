@@ -65,11 +65,53 @@
         </div>
       }
 
+      @if (!simulationResult() && produto()?.tipoProduto === 'CORTE' && modoCalculoControl.value === 'MANUAL') {
+        <div class="form-row">
+          <div class="form-left">
+            <div class="dimensoes-inline">
+              <mat-form-field appearance="outline" class="dimensao-input">
+                <mat-label>Largura</mat-label>
+                <input matInput type="text" formControlName="larguraBlocoProdutosCm" required [errorStateMatcher]="matcher">
+                @if (larguraBlocoProdutosCmControl.hasError('required')) {
+                  <mat-error>Informe a largura.</mat-error>
+                } @else if (larguraBlocoProdutosCmControl.hasError('pattern')) {
+                  <mat-error>Use até 4 casas decimais.</mat-error>
+                } @else if (larguraBlocoProdutosCmControl.hasError('min')) {
+                  <mat-error>A largura deve ser maior que zero.</mat-error>
+                }
+              </mat-form-field>
+              <span class="dimensao-separator">×</span>
+              <mat-form-field appearance="outline" class="dimensao-input">
+                <mat-label>Comprimento</mat-label>
+                <input matInput type="text" formControlName="comprimentoBlocoProdutosCm" required [errorStateMatcher]="matcher">
+                @if (comprimentoBlocoProdutosCmControl.hasError('required')) {
+                  <mat-error>Informe o comprimento.</mat-error>
+                } @else if (comprimentoBlocoProdutosCmControl.hasError('pattern')) {
+                  <mat-error>Use até 4 casas decimais.</mat-error>
+                } @else if (comprimentoBlocoProdutosCmControl.hasError('min')) {
+                  <mat-error>O comprimento deve ser maior que zero.</mat-error>
+                }
+              </mat-form-field>
+              <span class="dimensao-unit">cm</span>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Botão de Ação -->
-      <button mat-stroked-button color="primary" type="button" class="action-button" (click)="onPrimaryAction()" [disabled]="isPrimaryActionDisabled()">
-        <mat-icon>{{ isEditMode() ? 'check_circle' : 'model_training' }}</mat-icon>
-        {{ isEditMode() ? 'Verificar' : 'Simular' }}
-      </button>
+      <div class="simulation-actions">
+        @if (!isEditMode() && produto()?.tipoProduto === 'CORTE') {
+          <button mat-stroked-button color="accent" type="button" (click)="toggleModoCalculo()">
+            <mat-icon>swap_horiz</mat-icon>
+            {{ modoCalculoControl.value === 'MANUAL' ? 'Manual' : 'Automático' }}
+          </button>
+        }
+
+        <button mat-stroked-button color="primary" type="button" class="action-button" (click)="onPrimaryAction()" [disabled]="isPrimaryActionDisabled()">
+          <mat-icon>{{ isEditMode() ? 'check_circle' : 'model_training' }}</mat-icon>
+          {{ isEditMode() ? 'Verificar' : 'Simular' }}
+        </button>
+      </div>
     </div>
 
     <!-- ETAPA 2: Espaço vazio para resultado da simulação -->
