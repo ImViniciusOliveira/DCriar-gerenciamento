@@ -1,4 +1,15 @@
 <div class="filters-container">
+  @if (!fixedProductType()) {
+    <mat-form-field appearance="outline" class="unit-filter">
+      <mat-label>Categoria</mat-label>
+      <mat-select [formControl]="productTypeControl">
+        @for (option of productTypeOptions; track option.value) {
+          <mat-option [value]="option.value">{{ option.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  }
+
   <mat-form-field appearance="outline" class="flex-grow">
     <mat-label>Tipo de Matéria Prima</mat-label>
     <input type="text"
@@ -29,17 +40,6 @@
       }
     </mat-select>
   </mat-form-field>
-
-  @if (!fixedProductType()) {
-    <mat-form-field appearance="outline" class="unit-filter">
-      <mat-label>Categoria</mat-label>
-      <mat-select [formControl]="productTypeControl">
-        @for (option of productTypeOptions; track option.value) {
-          <mat-option [value]="option.value">{{ option.label }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-  }
 
   <ng-content select="[after-unit-field]"></ng-content>
 

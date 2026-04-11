@@ -3,15 +3,16 @@
 @if (!isViewMode()) {
   <form [formGroup]="form" (ngSubmit)="onSave()">
     <mat-dialog-content>
-      <div>
-        <!-- Componente de busca de matéria-prima -->
-        <div class="full-width no-bottom-gap">
-          <app-material-type-search
-            [control]="materialTypeControl"
-            [isEditMode]="isEditMode()"
-            [unitsUrl]="unitsUrl()"
-            [disabled]="isFieldLocked('tipoMateriaPrimaId')"
-            [lockReason]="getFieldLockReason('tipoMateriaPrimaId')"
+        <div>
+          <!-- Componente de busca de matéria-prima -->
+          <div class="full-width no-bottom-gap">
+            <app-material-type-search
+              class="batch-material-type-search"
+              [control]="materialTypeControl"
+              [isEditMode]="isEditMode()"
+              [unitsUrl]="unitsUrl()"
+              [disabled]="isFieldLocked('tipoMateriaPrimaId')"
+              [lockReason]="getFieldLockReason('tipoMateriaPrimaId')"
             (selectionChange)="onMaterialTypeChange($event)">
           </app-material-type-search>
           @if (materialTypeControl.hasError('backend')) {
@@ -21,37 +22,9 @@
           }
         </div>
 
-        <div class="form-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Estoque Crítico</mat-label>
-            <input
-              matInput
-              type="text"
-              inputmode="decimal"
-              formControlName="estoqueCritico"
-              [errorStateMatcher]="matcher"
-              placeholder="Ex: 25">
-            @if (getCriticalStockUnitSuffix()) {
-              <span matTextSuffix>&nbsp;{{ getCriticalStockUnitSuffix() }}</span>
-            }
-            <mat-hint>Quando esta matéria-prima entra em alerta.</mat-hint>
-            @if (form.get('estoqueCritico')?.hasError('required')) {
-              <mat-error>O campo é obrigatório.</mat-error>
-            } @else if (form.get('estoqueCritico')?.hasError('min')) {
-              <mat-error>O valor não pode ser negativo.</mat-error>
-            } @else if (form.get('estoqueCritico')?.hasError('pattern')) {
-              <mat-error>Use apenas números positivos, com até 4 casas decimais.</mat-error>
-            } @else if (form.get('estoqueCritico')?.hasError('maxIntegerDigits')) {
-              <mat-error>Máximo de 15 dígitos.</mat-error>
-            } @else if (form.get('estoqueCritico')?.hasError('backend')) {
-              <mat-error>{{ form.get('estoqueCritico')?.getError('backend') }}</mat-error>
-            }
-          </mat-form-field>
-        </div>
-
-        <div class="form-row">
+        <div class="form-row form-row--batch-main">
           <!-- Unidade de Estoque -->
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="outline" class="batch-main-field batch-main-field--stock-unit">
             <mat-label>Unidade de Estoque</mat-label>
             <mat-select
               formControlName="unidadeDeEstoque"
@@ -69,7 +42,7 @@
           </mat-form-field>
 
           <!-- Quantidade Inicial -->
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="outline" class="batch-main-field batch-main-field--quantity">
             <mat-label>Quantidade Inicial</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="quantidadeInicial" [errorStateMatcher]="matcher" required>
             @if (getSelectedStockUnitSuffix()) {
@@ -89,7 +62,7 @@
           </mat-form-field>
 
           <!-- Custo Total do Lote -->
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="outline" class="batch-main-field batch-main-field--cost">
             <mat-label>Custo Total do Lote</mat-label>
             <input
               matInput
@@ -113,6 +86,21 @@
             } @else if (form.get('custoTotalLote')?.hasError('backend')) {
               <mat-error>{{ form.get('custoTotalLote')?.getError('backend') }}</mat-error>
             }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="batch-main-field batch-main-field--critical-stock">
+            <mat-label>Estoque Crítico</mat-label>
+            <input
+              matInput
+              type="text"
+              inputmode="decimal"
+              formControlName="estoqueCritico"
+              [errorStateMatcher]="matcher"
+              placeholder="Ex: 25">
+            @if (getCriticalStockUnitSuffix()) {
+              <span matTextSuffix>&nbsp;{{ getCriticalStockUnitSuffix() }}</span>
+            }
+            <mat-hint>Definido na matéria-prima e exibido aqui apenas para consulta.</mat-hint>
           </mat-form-field>
         </div>
 
