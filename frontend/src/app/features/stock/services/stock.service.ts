@@ -16,7 +16,12 @@ import {
 } from '../models/stock-adjustment.model';
 import { ApiResponseStockConsultations, StockConsultationSummary } from '../models/stock-consultation.model';
 import { ApiResponseStockHistory, ApiResponseStockMovementTypes, StockMovementTypeOption } from '../models/stock-history.model';
-import { ApiResponseMaterialStockAnalyses, MaterialStockAnalysisPolicy, MaterialStockAnalysisSummary } from '../models/material-stock-analysis.model';
+import {
+  ApiResponseMaterialStockAnalyses,
+  MaterialStockAnalysisPolicy,
+  MaterialStockAnalysisStatus,
+  MaterialStockAnalysisSummary
+} from '../models/material-stock-analysis.model';
 
 type StockHistoryPeriod = '1d' | '1m' | '6m' | '1a' | 'all';
 
@@ -81,6 +86,7 @@ type MaterialStockAnalysisSearchParams = {
   nome?: string;
   unidadeDeConsumo?: string;
   tipoProduto?: string;
+  statusAnalise?: MaterialStockAnalysisStatus;
   politicaSaldoRetalho?: MaterialStockAnalysisPolicy;
 };
 
@@ -359,6 +365,10 @@ export class StockService {
 
         if (params.tipoProduto) {
           httpParams = httpParams.set('tipoProduto', params.tipoProduto);
+        }
+
+        if (params.statusAnalise) {
+          httpParams = httpParams.set('statusAnalise', params.statusAnalise);
         }
 
         if (params.politicaSaldoRetalho) {

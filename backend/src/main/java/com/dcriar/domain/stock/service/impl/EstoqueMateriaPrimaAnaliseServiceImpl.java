@@ -15,6 +15,7 @@ import com.dcriar.exception.custom.OrdenacaoInvalidaException;
 import com.dcriar.exception.custom.TipoProdutoInvalidoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -23,11 +24,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -45,10 +47,14 @@ public class EstoqueMateriaPrimaAnaliseServiceImpl implements EstoqueMateriaPrim
             "nomeTipoMateriaPrima", "nome",
             "unidadeDeConsumo", "unidadeDeConsumo",
             "id", "id",
-            "tipoMateriaPrimaId", "id"
+            "tipoMateriaPrimaId", "id",
+            "saldoConsiderado", "saldoConsiderado",
+            "estoqueCritico", "estoqueCritico",
+            "percentualRisco", "percentualRisco",
+            "statusAnalise", "statusAnalise"
     );
     private static final String SORTS_ACEITOS =
-            "nome, nomeTipoMateriaPrima, unidadeDeConsumo, id, tipoMateriaPrimaId";
+            "nome, nomeTipoMateriaPrima, unidadeDeConsumo, id, tipoMateriaPrimaId, saldoConsiderado, estoqueCritico, percentualRisco, statusAnalise";
 
     private final TipoMateriaPrimaRepository tipoMateriaPrimaRepository;
     private final LoteMateriaPrimaRepository loteMateriaPrimaRepository;
@@ -60,11 +66,11 @@ public class EstoqueMateriaPrimaAnaliseServiceImpl implements EstoqueMateriaPrim
             String nome,
             UnidadeDeMedida unidadeDeConsumo,
             String tipoProduto,
+            StatusAnaliseMateriaPrima statusAnalise,
             PoliticaSaldoRetalhoAnaliseFiltro politicaSaldoRetalho,
             Pageable pageable
     ) {
         validarTipoProduto(tipoProduto);
-        Pageable pageableComSortTraduzido = translatePageable(pageable);
 
         Specification<TipoMateriaPrima> spec = Stream.of(
                         TipoMateriaPrimaSpecification.comId(tipoMateriaPrimaId),
@@ -76,10 +82,8 @@ public class EstoqueMateriaPrimaAnaliseServiceImpl implements EstoqueMateriaPrim
                 .reduce(Specification::and)
                 .orElse(null);
 
-        Pageable pageableComDesempate = PageableSortUtils.withStableSort(pageableComSortTraduzido, STABLE_SORTS);
-        Page<TipoMateriaPrima> tiposPage = tipoMateriaPrimaRepository.findAll(spec, pageableComDesempate);
-
-        List<Long> tipoIds = tiposPage.getContent().stream()
+        List<TipoMateriaPrima> tipos = tipoMateriaPrimaRepository.findAll(spec);
+        List<Long> tipoIds = tipos.stream()
                 .map(TipoMateriaPrima::getId)
                 .toList();
 
@@ -88,11 +92,25 @@ public class EstoqueMateriaPrimaAnaliseServiceImpl implements EstoqueMateriaPrim
                 : loteMateriaPrimaRepository.findAllByTipoMateriaPrimaIdsWithTipo(tipoIds).stream()
                         .collect(Collectors.groupingBy(lote -> lote.getTipoMateriaPrima().getId()));
 
-        return tiposPage.map(tipo -> toAnaliseDto(
-                tipo,
-                lotesPorTipo.getOrDefault(tipo.getId(), List.of()),
-                politicaSaldoRetalho != null ? politicaSaldoRetalho : PoliticaSaldoRetalhoAnaliseFiltro.TODOS
-        ));
+        List<AnaliseEstoqueMateriaPrimaResponseDTO> analises = tipos.stream()
+                .map(tipo -> toAnaliseDto(
+                        tipo,
+                        lotesPorTipo.getOrDefault(tipo.getId(), List.of()),
+                        politicaSaldoRetalho != null ? politicaSaldoRetalho : PoliticaSaldoRetalhoAnaliseFiltro.TODOS
+                ))
+                .filter(analise -> statusAnalise == null || analise.getStatusAnalise() == statusAnalise)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        Pageable pageableComSortTraduzido = translatePageable(pageable);
+        ordenarAnalises(analises, pageableComSortTraduzido.getSort());
+
+        int start = Math.toIntExact(pageable.getOffset());
+        int end = Math.min(start + pageable.getPageSize(), analises.size());
+        List<AnaliseEstoqueMateriaPrimaResponseDTO> content = start >= analises.size()
+                ? List.of()
+                : analises.subList(start, end);
+
+        return new PageImpl<>(content, pageable, analises.size());
     }
 
     private AnaliseEstoqueMateriaPrimaResponseDTO toAnaliseDto(
@@ -216,11 +234,47 @@ public class EstoqueMateriaPrimaAnaliseServiceImpl implements EstoqueMateriaPrim
         return org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
-                Sort.by(translatedOrders)
+                PageableSortUtils.withStableSort(
+                        org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(translatedOrders)),
+                        STABLE_SORTS
+                ).getSort()
         );
     }
 
     private BigDecimal scale(BigDecimal value) {
         return value == null ? null : value.setScale(4, RoundingMode.HALF_UP);
+    }
+
+    private void ordenarAnalises(List<AnaliseEstoqueMateriaPrimaResponseDTO> analises, Sort sort) {
+        if (!sort.isSorted()) {
+            analises.sort(Comparator.comparing(AnaliseEstoqueMateriaPrimaResponseDTO::getNomeTipoMateriaPrima, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(AnaliseEstoqueMateriaPrimaResponseDTO::getTipoMateriaPrimaId));
+            return;
+        }
+
+        Comparator<AnaliseEstoqueMateriaPrimaResponseDTO> comparator = null;
+        for (Sort.Order order : sort) {
+            Comparator<AnaliseEstoqueMateriaPrimaResponseDTO> next = comparatorFor(order.getProperty(), order.isAscending());
+            comparator = comparator == null ? next : comparator.thenComparing(next);
+        }
+
+        if (comparator != null) {
+            analises.sort(comparator);
+        }
+    }
+
+    private Comparator<AnaliseEstoqueMateriaPrimaResponseDTO> comparatorFor(String property, boolean ascending) {
+        Comparator<AnaliseEstoqueMateriaPrimaResponseDTO> comparator = switch (property) {
+            case "nome" -> Comparator.comparing(AnaliseEstoqueMateriaPrimaResponseDTO::getNomeTipoMateriaPrima, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "unidadeDeConsumo" -> Comparator.comparing(dto -> dto.getUnidadeDeConsumo() != null ? dto.getUnidadeDeConsumo().name() : null, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            case "id" -> Comparator.comparing(AnaliseEstoqueMateriaPrimaResponseDTO::getTipoMateriaPrimaId, Comparator.nullsLast(Long::compareTo));
+            case "saldoConsiderado" -> Comparator.comparing(AnaliseEstoqueMateriaPrimaResponseDTO::getSaldoConsiderado, Comparator.nullsLast(BigDecimal::compareTo));
+            case "estoqueCritico" -> Comparator.comparing(AnaliseEstoqueMateriaPrimaResponseDTO::getEstoqueCritico, Comparator.nullsLast(BigDecimal::compareTo));
+            case "percentualRisco" -> Comparator.comparing(AnaliseEstoqueMateriaPrimaResponseDTO::getPercentualRisco, Comparator.nullsLast(BigDecimal::compareTo));
+            case "statusAnalise" -> Comparator.comparing(dto -> dto.getStatusAnalise() != null ? dto.getStatusAnalise().name() : null, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+            default -> throw new OrdenacaoInvalidaException("analise-materias-primas", property, SORTS_ACEITOS);
+        };
+
+        return ascending ? comparator : comparator.reversed();
     }
 }

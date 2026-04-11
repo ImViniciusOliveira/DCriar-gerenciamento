@@ -80,16 +80,16 @@ INSERT INTO produtos (tipo_produto, nome, sku, descricao, cor, unidades_por_prod
 -- Garante que cada lote de compra tenha um saldo inicial.
 INSERT INTO movimentacoes_estoque_lote (lote_id, data, tipo, quantidade, motivo) VALUES
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1001'), NOW() - INTERVAL '15 day', 'ENTRADA_COMPRA', 500, 'Nota Fiscal #2024-A1'),
-    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002'), NOW() - INTERVAL '10 day', 'ENTRADA_COMPRA', 50, 'Nota Fiscal #2024-B2'),
+    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1002'), NOW() - INTERVAL '10 day', 'ENTRADA_COMPRA', 20, 'Nota Fiscal #2024-B2'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1003'), NOW() - INTERVAL '5 day', 'ENTRADA_COMPRA', 100, 'Nota Fiscal #2024-C3'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1004'), NOW() - INTERVAL '2 day', 'ENTRADA_COMPRA', 1000, 'Nota Fiscal #2024-D4'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1005'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 500, 'Nota Fiscal #2024-H8'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1006'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 5, 'Nota Fiscal #2024-E5'),
-    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1007'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 50, 'Nota Fiscal #2024-F6'),
-    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1008'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 1000, 'Nota Fiscal #2024-G7'),
-    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1009'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 30, 'Nota Fiscal #2024-I9'),
+    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1007'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 10, 'Nota Fiscal #2024-F6'),
+    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1008'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 150, 'Nota Fiscal #2024-G7'),
+    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1009'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 20, 'Nota Fiscal #2024-I9'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1010'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 20000, 'Nota Fiscal #2024-J10'),
-    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1011'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 10000, 'Nota Fiscal #2024-K11'),
+    ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1011'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 5000, 'Nota Fiscal #2024-K11'),
     ((SELECT id FROM lotes_materia_prima WHERE motivo = 'Compra NF-1012'), NOW() - INTERVAL '1 day', 'ENTRADA_COMPRA', 5000, 'Nota Fiscal #2024-L12');
 
 -- Inserção de Estoque Distribuído (dependem de Produtos e Canais de Venda)

@@ -6,6 +6,7 @@ import com.dcriar.api.controller.stock.TipoMateriaPrimaController;
 import com.dcriar.api.dto.request.stock.PoliticaSaldoRetalhoAnaliseFiltro;
 import com.dcriar.api.dto.response.stock.AnaliseEstoqueMateriaPrimaResponseDTO;
 import com.dcriar.api.hateoas.stock.model.AnaliseEstoqueMateriaPrimaModel;
+import com.dcriar.domain.stock.entity.enums.StatusAnaliseMateriaPrima;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.hateoas.Link;
@@ -51,6 +52,7 @@ public class AnaliseEstoqueMateriaPrimaModelAssembler extends RepresentationMode
                         null,
                         dto.getUnidadeDeConsumo(),
                         dto.getTipoProdutoCompativel(),
+                        dto.getStatusAnalise(),
                         PoliticaSaldoRetalhoAnaliseFiltro.TODOS,
                         PageRequest.of(0, 10, Sort.by("nome").ascending()),
                         null

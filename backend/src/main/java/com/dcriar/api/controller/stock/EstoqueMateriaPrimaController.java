@@ -4,6 +4,7 @@ import com.dcriar.api.dto.request.stock.PoliticaSaldoRetalhoAnaliseFiltro;
 import com.dcriar.api.dto.response.stock.AnaliseEstoqueMateriaPrimaResponseDTO;
 import com.dcriar.api.hateoas.stock.assembler.AnaliseEstoqueMateriaPrimaModelAssembler;
 import com.dcriar.api.hateoas.stock.model.AnaliseEstoqueMateriaPrimaModel;
+import com.dcriar.domain.stock.entity.enums.StatusAnaliseMateriaPrima;
 import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import com.dcriar.domain.stock.service.EstoqueMateriaPrimaAnaliseService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,6 +48,8 @@ public class EstoqueMateriaPrimaController {
             @RequestParam(required = false) UnidadeDeMedida unidadeDeConsumo,
             @Parameter(description = "Filtrar tipos compatíveis com CORTE ou CONSUMO.", example = "CORTE")
             @RequestParam(required = false) String tipoProduto,
+            @Parameter(description = "Filtrar pela classificação da análise.", example = "CRITICO")
+            @RequestParam(required = false) StatusAnaliseMateriaPrima statusAnalise,
             @Parameter(description = "Define como os retalhos entram no saldo considerado.", example = "SEM_RETALHOS")
             @RequestParam(required = false, defaultValue = "TODOS") PoliticaSaldoRetalhoAnaliseFiltro politicaSaldoRetalho,
             @ParameterObject @PageableDefault(sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
@@ -57,6 +60,7 @@ public class EstoqueMateriaPrimaController {
                 nome,
                 unidadeDeConsumo,
                 tipoProduto,
+                statusAnalise,
                 politicaSaldoRetalho,
                 pageable
         );

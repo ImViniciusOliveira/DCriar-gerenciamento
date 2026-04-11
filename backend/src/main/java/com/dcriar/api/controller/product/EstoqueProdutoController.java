@@ -96,7 +96,7 @@ public class EstoqueProdutoController {
                 .withRel("ajustes-lotes"));
 
         rootModel.add(linkTo(methodOn(EstoqueMateriaPrimaController.class)
-                .listarAnaliseEstoque(null, null, null, null, null, null, null))
+                .listarAnaliseEstoque(null, null, null, null, null, null, null, null))
                 .withRel("analise-materias-primas"));
 
         return ResponseEntity.ok(rootModel);

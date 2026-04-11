@@ -78,7 +78,7 @@
               </div>
 
               <div class="dashboard-alert-item__bar">
-                <div class="dashboard-alert-item__bar-fill" [class.dashboard-alert-item__bar-fill--warning]="item.tone !== 'critical'" [style.width.%]="item.riskPercent"></div>
+                <div class="dashboard-alert-item__bar-overlay" [style.width.%]="100 - item.stockLevelPercent"></div>
               </div>
 
               <small>{{ item.helperText }}</small>
@@ -86,13 +86,13 @@
           }
         </div>
       } @else {
-        <div class="dashboard-empty-state" [class.dashboard-empty-state--positive]="materialEmptyState().tone === 'positive'">
+        <div class="dashboard-empty-state" [class.dashboard-empty-state--positive]="materialEmptyState.tone === 'positive'">
           <div class="dashboard-empty-state__icon">
-            <mat-icon>{{ materialEmptyState().tone === 'positive' ? 'check_circle' : 'inventory' }}</mat-icon>
+            <mat-icon>check_circle</mat-icon>
           </div>
 
           <div class="dashboard-empty-state__content">
-            <strong>{{ materialEmptyState().title }}</strong>
+            <strong>{{ materialEmptyState.title }}</strong>
           </div>
         </div>
       }
