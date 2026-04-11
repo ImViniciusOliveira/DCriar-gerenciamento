@@ -3,6 +3,17 @@
 
 .form-grid {
   @include fl.form-grid;
+  align-content: start;
+  row-gap: 0;
+  column-gap: 16px;
+}
+
+.form-grid__full-width {
+  @include fl.full-width;
+}
+
+.form-grid__bottom-field {
+  padding-bottom: 20px;
 }
 
 mat-form-field {
