@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, WritableSignal, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
@@ -270,7 +270,7 @@ export class ProductionForm implements OnInit {
   showConsumoInputs = computed(() => this.produto()?.tipoProduto === 'CONSUMO');
 
   // Signal reativo para o valor do controle de canal de venda
-  canalVendaIdValue;
+  canalVendaIdValue: WritableSignal<string | number | null>;
 
   // Propriedade computada para exibir o nome do canal selecionado.
   selectedChannelName;
@@ -312,7 +312,13 @@ export class ProductionForm implements OnInit {
     });
 
     // Inicializa o signal reativo após a criação do formulário
-    this.canalVendaIdValue = toSignal(this.canalVendaIdControl.valueChanges, { initialValue: '' });
+    this.canalVendaIdValue = signal(this.canalVendaIdControl.value);
+
+    this.canalVendaIdControl.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(value => {
+        this.canalVendaIdValue.set(value);
+      });
 
     // Inicializa o computed signal que depende do signal reativo
     this.selectedChannelName = computed(() => {
@@ -320,7 +326,7 @@ export class ProductionForm implements OnInit {
       if (channelId === '' || channelId === null) {
         return 'Nenhum';
       }
-      return this.channels().find(c => c.id === channelId)?.nome || 'Nenhum';
+      return this.channels().find(c => String(c.id) === String(channelId))?.nome || 'Nenhum';
     });
 
     // Monitora mudanças nos campos críticos para exigir nova verificação
@@ -429,6 +435,8 @@ export class ProductionForm implements OnInit {
       canalVendaId: order.canalVendaDestinoId ?? '',
       motivo: order.motivo ?? ''
     }, { emitEvent: false });
+
+    this.canalVendaIdValue.set(order.canalVendaDestinoId ?? '');
 
     this.automaticoDimensoes.set({
       largura: isAutomaticCutOrder ? (order.larguraBlocoProdutosCm ?? null) : null,
