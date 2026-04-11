@@ -1,0 +1,228 @@
+<div class="page-container dashboard-page">
+  <section class="dashboard-page__hero">
+    <article class="dashboard-card dashboard-card--sales">
+      <div class="dashboard-card__header">
+        <div class="dashboard-card__title">
+          <span class="dashboard-card__eyebrow">Análise de vendas</span>
+        </div>
+
+        <div class="dashboard-sales-controls">
+          <div class="dashboard-period-selector" role="tablist" aria-label="Período da análise de vendas">
+            @for (period of periodOptions; track period.key) {
+              <button
+                mat-stroked-button
+                type="button"
+                class="dashboard-period-selector__button"
+                [class.dashboard-period-selector__button--active]="isSelectedPeriod(period.key)"
+                (click)="setSelectedPeriod(period.key)">
+                {{ period.label }}
+              </button>
+            }
+          </div>
+
+          <button
+            mat-stroked-button
+            type="button"
+            class="dashboard-period-selector__button dashboard-period-selector__button--calendar"
+            [class.dashboard-period-selector__button--active]="isCustomRangeSelected() || customRangeOpen()"
+            (click)="toggleCustomRange()">
+            <mat-icon>calendar_month</mat-icon>
+            {{ customRangeLabel() }}
+          </button>
+        </div>
+      </div>
+
+      @if (customRangeOpen()) {
+        <div class="dashboard-custom-range">
+          <div class="dashboard-custom-range__fields">
+            <label class="dashboard-date-field">
+              <span>Data inicial</span>
+              <input
+                type="date"
+                [value]="customStartDate()"
+                (input)="setCustomStartDate($any($event.target).value)">
+            </label>
+
+            <label class="dashboard-date-field">
+              <span>Data final</span>
+              <input
+                type="date"
+                [value]="customEndDate()"
+                (input)="setCustomEndDate($any($event.target).value)">
+            </label>
+          </div>
+
+          <div class="dashboard-custom-range__footer">
+            <small>Escolha um intervalo de até 1 ano.</small>
+
+            <div class="dashboard-custom-range__actions">
+              <button mat-button type="button" (click)="clearCustomRange()">Limpar</button>
+              <button mat-raised-button color="primary" type="button" [disabled]="!customSalesSnapshot()" (click)="applyCustomRange()">
+                Aplicar período
+              </button>
+            </div>
+          </div>
+
+          @if (customRangeError()) {
+            <div class="dashboard-custom-range__error">{{ customRangeError() }}</div>
+          }
+        </div>
+      }
+
+      <div class="dashboard-kpi-grid">
+        @for (kpi of salesKpis(); track kpi.label) {
+          <div class="dashboard-kpi-card" [class.dashboard-kpi-card--text]="kpi.type === 'text'">
+            <span>{{ kpi.label }}</span>
+            <strong>
+              @if (kpi.type === 'currency') {
+                {{ kpi.value | currency:'BRL' }}
+              } @else if (kpi.type === 'text') {
+                {{ kpi.value }}
+              } @else {
+                {{ kpi.value | number:'1.0-0' }}
+              }
+            </strong>
+            <small>{{ kpi.helper }}</small>
+          </div>
+        }
+      </div>
+
+      <div class="dashboard-sales-grid">
+        <section class="dashboard-sales-chart">
+          <div class="dashboard-sales-chart__header">
+            <h4>{{ salesSnapshot().trendLabel }}</h4>
+
+            <div
+              class="dashboard-trend-badge"
+              [class.dashboard-trend-badge--negative]="!isPositiveDelta(salesSnapshot().comparisonDeltaPercent)">
+              <mat-icon>
+                {{ isPositiveDelta(salesSnapshot().comparisonDeltaPercent) ? 'trending_up' : 'trending_down' }}
+              </mat-icon>
+              {{ salesSnapshot().comparisonDeltaPercent | number:'1.1-1' }}%
+            </div>
+          </div>
+
+          <div class="dashboard-bars" [style.grid-template-columns]="chartGridTemplate()">
+            @for (point of salesSeries(); track point.label) {
+              <div
+                class="dashboard-bars__item"
+                [attr.title]="point.label + ' • ' + (point.revenue | currency:'BRL') + ' • ' + point.orderCount + ' vendas'">
+                <span class="dashboard-bars__value">{{ point.revenue | currency:'BRL':'symbol':'1.0-0' }}</span>
+                <div class="dashboard-bars__track">
+                  <div class="dashboard-bars__bar" [style.height.%]="point.revenuePercent"></div>
+                </div>
+                <span class="dashboard-bars__label">{{ point.label }}</span>
+                @if (point.helperLabel) {
+                  <span class="dashboard-bars__helper">{{ point.helperLabel }}</span>
+                }
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="dashboard-top-products">
+          <div class="dashboard-top-products__header">
+            <h4>Top 5 produtos vendidos</h4>
+            <a mat-button routerLink="/vendas">Ver vendas</a>
+          </div>
+
+          <div class="dashboard-top-products__list">
+            @for (product of salesSnapshot().topProducts; track product.productId) {
+              <div class="dashboard-top-products__item">
+                <div class="dashboard-top-products__rank">
+                  {{ $index + 1 }}
+                </div>
+
+                <div class="dashboard-top-products__content">
+                  <strong>{{ product.name }}</strong>
+                  <span>{{ product.sku }} • {{ product.unitsSold | number:'1.0-0' }} unidades</span>
+                </div>
+
+                <div class="dashboard-top-products__revenue">
+                  {{ product.revenue | currency:'BRL' }}
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+    </article>
+
+    <aside class="dashboard-card dashboard-card--operations">
+      <div class="dashboard-quick-actions">
+        <div class="dashboard-quick-actions__header">
+          <h4>Ações rápidas</h4>
+        </div>
+
+        <div class="dashboard-quick-actions__list">
+          @for (action of quickActions; track action.label) {
+            <a class="dashboard-quick-actions__item" [routerLink]="action.route">
+              <mat-icon>{{ action.icon }}</mat-icon>
+              <strong>{{ action.label }}</strong>
+            </a>
+          }
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="dashboard-page__alerts">
+    <article class="dashboard-card dashboard-card--alert">
+      <div class="dashboard-card__header dashboard-card__header--compact">
+        <div class="dashboard-card__title">
+          <span class="dashboard-card__eyebrow dashboard-card__eyebrow--warning">Saldo baixo</span>
+          <h3>Produtos com saldo baixo</h3>
+        </div>
+      </div>
+
+      <div class="dashboard-alert-list">
+        @for (item of productAlerts(); track item.id) {
+          <div class="dashboard-alert-item" [class.dashboard-alert-item--critical]="item.tone === 'critical'">
+            <div class="dashboard-alert-item__summary">
+              <div>
+                <strong>{{ item.name }}</strong>
+                <span>Atual: {{ item.currentAmount | number:'1.0-0' }} {{ item.unitLabel }} / Mínimo: {{ item.minimumAmount | number:'1.0-0' }} {{ item.unitLabel }}</span>
+              </div>
+              <a mat-button [routerLink]="item.route">{{ item.actionLabel }}</a>
+            </div>
+
+            <div class="dashboard-alert-item__bar">
+              <div class="dashboard-alert-item__bar-fill" [style.width.%]="item.progressPercent"></div>
+            </div>
+
+            <small>Faltam {{ item.shortageAmount | number:'1.0-0' }} {{ item.unitLabel }} para voltar ao mínimo.</small>
+          </div>
+        }
+      </div>
+    </article>
+
+    <article class="dashboard-card dashboard-card--alert">
+      <div class="dashboard-card__header dashboard-card__header--compact">
+        <div class="dashboard-card__title">
+          <span class="dashboard-card__eyebrow dashboard-card__eyebrow--warning">Estoque baixo</span>
+          <h3>Matérias-primas com estoque baixo</h3>
+        </div>
+      </div>
+
+      <div class="dashboard-alert-list">
+        @for (item of materialAlerts(); track item.id) {
+          <div class="dashboard-alert-item" [class.dashboard-alert-item--critical]="item.tone === 'critical'">
+            <div class="dashboard-alert-item__summary">
+              <div>
+                <strong>{{ item.name }}</strong>
+                <span>Saldo: {{ item.currentAmount | number:'1.0-0' }} {{ item.unitLabel }} / Mínimo: {{ item.minimumAmount | number:'1.0-0' }} {{ item.unitLabel }}</span>
+              </div>
+              <a mat-button [routerLink]="item.route">{{ item.actionLabel }}</a>
+            </div>
+
+            <div class="dashboard-alert-item__bar">
+              <div class="dashboard-alert-item__bar-fill" [style.width.%]="item.progressPercent"></div>
+            </div>
+
+            <small>Déficit atual de {{ item.shortageAmount | number:'1.0-0' }} {{ item.unitLabel }}.</small>
+          </div>
+        }
+      </div>
+    </article>
+  </section>
+</div>

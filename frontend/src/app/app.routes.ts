@@ -15,6 +15,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'teste-dashboard',
+    title: 'D-Criar | Teste Dashboard',
+    loadComponent: () =>
+      import('./features/dashboard/test-dashboard-page/test-dashboard-page').then(
+        (m) => m.TestDashboardPage
+      ),
+  },
+  {
     path: 'produtos',
     title: 'D-Criar | Produtos',
     loadComponent: () =>
