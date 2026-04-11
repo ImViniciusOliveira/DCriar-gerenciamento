@@ -9,9 +9,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { lastValueFrom } from 'rxjs';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, switchMap } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 import { Batch, BatchRequest } from '../../models/batch.model';
-import { MaterialType } from '../../models/material-type.model';
+import { MaterialType, MaterialTypeRequest } from '../../models/material-type.model';
 import { BatchService } from '../../services/batch.service';
 import { MaterialTypeService } from '../../services/material-type.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
@@ -77,6 +78,8 @@ export class BatchForm implements OnInit {
     quantidadeInicial: 'quantidadeInicial',
     custoTotalLote: 'custoTotalLote',
     motivo: 'motivo',
+    estoqueCritico: 'estoqueCritico',
+    estoqueAceitavel: 'estoqueAceitavel',
     atributos: 'larguraMm',
     larguraMm: 'larguraMm',
     'atributos.larguraMm': 'larguraMm'
@@ -142,6 +145,8 @@ export class BatchForm implements OnInit {
       unidadeDeEstoque: [{ value: null, disabled: true }, Validators.required],
       quantidadeInicial: [{ value: this.data.template?.saldoEstoque || '', disabled: this.isEditMode() }, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
+      estoqueCritico: ['', [Validators.min(0), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
+      estoqueAceitavel: ['', [Validators.min(0), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       motivo: [this.data.template?.motivo || '', [Validators.required, Validators.maxLength(100)]],
       larguraMm: [null],
       atributos: this.fb.array([])
@@ -232,6 +237,8 @@ export class BatchForm implements OnInit {
           this.form.patchValue({
             materiaPrima: mt,
             unidadeDeEstoque: unidadeApresentacao,
+            estoqueCritico: this.formatDecimal(mt.estoqueCritico),
+            estoqueAceitavel: this.formatDecimal(mt.estoqueAceitavel),
             motivo: fullBatch.motivo,
             custoTotalLote: fullBatch.custoTotalLote
           });
@@ -315,7 +322,9 @@ export class BatchForm implements OnInit {
     this.materialType.set(materialType);
     this.form.patchValue({
       materiaPrima: materialType,
-      unidadeDeEstoque: materialType.unidadeDeConsumo
+      unidadeDeEstoque: materialType.unidadeDeConsumo,
+      estoqueCritico: this.formatDecimal(materialType.estoqueCritico),
+      estoqueAceitavel: this.formatDecimal(materialType.estoqueAceitavel)
     });
     this.syncStockUnitControlState();
   }
@@ -407,6 +416,7 @@ export class BatchForm implements OnInit {
 
     const formValue = this.form.getRawValue();
     const materialType: MaterialType = formValue.materiaPrima;
+    const materialTypeThresholdRequest = this.buildMaterialTypeThresholdRequest(materialType, formValue);
 
     const attributesMap: { [key: string]: any } = {};
     (formValue.atributos || []).forEach((attr: { chave: string; valor: string }) => {
@@ -443,14 +453,32 @@ export class BatchForm implements OnInit {
     }
     request.atributos = atributosParaEnviar;
 
-    if (this.isEditMode() && this.isNoOpUpdate(request as BatchRequest)) {
+    const hasBatchChanges = !this.isEditMode() || !this.isNoOpUpdate(request as BatchRequest);
+    const hasMaterialTypeChanges = materialTypeThresholdRequest !== null;
+
+    if (!hasBatchChanges && !hasMaterialTypeChanges) {
       this.entityDialog.showInfoSnackbar(BatchForm.Texts.NO_CHANGES);
       return;
     }
 
-    const operation = this.isEditMode()
-      ? this.batchService.update(this.data.template._links!['update']!.href, request as BatchRequest)
-      : this.batchService.create(request as BatchRequest);
+    if (hasMaterialTypeChanges && !materialType._links?.['update']?.href) {
+      this.entityDialog.showErrorSnackbar('Não foi possível atualizar a faixa de estoque da matéria-prima selecionada.');
+      return;
+    }
+
+    const batchOperation = hasBatchChanges
+      ? (this.isEditMode()
+        ? this.batchService.update(this.data.template._links!['update']!.href, request as BatchRequest)
+        : this.batchService.create(request as BatchRequest))
+      : of(null);
+
+    const operation = hasMaterialTypeChanges
+      ? this.materialTypeService.update(
+          materialType._links!['update']!.href,
+          materialTypeThresholdRequest!,
+          true
+        ).pipe(switchMap(() => batchOperation))
+      : batchOperation;
 
     operation.subscribe({
       next: () => {
@@ -479,6 +507,37 @@ export class BatchForm implements OnInit {
     const normalized = String(value ?? '0').trim().replace(',', '.');
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private formatDecimal(value: number | null | undefined): string {
+    return value == null ? '' : String(value).replace('.', ',');
+  }
+
+  private buildMaterialTypeThresholdRequest(
+    materialType: MaterialType | null | undefined,
+    formValue: Record<string, unknown>
+  ): Partial<MaterialTypeRequest> | null {
+    if (!materialType) {
+      return null;
+    }
+
+    const estoqueCritico = this.parseNullableDecimal(formValue['estoqueCritico']);
+    const estoqueAceitavel = this.parseNullableDecimal(formValue['estoqueAceitavel']);
+
+    if (this.sameNumericValue(materialType.estoqueCritico, estoqueCritico)
+      && this.sameNumericValue(materialType.estoqueAceitavel, estoqueAceitavel)) {
+      return null;
+    }
+
+    return {
+      estoqueCritico,
+      estoqueAceitavel
+    };
+  }
+
+  private parseNullableDecimal(value: unknown): number | null {
+    const normalized = String(value ?? '').trim();
+    return normalized ? this.parseDecimal(normalized) : null;
   }
 
   private isNoOpUpdate(request: BatchRequest): boolean {

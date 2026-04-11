@@ -161,7 +161,7 @@ export class MaterialTypeList extends BaseList<MaterialType> implements AfterVie
       component: MaterialTypeForm,
       formData: dialogData,
       title: dialogData.title,
-      width: '500px'
+      width: '640px'
     }).subscribe(saved => {
       if (saved) {
         this.entityDialog.showSuccessSnackbar(successMessage);

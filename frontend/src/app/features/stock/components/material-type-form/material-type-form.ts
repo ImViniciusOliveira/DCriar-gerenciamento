@@ -19,6 +19,7 @@ import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/f
 import { applyApiFieldErrors, clearApiFieldErrors } from '../../../../shared/utils/api-errors';
 import { clearControlError } from '../../../../shared/utils/control-errors';
 import { stockApiErrorOptions } from '../../utils/stock-api-errors';
+import { POSITIVE_DECIMAL_4_PATTERN } from '../../../../shared/utils/number-patterns';
 
 export interface MaterialTypeFormData {
   template: MaterialType;
@@ -43,6 +44,19 @@ export function requireMatch(options: UnitOption[]): ValidatorFn {
   };
 }
 
+function maxIntegerDigits(maxDigits: number): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    if (!control.value) {
+      return null;
+    }
+
+    const integerPart = String(control.value).split(/[.,]/)[0].replace(/^-/, '');
+    return integerPart.length > maxDigits
+      ? { maxIntegerDigits: { requiredDigits: maxDigits, actualDigits: integerPart.length } }
+      : null;
+  };
+}
+
 /**
  * Formulário para criação e edição de Tipos de Matéria-Prima.
  * Utiliza uma arquitetura reativa com Signals para gerenciar o estado do autocomplete.
@@ -62,7 +76,9 @@ export class MaterialTypeForm implements OnInit {
   private static readonly NO_CHANGES_MESSAGE = 'Nenhuma alteração detectada.';
   private static readonly BACKEND_FIELD_MAP: Record<string, string> = {
     nome: 'nome',
-    unidadeDeConsumo: 'unidadeDeConsumo'
+    unidadeDeConsumo: 'unidadeDeConsumo',
+    estoqueCritico: 'estoqueCritico',
+    estoqueAceitavel: 'estoqueAceitavel'
   };
 
   private static readonly BACKEND_ERROR_FIELDS = Object.values(MaterialTypeForm.BACKEND_FIELD_MAP);
@@ -107,7 +123,15 @@ export class MaterialTypeForm implements OnInit {
 
     this.form = this.fb.group({
       nome: [this.data.template?.nome || '', [Validators.required, Validators.maxLength(150)]],
-      unidadeDeConsumo: ['', [Validators.required]]
+      unidadeDeConsumo: ['', [Validators.required]],
+      estoqueCritico: [
+        this.formatDecimal(this.data.template?.estoqueCritico),
+        [Validators.min(0), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]
+      ],
+      estoqueAceitavel: [
+        this.formatDecimal(this.data.template?.estoqueAceitavel),
+        [Validators.min(0), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]
+      ]
     });
 
     if (this.isEditMode()) {
@@ -143,7 +167,9 @@ export class MaterialTypeForm implements OnInit {
         const fullMaterialType = await lastValueFrom(this.materialTypeService.findById(this.currentMaterialType().id));
         this.currentMaterialType.set(fullMaterialType);
         this.form.patchValue({
-          nome: fullMaterialType.nome
+          nome: fullMaterialType.nome,
+          estoqueCritico: this.formatDecimal(fullMaterialType.estoqueCritico),
+          estoqueAceitavel: this.formatDecimal(fullMaterialType.estoqueAceitavel)
         }, { emitEvent: false });
       }
 
@@ -228,7 +254,9 @@ export class MaterialTypeForm implements OnInit {
       ? formValue.unidadeDeConsumo
       : formValue.unidadeDeConsumo?.name;
     const request: Partial<MaterialTypeRequest> = {
-      nome: String(formValue.nome ?? '').trim()
+      nome: String(formValue.nome ?? '').trim(),
+      estoqueCritico: this.parseDecimal(formValue.estoqueCritico),
+      estoqueAceitavel: this.parseDecimal(formValue.estoqueAceitavel)
     };
 
     if (!this.isEditMode() || !this.isFieldLocked('unidadeDeConsumo')) {
@@ -283,11 +311,27 @@ export class MaterialTypeForm implements OnInit {
       && (
         request.unidadeDeConsumo == null
         || String(currentMaterialType.unidadeDeConsumo ?? '') === String(request.unidadeDeConsumo ?? '')
-      );
+      )
+      && this.normalizeDecimal(currentMaterialType.estoqueCritico) === this.normalizeDecimal(request.estoqueCritico)
+      && this.normalizeDecimal(currentMaterialType.estoqueAceitavel) === this.normalizeDecimal(request.estoqueAceitavel);
   }
 
   private normalizeText(value: unknown): string | null {
     const normalized = String(value ?? '').trim();
+    return normalized ? normalized : null;
+  }
+
+  private formatDecimal(value: number | null | undefined): string {
+    return value == null ? '' : String(value).replace('.', ',');
+  }
+
+  private parseDecimal(value: unknown): number | null {
+    const normalized = this.normalizeDecimal(value);
+    return normalized == null ? null : Number(normalized);
+  }
+
+  private normalizeDecimal(value: unknown): string | null {
+    const normalized = String(value ?? '').trim().replace(',', '.');
     return normalized ? normalized : null;
   }
 }

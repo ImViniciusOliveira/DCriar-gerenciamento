@@ -192,7 +192,7 @@ export class MaterialTypeService {
    * @param request O payload com as alterações.
    * @param skipRefresh Se true, não dispara a atualização da lista.
    */
-  update(url: string, request: MaterialTypeRequest, skipRefresh = false): Observable<MaterialType> {
+  update(url: string, request: Partial<MaterialTypeRequest>, skipRefresh = false): Observable<MaterialType> {
     return this.http.patch<MaterialType>(this.normalizeUrl(url), request).pipe(
       tap(() => { if (!skipRefresh) this.refreshTrigger.set(undefined); })
     );

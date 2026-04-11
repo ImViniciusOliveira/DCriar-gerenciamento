@@ -1,5 +1,9 @@
-@use '../../../../shared/styles/form-layout';
+@use '../../../../shared/styles/form-layout' as fl;
 @use '../../../../shared/styles/validation-state' as vs;
+
+.form-grid {
+  @include fl.form-grid;
+}
 
 mat-form-field {
   width: 100%;

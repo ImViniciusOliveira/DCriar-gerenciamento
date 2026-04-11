@@ -10,6 +10,8 @@ export interface MaterialType extends FieldLockMetadata {
   nome: string;
   unidadeDeConsumo: string;
   unidadeDescricao?: string;
+  estoqueCritico?: number | null;
+  estoqueAceitavel?: number | null;
   dataCriacao?: string;
   dataAtualizacao?: string;
   _links?: Hateoas['_links'];
@@ -21,7 +23,9 @@ export interface MaterialType extends FieldLockMetadata {
  */
 export interface MaterialTypeRequest {
   nome: string;
-  unidadeDeConsumo: string;
+  unidadeDeConsumo?: string;
+  estoqueCritico?: number | null;
+  estoqueAceitavel?: number | null;
 }
 
 /**

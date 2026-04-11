@@ -22,6 +22,50 @@
         </div>
 
         <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Estoque Crítico</mat-label>
+            <input
+              matInput
+              type="text"
+              inputmode="decimal"
+              formControlName="estoqueCritico"
+              [errorStateMatcher]="matcher"
+              placeholder="Ex: 25">
+            <mat-hint>Quando esta matéria-prima entra em alerta.</mat-hint>
+            @if (form.get('estoqueCritico')?.hasError('min')) {
+              <mat-error>O valor não pode ser negativo.</mat-error>
+            } @else if (form.get('estoqueCritico')?.hasError('pattern')) {
+              <mat-error>Use até 4 casas decimais.</mat-error>
+            } @else if (form.get('estoqueCritico')?.hasError('maxIntegerDigits')) {
+              <mat-error>Máximo de 15 dígitos.</mat-error>
+            } @else if (form.get('estoqueCritico')?.hasError('backend')) {
+              <mat-error>{{ form.get('estoqueCritico')?.getError('backend') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Estoque Aceitável</mat-label>
+            <input
+              matInput
+              type="text"
+              inputmode="decimal"
+              formControlName="estoqueAceitavel"
+              [errorStateMatcher]="matcher"
+              placeholder="Ex: 100">
+            <mat-hint>Faixa saudável acima do alerta.</mat-hint>
+            @if (form.get('estoqueAceitavel')?.hasError('min')) {
+              <mat-error>O valor não pode ser negativo.</mat-error>
+            } @else if (form.get('estoqueAceitavel')?.hasError('pattern')) {
+              <mat-error>Use até 4 casas decimais.</mat-error>
+            } @else if (form.get('estoqueAceitavel')?.hasError('maxIntegerDigits')) {
+              <mat-error>Máximo de 15 dígitos.</mat-error>
+            } @else if (form.get('estoqueAceitavel')?.hasError('backend')) {
+              <mat-error>{{ form.get('estoqueAceitavel')?.getError('backend') }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
           <!-- Unidade de Estoque -->
           <mat-form-field appearance="outline">
             <mat-label>Unidade de Estoque</mat-label>
