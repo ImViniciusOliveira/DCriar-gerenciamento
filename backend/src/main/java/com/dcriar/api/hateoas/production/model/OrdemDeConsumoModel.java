@@ -33,8 +33,14 @@ public class OrdemDeConsumoModel extends RepresentationModel<OrdemDeConsumoModel
     @Schema(description = "Nome do produto final fabricado.")
     private String nomeProduto;
 
+    @Schema(description = "Tipo do produto fabricado.")
+    private String tipoProduto;
+
     @Schema(description = "Lista de IDs dos lotes de matéria-prima consumidos.")
     private List<Long> lotesConsumidosIds;
+
+    @Schema(description = "ID do canal de venda para o qual o estoque produzido foi destinado.", nullable = true)
+    private Long canalVendaDestinoId;
 
     @Schema(description = "Quantidade de unidades do produto que foram produzidas.")
     private Integer quantidadeProduzida;
