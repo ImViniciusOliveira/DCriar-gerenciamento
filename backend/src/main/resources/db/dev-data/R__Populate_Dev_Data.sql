@@ -16,19 +16,19 @@ TRUNCATE TABLE
 -- Estas são as tabelas base do sistema.
 
 -- Inserção de Tipos de Matérias-Primas
-INSERT INTO tipos_materia_prima (nome, unidade_de_consumo, data_criacao, data_atualizacao) VALUES
-    ('Papel Couchê 300g', 'METRO_QUADRADO', NOW(), NOW()),
-    ('Lona Fosca 440g', 'METRO_QUADRADO', NOW(), NOW()),
-    ('Adesivo Vinil Branco', 'METRO_QUADRADO', NOW(), NOW()),
-    ('Adesivo BOPP Transparente', 'METRO_QUADRADO', NOW(), NOW()),
-    ('Papel Kraft 180g', 'METRO_QUADRADO', NOW(), NOW()),
-    ('Tinta Eco-Solvente Preta', 'LITRO', NOW(), NOW()),
-    ('Fita Dupla Face 25mm', 'METRO_LINEAR', NOW(), NOW()),
-    ('Ilhós de Latão #0', 'UNIDADE', NOW(), NOW()),
-    ('Resina Epóxi Transparente', 'QUILOGRAMA', NOW(), NOW()),
-    ('Pó Adesivo Termocolante', 'GRAMA', NOW(), NOW()),
-    ('Verniz UV Brilhante', 'MILILITRO', NOW(), NOW()),
-    ('Papel Seda Branco A4', 'FOLHA', NOW(), NOW());
+INSERT INTO tipos_materia_prima (nome, unidade_de_consumo, estoque_critico, data_criacao, data_atualizacao) VALUES
+    ('Papel Couchê 300g', 'METRO_QUADRADO', 80.0000, NOW(), NOW()),
+    ('Lona Fosca 440g', 'METRO_QUADRADO', 30.0000, NOW(), NOW()),
+    ('Adesivo Vinil Branco', 'METRO_QUADRADO', 40.0000, NOW(), NOW()),
+    ('Adesivo BOPP Transparente', 'METRO_QUADRADO', 120.0000, NOW(), NOW()),
+    ('Papel Kraft 180g', 'METRO_QUADRADO', 35.0000, NOW(), NOW()),
+    ('Tinta Eco-Solvente Preta', 'LITRO', 2.0000, NOW(), NOW()),
+    ('Fita Dupla Face 25mm', 'METRO_LINEAR', 15.0000, NOW(), NOW()),
+    ('Ilhós de Latão #0', 'UNIDADE', 200.0000, NOW(), NOW()),
+    ('Resina Epóxi Transparente', 'QUILOGRAMA', 8.0000, NOW(), NOW()),
+    ('Pó Adesivo Termocolante', 'GRAMA', 5000.0000, NOW(), NOW()),
+    ('Verniz UV Brilhante', 'MILILITRO', 2500.0000, NOW(), NOW()),
+    ('Papel Seda Branco A4', 'FOLHA', 800.0000, NOW(), NOW());
 
 -- Inserção de Canais de Venda
 INSERT INTO canais_venda (nome, data_criacao, data_atualizacao) VALUES

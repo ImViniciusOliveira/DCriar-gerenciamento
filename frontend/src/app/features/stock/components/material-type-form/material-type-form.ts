@@ -153,7 +153,7 @@ export class MaterialTypeForm implements OnInit {
       unidadeDeConsumo: ['', [Validators.required]],
       estoqueCritico: [
         this.formatDecimal(this.data.template?.estoqueCritico),
-        [positiveDecimalValidator, maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]
+        [Validators.required, positiveDecimalValidator, maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]
       ]
     });
 

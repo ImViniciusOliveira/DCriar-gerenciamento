@@ -31,11 +31,16 @@
               formControlName="estoqueCritico"
               [errorStateMatcher]="matcher"
               placeholder="Ex: 25">
+            @if (getCriticalStockUnitSuffix()) {
+              <span matTextSuffix>&nbsp;{{ getCriticalStockUnitSuffix() }}</span>
+            }
             <mat-hint>Quando esta matéria-prima entra em alerta.</mat-hint>
-            @if (form.get('estoqueCritico')?.hasError('min')) {
+            @if (form.get('estoqueCritico')?.hasError('required')) {
+              <mat-error>O campo é obrigatório.</mat-error>
+            } @else if (form.get('estoqueCritico')?.hasError('min')) {
               <mat-error>O valor não pode ser negativo.</mat-error>
             } @else if (form.get('estoqueCritico')?.hasError('pattern')) {
-              <mat-error>Use até 4 casas decimais.</mat-error>
+              <mat-error>Use apenas números positivos, com até 4 casas decimais.</mat-error>
             } @else if (form.get('estoqueCritico')?.hasError('maxIntegerDigits')) {
               <mat-error>Máximo de 15 dígitos.</mat-error>
             } @else if (form.get('estoqueCritico')?.hasError('backend')) {

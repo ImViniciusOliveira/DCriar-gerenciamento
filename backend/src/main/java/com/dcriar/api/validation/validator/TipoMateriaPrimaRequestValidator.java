@@ -27,6 +27,7 @@ public class TipoMateriaPrimaRequestValidator extends BaseValidator<ValidTipoMat
         addViolationIf(dto.getUnidadeDeConsumo() == null, "A unidade de consumo é obrigatória.", "unidadeDeConsumo");
 
         BigDecimal estoqueCritico = dto.getEstoqueCritico();
+        addViolationIf(estoqueCritico == null, "O estoque crítico é obrigatório.", "estoqueCritico");
         addViolationIf(estoqueCritico != null && estoqueCritico.compareTo(BigDecimal.ZERO) < 0,
                 "O estoque crítico não pode ser negativo.", "estoqueCritico");
     }

@@ -62,10 +62,12 @@
           <span matTextSuffix>&nbsp;{{ stockThresholdUnitSuffix() }}</span>
         }
         <mat-hint>Quando a matéria-prima entra em alerta.</mat-hint>
-        @if (form.get('estoqueCritico')?.hasError('positiveDecimal')) {
-          <mat-error>Informe um número positivo com até 4 casas decimais.</mat-error>
+        @if (form.get('estoqueCritico')?.hasError('required')) {
+          <mat-error>O campo é obrigatório.</mat-error>
+        } @else if (form.get('estoqueCritico')?.hasError('positiveDecimal')) {
+          <mat-error>Use apenas números positivos, com até 4 casas decimais.</mat-error>
         } @else if (form.get('estoqueCritico')?.hasError('pattern')) {
-          <mat-error>Informe um número positivo com até 4 casas decimais.</mat-error>
+          <mat-error>Use apenas números positivos, com até 4 casas decimais.</mat-error>
         } @else if (form.get('estoqueCritico')?.hasError('maxIntegerDigits')) {
           <mat-error>Máximo de 15 dígitos.</mat-error>
         } @else if (form.get('estoqueCritico')?.hasError('backend')) {

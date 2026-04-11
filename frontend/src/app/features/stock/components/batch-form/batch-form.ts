@@ -144,7 +144,7 @@ export class BatchForm implements OnInit {
       unidadeDeEstoque: [{ value: null, disabled: true }, Validators.required],
       quantidadeInicial: [{ value: this.data.template?.saldoEstoque || '', disabled: this.isEditMode() }, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
-      estoqueCritico: ['', [Validators.min(0), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
+      estoqueCritico: ['', [Validators.required, Validators.min(0), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       motivo: [this.data.template?.motivo || '', [Validators.required, Validators.maxLength(100)]],
       larguraMm: [null],
       atributos: this.fb.array([])
@@ -280,6 +280,16 @@ export class BatchForm implements OnInit {
 
     const option = this.stockUnitOptions().find(unit => unit.value === selectedUnit);
     return option?.simbolo || option?.viewValue || selectedUnit;
+  }
+
+  protected getCriticalStockUnitSuffix(): string {
+    const consumptionUnit = this.materialType()?.unidadeDeConsumo;
+    if (!consumptionUnit) {
+      return '';
+    }
+
+    const option = this.allMeasurementUnits().find(unit => unit.value === consumptionUnit);
+    return option?.simbolo || option?.viewValue || consumptionUnit;
   }
 
   get attributes(): FormArray {
