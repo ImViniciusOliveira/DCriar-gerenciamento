@@ -57,12 +57,9 @@ public class AnaliseEstoqueMateriaPrimaResponseDTO {
     @Schema(description = "Limite crítico configurado para o tipo, na unidade principal.", example = "30.0000")
     private BigDecimal estoqueCritico;
 
-    @Schema(description = "Limite aceitável configurado para o tipo, na unidade principal.", example = "80.0000")
-    private BigDecimal estoqueAceitavel;
-
-    @Schema(description = "Percentual de risco operacional entre a faixa aceitável e a crítica. 0 significa saudável e 100 significa crítico.", example = "41.25")
+    @Schema(description = "Percentual de risco operacional com base no limite crítico. 0 significa saudável e 100 significa saldo zerado.", example = "41.25")
     private BigDecimal percentualRisco;
 
-    @Schema(description = "Status operacional calculado para a matéria-prima.", example = "ATENCAO")
+    @Schema(description = "Status operacional calculado para a matéria-prima.", example = "CRITICO")
     private StatusAnaliseMateriaPrima statusAnalise;
 }

@@ -121,8 +121,7 @@ public class GlobalExceptionHandler {
             IncompatibilidadeMaterialException.class, QuantidadeExcedeCapacidadeLoteException.class,
             UnidadeCadastroConsumoInvalidaException.class, UnidadeEstoqueLoteInvalidaException.class,
             UnidadeEstoqueCorteInvalidaException.class, LogicalMapKeyInvalidaException.class,
-            OperacaoNaoSuportadaException.class, OrdenacaoInvalidaException.class,
-            FaixaEstoqueMateriaPrimaInvalidaException.class
+            OperacaoNaoSuportadaException.class, OrdenacaoInvalidaException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
         Map<String, String> details = new LinkedHashMap<>();
@@ -136,16 +135,6 @@ public class GlobalExceptionHandler {
             case OperadorEstoqueInvalidoException e -> {
                 details.put("operadorFornecido", e.getOperadorFornecido());
                 details.put("operadoresValidos", "GTE (≥), LTE (≤)");
-            }
-            case FaixaEstoqueMateriaPrimaInvalidaException e -> {
-                details.put("campo", e.getDetalhe());
-                details.put("campoLabel", ApiFieldLabels.resolve(e.getDetalhe()));
-                if (e.getEstoqueCritico() != null) {
-                    details.put("estoqueCritico", e.getEstoqueCritico().stripTrailingZeros().toPlainString());
-                }
-                if (e.getEstoqueAceitavel() != null) {
-                    details.put("estoqueAceitavel", e.getEstoqueAceitavel().stripTrailingZeros().toPlainString());
-                }
             }
             case PrecoComercialNaoDefinidoException e -> {
                 details.put("codigo", "PRECO_COMERCIAL_NAO_DEFINIDO");

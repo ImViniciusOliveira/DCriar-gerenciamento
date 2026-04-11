@@ -41,7 +41,6 @@ public class AnaliseEstoqueMateriaPrimaModelAssembler extends RepresentationMode
                 .quantidadeLotesPrincipais(dto.getQuantidadeLotesPrincipais())
                 .quantidadeRetalhos(dto.getQuantidadeRetalhos())
                 .estoqueCritico(dto.getEstoqueCritico())
-                .estoqueAceitavel(dto.getEstoqueAceitavel())
                 .percentualRisco(dto.getPercentualRisco())
                 .statusAnalise(dto.getStatusAnalise())
                 .build();

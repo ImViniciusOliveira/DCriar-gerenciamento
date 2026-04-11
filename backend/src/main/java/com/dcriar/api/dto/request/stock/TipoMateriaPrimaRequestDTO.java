@@ -39,7 +39,4 @@ public class TipoMateriaPrimaRequestDTO {
 
     @Schema(description = "Quantidade mínima crítica para análise de estoque consolidado, na unidade principal do tipo.", example = "10.0000")
     private BigDecimal estoqueCritico;
-
-    @Schema(description = "Quantidade considerada aceitável para análise de estoque consolidado, na unidade principal do tipo.", example = "50.0000")
-    private BigDecimal estoqueAceitavel;
 }

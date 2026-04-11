@@ -79,7 +79,6 @@ export class BatchForm implements OnInit {
     custoTotalLote: 'custoTotalLote',
     motivo: 'motivo',
     estoqueCritico: 'estoqueCritico',
-    estoqueAceitavel: 'estoqueAceitavel',
     atributos: 'larguraMm',
     larguraMm: 'larguraMm',
     'atributos.larguraMm': 'larguraMm'
@@ -146,7 +145,6 @@ export class BatchForm implements OnInit {
       quantidadeInicial: [{ value: this.data.template?.saldoEstoque || '', disabled: this.isEditMode() }, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       custoTotalLote: [this.data.template?.custoTotalLote || '', [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       estoqueCritico: ['', [Validators.min(0), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
-      estoqueAceitavel: ['', [Validators.min(0), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       motivo: [this.data.template?.motivo || '', [Validators.required, Validators.maxLength(100)]],
       larguraMm: [null],
       atributos: this.fb.array([])
@@ -238,7 +236,6 @@ export class BatchForm implements OnInit {
             materiaPrima: mt,
             unidadeDeEstoque: unidadeApresentacao,
             estoqueCritico: this.formatDecimal(mt.estoqueCritico),
-            estoqueAceitavel: this.formatDecimal(mt.estoqueAceitavel),
             motivo: fullBatch.motivo,
             custoTotalLote: fullBatch.custoTotalLote
           });
@@ -323,8 +320,7 @@ export class BatchForm implements OnInit {
     this.form.patchValue({
       materiaPrima: materialType,
       unidadeDeEstoque: materialType.unidadeDeConsumo,
-      estoqueCritico: this.formatDecimal(materialType.estoqueCritico),
-      estoqueAceitavel: this.formatDecimal(materialType.estoqueAceitavel)
+      estoqueCritico: this.formatDecimal(materialType.estoqueCritico)
     });
     this.syncStockUnitControlState();
   }
@@ -522,16 +518,13 @@ export class BatchForm implements OnInit {
     }
 
     const estoqueCritico = this.parseNullableDecimal(formValue['estoqueCritico']);
-    const estoqueAceitavel = this.parseNullableDecimal(formValue['estoqueAceitavel']);
 
-    if (this.sameNumericValue(materialType.estoqueCritico, estoqueCritico)
-      && this.sameNumericValue(materialType.estoqueAceitavel, estoqueAceitavel)) {
+    if (this.sameNumericValue(materialType.estoqueCritico, estoqueCritico)) {
       return null;
     }
 
     return {
-      estoqueCritico,
-      estoqueAceitavel
+      estoqueCritico
     };
   }
 

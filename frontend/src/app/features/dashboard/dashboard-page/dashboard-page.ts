@@ -65,7 +65,7 @@ export class DashboardPage {
 
   protected readonly materialAlerts = computed<DashboardMaterialAlertItem[]>(() =>
     this.materialStockAnalysisResult()
-      .filter(item => item.statusAnalise === 'CRITICO' || item.statusAnalise === 'ATENCAO')
+      .filter(item => item.statusAnalise === 'CRITICO')
       .sort((left, right) => (right.percentualRisco ?? 0) - (left.percentualRisco ?? 0))
       .slice(0, 4)
       .map(item => this.toMaterialAlertItem(item))
@@ -102,10 +102,10 @@ export class DashboardPage {
       riskPercent,
       helperText: shortageAmount > 0
         ? `Faltam ${shortageAmount.toFixed(0)} ${unitLabel} para sair da faixa crítica.`
-        : 'Saldo em atenção. Avalie reposição preventiva.',
+        : 'Saldo no limite crítico. Avalie reposição imediata.',
       actionLabel: 'Adicionar lote de matéria-prima',
       route: '/lotes-materia-prima',
-      tone: item.statusAnalise === 'CRITICO' ? 'critical' : 'warning'
+      tone: 'critical'
     };
   }
 }

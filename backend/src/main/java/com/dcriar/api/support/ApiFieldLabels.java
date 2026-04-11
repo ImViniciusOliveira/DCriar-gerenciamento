@@ -69,7 +69,6 @@ public final class ApiFieldLabels {
             Map.entry("valorAtualLote", "valor atual do lote"),
             Map.entry("custoUnitarioAtual", "custo unitário atual"),
             Map.entry("estoqueCritico", "estoque crítico"),
-            Map.entry("estoqueAceitavel", "estoque aceitável"),
             Map.entry("faixaEstoque", "faixa de estoque"),
             Map.entry("politicaSaldoRetalho", "política de saldo de retalhos"),
             Map.entry("estoqueFisicoTotal", "estoque físico"),

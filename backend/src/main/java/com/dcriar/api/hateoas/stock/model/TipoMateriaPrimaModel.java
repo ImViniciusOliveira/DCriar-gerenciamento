@@ -42,9 +42,6 @@ public class TipoMateriaPrimaModel extends RepresentationModel<TipoMateriaPrimaM
     @Schema(description = "Quantidade mínima crítica para análise consolidada de estoque.", example = "10.0000")
     private BigDecimal estoqueCritico;
 
-    @Schema(description = "Quantidade considerada aceitável para análise consolidada de estoque.", example = "50.0000")
-    private BigDecimal estoqueAceitavel;
-
     @Schema(description = "Data e hora de criação do tipo de matéria-prima.")
     private LocalDateTime dataCriacao;
 

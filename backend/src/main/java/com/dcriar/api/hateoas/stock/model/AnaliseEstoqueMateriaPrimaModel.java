@@ -34,8 +34,7 @@ public class AnaliseEstoqueMateriaPrimaModel extends RepresentationModel<Analise
     private long quantidadeLotesPrincipais;
     private long quantidadeRetalhos;
     private BigDecimal estoqueCritico;
-    private BigDecimal estoqueAceitavel;
-    @Schema(description = "Percentual de risco operacional entre a faixa aceitável e a crítica.", example = "41.25")
+    @Schema(description = "Percentual de risco operacional com base no limite crítico.", example = "41.25")
     private BigDecimal percentualRisco;
     private StatusAnaliseMateriaPrima statusAnalise;
 }

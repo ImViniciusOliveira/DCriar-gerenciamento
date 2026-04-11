@@ -110,8 +110,7 @@ public class EstoqueMateriaPrimaAnaliseServiceImpl implements EstoqueMateriaPrim
         };
 
         BigDecimal estoqueCritico = scale(tipo.getEstoqueCritico());
-        BigDecimal estoqueAceitavel = scale(tipo.getEstoqueAceitavel());
-        StatusAnaliseMateriaPrima statusAnalise = resolverStatusAnalise(saldoConsiderado, estoqueCritico, estoqueAceitavel);
+        StatusAnaliseMateriaPrima statusAnalise = resolverStatusAnalise(saldoConsiderado, estoqueCritico);
 
         return AnaliseEstoqueMateriaPrimaResponseDTO.builder()
                 .tipoMateriaPrimaId(tipo.getId())
@@ -127,8 +126,7 @@ public class EstoqueMateriaPrimaAnaliseServiceImpl implements EstoqueMateriaPrim
                 .quantidadeLotesPrincipais(lotes.stream().filter(this::isLotePrincipal).count())
                 .quantidadeRetalhos(lotes.stream().filter(lote -> !isLotePrincipal(lote)).count())
                 .estoqueCritico(estoqueCritico)
-                .estoqueAceitavel(estoqueAceitavel)
-                .percentualRisco(calcularPercentualRisco(saldoConsiderado, estoqueCritico, estoqueAceitavel))
+                .percentualRisco(calcularPercentualRisco(saldoConsiderado, estoqueCritico))
                 .statusAnalise(statusAnalise)
                 .build();
     }
@@ -155,42 +153,33 @@ public class EstoqueMateriaPrimaAnaliseServiceImpl implements EstoqueMateriaPrim
 
     private BigDecimal calcularPercentualRisco(
             BigDecimal saldoConsiderado,
-            BigDecimal estoqueCritico,
-            BigDecimal estoqueAceitavel
+            BigDecimal estoqueCritico
     ) {
-        if (estoqueCritico == null || estoqueAceitavel == null) {
+        if (estoqueCritico == null || estoqueCritico.compareTo(BigDecimal.ZERO) <= 0) {
             return null;
         }
-        if (estoqueAceitavel.compareTo(estoqueCritico) <= 0) {
-            return null;
-        }
-        if (saldoConsiderado.compareTo(estoqueAceitavel) >= 0) {
+        if (saldoConsiderado.compareTo(estoqueCritico) >= 0) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
-        if (saldoConsiderado.compareTo(estoqueCritico) <= 0) {
+        if (saldoConsiderado.compareTo(BigDecimal.ZERO) <= 0) {
             return new BigDecimal("100.00");
         }
 
-        BigDecimal faixa = estoqueAceitavel.subtract(estoqueCritico);
-        BigDecimal distanciaDoAceitavel = estoqueAceitavel.subtract(saldoConsiderado);
-        return distanciaDoAceitavel
+        BigDecimal faltaParaCritico = estoqueCritico.subtract(saldoConsiderado);
+        return faltaParaCritico
                 .multiply(new BigDecimal("100"))
-                .divide(faixa, 2, RoundingMode.HALF_UP);
+                .divide(estoqueCritico, 2, RoundingMode.HALF_UP);
     }
 
     private StatusAnaliseMateriaPrima resolverStatusAnalise(
             BigDecimal saldoConsiderado,
-            BigDecimal estoqueCritico,
-            BigDecimal estoqueAceitavel
+            BigDecimal estoqueCritico
     ) {
-        if (estoqueCritico == null || estoqueAceitavel == null) {
+        if (estoqueCritico == null) {
             return StatusAnaliseMateriaPrima.SEM_PARAMETRIZACAO;
         }
         if (saldoConsiderado.compareTo(estoqueCritico) <= 0) {
             return StatusAnaliseMateriaPrima.CRITICO;
-        }
-        if (saldoConsiderado.compareTo(estoqueAceitavel) < 0) {
-            return StatusAnaliseMateriaPrima.ATENCAO;
         }
         return StatusAnaliseMateriaPrima.ACEITAVEL;
     }

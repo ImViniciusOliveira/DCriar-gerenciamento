@@ -13,7 +13,7 @@ import { startWith } from 'rxjs/operators';
 import { MaterialType, MaterialTypeRequest } from '../../models/material-type.model';
 import { MaterialTypeService } from '../../services/material-type.service';
 import { EntityDialogService } from '../../../../shared/services/entity-dialog';
-import { EnumService } from '../../../../core/services/enum.service';
+import { EnumOption, EnumService } from '../../../../core/services/enum.service';
 import { InstantErrorStateMatcher } from '../../../../shared/utils/error-state-matchers';
 import { getLockedFieldReason, hasLockedField } from '../../../../shared/utils/field-locks';
 import { applyApiFieldErrors, clearApiFieldErrors } from '../../../../shared/utils/api-errors';
@@ -29,6 +29,7 @@ export interface MaterialTypeFormData {
 export interface UnitOption {
   name: string;
   descricao: string;
+  simbolo?: string;
 }
 
 /**
@@ -57,6 +58,20 @@ function maxIntegerDigits(maxDigits: number): ValidatorFn {
   };
 }
 
+function positiveDecimalValidator(control: AbstractControl): ValidationErrors | null {
+  const rawValue = String(control.value ?? '').trim();
+  if (!rawValue) {
+    return null;
+  }
+
+  const normalized = rawValue.replace(',', '.');
+  if (!/^\d+(\.\d{0,4})?$/.test(normalized)) {
+    return { positiveDecimal: true };
+  }
+
+  return Number(normalized) >= 0 ? null : { positiveDecimal: true };
+}
+
 /**
  * Formulário para criação e edição de Tipos de Matéria-Prima.
  * Utiliza uma arquitetura reativa com Signals para gerenciar o estado do autocomplete.
@@ -77,8 +92,7 @@ export class MaterialTypeForm implements OnInit {
   private static readonly BACKEND_FIELD_MAP: Record<string, string> = {
     nome: 'nome',
     unidadeDeConsumo: 'unidadeDeConsumo',
-    estoqueCritico: 'estoqueCritico',
-    estoqueAceitavel: 'estoqueAceitavel'
+    estoqueCritico: 'estoqueCritico'
   };
 
   private static readonly BACKEND_ERROR_FIELDS = Object.values(MaterialTypeForm.BACKEND_FIELD_MAP);
@@ -115,6 +129,19 @@ export class MaterialTypeForm implements OnInit {
       unit.descricao.toLowerCase().includes(filter)
     );
   });
+  private readonly unitValue = signal<unknown>('');
+
+  readonly stockThresholdUnitSuffix = computed(() => {
+    const selectedValue = this.unitValue();
+    const selectedOption = typeof selectedValue === 'string' ? null : selectedValue as UnitOption | null;
+    const unitName = typeof selectedValue === 'string' ? selectedValue : selectedOption?.name;
+    if (!unitName) {
+      return '';
+    }
+
+    const selectedUnit = this.allUnits().find(unit => unit.name === unitName);
+    return selectedUnit?.simbolo || selectedUnit?.descricao || unitName;
+  });
 
   isEditMode = signal(false);
 
@@ -126,11 +153,7 @@ export class MaterialTypeForm implements OnInit {
       unidadeDeConsumo: ['', [Validators.required]],
       estoqueCritico: [
         this.formatDecimal(this.data.template?.estoqueCritico),
-        [Validators.min(0), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]
-      ],
-      estoqueAceitavel: [
-        this.formatDecimal(this.data.template?.estoqueAceitavel),
-        [Validators.min(0), maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]
+        [positiveDecimalValidator, maxIntegerDigits(15), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]
       ]
     });
 
@@ -144,6 +167,7 @@ export class MaterialTypeForm implements OnInit {
     // Sincroniza o valor do input com o signal de filtro para o autocomplete.
     effect(() => {
       const value = valueSignal();
+      this.unitValue.set(value);
       const stringValue = typeof value === 'string' ? value : '';
       this.filterValue.set(stringValue);
     });
@@ -168,8 +192,7 @@ export class MaterialTypeForm implements OnInit {
         this.currentMaterialType.set(fullMaterialType);
         this.form.patchValue({
           nome: fullMaterialType.nome,
-          estoqueCritico: this.formatDecimal(fullMaterialType.estoqueCritico),
-          estoqueAceitavel: this.formatDecimal(fullMaterialType.estoqueAceitavel)
+          estoqueCritico: this.formatDecimal(fullMaterialType.estoqueCritico)
         }, { emitEvent: false });
       }
 
@@ -195,9 +218,10 @@ export class MaterialTypeForm implements OnInit {
     }
 
     const options = await lastValueFrom(this.enumService.getEnumOptions(url, 'unidadesDeMedida'));
-    const units: UnitOption[] = options.map(option => ({
+    const units: UnitOption[] = options.map((option: EnumOption) => ({
       name: option.value,
-      descricao: option.viewValue
+      descricao: option.viewValue,
+      simbolo: option.simbolo
     }));
 
     this.allUnits.set(units);
@@ -255,8 +279,7 @@ export class MaterialTypeForm implements OnInit {
       : formValue.unidadeDeConsumo?.name;
     const request: Partial<MaterialTypeRequest> = {
       nome: String(formValue.nome ?? '').trim(),
-      estoqueCritico: this.parseDecimal(formValue.estoqueCritico),
-      estoqueAceitavel: this.parseDecimal(formValue.estoqueAceitavel)
+      estoqueCritico: this.parseDecimal(formValue.estoqueCritico)
     };
 
     if (!this.isEditMode() || !this.isFieldLocked('unidadeDeConsumo')) {
@@ -312,8 +335,7 @@ export class MaterialTypeForm implements OnInit {
         request.unidadeDeConsumo == null
         || String(currentMaterialType.unidadeDeConsumo ?? '') === String(request.unidadeDeConsumo ?? '')
       )
-      && this.normalizeDecimal(currentMaterialType.estoqueCritico) === this.normalizeDecimal(request.estoqueCritico)
-      && this.normalizeDecimal(currentMaterialType.estoqueAceitavel) === this.normalizeDecimal(request.estoqueAceitavel);
+      && this.normalizeDecimal(currentMaterialType.estoqueCritico) === this.normalizeDecimal(request.estoqueCritico);
   }
 
   private normalizeText(value: unknown): string | null {

@@ -2,7 +2,7 @@ import { Hateoas, PageInfo } from '../../../core/models/hateoas.model';
 
 export type MaterialStockAnalysisPolicy = 'TODOS' | 'SEM_RETALHOS' | 'APENAS_RETALHOS';
 
-export type MaterialStockAnalysisStatus = 'SEM_PARAMETRIZACAO' | 'CRITICO' | 'ATENCAO' | 'ACEITAVEL';
+export type MaterialStockAnalysisStatus = 'SEM_PARAMETRIZACAO' | 'CRITICO' | 'ACEITAVEL';
 
 export interface MaterialStockAnalysisSummary {
   tipoMateriaPrimaId: number;
@@ -18,7 +18,6 @@ export interface MaterialStockAnalysisSummary {
   quantidadeLotesPrincipais: number;
   quantidadeRetalhos: number;
   estoqueCritico?: number | null;
-  estoqueAceitavel?: number | null;
   percentualRisco?: number | null;
   statusAnalise: MaterialStockAnalysisStatus;
   _links?: Hateoas['_links'];

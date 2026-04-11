@@ -49,9 +49,6 @@ public class TipoMateriaPrima extends AuditableEntity {
     @Column(name = "estoque_critico", precision = 19, scale = 4)
     private BigDecimal estoqueCritico;
 
-    @Column(name = "estoque_aceitavel", precision = 19, scale = 4)
-    private BigDecimal estoqueAceitavel;
-
     /**
      * Cria uma instância de TipoMateriaPrima a partir do DTO de request, centralizando regras de negócio de criação.
      * <p>
@@ -67,7 +64,6 @@ public class TipoMateriaPrima extends AuditableEntity {
                 .nome(HumanTextNormalizer.normalize(dto.getNome()))
                 .unidadeDeConsumo(dto.getUnidadeDeConsumo())
                 .estoqueCritico(dto.getEstoqueCritico())
-                .estoqueAceitavel(dto.getEstoqueAceitavel())
                 .build();
     }
 
@@ -89,9 +85,6 @@ public class TipoMateriaPrima extends AuditableEntity {
         }
         if (dto.getEstoqueCritico() != null) {
             this.estoqueCritico = dto.getEstoqueCritico();
-        }
-        if (dto.getEstoqueAceitavel() != null) {
-            this.estoqueAceitavel = dto.getEstoqueAceitavel();
         }
     }
 }
