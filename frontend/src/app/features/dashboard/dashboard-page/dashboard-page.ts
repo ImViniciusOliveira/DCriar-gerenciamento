@@ -50,7 +50,7 @@ export class DashboardPage {
     { label: 'Ajustes', icon: 'tune', route: '/estoques' }
   ];
 
-  protected readonly placeholderAlertItems = [1, 2, 3];
+  protected readonly productAlerts = [];
 
   private readonly materialStockAnalysisResult = toSignal(
     this.stockService.searchMaterialStockAnalysis({

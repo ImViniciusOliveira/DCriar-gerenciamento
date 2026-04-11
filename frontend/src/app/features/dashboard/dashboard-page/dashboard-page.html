@@ -36,26 +36,19 @@
         <h3>Produtos com saldo baixo</h3>
       </div>
 
-      <div class="dashboard-alert-list">
-        @for (item of placeholderAlertItems; track item) {
-          <div class="dashboard-alert-item">
-            <div class="dashboard-alert-item__summary">
-              <div>
-                <strong>Produto works</strong>
-                <span>Atual: -- / Mínimo: --</span>
-              </div>
-
-              <a class="dashboard-alert-item__action">Adicionar saldo em produto</a>
-            </div>
-
-            <div class="dashboard-alert-item__bar">
-              <div class="dashboard-alert-item__bar-fill dashboard-alert-item__bar-fill--warning"></div>
-            </div>
-
-            <small>works</small>
+      @if (productAlerts.length > 0) {
+        <div class="dashboard-alert-list"></div>
+      } @else {
+        <div class="dashboard-empty-state" [class.dashboard-empty-state--positive]="materialEmptyState.tone === 'positive'">
+          <div class="dashboard-empty-state__icon">
+            <mat-icon>check_circle</mat-icon>
           </div>
-        }
-      </div>
+
+          <div class="dashboard-empty-state__content">
+            <strong>Nenhum produto com saldo baixo</strong>
+          </div>
+        </div>
+      }
     </article>
 
     <article class="dashboard-card dashboard-card--alert">
