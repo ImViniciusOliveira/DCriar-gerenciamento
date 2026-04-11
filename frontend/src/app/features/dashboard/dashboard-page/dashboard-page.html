@@ -1,1 +1,101 @@
-<p>dashboard works!</p>
+<div class="page-container dashboard-page">
+  <section class="dashboard-page__hero">
+    <article class="dashboard-card dashboard-card--sales">
+      <div class="dashboard-card__header">
+        <div class="dashboard-card__title">
+          <span class="dashboard-card__eyebrow">Análise de vendas</span>
+          <h3>works</h3>
+        </div>
+      </div>
+
+      <div class="dashboard-card__body">works</div>
+    </article>
+
+    <aside class="dashboard-card dashboard-card--actions">
+      <div class="dashboard-quick-actions">
+        <div class="dashboard-quick-actions__header">
+          <h4>Ações rápidas</h4>
+        </div>
+
+        <div class="dashboard-quick-actions__list">
+          @for (action of quickActions; track action.label) {
+            <a class="dashboard-quick-actions__item" [routerLink]="action.route">
+              <mat-icon>{{ action.icon }}</mat-icon>
+              <strong>{{ action.label }}</strong>
+            </a>
+          }
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="dashboard-page__alerts">
+    <article class="dashboard-card dashboard-card--alert">
+      <div class="dashboard-card__title">
+        <span class="dashboard-card__eyebrow dashboard-card__eyebrow--warning">Saldo baixo</span>
+        <h3>Produtos com saldo baixo</h3>
+      </div>
+
+      <div class="dashboard-alert-list">
+        @for (item of placeholderAlertItems; track item) {
+          <div class="dashboard-alert-item">
+            <div class="dashboard-alert-item__summary">
+              <div>
+                <strong>Produto works</strong>
+                <span>Atual: -- / Mínimo: --</span>
+              </div>
+
+              <a class="dashboard-alert-item__action">Adicionar saldo em produto</a>
+            </div>
+
+            <div class="dashboard-alert-item__bar">
+              <div class="dashboard-alert-item__bar-fill dashboard-alert-item__bar-fill--warning"></div>
+            </div>
+
+            <small>works</small>
+          </div>
+        }
+      </div>
+    </article>
+
+    <article class="dashboard-card dashboard-card--alert">
+      <div class="dashboard-card__title">
+        <span class="dashboard-card__eyebrow dashboard-card__eyebrow--warning">Estoque baixo</span>
+        <h3>Matérias-primas com estoque baixo</h3>
+      </div>
+
+      @if (hasMaterialAlerts()) {
+        <div class="dashboard-alert-list">
+          @for (item of materialAlerts(); track item.id) {
+            <div class="dashboard-alert-item" [class.dashboard-alert-item--critical]="item.tone === 'critical'">
+              <div class="dashboard-alert-item__summary">
+                <div>
+                  <strong>{{ item.name }}</strong>
+                  <span>Saldo: {{ item.currentAmount | number:'1.0-4' }} {{ item.unitLabel }} / Mínimo: {{ item.minimumAmount | number:'1.0-4' }} {{ item.unitLabel }}</span>
+                </div>
+
+                <a class="dashboard-alert-item__action" [routerLink]="item.route">{{ item.actionLabel }}</a>
+              </div>
+
+              <div class="dashboard-alert-item__bar">
+                <div class="dashboard-alert-item__bar-fill" [class.dashboard-alert-item__bar-fill--warning]="item.tone !== 'critical'" [style.width.%]="item.riskPercent"></div>
+              </div>
+
+              <small>{{ item.helperText }}</small>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="dashboard-empty-state" [class.dashboard-empty-state--positive]="materialEmptyState().tone === 'positive'">
+          <div class="dashboard-empty-state__icon">
+            <mat-icon>{{ materialEmptyState().tone === 'positive' ? 'check_circle' : 'inventory' }}</mat-icon>
+          </div>
+
+          <div class="dashboard-empty-state__content">
+            <strong>{{ materialEmptyState().title }}</strong>
+          </div>
+        </div>
+      }
+    </article>
+  </section>
+</div>

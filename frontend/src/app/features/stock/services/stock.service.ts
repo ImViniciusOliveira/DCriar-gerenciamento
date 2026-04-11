@@ -16,6 +16,7 @@ import {
 } from '../models/stock-adjustment.model';
 import { ApiResponseStockConsultations, StockConsultationSummary } from '../models/stock-consultation.model';
 import { ApiResponseStockHistory, ApiResponseStockMovementTypes, StockMovementTypeOption } from '../models/stock-history.model';
+import { ApiResponseMaterialStockAnalyses, MaterialStockAnalysisPolicy, MaterialStockAnalysisSummary } from '../models/material-stock-analysis.model';
 
 type StockHistoryPeriod = '1d' | '1m' | '6m' | '1a' | 'all';
 
@@ -70,6 +71,17 @@ type StockConsultationSearchParams = {
   nomeProduto?: string;
   canalVendaId?: number;
   apenasComSaldo?: boolean;
+};
+
+type MaterialStockAnalysisSearchParams = {
+  page: number;
+  size: number;
+  sort: string;
+  tipoMateriaPrimaId?: number;
+  nome?: string;
+  unidadeDeConsumo?: string;
+  tipoProduto?: string;
+  politicaSaldoRetalho?: MaterialStockAnalysisPolicy;
 };
 
 export type StockAdjustmentDirection = 'ADICIONAR' | 'RETIRAR';
@@ -317,6 +329,48 @@ export class StockService {
             items: response._embedded?.consultasEstoque ?? [],
             total: response.page?.totalElements ?? 0
           }))
+        );
+      })
+    );
+  }
+
+  searchMaterialStockAnalysis(params: MaterialStockAnalysisSearchParams): Observable<{ items: MaterialStockAnalysisSummary[]; total: number }> {
+    return this.getStockRoot().pipe(
+      switchMap(stockRoot => {
+        const url = stockRoot._links?.['analise-materias-primas']?.href;
+        const baseUrl = this.normalizeUrl(url || `${environment.apiVersionPath}/estoques/materias-primas/analise`);
+
+        let httpParams = new HttpParams()
+          .set('page', params.page.toString())
+          .set('size', params.size.toString())
+          .set('sort', params.sort);
+
+        if (params.tipoMateriaPrimaId) {
+          httpParams = httpParams.set('tipoMateriaPrimaId', params.tipoMateriaPrimaId.toString());
+        }
+
+        if (params.nome) {
+          httpParams = httpParams.set('nome', params.nome);
+        }
+
+        if (params.unidadeDeConsumo) {
+          httpParams = httpParams.set('unidadeDeConsumo', params.unidadeDeConsumo);
+        }
+
+        if (params.tipoProduto) {
+          httpParams = httpParams.set('tipoProduto', params.tipoProduto);
+        }
+
+        if (params.politicaSaldoRetalho) {
+          httpParams = httpParams.set('politicaSaldoRetalho', params.politicaSaldoRetalho);
+        }
+
+        return this.http.get<ApiResponseMaterialStockAnalyses>(baseUrl, { params: httpParams }).pipe(
+          map(response => ({
+            items: response._embedded?.['analises-estoque-materias-primas'] ?? [],
+            total: response.page?.totalElements ?? 0
+          })),
+          catchError(() => of({ items: [], total: 0 }))
         );
       })
     );
