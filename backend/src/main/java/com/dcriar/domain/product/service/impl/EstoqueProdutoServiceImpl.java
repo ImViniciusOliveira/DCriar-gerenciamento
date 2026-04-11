@@ -25,6 +25,7 @@ import com.dcriar.domain.product.entity.MovimentacaoEstoqueProduto;
 import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.entity.enums.DirecaoAjusteEstoque;
+import com.dcriar.domain.product.model.TotaisEstoqueProduto;
 import com.dcriar.domain.product.repository.CanalVendaRepository;
 import com.dcriar.domain.product.repository.EstoqueRepository;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
@@ -33,6 +34,7 @@ import com.dcriar.domain.product.repository.spec.EstoqueSpecifications;
 import com.dcriar.domain.product.repository.spec.ProdutoSpecifications;
 import com.dcriar.domain.product.repository.spec.MovimentacaoEstoqueProdutoSpecifications;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
+import com.dcriar.domain.product.service.TotaisEstoqueProdutoService;
 import com.dcriar.exception.custom.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -140,6 +142,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     private final MovimentacaoEstoqueProdutoRepository movimentacaoEstoqueProdutoRepository;
     private final HistoricoEstoqueConsolidadoMapper historicoEstoqueConsolidadoMapper;
     private final ProdutoEstoqueDTOMapper produtoEstoqueDTOMapper;
+    private final TotaisEstoqueProdutoService totaisEstoqueProdutoService;
 
     @Override
     @Transactional
@@ -151,11 +154,10 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         // 1. Validação de regra de negócio: ao adicionar estoque em um canal, o total distribuído
         // não pode ultrapassar o estoque físico disponível.
         if (quantidadeAssinada > 0) {
-            int estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.sumQuantidadeByProdutoId(produto.getId());
-            int totalDistribuido = estoqueRepository.sumQuantidadeByProdutoId(produto.getId());
-            int novoTotalDistribuido = totalDistribuido + quantidadeAssinada;
+            TotaisEstoqueProduto totais = totaisEstoqueProdutoService.obterTotais(produto.getId());
+            int novoTotalDistribuido = totais.estoqueDistribuidoTotal() + quantidadeAssinada;
 
-            if (novoTotalDistribuido > estoqueFisicoTotal) {
+            if (novoTotalDistribuido > totais.estoqueFisicoTotal()) {
                 throw new AlocacaoEstoqueExcedeTotalException(
                         produto.getId(),
                         formatarProdutoLabel(produto),
@@ -163,7 +165,7 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
                         canalVenda.getNome(),
                         quantidadeAssinada,
                         novoTotalDistribuido,
-                        estoqueFisicoTotal
+                        totais.estoqueFisicoTotal()
                 );
             }
         }
@@ -203,10 +205,11 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
     public void ajustarEstoqueFisico(AjusteEstoqueProdutoRequestDTO requestDTO) {
         Produto produto = findProdutoById(requestDTO.getProdutoId());
         int quantidadeAssinada = resolveQuantidadeAssinada(requestDTO.getDirecao(), requestDTO.getQuantidade());
+        TotaisEstoqueProduto totais = totaisEstoqueProdutoService.obterTotais(produto.getId());
         CamposBloqueadosInfo bloqueiosOperacionais = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisProduto(
-                produto.getEstoqueFisicoTotal(),
-                produto.getEstoqueDistribuidoTotal(),
-                produto.getEstoqueDisponivelParaAlocar()
+                totais.estoqueFisicoTotal(),
+                totais.estoqueDistribuidoTotal(),
+                totais.estoqueDisponivelParaAlocar()
         );
         if (quantidadeAssinada < 0
                 && bloqueiosOperacionais.contemCampo(BloqueioOperacionalEstoqueUtils.ACAO_AJUSTE_FISICO_NEGATIVO)) {
@@ -222,14 +225,13 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
             );
         }
 
-        int estoqueFisicoAtual = produto.getEstoqueFisicoTotal() != null ? produto.getEstoqueFisicoTotal() : 0;
-        int estoqueFisicoProjetado = estoqueFisicoAtual + quantidadeAssinada;
+        int estoqueFisicoProjetado = totais.estoqueFisicoTotal() + quantidadeAssinada;
         if (quantidadeAssinada < 0 && estoqueFisicoProjetado < 0) {
             throw new EstoqueFisicoInsuficienteProdutoException(
                     produto.getId(),
                     formatarProdutoLabel(produto),
                     quantidadeAssinada,
-                    estoqueFisicoAtual
+                    totais.estoqueFisicoTotal()
             );
         }
 

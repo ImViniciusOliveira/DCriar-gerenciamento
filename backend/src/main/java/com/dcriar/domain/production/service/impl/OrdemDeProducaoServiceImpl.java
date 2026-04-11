@@ -22,9 +22,11 @@ import com.dcriar.domain.product.entity.Produto;
 import com.dcriar.domain.product.entity.ProdutoDeCorte;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.entity.enums.DirecaoAjusteEstoque;
+import com.dcriar.domain.product.model.TotaisEstoqueProduto;
 import com.dcriar.domain.product.repository.MovimentacaoEstoqueProdutoRepository;
 import com.dcriar.domain.product.repository.ProdutoRepository;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
+import com.dcriar.domain.product.service.TotaisEstoqueProdutoService;
 import com.dcriar.domain.production.entity.CorteRealizado;
 import com.dcriar.domain.production.entity.Margens;
 import com.dcriar.domain.production.entity.OrdemDeProducao;
@@ -97,6 +99,7 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     private final OrdemDeProducaoMapper ordemDeProducaoMapper;
     private final CorteCalculatorService corteCalculatorService;
     private final EstoqueProdutoService estoqueProdutoService;
+    private final TotaisEstoqueProdutoService totaisEstoqueProdutoService;
     private final PlanoDeConsumoMapper planoDeConsumoMapper;
     private final LoteRetalhoHierarchyService loteRetalhoHierarchyService;
 
@@ -1354,14 +1357,15 @@ public class OrdemDeProducaoServiceImpl implements OrdemDeProducaoService {
     }
 
     private Integer obterSaldoAtualProduto(Produto produto) {
-        return produto.getEstoqueFisicoTotal() != null ? produto.getEstoqueFisicoTotal() : 0;
+        return totaisEstoqueProdutoService.obterTotais(produto.getId()).estoqueFisicoTotal();
     }
 
     private void validarProdutoAptoParaUsoEmProducao(Produto produto) {
+        TotaisEstoqueProduto totais = totaisEstoqueProdutoService.obterTotais(produto.getId());
         CamposBloqueadosInfo bloqueios = BloqueioOperacionalEstoqueUtils.resolverBloqueiosOperacionaisProduto(
-                produto.getEstoqueFisicoTotal(),
-                produto.getEstoqueDistribuidoTotal(),
-                produto.getEstoqueDisponivelParaAlocar()
+                totais.estoqueFisicoTotal(),
+                totais.estoqueDistribuidoTotal(),
+                totais.estoqueDisponivelParaAlocar()
         );
         if (!bloqueios.contemCampo(BloqueioOperacionalEstoqueUtils.ACAO_USAR_EM_PRODUCAO)) {
             return;
