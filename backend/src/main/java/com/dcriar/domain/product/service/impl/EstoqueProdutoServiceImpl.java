@@ -151,8 +151,8 @@ public class EstoqueProdutoServiceImpl implements EstoqueProdutoService {
         // 1. Validação de regra de negócio: ao adicionar estoque em um canal, o total distribuído
         // não pode ultrapassar o estoque físico disponível.
         if (quantidadeAssinada > 0) {
-            int estoqueFisicoTotal = produto.getEstoqueFisicoTotal() != null ? produto.getEstoqueFisicoTotal() : 0;
-            int totalDistribuido = produto.getEstoqueDistribuidoTotal() != null ? produto.getEstoqueDistribuidoTotal() : 0;
+            int estoqueFisicoTotal = movimentacaoEstoqueProdutoRepository.sumQuantidadeByProdutoId(produto.getId());
+            int totalDistribuido = estoqueRepository.sumQuantidadeByProdutoId(produto.getId());
             int novoTotalDistribuido = totalDistribuido + quantidadeAssinada;
 
             if (novoTotalDistribuido > estoqueFisicoTotal) {

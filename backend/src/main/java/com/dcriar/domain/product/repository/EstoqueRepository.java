@@ -89,4 +89,7 @@ public interface EstoqueRepository extends JpaRepository<Estoque, Long>, JpaSpec
             @Param("nomeProdutoTermo") String nomeProdutoTermo,
             @Param("apenasComSaldo") boolean apenasComSaldo,
             Pageable pageable);
+
+    @Query("SELECT COALESCE(SUM(e.quantidade), 0) FROM Estoque e WHERE e.produto.id = :produtoId")
+    Integer sumQuantidadeByProdutoId(@Param("produtoId") Long produtoId);
 }
