@@ -78,7 +78,7 @@
               </div>
 
               <div class="dashboard-alert-item__bar">
-                <div class="dashboard-alert-item__bar-fill" [style.width.%]="item.progressPercent"></div>
+                <div class="dashboard-alert-item__bar-overlay" [style.width.%]="100 - item.stockLevelPercent"></div>
               </div>
 
               <small>{{ item.helperText }}</small>
