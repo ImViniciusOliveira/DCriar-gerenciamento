@@ -184,10 +184,15 @@
 }
 
 .dashboard-alert-item__bar {
-  @include fl.std-border-mixin;
   position: relative;
   overflow: hidden;
-  height: 10px;
+  height: 8px;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-alert-item__bar-fill {
+  height: 100%;
+  min-width: 6px;
   background: linear-gradient(
     90deg,
     #8e1b1b 0%,
@@ -195,14 +200,6 @@
     #5fa85f 58%,
     #256b29 100%
   );
-}
-
-.dashboard-alert-item__bar-overlay {
-  position: absolute;
-  inset: 0 0 0 auto;
-  height: 100%;
-  z-index: 1;
-  background: rgba(255, 255, 255, 0.96);
 }
 
 .dashboard-empty-state {

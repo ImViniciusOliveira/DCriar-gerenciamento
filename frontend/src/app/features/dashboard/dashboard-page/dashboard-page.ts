@@ -20,7 +20,7 @@ interface DashboardMaterialAlertItem {
   currentAmount: number;
   minimumAmount: number;
   unitLabel: string;
-  stockLevelPercent: number;
+  progressPercent: number;
   helperText: string;
   actionLabel: string;
   route: string;
@@ -82,7 +82,7 @@ export class DashboardPage {
     const minimumAmount = item.estoqueCritico ?? 0;
     const unitLabel = item.unidadeSimbolo || item.unidadeDescricao || item.unidadeDeConsumo;
     const riskPercent = Math.max(0, Math.min(100, item.percentualRisco ?? 0));
-    const stockLevelPercent = Math.max(0, 100 - riskPercent);
+    const progressPercent = Math.max(0, 100 - riskPercent);
     const shortageAmount = Math.max(minimumAmount - currentAmount, 0);
 
     return {
@@ -91,7 +91,7 @@ export class DashboardPage {
       currentAmount,
       minimumAmount,
       unitLabel,
-      stockLevelPercent,
+      progressPercent,
       helperText: shortageAmount > 0
         ? `Faltam ${shortageAmount.toFixed(0)} ${unitLabel} para sair da faixa crítica.`
         : 'Saldo no limite crítico. Avalie reposição imediata.',
