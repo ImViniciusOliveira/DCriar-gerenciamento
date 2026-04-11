@@ -7,6 +7,8 @@ import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 /**
  * Representa um tipo abstrato de matéria-prima no sistema (o item de catálogo).
  * <p>
@@ -44,6 +46,12 @@ public class TipoMateriaPrima extends AuditableEntity {
     @Column(nullable = false, length = 50)
     private UnidadeDeMedida unidadeDeConsumo;
 
+    @Column(name = "estoque_critico", precision = 19, scale = 4)
+    private BigDecimal estoqueCritico;
+
+    @Column(name = "estoque_aceitavel", precision = 19, scale = 4)
+    private BigDecimal estoqueAceitavel;
+
     /**
      * Cria uma instância de TipoMateriaPrima a partir do DTO de request, centralizando regras de negócio de criação.
      * <p>
@@ -58,6 +66,8 @@ public class TipoMateriaPrima extends AuditableEntity {
         return TipoMateriaPrima.builder()
                 .nome(HumanTextNormalizer.normalize(dto.getNome()))
                 .unidadeDeConsumo(dto.getUnidadeDeConsumo())
+                .estoqueCritico(dto.getEstoqueCritico())
+                .estoqueAceitavel(dto.getEstoqueAceitavel())
                 .build();
     }
 
@@ -76,6 +86,12 @@ public class TipoMateriaPrima extends AuditableEntity {
         }
         if (dto.getUnidadeDeConsumo() != null) {
             this.unidadeDeConsumo = dto.getUnidadeDeConsumo();
+        }
+        if (dto.getEstoqueCritico() != null) {
+            this.estoqueCritico = dto.getEstoqueCritico();
+        }
+        if (dto.getEstoqueAceitavel() != null) {
+            this.estoqueAceitavel = dto.getEstoqueAceitavel();
         }
     }
 }

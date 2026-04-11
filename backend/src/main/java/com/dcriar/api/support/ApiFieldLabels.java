@@ -34,6 +34,7 @@ public final class ApiFieldLabels {
             Map.entry("nomeCanalVenda", "canal de venda"),
             Map.entry("nomeMateriaPrima", "matéria-prima"),
             Map.entry("nomeTipoMateriaPrima", "matéria-prima"),
+            Map.entry("tipoMateriaPrimaId", "matéria-prima"),
             Map.entry("sku", "SKU"),
             Map.entry("skuProduto", "SKU"),
             Map.entry("cpf", "CPF"),
@@ -67,6 +68,10 @@ public final class ApiFieldLabels {
             Map.entry("custoTotalLote", "custo total do lote"),
             Map.entry("valorAtualLote", "valor atual do lote"),
             Map.entry("custoUnitarioAtual", "custo unitário atual"),
+            Map.entry("estoqueCritico", "estoque crítico"),
+            Map.entry("estoqueAceitavel", "estoque aceitável"),
+            Map.entry("faixaEstoque", "faixa de estoque"),
+            Map.entry("politicaSaldoRetalho", "política de saldo de retalhos"),
             Map.entry("estoqueFisicoTotal", "estoque físico"),
             Map.entry("estoqueDistribuidoTotal", "estoque distribuído"),
             Map.entry("estoqueDisponivelParaAlocar", "estoque disponível")

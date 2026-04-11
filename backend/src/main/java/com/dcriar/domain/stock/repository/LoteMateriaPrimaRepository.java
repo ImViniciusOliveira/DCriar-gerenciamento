@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,6 +37,9 @@ public interface LoteMateriaPrimaRepository extends JpaRepository<LoteMateriaPri
      * @return Uma lista de {@link LoteMateriaPrima} que correspondem ao tipo fornecido.
      */
     List<LoteMateriaPrima> findAllByTipoMateriaPrima(TipoMateriaPrima tipoMateriaPrima);
+
+    @Query("SELECT l FROM LoteMateriaPrima l JOIN FETCH l.tipoMateriaPrima WHERE l.tipoMateriaPrima.id IN :tipoIds")
+    List<LoteMateriaPrima> findAllByTipoMateriaPrimaIdsWithTipo(@Param("tipoIds") Collection<Long> tipoIds);
 
     boolean existsByTipoMateriaPrima(TipoMateriaPrima tipoMateriaPrima);
 

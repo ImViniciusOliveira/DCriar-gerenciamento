@@ -10,6 +10,13 @@ import java.util.List;
 
 public class TipoMateriaPrimaSpecification {
 
+    public static Specification<TipoMateriaPrima> comId(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return (root, query, builder) -> builder.equal(root.get("id"), id);
+    }
+
     /**
      * Retorna uma Specification para filtrar por nome, usando uma busca case-insensitive (LIKE %nome%).
      *

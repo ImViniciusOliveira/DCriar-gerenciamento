@@ -4,6 +4,7 @@ import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,12 @@ public class TipoMateriaPrimaResponseDTO {
      */
     @Schema(description = "Descrição da unidade de medida.", example = "Metro Quadrado")
     private String unidadeDescricao;
+
+    @Schema(description = "Quantidade mínima crítica para análise consolidada de estoque, na unidade principal do tipo.", example = "10.0000")
+    private BigDecimal estoqueCritico;
+
+    @Schema(description = "Quantidade considerada aceitável para análise consolidada de estoque, na unidade principal do tipo.", example = "50.0000")
+    private BigDecimal estoqueAceitavel;
 
     /**
      * Data e hora de criação do tipo de matéria-prima.

@@ -9,6 +9,7 @@ import lombok.Setter;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
@@ -37,6 +38,12 @@ public class TipoMateriaPrimaModel extends RepresentationModel<TipoMateriaPrimaM
 
     @Schema(description = "Descrição amigável da unidade de medida.", example = "Metro Quadrado")
     private String unidadeDescricao;
+
+    @Schema(description = "Quantidade mínima crítica para análise consolidada de estoque.", example = "10.0000")
+    private BigDecimal estoqueCritico;
+
+    @Schema(description = "Quantidade considerada aceitável para análise consolidada de estoque.", example = "50.0000")
+    private BigDecimal estoqueAceitavel;
 
     @Schema(description = "Data e hora de criação do tipo de matéria-prima.")
     private LocalDateTime dataCriacao;

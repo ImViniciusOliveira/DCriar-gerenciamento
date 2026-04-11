@@ -7,6 +7,8 @@ import com.dcriar.domain.stock.entity.enums.UnidadeDeMedida;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 /**
  * Data Transfer Object (DTO) para criar ou atualizar um Tipo de Matéria-Prima.
  * <p>
@@ -34,4 +36,10 @@ public class TipoMateriaPrimaRequestDTO {
      */
     @Schema(description = "Unidade de consumo padrão da matéria-prima.", example = "LITRO", requiredMode = Schema.RequiredMode.REQUIRED)
     private UnidadeDeMedida unidadeDeConsumo;
+
+    @Schema(description = "Quantidade mínima crítica para análise de estoque consolidado, na unidade principal do tipo.", example = "10.0000")
+    private BigDecimal estoqueCritico;
+
+    @Schema(description = "Quantidade considerada aceitável para análise de estoque consolidado, na unidade principal do tipo.", example = "50.0000")
+    private BigDecimal estoqueAceitavel;
 }

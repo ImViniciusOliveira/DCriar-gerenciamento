@@ -25,6 +25,7 @@ import com.dcriar.exception.custom.TipoMateriaPrimaEmUsoException;
 import com.dcriar.exception.custom.TipoMateriaPrimaNaoEncontradoException;
 import com.dcriar.exception.custom.TipoProdutoInvalidoException;
 import com.dcriar.exception.custom.AtualizacaoSemAlteracoesException;
+import com.dcriar.exception.custom.FaixaEstoqueMateriaPrimaInvalidaException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +33,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -92,6 +94,7 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     @Transactional
     public TipoMateriaPrimaResponseDTO create(TipoMateriaPrimaRequestDTO requestDTO) {
         validateNomeDisponivel(requestDTO.getNome());
+        validarFaixaEstoque(requestDTO.getEstoqueCritico(), requestDTO.getEstoqueAceitavel());
         
         // Usa o mapper para a conversão, centralizando a lógica de mapeamento
         TipoMateriaPrima tipo = tipoMateriaPrimaMapper.toEntity(requestDTO);
@@ -104,6 +107,10 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
     @Transactional
     public TipoMateriaPrimaResponseDTO update(Long id, TipoMateriaPrimaRequestDTO requestDTO) {
         TipoMateriaPrima tipo = findTipoById(id);
+        validarFaixaEstoque(
+                requestDTO.getEstoqueCritico() != null ? requestDTO.getEstoqueCritico() : tipo.getEstoqueCritico(),
+                requestDTO.getEstoqueAceitavel() != null ? requestDTO.getEstoqueAceitavel() : tipo.getEstoqueAceitavel()
+        );
         if (isNoOpUpdate(tipo, requestDTO)) {
             throw AtualizacaoSemAlteracoesException.para(
                     "tipoMateriaPrima",
@@ -220,6 +227,30 @@ public class TipoMateriaPrimaServiceImpl implements TipoMateriaPrimaService {
                 || UniqueComparisonNormalizer.equalsCatalogKey(tipo.getNome(), requestDTO.getNome());
         boolean sameUnidade = requestDTO.getUnidadeDeConsumo() == null
                 || Objects.equals(tipo.getUnidadeDeConsumo(), requestDTO.getUnidadeDeConsumo());
-        return sameNome && sameUnidade;
+        boolean sameEstoqueCritico = sameBigDecimal(tipo.getEstoqueCritico(), requestDTO.getEstoqueCritico());
+        boolean sameEstoqueAceitavel = sameBigDecimal(tipo.getEstoqueAceitavel(), requestDTO.getEstoqueAceitavel());
+        return sameNome && sameUnidade && sameEstoqueCritico && sameEstoqueAceitavel;
+    }
+
+    private boolean sameBigDecimal(BigDecimal atual, BigDecimal informado) {
+        return informado == null || (atual != null && atual.compareTo(informado) == 0);
+    }
+
+    private void validarFaixaEstoque(BigDecimal estoqueCritico, BigDecimal estoqueAceitavel) {
+        if (estoqueCritico == null && estoqueAceitavel == null) {
+            return;
+        }
+        if (estoqueCritico == null || estoqueAceitavel == null) {
+            throw FaixaEstoqueMateriaPrimaInvalidaException.parametrosDevemSerInformadosEmConjunto(
+                    estoqueCritico,
+                    estoqueAceitavel
+            );
+        }
+        if (estoqueAceitavel.compareTo(estoqueCritico) <= 0) {
+            throw FaixaEstoqueMateriaPrimaInvalidaException.aceitavelDeveSerMaiorQueCritico(
+                    estoqueCritico,
+                    estoqueAceitavel
+            );
+        }
     }
 }

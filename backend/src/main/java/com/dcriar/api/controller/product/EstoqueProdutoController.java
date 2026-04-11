@@ -16,6 +16,7 @@ import com.dcriar.api.hateoas.product.model.EstoqueProdutoModel;
 import com.dcriar.domain.product.entity.enums.TipoMovimentacaoProduto;
 import com.dcriar.domain.product.service.EstoqueProdutoService;
 import com.dcriar.api.controller.stock.LoteMateriaPrimaController;
+import com.dcriar.api.controller.stock.EstoqueMateriaPrimaController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -93,6 +94,10 @@ public class EstoqueProdutoController {
         rootModel.add(linkTo(methodOn(LoteMateriaPrimaController.class)
                 .searchAllForAdjustments(null, null, null, null, null))
                 .withRel("ajustes-lotes"));
+
+        rootModel.add(linkTo(methodOn(EstoqueMateriaPrimaController.class)
+                .listarAnaliseEstoque(null, null, null, null, null, null, null))
+                .withRel("analise-materias-primas"));
 
         return ResponseEntity.ok(rootModel);
     }
