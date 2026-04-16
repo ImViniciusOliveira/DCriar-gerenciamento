@@ -1,0 +1,212 @@
+GUIA PARA SUBIR A STACK AO ABRIR O TERMINAL DO WSL DEBIAN
+
+Objetivo:
+- ao abrir o terminal do Debian no Windows, verificar se a stack ja esta de pe
+- se ja estiver, nao fazer nada
+- se nao estiver, subir a stack
+- evitar corrida se 2 terminais abrirem ao mesmo tempo
+- evitar conflito com containers que o Docker ja tenha religado sozinho
+
+Importante:
+- este guia e para o cenario WSL Debian
+- a ideia e complementar o restart do Docker, nao disputar com ele
+- o script precisa ser idempotente
+
+==================================================
+PARTE 1 - POR QUE NAO RODAR docker compose up -d SEMPRE
+==================================================
+
+Se voce colocar um comando bruto no profile, toda nova aba do terminal vai tentar:
+- falar com o Docker
+- subir a stack
+- mexer nos mesmos containers
+
+Isso nao costuma quebrar tudo, porque docker compose converge, mas e desnecessario.
+
+O ideal e:
+- primeiro verificar o estado
+- depois subir so se realmente faltar algo
+- usar uma trava para impedir 2 subidas simultaneas
+
+==================================================
+PARTE 2 - COMPORTAMENTO DESEJADO DO SCRIPT
+==================================================
+
+O script precisa:
+1. sair rapido se o Docker nao estiver pronto
+2. adquirir uma trava exclusiva
+3. verificar de novo o estado depois da trava
+4. se frontend e backend ja estiverem rodando, sair sem fazer nada
+5. se faltar algo, rodar docker compose up -d
+6. sair sem erro se outra instancia ja estiver fazendo isso
+
+==================================================
+PARTE 3 - SCRIPT RECOMENDADO
+==================================================
+
+Crie este arquivo no WSL Debian:
+
+~/.local/bin/dcriar-ensure-up.sh
+
+Conteudo:
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+LOCK_FILE="/tmp/dcriar-compose-up.lock"
+ENV_FILE="/etc/dcriar/.env.prod"
+COMPOSE_FILE="/opt/dcriar/docker-compose.prod.yml"
+REQUIRED_CONTAINERS=("backend-api" "frontend-app")
+
+docker_ready() {
+  docker info >/dev/null 2>&1
+}
+
+stack_is_up() {
+  local name
+  for name in "${REQUIRED_CONTAINERS[@]}"; do
+    if ! docker inspect -f '{{.State.Running}}' "$name" 2>/dev/null | grep -qx 'true'; then
+      return 1
+    fi
+  done
+  return 0
+}
+
+main() {
+  if ! docker_ready; then
+    exit 0
+  fi
+
+  if stack_is_up; then
+    exit 0
+  fi
+
+  exec 9>"$LOCK_FILE"
+  if ! flock -n 9; then
+    exit 0
+  fi
+
+  if stack_is_up; then
+    exit 0
+  fi
+
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d >/dev/null 2>&1 || true
+}
+
+main "$@"
+
+Dar permissao:
+
+chmod +x ~/.local/bin/dcriar-ensure-up.sh
+
+==================================================
+PARTE 4 - POR QUE ESSE SCRIPT EVITA CORRIDA
+==================================================
+
+Ele faz 3 protecoes:
+
+1. Verificacao inicial
+- se a stack ja estiver pronta, sai imediatamente
+
+2. flock
+- so uma instancia por vez consegue a trava em /tmp/dcriar-compose-up.lock
+- se duas abas abrirem juntas, uma sai sem fazer nada
+
+3. Segunda verificacao depois da trava
+- se nesse meio tempo o Docker ou outro terminal ja tiver subido a stack, ele nao sobe de novo
+
+Isso cobre o cenario que voce citou:
+- Docker religou os containers sozinho
+- ou outra shell ja iniciou o compose
+- ou os dois terminais abriram quase juntos
+
+==================================================
+PARTE 5 - COMO CHAMAR O SCRIPT AO ABRIR O TERMINAL
+==================================================
+
+No WSL Debian, adicione no final do ~/.bashrc:
+
+if [ -x "$HOME/.local/bin/dcriar-ensure-up.sh" ]; then
+  "$HOME/.local/bin/dcriar-ensure-up.sh" &
+fi
+
+Observacoes:
+- ele roda em background para nao travar a abertura da shell
+- como ha verificacao + flock, abrir varias abas nao deve causar convergencia ruim
+
+==================================================
+PARTE 6 - DEPENDENCIAS
+==================================================
+
+O script assume:
+- docker instalado e acessivel no WSL Debian
+- usuario com permissao de usar docker sem sudo
+- pacote util-linux disponivel, pois ele fornece o flock
+
+Para conferir o flock:
+
+command -v flock
+
+==================================================
+PARTE 7 - COMO TESTAR
+==================================================
+
+1. Derrube a stack:
+
+docker compose --env-file /etc/dcriar/.env.prod -f /opt/dcriar/docker-compose.prod.yml down
+
+2. Abra um terminal novo do Debian
+
+3. Espere alguns segundos e confira:
+
+docker ps --format '{{.Names}}'
+
+Resultado esperado:
+- backend-api
+- frontend-app
+- postgres-prod
+- minio-prod
+
+4. Abra duas abas quase ao mesmo tempo
+
+Resultado esperado:
+- nao haver erro visivel
+- nao haver duas execucoes concorrentes do up -d
+
+Obs.: se o docker compose pull falhar com erro de autenticacao no Docker Hub, refaca o login no mesmo contexto usado pelo comando.
+
+Se estiver usando Docker sem sudo:
+docker logout
+docker login -u SEU_USUARIO_DOCKER_HUB
+
+Se estiver usando WSL/Linux com sudo:
+sudo docker logout
+sudo docker login -u SEU_USUARIO_DOCKER_HUB
+
+Isso pode acontecer porque o login do Docker foi feito no usuario normal, mas o comando com sudo usa as credenciais do usuario root.
+
+==================================================
+PARTE 8 - LIMITACAO IMPORTANTE
+==================================================
+
+Esse guia sobe a stack ao abrir o terminal do Debian.
+
+Ele NAO faz o WSL iniciar sozinho no boot do Windows.
+
+Se depois voce quiser que tudo suba sem nem abrir terminal:
+- ai o caminho melhor e combinar WSL + systemd + Docker habilitado
+- ou usar uma tarefa agendada no Windows para iniciar o WSL no login
+
+==================================================
+PARTE 9 - RESUMO
+==================================================
+
+Para o seu caso, o caminho pragmatico e:
+- deixar restart: always nos containers
+- adicionar um script de ensure-up ao abrir a shell
+- usar flock + dupla verificacao para evitar corrida
+
+Assim:
+- se ja estiver subido, nao faz nada
+- se nao estiver, sobe
+- se outra instancia estiver subindo, nao disputa

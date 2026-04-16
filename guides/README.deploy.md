@@ -62,7 +62,7 @@ Se `FRONTEND_TLS_ENABLED=true` e esses arquivos não existirem:
 - o frontend não sobe
 
 Se precisar gerar os arquivos do zero:
-- [Guia de Certificado TLS](/home/viniciusdev/dcriar/dcriar-sistema-inventario/readmes/README.certificado.md)
+- [Guia de Certificado TLS](README.certificado.md)
 
 ## Subir A Produção
 
