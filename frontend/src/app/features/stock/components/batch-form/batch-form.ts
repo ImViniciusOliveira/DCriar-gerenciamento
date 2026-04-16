@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, Signal, effect, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, Signal, effect, computed, ViewChild } from '@angular/core';
 import { CommonModule, CurrencyPipe, TitleCasePipe } from '@angular/common';
 import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -52,6 +52,8 @@ export interface BatchFormData {
   template: Batch;
   title: string;
   isViewMode?: boolean;
+  prefilledTipoMateriaPrimaId?: number;
+  prefilledTipoProduto?: 'CORTE' | 'CONSUMO';
 }
 
 /**
@@ -100,6 +102,8 @@ export class BatchForm implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly enumService = inject(EnumService);
   public readonly data: BatchFormData = inject(MAT_DIALOG_DATA);
+
+  @ViewChild(MaterialTypeSearch) private materialTypeSearchComponent!: MaterialTypeSearch;
 
   form: FormGroup;
   isEditMode = signal(false);
@@ -260,6 +264,23 @@ export class BatchForm implements OnInit {
         this.entityDialog.showErrorSnackbar(BatchForm.Texts.LOAD_ERROR);
       } finally {
         this.isInitializing.set(false);
+      }
+    } else if (!this.isEditMode() && !this.isViewMode() && this.data.prefilledTipoMateriaPrimaId) {
+      try {
+        const mt = await lastValueFrom(this.materialTypeService.findById(this.data.prefilledTipoMateriaPrimaId));
+        this.materialType.set(mt);
+        this.form.patchValue({
+          materiaPrima: mt,
+          unidadeDeEstoque: mt.unidadeDeConsumo,
+          estoqueCritico: this.formatDecimal(mt.estoqueCritico)
+        });
+        if (this.materialTypeSearchComponent && this.data.prefilledTipoProduto) {
+          this.materialTypeSearchComponent.setSelectedMaterialType(mt, this.data.prefilledTipoProduto);
+        }
+        this.syncStockUnitControlState();
+        this.cdr.markForCheck();
+      } catch {
+        // silently fail — form stays empty and user can select manually
       }
     }
   }

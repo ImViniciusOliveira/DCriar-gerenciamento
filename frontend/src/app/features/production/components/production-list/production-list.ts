@@ -95,7 +95,8 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
     this.cdr.detectChanges();
 
     if (this.route.snapshot.queryParamMap.get('action') === 'create') {
-      this.onCreate();
+      const prefilledId = this.route.snapshot.queryParamMap.get('produtoId');
+      this.onCreate(prefilledId ? Number(prefilledId) : undefined);
     }
   }
 
@@ -107,18 +108,20 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
     });
   }
 
-  async onCreate(): Promise<void> {
+  async onCreate(prefilledProdutoId?: number): Promise<void> {
     try {
       const template = await lastValueFrom(this.productionService.getNewTemplate());
       this.openEditDialog({
         template,
         title: ProductionList.Texts.createTitle,
-        isViewMode: false
+        isViewMode: false,
+        prefilledProdutoId
       }, 'Ordem de produção criada com sucesso!');
     } catch {
       this.openEditDialog({
         title: ProductionList.Texts.createTitle,
-        isViewMode: false
+        isViewMode: false,
+        prefilledProdutoId
       }, 'Ordem de produção criada com sucesso!');
     }
   }

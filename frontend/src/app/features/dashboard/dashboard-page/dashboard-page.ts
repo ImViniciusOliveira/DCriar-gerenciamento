@@ -115,7 +115,7 @@ export class DashboardPage {
         : 'Saldo no limite crítico. Avalie nova produção.',
       actionLabel: 'Adicionar saldo em produto',
       route: '/ordens-de-producao',
-      queryParams: { action: 'create' },
+      queryParams: { action: 'create', produtoId: String(item.produtoId) },
       tone: item.statusAnalise === 'CRITICO' ? 'critical' : 'warning'
     };
   }
@@ -140,7 +140,7 @@ export class DashboardPage {
         : 'Saldo no limite crítico. Avalie reposição imediata.',
       actionLabel: 'Adicionar lote de matéria-prima',
       route: '/lotes-materia-prima',
-      queryParams: { action: 'create' },
+      queryParams: { action: 'create', tipoMateriaPrimaId: String(item.tipoMateriaPrimaId), tipoProduto: item.tipoProdutoCompativel },
       tone: item.statusAnalise === 'CRITICO' ? 'critical' : 'warning'
     };
   }

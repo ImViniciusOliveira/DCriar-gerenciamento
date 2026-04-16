@@ -34,6 +34,7 @@ export interface ProductionFormData {
   template?: ProductionOrder;
   title: string;
   isViewMode?: boolean;
+  prefilledProdutoId?: number;
 }
 
 @Component({
@@ -387,7 +388,15 @@ export class ProductionForm implements OnInit {
         this.entityDialog.showErrorSnackbar(ProductionForm.Texts.LOAD_ERROR);
         this.dialogRef.close(false);
       });
+    } else if (this.data.prefilledProdutoId) {
+      this.initializeCreateWithPrefill(this.data.prefilledProdutoId).catch(() => {});
     }
+  }
+
+  private async initializeCreateWithPrefill(produtoId: number): Promise<void> {
+    const product = await lastValueFrom(this.productService.findById(produtoId));
+    this.syncProductSelection(product, false);
+    this.syncSelectedSearchInputs(product, null);
   }
 
   private async initializeEditForm(): Promise<void> {

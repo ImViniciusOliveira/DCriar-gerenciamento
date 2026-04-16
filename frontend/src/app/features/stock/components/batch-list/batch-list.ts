@@ -106,7 +106,9 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit, OnInit 
     this.cdr.detectChanges();
 
     if (this.route.snapshot.queryParamMap.get('action') === 'create') {
-      this.onCreate();
+      const prefilledId = this.route.snapshot.queryParamMap.get('tipoMateriaPrimaId');
+      const tipoProduto = this.route.snapshot.queryParamMap.get('tipoProduto') as 'CORTE' | 'CONSUMO' | null;
+      this.onCreate(prefilledId ? Number(prefilledId) : undefined, tipoProduto ?? undefined);
     }
   }
 
@@ -136,12 +138,14 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit, OnInit 
   /**
    * Abre o formulário para a criação de um novo Lote.
    */
-  async onCreate(): Promise<void> {
+  async onCreate(prefilledTipoMateriaPrimaId?: number, prefilledTipoProduto?: 'CORTE' | 'CONSUMO'): Promise<void> {
     try {
       const template = await lastValueFrom(this.batchService.getNewTemplate());
       this.openFormDialog({
         template,
-        title: BatchList.Texts.createTitle
+        title: BatchList.Texts.createTitle,
+        prefilledTipoMateriaPrimaId,
+        prefilledTipoProduto
       }, BatchList.Texts.createSuccess);
     } catch {
       this.entityDialog.showErrorSnackbar(BatchList.Texts.createError);

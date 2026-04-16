@@ -287,6 +287,14 @@ export class MaterialTypeSearch implements OnInit {
     this.applyFilters('');
   }
 
+  setSelectedMaterialType(mt: MaterialType, productType: 'CORTE' | 'CONSUMO'): void {
+    this.productTypeControl.setValue(productType, { emitEvent: false });
+    this.syncUnitOptions();
+    this.searchControl.setValue(mt, { emitEvent: false });
+    this.materialTypes.set([mt]);
+    this.syncUnitSelection(mt.unidadeDeConsumo, false);
+  }
+
   displayFn(materialType: MaterialType): string {
     return materialType && materialType.nome ? materialType.nome : '';
   }
