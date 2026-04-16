@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { lastValueFrom, catchError, of } from 'rxjs';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
@@ -42,6 +42,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit, OnInit 
   private readonly batchService = inject(BatchService);
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   private static readonly Texts = {
     deleteConfirmTitle: 'Confirmar Exclusão',
@@ -108,6 +109,7 @@ export class BatchList extends BaseList<Batch> implements AfterViewInit, OnInit 
     if (this.route.snapshot.queryParamMap.get('action') === 'create') {
       const prefilledId = this.route.snapshot.queryParamMap.get('tipoMateriaPrimaId');
       const tipoProduto = this.route.snapshot.queryParamMap.get('tipoProduto') as 'CORTE' | 'CONSUMO' | null;
+      this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
       this.onCreate(prefilledId ? Number(prefilledId) : undefined, tipoProduto ?? undefined);
     }
   }
