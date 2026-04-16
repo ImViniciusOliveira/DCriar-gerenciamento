@@ -62,6 +62,7 @@ export class ProductFormComponent implements OnInit {
     nome: 'nome',
     sku: 'sku',
     precoComercial: 'precoComercial',
+    estoqueCritico: 'estoqueCritico',
     unidadesPorProduto: 'unidadesPorProduto',
     unidadeCadastroConsumo: 'unidadeCadastroConsumo',
     tipoMateriaPrimaId: 'materiaPrima',
@@ -140,6 +141,7 @@ export class ProductFormComponent implements OnInit {
       nome: [currentProduct.nome, [Validators.required, Validators.maxLength(100)]],
       sku: [currentProduct.sku, [Validators.required, Validators.maxLength(50)]],
       precoComercial: [currentProduct.precoComercial, [Validators.required, Validators.min(0.01), maxIntegerDigits(15), Validators.pattern(POSITIVE_MONEY_2_PATTERN)]],
+      estoqueCritico: [currentProduct.estoqueCritico ?? null, [Validators.required, Validators.min(0), maxIntegerDigits(10), Validators.pattern(POSITIVE_INTEGER_PATTERN)]],
       descricao: [currentProduct.descricao, Validators.maxLength(100)],
       unidadesPorProduto: [currentProduct.unidadesPorProduto, [Validators.required, Validators.min(1), maxIntegerDigits(10), Validators.pattern(POSITIVE_DECIMAL_4_PATTERN)]],
       unidadeCadastroConsumo: [currentProduct.unidadeCadastroConsumo ?? currentProduct.materiaPrima?.unidadeDeConsumo ?? null],
@@ -226,6 +228,7 @@ export class ProductFormComponent implements OnInit {
             nome: fullProduct.nome,
             sku: fullProduct.sku,
             precoComercial: fullProduct.precoComercial,
+            estoqueCritico: fullProduct.estoqueCritico ?? null,
             descricao: fullProduct.descricao,
             unidadesPorProduto: fullProduct.unidadesPorProduto,
             unidadeCadastroConsumo: fullProduct.unidadeCadastroConsumo ?? fullProduct.materiaPrima?.unidadeDeConsumo ?? null,
@@ -749,6 +752,12 @@ export class ProductFormComponent implements OnInit {
       payload.precoComercial = this.parseDecimal(payload.precoComercial);
     }
 
+    if (payload.estoqueCritico === '') {
+      payload.estoqueCritico = null;
+    } else if (payload.estoqueCritico != null) {
+      payload.estoqueCritico = this.parseInteger(payload.estoqueCritico);
+    }
+
     if (payload.unidadesPorProduto != null && payload.unidadesPorProduto !== '') {
       payload.unidadesPorProduto = this.parseDecimal(payload.unidadesPorProduto);
     }
@@ -768,6 +777,12 @@ export class ProductFormComponent implements OnInit {
   private parseDecimal(value: unknown): number {
     const normalized = String(value ?? '0').trim().replace(',', '.');
     const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private parseInteger(value: unknown): number {
+    const normalized = String(value ?? '0').trim();
+    const parsed = Number.parseInt(normalized, 10);
     return Number.isFinite(parsed) ? parsed : 0;
   }
 

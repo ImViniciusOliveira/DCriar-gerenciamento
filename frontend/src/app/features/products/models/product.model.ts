@@ -32,6 +32,7 @@ export interface Product extends FieldLockMetadata {
   estoqueFisicoTotal: number;
   estoqueDistribuidoTotal: number;
   estoqueDisponivelParaAlocar: number;
+  estoqueCritico?: number;
   precoComercial?: number;
   dataCriacao?: string;
   dataAtualizacao?: string;

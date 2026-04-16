@@ -7,6 +7,7 @@ import { map } from 'rxjs';
 
 import { StockService } from '../../stock/services/stock.service';
 import { MaterialStockAnalysisSummary } from '../../stock/models/material-stock-analysis.model';
+import { ProductStockAnalysisSummary } from '../../stock/models/product-stock-analysis.model';
 
 interface DashboardQuickAction {
   label: string;
@@ -27,7 +28,20 @@ interface DashboardMaterialAlertItem {
   tone: 'warning' | 'critical';
 }
 
-interface DashboardMaterialEmptyState {
+interface DashboardProductAlertItem {
+  id: number;
+  name: string;
+  currentAmount: number;
+  minimumAmount: number;
+  unitLabel: string;
+  stockLevelPercent: number;
+  helperText: string;
+  actionLabel: string;
+  route: string;
+  tone: 'warning' | 'critical';
+}
+
+interface DashboardEmptyState {
   title: string;
   tone: 'positive';
 }
@@ -50,7 +64,28 @@ export class DashboardPage {
     { label: 'Ajustes', icon: 'tune', route: '/estoques' }
   ];
 
-  protected readonly productAlerts = [];
+  private readonly productStockAnalysisResult = toSignal(
+    this.stockService.searchProductStockAnalysis({
+      page: 0,
+      size: 50,
+      sort: 'percentualRisco,desc',
+      statusAnalise: 'CRITICO'
+    }).pipe(
+      map(result => result.items)
+    ),
+    { initialValue: [] as ProductStockAnalysisSummary[] }
+  );
+
+  protected readonly productAlerts = computed<DashboardProductAlertItem[]>(() =>
+    this.productStockAnalysisResult()
+      .sort((left, right) => (right.percentualRisco ?? 0) - (left.percentualRisco ?? 0))
+      .map(item => this.toProductAlertItem(item))
+  );
+  protected readonly hasProductAlerts = computed(() => this.productAlerts().length > 0);
+  protected readonly productEmptyState: DashboardEmptyState = {
+    title: 'Nenhum produto com saldo baixo',
+    tone: 'positive'
+  };
 
   private readonly materialStockAnalysisResult = toSignal(
     this.stockService.searchMaterialStockAnalysis({
@@ -72,10 +107,33 @@ export class DashboardPage {
   );
 
   protected readonly hasMaterialAlerts = computed(() => this.materialAlerts().length > 0);
-  protected readonly materialEmptyState: DashboardMaterialEmptyState = {
+  protected readonly materialEmptyState: DashboardEmptyState = {
     title: 'Nenhuma matéria-prima com estoque baixo',
     tone: 'positive'
   };
+
+  private toProductAlertItem(item: ProductStockAnalysisSummary): DashboardProductAlertItem {
+    const currentAmount = item.saldoConsiderado ?? 0;
+    const minimumAmount = item.estoqueCritico ?? 0;
+    const riskPercent = Math.max(0, Math.min(100, item.percentualRisco ?? 0));
+    const stockLevelPercent = Math.max(0, 100 - riskPercent);
+    const shortageAmount = Math.max(minimumAmount - currentAmount, 0);
+
+    return {
+      id: item.produtoId,
+      name: item.nomeProduto,
+      currentAmount,
+      minimumAmount,
+      unitLabel: 'un',
+      stockLevelPercent,
+      helperText: shortageAmount > 0
+        ? `Faltam ${shortageAmount.toFixed(0)} un para voltar ao mínimo.`
+        : 'Saldo no limite crítico. Avalie nova produção.',
+      actionLabel: 'Adicionar saldo em produto',
+      route: '/ordens-de-producao',
+      tone: item.statusAnalise === 'CRITICO' ? 'critical' : 'warning'
+    };
+  }
 
   private toMaterialAlertItem(item: MaterialStockAnalysisSummary): DashboardMaterialAlertItem {
     const currentAmount = item.saldoConsiderado ?? 0;

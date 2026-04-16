@@ -22,6 +22,11 @@ import {
   MaterialStockAnalysisStatus,
   MaterialStockAnalysisSummary
 } from '../models/material-stock-analysis.model';
+import {
+  ApiResponseProductStockAnalyses,
+  ProductStockAnalysisStatus,
+  ProductStockAnalysisSummary
+} from '../models/product-stock-analysis.model';
 
 type StockHistoryPeriod = '1d' | '1m' | '6m' | '1a' | 'all';
 
@@ -88,6 +93,16 @@ type MaterialStockAnalysisSearchParams = {
   tipoProduto?: string;
   statusAnalise?: MaterialStockAnalysisStatus;
   politicaSaldoRetalho?: MaterialStockAnalysisPolicy;
+};
+
+type ProductStockAnalysisSearchParams = {
+  page: number;
+  size: number;
+  sort: string;
+  produtoId?: number;
+  nome?: string;
+  tipoProduto?: string;
+  statusAnalise?: ProductStockAnalysisStatus;
 };
 
 export type StockAdjustmentDirection = 'ADICIONAR' | 'RETIRAR';
@@ -378,6 +393,44 @@ export class StockService {
         return this.http.get<ApiResponseMaterialStockAnalyses>(baseUrl, { params: httpParams }).pipe(
           map(response => ({
             items: response._embedded?.['analises-estoque-materias-primas'] ?? [],
+            total: response.page?.totalElements ?? 0
+          })),
+          catchError(() => of({ items: [], total: 0 }))
+        );
+      })
+    );
+  }
+
+  searchProductStockAnalysis(params: ProductStockAnalysisSearchParams): Observable<{ items: ProductStockAnalysisSummary[]; total: number }> {
+    return this.getStockRoot().pipe(
+      switchMap(stockRoot => {
+        const url = stockRoot._links?.['analise-produtos']?.href;
+        const baseUrl = this.normalizeUrl(url || `${environment.apiVersionPath}/estoques/produtos/analise`);
+
+        let httpParams = new HttpParams()
+          .set('page', params.page.toString())
+          .set('size', params.size.toString())
+          .set('sort', params.sort);
+
+        if (params.produtoId) {
+          httpParams = httpParams.set('produtoId', params.produtoId.toString());
+        }
+
+        if (params.nome) {
+          httpParams = httpParams.set('nome', params.nome);
+        }
+
+        if (params.tipoProduto) {
+          httpParams = httpParams.set('tipoProduto', params.tipoProduto);
+        }
+
+        if (params.statusAnalise) {
+          httpParams = httpParams.set('statusAnalise', params.statusAnalise);
+        }
+
+        return this.http.get<ApiResponseProductStockAnalyses>(baseUrl, { params: httpParams }).pipe(
+          map(response => ({
+            items: response._embedded?.['analises-estoque-produtos'] ?? [],
             total: response.page?.totalElements ?? 0
           })),
           catchError(() => of({ items: [], total: 0 }))

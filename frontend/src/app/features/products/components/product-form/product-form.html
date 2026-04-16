@@ -60,6 +60,23 @@
           </mat-form-field>
 
           <mat-form-field class="units-field" appearance="outline">
+            <mat-label>Saldo Crítico</mat-label>
+            <input matInput type="text" inputmode="numeric" formControlName="estoqueCritico" [errorStateMatcher]="matcher" required>
+            <span matTextSuffix>un</span>
+            @if (productForm.get('estoqueCritico')?.hasError('required')) {
+              <mat-error>O campo é obrigatório.</mat-error>
+            } @else if (productForm.get('estoqueCritico')?.hasError('pattern')) {
+              <mat-error>Use apenas números inteiros.</mat-error>
+            } @else if (productForm.get('estoqueCritico')?.hasError('min')) {
+              <mat-error>O valor não pode ser negativo.</mat-error>
+            } @else if (productForm.get('estoqueCritico')?.hasError('maxIntegerDigits')) {
+              <mat-error>Máximo de 10 dígitos.</mat-error>
+            } @else if (productForm.get('estoqueCritico')?.hasError('backend')) {
+              <mat-error>{{ productForm.get('estoqueCritico')?.getError('backend') }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field class="units-field" appearance="outline">
             <mat-label>Quantidade por Produto</mat-label>
             <input matInput type="text" inputmode="decimal" formControlName="unidadesPorProduto" [errorStateMatcher]="matcher" required>
             @if (getProductQuantityUnitLabel()) {
@@ -293,6 +310,7 @@
         <p><strong>Estoque Físico Total:</strong> {{ product().estoqueFisicoTotal }} pacotes</p>
         <p><strong>Estoque Distribuído:</strong> {{ product().estoqueDistribuidoTotal }} pacotes</p>
         <p><strong>Disponível para Alocar:</strong> {{ product().estoqueDisponivelParaAlocar }} pacotes</p>
+        <p><strong>Saldo Crítico:</strong> {{ product().estoqueCritico ?? 'N/A' }} pacotes</p>
         <p><strong>Unidades por Pacote:</strong> {{ product().unidadesPorProduto }}</p>
         <hr>
         @if (product().materiaPrima) {
