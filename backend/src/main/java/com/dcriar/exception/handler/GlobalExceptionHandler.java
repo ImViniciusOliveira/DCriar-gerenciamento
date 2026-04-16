@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -14,10 +15,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -33,7 +36,7 @@ import java.util.stream.Collectors;
  * Isso garante que a API sempre retorne respostas de erro consistentes e estruturadas.
  */
 @Slf4j
-@ControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     //region Exceções de Domínio
@@ -44,6 +47,37 @@ public class GlobalExceptionHandler {
         details.put("campo", ex.getNomeDoCampo());
         details.put("valorCalculado", ex.getValorEnviado());
         details.put("limite", ex.getLimiteMaximo());
+
+        logInfoException(ex, details);
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
+    }
+
+    @ExceptionHandler(OrdenacaoInvalidaException.class)
+    public ResponseEntity<ErrorResponseDTO> handleOrdenacaoInvalida(OrdenacaoInvalidaException ex) {
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("recurso", ex.getRecurso());
+        details.put("campoOrdenacao", ex.getCampoOrdenacao());
+        details.put("campoOrdenacaoLabel", ApiFieldLabels.resolve(ex.getCampoOrdenacao()));
+        details.put("camposAceitos", ex.getCamposAceitos());
+
+        logInfoException(ex, details);
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
+    }
+
+    @ExceptionHandler(PeriodoAnaliseInvalidoException.class)
+    public ResponseEntity<ErrorResponseDTO> handlePeriodoAnaliseInvalido(PeriodoAnaliseInvalidoException ex) {
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("codigo", ex.getCodigo());
+        if (ex.getDataInicio() != null) {
+            details.put("dataInicio", ex.getDataInicio());
+        }
+        if (ex.getDataFim() != null) {
+            details.put("dataFim", ex.getDataFim());
+        }
+        if (ex.getDiasInformados() != null) {
+            details.put("diasInformados", String.valueOf(ex.getDiasInformados()));
+            details.put("limiteMaximoDias", "366");
+        }
 
         logInfoException(ex, details);
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, details);
@@ -121,7 +155,7 @@ public class GlobalExceptionHandler {
             IncompatibilidadeMaterialException.class, QuantidadeExcedeCapacidadeLoteException.class,
             UnidadeCadastroConsumoInvalidaException.class, UnidadeEstoqueLoteInvalidaException.class,
             UnidadeEstoqueCorteInvalidaException.class, LogicalMapKeyInvalidaException.class,
-            OperacaoNaoSuportadaException.class, OrdenacaoInvalidaException.class
+            OperacaoNaoSuportadaException.class
     })
     public ResponseEntity<ErrorResponseDTO> handleBusinessRuleExceptions(RuntimeException ex) {
         Map<String, String> details = new LinkedHashMap<>();
@@ -285,12 +319,6 @@ public class GlobalExceptionHandler {
                 details.put("recurso", e.getRecurso());
                 details.put("operacao", e.getOperacao());
                 details.put("alternativaSugerida", e.getAlternativaSugerida());
-            }
-            case OrdenacaoInvalidaException e -> {
-                details.put("recurso", e.getRecurso());
-                details.put("campoOrdenacao", e.getCampoOrdenacao());
-                details.put("campoOrdenacaoLabel", ApiFieldLabels.resolve(e.getCampoOrdenacao()));
-                details.put("camposAceitos", e.getCamposAceitos());
             }
             default -> {
             }
@@ -501,15 +529,18 @@ public class GlobalExceptionHandler {
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400 e detalhes dos erros de campo.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponseDTO> handleValidationErrors(MethodArgumentNotValidException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponseDTO> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request
+    ) {
         Map<String, String> errors = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(error ->
                 errors.put(error.getField(), error.getDefaultMessage()));
 
         log.info(
                 "Erros de validação de argumento de método: method={} uri={} errors={}",
-                request.getMethod(),
-                request.getRequestURI(),
+                request != null ? request.getMethod() : "N/A",
+                request != null ? request.getRequestURI() : "N/A",
                 errors
         );
         return buildErrorResponse(buildValidationMessage(errors), HttpStatus.BAD_REQUEST, errors);
@@ -523,7 +554,10 @@ public class GlobalExceptionHandler {
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponseDTO> handleMalformedJson(HttpMessageNotReadableException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponseDTO> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex,
+            HttpServletRequest request
+    ) {
         String message;
         Map<String, String> details = new LinkedHashMap<>();
 
@@ -546,8 +580,8 @@ public class GlobalExceptionHandler {
 
         log.info(
                 "JSON inválido: method={} uri={} details={}",
-                request.getMethod(),
-                request.getRequestURI(),
+                request != null ? request.getMethod() : "N/A",
+                request != null ? request.getRequestURI() : "N/A",
                 sanitizeLogMap(details)
         );
         return buildErrorResponse(message, HttpStatus.BAD_REQUEST, details);
@@ -560,9 +594,9 @@ public class GlobalExceptionHandler {
      * @param ex A exceção do Spring lançada.
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 400.
      */
-    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
-    public ResponseEntity<ErrorResponseDTO> handleMissingRequestParameter(
-            org.springframework.web.bind.MissingServletRequestParameterException ex,
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponseDTO> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException ex,
             HttpServletRequest request
     ) {
         String parameterName = ex.getParameterName();
@@ -586,14 +620,17 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ErrorResponseDTO> handleMethodArgumentTypeMismatch(
-            MethodArgumentTypeMismatchException ex,
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, TypeMismatchException.class})
+    public ResponseEntity<ErrorResponseDTO> handleTypeMismatch(
+            TypeMismatchException ex,
             HttpServletRequest request
     ) {
-        String parameterLabel = ApiFieldLabels.resolve(ex.getName());
+        String parameterName = ex instanceof MethodArgumentTypeMismatchException mismatchException
+                ? mismatchException.getName()
+                : ex.getPropertyName();
+        String parameterLabel = ApiFieldLabels.resolve(parameterName);
         Map<String, String> details = new LinkedHashMap<>();
-        details.put("parametro", ex.getName());
+        details.put("parametro", parameterName);
         details.put("campo", parameterLabel);
         details.put("valorInformado", String.valueOf(ex.getValue()));
 
@@ -632,11 +669,19 @@ public class GlobalExceptionHandler {
      * @return Um {@link ResponseEntity} contendo um {@link ErrorResponseDTO} com status 405.
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ErrorResponseDTO> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponseDTO> handleHttpRequestMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex,
+            HttpServletRequest request
+    ) {
         String msg = String.format("Método HTTP '%s' não permitido para este recurso.", ex.getMethod());
         String metodosPermitidos = Objects.requireNonNull(ex.getSupportedHttpMethods()).stream().map(HttpMethod::name).collect(Collectors.joining(", "));
         // Log mais informativo: método + URI + métodos permitidos
-        log.info("Método HTTP não permitido: method={} uri={} permitted={}", ex.getMethod(), request.getRequestURI(), metodosPermitidos);
+        log.info(
+                "Método HTTP não permitido: method={} uri={} permitted={}",
+                ex.getMethod(),
+                request != null ? request.getRequestURI() : "N/A",
+                metodosPermitidos
+        );
         return buildErrorResponse(msg, HttpStatus.METHOD_NOT_ALLOWED, Map.of("metodosPermitidos", metodosPermitidos));
     }
 
@@ -713,7 +758,10 @@ public class GlobalExceptionHandler {
      * Manipula uploads maiores que o permitido
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ErrorResponseDTO> handleMaxSizeException(MaxUploadSizeExceededException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponseDTO> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException ex,
+            HttpServletRequest request
+    ) {
         Map<String, String> details = new LinkedHashMap<>();
         Long limiteBytes = resolveUploadLimitBytes(ex);
         Long tamanhoRecebidoBytes = resolveUploadReceivedBytes(ex);
@@ -727,8 +775,8 @@ public class GlobalExceptionHandler {
 
         log.info(
                 "Upload excedeu o tamanho máximo: method={} uri={} limiteBytes={}",
-                request.getMethod(),
-                request.getRequestURI(),
+                request != null ? request.getMethod() : "N/A",
+                request != null ? request.getRequestURI() : "N/A",
                 limiteBytes != null ? limiteBytes : ex.getMaxUploadSize()
         );
         return buildErrorResponse(
@@ -763,8 +811,10 @@ public class GlobalExceptionHandler {
      * um recurso estático solicitado (por exemplo, /actuator/health sendo interpretado como recurso estático).
      * Retorna 404 Not Found em vez de 500 para que clientes recebam a resposta correta.
      */
-    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
-    public ResponseEntity<ErrorResponseDTO> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleNoResourceFoundException(
+            NoResourceFoundException ex
+    ) {
         log.debug("Recurso estático não encontrado: {}", ex.getMessage());
         // NoResourceFoundException não expõe getRequestPath em todas as versões; usamos a mensagem como detalhe.
         return buildErrorResponse("Recurso não encontrado", HttpStatus.NOT_FOUND, Map.of("detail", ex.getMessage()));

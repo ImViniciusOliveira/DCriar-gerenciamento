@@ -42,6 +42,8 @@ spring:
 
 server:
   forward-headers-strategy: framework
+  error:
+    include-stacktrace: never
 
 # --- MINIO CONFIGURATION ---
 minio:

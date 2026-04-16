@@ -36,7 +36,6 @@ public final class ApiFieldLabels {
             Map.entry("nomeTipoMateriaPrima", "matéria-prima"),
             Map.entry("tipoMateriaPrimaId", "matéria-prima"),
             Map.entry("sku", "SKU"),
-            Map.entry("skuProduto", "SKU"),
             Map.entry("cpf", "CPF"),
             Map.entry("cep", "CEP"),
             Map.entry("uf", "UF"),
@@ -78,7 +77,16 @@ public final class ApiFieldLabels {
             Map.entry("politicaSaldoRetalho", "política de saldo de retalhos"),
             Map.entry("estoqueFisicoTotal", "estoque físico"),
             Map.entry("estoqueDistribuidoTotal", "estoque distribuído"),
-            Map.entry("estoqueDisponivelParaAlocar", "estoque disponível")
+            Map.entry("estoqueDisponivelParaAlocar", "estoque disponível"),
+            Map.entry("dataInicio", "data inicial"),
+            Map.entry("dataFim", "data final"),
+            Map.entry("receita", "faturamento"),
+            Map.entry("totalPedidos", "total de pedidos"),
+            Map.entry("nomeCanal", "canal de venda"),
+            Map.entry("unidadesVendidas", "unidades vendidas"),
+            Map.entry("trendLabel", "tipo de agrupamento"),
+            Map.entry("diasInformados", "dias informados"),
+            Map.entry("limiteMaximoDias", "limite máximo de dias")
     );
 
     private ApiFieldLabels() {

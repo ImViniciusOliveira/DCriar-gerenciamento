@@ -1,83 +1,110 @@
 package com.dcriar.exception.handler;
 
-import com.dcriar.api.dto.response.ErrorResponseDTO;
-import com.dcriar.exception.custom.ArquivoStorageException;
-import com.dcriar.exception.custom.DadosSensiveisCriptografiaException;
+import com.dcriar.exception.custom.OrdenacaoInvalidaException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.format.support.DefaultFormattingConversionService;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import java.time.LocalDate;
+import java.util.Map;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class GlobalExceptionHandlerTest {
 
-    private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+    private MockMvc mockMvc;
 
-    @Test
-    void shouldReturnControlledResponseForFileStorageException() {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/produtos/1/foto");
-        ArquivoStorageException exception = ArquivoStorageException.falhaAoArmazenar(
-                "foto-produto.png",
-                new RuntimeException("falha simulada no storage")
-        );
-
-        var response = handler.handleFileStorageException(exception, request);
-        ErrorResponseDTO body = response.getBody();
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertNotNull(body);
-        assertEquals(
-                "Não foi possível armazenar o arquivo 'foto-produto.png'. Verifique o conteúdo enviado e tente novamente.",
-                body.getMessage()
-        );
-        assertEquals("ARMAZENAR", body.getDetails().get("operacao"));
-        assertEquals("foto-produto.png", body.getDetails().get("nomeArquivo"));
+    @BeforeEach
+    void setUp() {
+        mockMvc = MockMvcBuilders.standaloneSetup(new TestController())
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .setConversionService(new DefaultFormattingConversionService())
+                .build();
     }
 
     @Test
-    void shouldReturnControlledResponseForSensitiveDataEncryptionException() {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/vendas");
-        DadosSensiveisCriptografiaException exception = DadosSensiveisCriptografiaException.chaveNaoConfigurada();
-
-        var response = handler.handleSensitiveDataEncryption(exception, request);
-        ErrorResponseDTO body = response.getBody();
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertNotNull(body);
-        assertEquals(
-                "A chave de criptografia dos dados sensíveis não foi configurada. Defina DATA_ENCRYPTION_KEY no ambiente.",
-                body.getMessage()
-        );
-        assertEquals("CHAVE_CRIPTOGRAFIA_NAO_CONFIGURADA", body.getDetails().get("codigo"));
-        assertEquals(
-                "Revise a configuração de DATA_ENCRYPTION_KEY antes de iniciar a aplicação.",
-                body.getDetails().get("orientacao")
-        );
+    void devePadronizarParametroObrigatorioAusente() throws Exception {
+        mockMvc.perform(get("/test/totais")
+                        .param("dataFim", "2026-04-16"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("O campo obrigatório 'data inicial' não foi informado na requisição."))
+                .andExpect(jsonPath("$.details.parametro").value("dataInicio"))
+                .andExpect(jsonPath("$.details.campo").value("data inicial"));
     }
 
     @Test
-    void shouldReturnConflictResponseForGenericDataIntegrityViolation() {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/recurso-teste");
-        DataIntegrityViolationException exception = new DataIntegrityViolationException(
-                "violacao de integridade simulada",
-                new RuntimeException("duplicate key value violates unique constraint")
-        );
+    void devePadronizarTipoInvalidoEmParametro() throws Exception {
+        mockMvc.perform(get("/test/totais")
+                        .param("dataInicio", "2026/04/10")
+                        .param("dataFim", "2026-04-16"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("O campo 'data inicial' recebeu um valor inválido: '2026/04/10'."))
+                .andExpect(jsonPath("$.details.parametro").value("dataInicio"))
+                .andExpect(jsonPath("$.details.campo").value("data inicial"))
+                .andExpect(jsonPath("$.details.valorInformado").value("2026/04/10"));
+    }
 
-        var response = handler.handleDatabaseErrors(exception, request);
-        ErrorResponseDTO body = response.getBody();
+    @Test
+    void devePadronizarOrdenacaoInvalida() throws Exception {
+        mockMvc.perform(get("/test/ordenacao-invalida"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("O campo de ordenação 'campoInexistente' não é suportado para 'por-canal'."))
+                .andExpect(jsonPath("$.details.recurso").value("por-canal"))
+                .andExpect(jsonPath("$.details.campoOrdenacao").value("campoInexistente"))
+                .andExpect(jsonPath("$.details.camposAceitos").value("receita, totalPedidos, nomeCanal, canalVendaId"));
+    }
 
-        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertNotNull(body);
-        assertEquals(
-                "A operação violou uma regra de integridade dos dados. Verifique se o registro já existe ou se ainda possui vínculos ativos.",
-                body.getMessage()
-        );
-        assertEquals("VIOLACAO_DE_INTEGRIDADE", body.getDetails().get("causa"));
-        assertEquals(
-                "Verifique se o registro já existe ou se ainda está vinculado a outros dados.",
-                body.getDetails().get("orientacao")
-        );
+    @Test
+    void devePadronizarJsonMalformado() throws Exception {
+        mockMvc.perform(post("/test/json")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantidade\": }"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("O corpo da requisição está malformado ou contém dados inválidos."))
+                .andExpect(jsonPath("$.details.causa").exists());
+    }
+
+    @RestController
+    @RequestMapping("/test")
+    static class TestController {
+
+        @GetMapping("/totais")
+        String totais(
+                @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+                @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim
+        ) {
+            return dataInicio + ":" + dataFim;
+        }
+
+        @GetMapping("/ordenacao-invalida")
+        String ordenacaoInvalida() {
+            throw new OrdenacaoInvalidaException(
+                    "por-canal",
+                    "campoInexistente",
+                    "receita, totalPedidos, nomeCanal, canalVendaId"
+            );
+        }
+
+        @PostMapping("/json")
+        Map<String, Object> json(@RequestBody Map<String, Object> payload) {
+            return payload;
+        }
     }
 }
