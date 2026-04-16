@@ -53,6 +53,9 @@ public abstract class Produto extends AuditableEntity {
     @Column(name = "foto_principal_url")
     private String fotoPrincipalUrl;
 
+    @Column(name = "estoque_critico")
+    private Integer estoqueCritico;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_materia_prima_id")
     private TipoMateriaPrima tipoMateriaPrima;

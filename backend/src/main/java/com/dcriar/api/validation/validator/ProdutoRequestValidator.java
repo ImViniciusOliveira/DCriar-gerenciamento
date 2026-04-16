@@ -24,6 +24,8 @@ public class ProdutoRequestValidator extends BaseValidator<ValidProdutoRequest, 
         addViolationIf(dto.getSku() == null || dto.getSku().isBlank(), "O SKU do produto é obrigatório.", "sku");
         addViolationIf(dto.getUnidadesPorProduto() == null || dto.getUnidadesPorProduto().compareTo(BigDecimal.ZERO) <= 0, "A quantidade de unidades por produto deve ser um número positivo.", "unidadesPorProduto");
         addViolationIf(dto.getPrecoComercial() == null || dto.getPrecoComercial().compareTo(BigDecimal.ZERO) <= 0, "O preço comercial deve ser um número positivo.", "precoComercial");
+        addViolationIf(dto.getEstoqueCritico() == null, "O estoque crítico é obrigatório.", "estoqueCritico");
+        addViolationIf(dto.getEstoqueCritico() != null && dto.getEstoqueCritico() < 0, "O estoque crítico não pode ser negativo.", "estoqueCritico");
         addViolationIf(dto.getTipoMateriaPrimaId() == null, "O ID do tipo de matéria-prima é obrigatório.", "tipoMateriaPrimaId");
 
         String tipoProduto = dto.getTipoProduto();

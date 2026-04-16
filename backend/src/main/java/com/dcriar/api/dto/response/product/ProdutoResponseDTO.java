@@ -68,6 +68,9 @@ public abstract class ProdutoResponseDTO {
     @Schema(description = "Preço comercial atual do produto.", example = "19.90")
     private BigDecimal precoComercial;
 
+    @Schema(description = "Quantidade mínima crítica de saldo para análises operacionais do produto.", example = "20")
+    private Integer estoqueCritico;
+
     @Schema(description = "Data e hora de criação do produto.")
     private LocalDateTime dataCriacao;
 

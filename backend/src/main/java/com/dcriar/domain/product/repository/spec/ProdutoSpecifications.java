@@ -14,6 +14,13 @@ import org.springframework.util.StringUtils;
  */
 public class ProdutoSpecifications {
 
+    public static Specification<Produto> comId(Long produtoId) {
+        if (produtoId == null) {
+            return null;
+        }
+        return (root, query, builder) -> builder.equal(root.get("id"), produtoId);
+    }
+
     /**
      * Cria uma Specification que filtra produtos por nome ou SKU.
      * A busca é case-insensitive e ignora o filtro se o termo for nulo ou vazio.

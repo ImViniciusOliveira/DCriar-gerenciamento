@@ -51,6 +51,9 @@ public class ProdutoRequestDTO {
     @Schema(description = "Preço comercial do produto.", example = "19.90", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal precoComercial;
 
+    @Schema(description = "Quantidade mínima crítica de saldo para análises operacionais do produto.", example = "20")
+    private Integer estoqueCritico;
+
     @Schema(description = "ID do Tipo de Matéria-Prima principal que este produto consome.", example = "6", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long tipoMateriaPrimaId;
 

@@ -173,6 +173,7 @@ public class ProdutoServiceImpl implements ProdutoService {
                 .descricao(TrimTextNormalizer.trimToNull(requestDTO.getDescricao()))
                 .unidadesPorProduto(requestDTO.getUnidadesPorProduto())
                 .fotoPrincipalUrl(requestDTO.getFotoPrincipalUrl())
+                .estoqueCritico(requestDTO.getEstoqueCritico())
                 .ativo(requestDTO.getAtivo() != null ? requestDTO.getAtivo() : true)
                 .tipoMateriaPrima(tipoMateriaPrima)
                 .cor(requestDTO.getCor())
@@ -195,6 +196,7 @@ public class ProdutoServiceImpl implements ProdutoService {
                         unidadeCadastro
                 ))
                 .fotoPrincipalUrl(requestDTO.getFotoPrincipalUrl())
+                .estoqueCritico(requestDTO.getEstoqueCritico())
                 .ativo(requestDTO.getAtivo() != null ? requestDTO.getAtivo() : true)
                 .tipoMateriaPrima(tipoMateriaPrima)
                 .codigoFabricante(requestDTO.getCodigoFabricante())
@@ -254,6 +256,7 @@ public class ProdutoServiceImpl implements ProdutoService {
                     }
                     produto.setFotoPrincipalUrl(newFoto);
                 }
+                case "estoqueCritico" -> produto.setEstoqueCritico(value == null ? null : ((Number) value).intValue());
                 case "unidadesPorProduto" -> {
                     if (value != null) {
                         produto.setUnidadesPorProduto(new BigDecimal(value.toString()));
@@ -371,6 +374,14 @@ public class ProdutoServiceImpl implements ProdutoService {
             errors.put("codigoFabricante", "O código do fabricante é obrigatório.");
         }
 
+        if (fields.containsKey("estoqueCritico")) {
+            if (fields.get("estoqueCritico") == null) {
+                errors.put("estoqueCritico", "O estoque crítico é obrigatório.");
+            } else if (((Number) fields.get("estoqueCritico")).intValue() < 0) {
+                errors.put("estoqueCritico", "O estoque crítico não pode ser negativo.");
+            }
+        }
+
         if (produto instanceof ProdutoDeConsumo && fields.containsKey("especificacoes") && fields.get("especificacoes") instanceof Map<?, ?> specs) {
             try {
                 LogicalMapKeySupport.validateNoLogicalDuplicates(specs, "especificacoes");
@@ -421,6 +432,7 @@ public class ProdutoServiceImpl implements ProdutoService {
             case "ativo" -> Objects.equals(produto.isAtivo(), value);
             case "fotoPrincipalUrl" -> Objects.equals(produto.getFotoPrincipalUrl(), value);
             case "precoComercial" -> sameBigDecimal(produto.getPrecoComercial(), toBigDecimal(value));
+            case "estoqueCritico" -> Objects.equals(produto.getEstoqueCritico(), value == null ? null : ((Number) value).intValue());
             case "tipoMateriaPrimaId" -> value instanceof Number number
                     && Objects.equals(produto.getTipoMateriaPrima().getId(), number.longValue());
             case "unidadesPorProduto" -> sameUnidadesPorProduto(produto, value);
