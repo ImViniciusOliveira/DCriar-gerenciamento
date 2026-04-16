@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs';
 
 import { StockService } from '../../stock/services/stock.service';
 import { MaterialStockAnalysisSummary } from '../../stock/models/material-stock-analysis.model';
@@ -15,20 +14,7 @@ interface DashboardQuickAction {
   route: string;
 }
 
-interface DashboardMaterialAlertItem {
-  id: number;
-  name: string;
-  currentAmount: number;
-  minimumAmount: number;
-  unitLabel: string;
-  stockLevelPercent: number;
-  helperText: string;
-  actionLabel: string;
-  route: string;
-  tone: 'warning' | 'critical';
-}
-
-interface DashboardProductAlertItem {
+interface DashboardAlertItem {
   id: number;
   name: string;
   currentAmount: number;
@@ -67,17 +53,15 @@ export class DashboardPage {
   private readonly productStockAnalysisResult = toSignal(
     this.stockService.searchProductStockAnalysis({
       page: 0,
-      size: 50,
+      size: 10,
       sort: 'percentualRisco,desc',
       statusAnalise: 'CRITICO'
-    }).pipe(
-      map(result => result.items)
-    ),
-    { initialValue: [] as ProductStockAnalysisSummary[] }
+    }),
+    { initialValue: { items: [] as ProductStockAnalysisSummary[], total: 0 } }
   );
 
-  protected readonly productAlerts = computed<DashboardProductAlertItem[]>(() =>
-    this.productStockAnalysisResult()
+  protected readonly productAlerts = computed<DashboardAlertItem[]>(() =>
+    this.productStockAnalysisResult().items
       .sort((left, right) => (right.percentualRisco ?? 0) - (left.percentualRisco ?? 0))
       .map(item => this.toProductAlertItem(item))
   );
@@ -90,18 +74,16 @@ export class DashboardPage {
   private readonly materialStockAnalysisResult = toSignal(
     this.stockService.searchMaterialStockAnalysis({
       page: 0,
-      size: 50,
+      size: 10,
       sort: 'percentualRisco,desc',
       statusAnalise: 'CRITICO',
       politicaSaldoRetalho: 'TODOS'
-    }).pipe(
-      map(result => result.items)
-    ),
-    { initialValue: [] as MaterialStockAnalysisSummary[] }
+    }),
+    { initialValue: { items: [] as MaterialStockAnalysisSummary[], total: 0 } }
   );
 
-  protected readonly materialAlerts = computed<DashboardMaterialAlertItem[]>(() =>
-    this.materialStockAnalysisResult()
+  protected readonly materialAlerts = computed<DashboardAlertItem[]>(() =>
+    this.materialStockAnalysisResult().items
       .sort((left, right) => (right.percentualRisco ?? 0) - (left.percentualRisco ?? 0))
       .map(item => this.toMaterialAlertItem(item))
   );
@@ -112,7 +94,7 @@ export class DashboardPage {
     tone: 'positive'
   };
 
-  private toProductAlertItem(item: ProductStockAnalysisSummary): DashboardProductAlertItem {
+  private toProductAlertItem(item: ProductStockAnalysisSummary): DashboardAlertItem {
     const currentAmount = item.saldoConsiderado ?? 0;
     const minimumAmount = item.estoqueCritico ?? 0;
     const riskPercent = Math.max(0, Math.min(100, item.percentualRisco ?? 0));
@@ -135,7 +117,7 @@ export class DashboardPage {
     };
   }
 
-  private toMaterialAlertItem(item: MaterialStockAnalysisSummary): DashboardMaterialAlertItem {
+  private toMaterialAlertItem(item: MaterialStockAnalysisSummary): DashboardAlertItem {
     const currentAmount = item.saldoConsiderado ?? 0;
     const minimumAmount = item.estoqueCritico ?? 0;
     const unitLabel = item.unidadeSimbolo || item.unidadeDescricao || item.unidadeDeConsumo;
@@ -155,7 +137,7 @@ export class DashboardPage {
         : 'Saldo no limite crítico. Avalie reposição imediata.',
       actionLabel: 'Adicionar lote de matéria-prima',
       route: '/lotes-materia-prima',
-      tone: 'critical'
+      tone: item.statusAnalise === 'CRITICO' ? 'critical' : 'warning'
     };
   }
 }

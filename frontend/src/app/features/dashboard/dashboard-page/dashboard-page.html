@@ -57,6 +57,8 @@
             </div>
           }
         </div>
+
+        <small class="dashboard-alert-count">{{ productAlerts().length }}/10 com saldo baixo</small>
       } @else {
         <div class="dashboard-empty-state" [class.dashboard-empty-state--positive]="productEmptyState.tone === 'positive'">
           <div class="dashboard-empty-state__icon">
@@ -97,6 +99,8 @@
             </div>
           }
         </div>
+
+        <small class="dashboard-alert-count">{{ materialAlerts().length }}/10 com estoque baixo</small>
       } @else {
         <div class="dashboard-empty-state" [class.dashboard-empty-state--positive]="materialEmptyState.tone === 'positive'">
           <div class="dashboard-empty-state__icon">
