@@ -30,35 +30,35 @@ import java.util.stream.Stream;
 @Service
 @RequiredArgsConstructor
 public class EstoqueProdutoAnaliseServiceImpl implements EstoqueProdutoAnaliseService {
-    private static final Map<String, String> STABLE_SORTS = Map.of(
-            "nome", "id",
-            "sku", "id",
-            "tipoProduto", "id",
-            "saldoConsiderado", "id",
-            "estoqueFisicoTotal", "id",
-            "estoqueDistribuidoTotal", "id",
-            "estoqueDisponivelParaAlocar", "id",
-            "estoqueCritico", "id",
-            "percentualRisco", "id",
-            "statusAnalise", "id",
-            "id", "id"
+    private static final Map<String, String> STABLE_SORTS = Map.ofEntries(
+            Map.entry("nome",                     "id"),
+            Map.entry("sku",                      "id"),
+            Map.entry("tipoProduto",              "id"),
+            Map.entry("saldoConsiderado",         "id"),
+            Map.entry("estoqueFisicoTotal",       "id"),
+            Map.entry("estoqueDistribuidoTotal",  "id"),
+            Map.entry("estoqueDisponivelParaAlocar", "id"),
+            Map.entry("estoqueCritico",           "id"),
+            Map.entry("percentualRisco",          "id"),
+            Map.entry("statusAnalise",            "id"),
+            Map.entry("id",                       "id")
     );
     private static final Map<String, String> SORT_ALIASES = Map.ofEntries(
-            Map.entry("nome", "nome"),
-            Map.entry("nomeProduto", "nome"),
-            Map.entry("sku", "sku"),
-            Map.entry("skuProduto", "sku"),
-            Map.entry("tipoProduto", "tipoProduto"),
-            Map.entry("id", "id"),
-            Map.entry("produtoId", "id"),
-            Map.entry("saldoAtual", "saldoConsiderado"),
-            Map.entry("saldoConsiderado", "saldoConsiderado"),
-            Map.entry("estoqueFisicoTotal", "estoqueFisicoTotal"),
-            Map.entry("estoqueDistribuidoTotal", "estoqueDistribuidoTotal"),
+            Map.entry("nome",                     "nome"),
+            Map.entry("nomeProduto",              "nome"),
+            Map.entry("sku",                      "sku"),
+            Map.entry("skuProduto",               "sku"),
+            Map.entry("tipoProduto",              "tipoProduto"),
+            Map.entry("id",                       "id"),
+            Map.entry("produtoId",                "id"),
+            Map.entry("saldoAtual",               "saldoConsiderado"),
+            Map.entry("saldoConsiderado",         "saldoConsiderado"),
+            Map.entry("estoqueFisicoTotal",       "estoqueFisicoTotal"),
+            Map.entry("estoqueDistribuidoTotal",  "estoqueDistribuidoTotal"),
             Map.entry("estoqueDisponivelParaAlocar", "estoqueDisponivelParaAlocar"),
-            Map.entry("estoqueCritico", "estoqueCritico"),
-            Map.entry("percentualRisco", "percentualRisco"),
-            Map.entry("statusAnalise", "statusAnalise")
+            Map.entry("estoqueCritico",           "estoqueCritico"),
+            Map.entry("percentualRisco",          "percentualRisco"),
+            Map.entry("statusAnalise",            "statusAnalise")
     );
     private static final String SORTS_ACEITOS =
             "nome, nomeProduto, sku, skuProduto, tipoProduto, id, produtoId, saldoAtual, saldoConsiderado, estoqueFisicoTotal, estoqueDistribuidoTotal, estoqueDisponivelParaAlocar, estoqueCritico, percentualRisco, statusAnalise";
@@ -104,7 +104,6 @@ public class EstoqueProdutoAnaliseServiceImpl implements EstoqueProdutoAnaliseSe
 
     private AnaliseEstoqueProdutoResponseDTO toAnaliseDto(Produto produto) {
         Integer estoqueFisicoTotal = safeInt(produto.getEstoqueFisicoTotal());
-        Integer saldoConsiderado = estoqueFisicoTotal;
         Integer estoqueDistribuidoTotal = safeInt(produto.getEstoqueDistribuidoTotal());
         Integer estoqueDisponivelParaAlocar = safeInt(produto.getEstoqueDisponivelParaAlocar());
         Integer estoqueCritico = produto.getEstoqueCritico();
@@ -115,12 +114,12 @@ public class EstoqueProdutoAnaliseServiceImpl implements EstoqueProdutoAnaliseSe
                 .skuProduto(produto.getSku())
                 .tipoProduto(produto.getTipoProduto())
                 .estoqueFisicoTotal(estoqueFisicoTotal)
-                .saldoConsiderado(saldoConsiderado)
+                .saldoConsiderado(estoqueFisicoTotal)
                 .estoqueDistribuidoTotal(estoqueDistribuidoTotal)
                 .estoqueDisponivelParaAlocar(estoqueDisponivelParaAlocar)
                 .estoqueCritico(estoqueCritico)
-                .percentualRisco(calcularPercentualRisco(saldoConsiderado, estoqueCritico))
-                .statusAnalise(resolverStatusAnalise(saldoConsiderado, estoqueCritico))
+                .percentualRisco(calcularPercentualRisco(estoqueFisicoTotal, estoqueCritico))
+                .statusAnalise(resolverStatusAnalise(estoqueFisicoTotal, estoqueCritico))
                 .build();
     }
 

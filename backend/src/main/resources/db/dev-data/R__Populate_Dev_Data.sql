@@ -57,21 +57,39 @@ INSERT INTO lotes_materia_prima (tipo_materia_prima_id, unidade_de_estoque, unid
     ((SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Seda Branco A4'), 'FOLHA', 'FOLHA', 250.00, 'Compra NF-1012', '{ "gramatura_gm2": 18, "cor": "branco" }', NOW(), NOW());
 
 -- Inserção de Produtos Acabados (dependem de Tipos de Matérias-Primas)
-INSERT INTO produtos (tipo_produto, nome, sku, descricao, cor, unidades_por_produto, ativo, foto_principal_url, tipo_materia_prima_id, largura_cm, comprimento_cm, data_criacao, data_atualizacao, codigo_fabricante, unidade_cadastro_consumo, especificacoes) VALUES
-    ('CORTE', 'Cartão de Visita Premium', 'CV-PREM-9X5', 'Cartão de visita em papel couchê 300g, laminação fosca.', 'Branco', 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Couchê 300g'), 9.0, 5.0, NOW(), NOW(), null, null, null),
-    ('CORTE', 'Banner Comercial 1,20x0,80m', 'BNR-COM-120X80', 'Banner em lona fosca 440g com bastão e corda.', 'Personalizada', 1, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 80.0, 120.0, NOW(), NOW(), null, null, null),
-    ('CORTE', 'Adesivo Redondo 5cm', 'ADSV-RD-5', 'Adesivo em vinil branco para uso geral, corte redondo.', 'Branco', 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 5.0, 5.0, NOW(), NOW(), null, null, null),
-    ('CORTE', 'Folder A4 Dobrado', 'FLD-A4-DOB', 'Folder promocional em papel couchê 300g com dobra central.', 'Colorido', 1, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Couchê 300g'), 21.0, 29.7, NOW(), NOW(), null, null, null),
-    ('CORTE', 'Rótulo para Cerveja Long Neck', 'ROT-CERV-LN', 'Rótulo para garrafas, resistente à umidade, em BOPP transparente.', 'Transparente', 50, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo BOPP Transparente'), 8.0, 7.0, NOW(), NOW(), null, null, null),
-    ('CORTE', 'Adesivo Holográfico 10x10cm', 'ADSV-HOLO-10', 'Adesivo com acabamento holográfico para brindes e embalagens.', 'Holográfico', 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 10.0, 10.0, NOW(), NOW(), null, null, null),
-    ('CORTE', 'Tag Kraft para Roupas 4x9cm', 'TAG-KFT-4X9', 'Tag em papel kraft 180g com furo para aplicação em peças de vestuário.', 'Pardo', 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Kraft 180g'), 4.0, 9.0, NOW(), NOW(), null, null, null),
-    ('CONSUMO', 'Tinta Eco-Solvente Preta', 'TIN-PRE-ES-1L', 'Tinta preta para impressoras eco-solvente, frasco com 1 litro.', null, 1, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Tinta Eco-Solvente Preta'), null, null, NOW(), NOW(), 'INK-BLK-ES-1L', 'LITRO', '{"tipo_tinta": "Eco-Solvente", "cor_pantone": "Black C", "volume_ml": 1000}'),
-    ('CORTE', 'Fita Dupla Face 25mm x 50m', 'FITA-DF-25MM', 'Rolo de fita dupla face de alta aderência com 25 mm de largura e 50 metros de comprimento.', 'Transparente', 1, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Fita Dupla Face 25mm'), 2.5, 5000.0, NOW(), NOW(), null, null, null),
-    ('CONSUMO', 'Pacote de Ilhós Nº 0', 'ILHOS-BNR-100', 'Pacote com 100 unidades de ilhós de latão número 0 para acabamento de banners.', null, 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Ilhós de Latão #0'), null, null, NOW(), NOW(), 'ILHOS-LT-0', 'UNIDADE', '{"diametro_mm": 10, "material": "Latão"}'),
-    ('CONSUMO', 'Kit de Resina Epóxi', 'RES-EPX-2KG', 'Kit de resina epóxi transparente para artesanato e encapsulamento, com 2 kg.', null, 2, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Resina Epóxi Transparente'), null, null, NOW(), NOW(), 'EPX-KIT-2KG', 'QUILOGRAMA', '{"acabamento": "transparente", "uso": "artesanato"}'),
-    ('CONSUMO', 'Refil de Pó Adesivo', 'PO-ADT-500G', 'Refil de pó adesivo termocolante para DTF, embalagem com 500 gramas.', null, 500, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Pó Adesivo Termocolante'), null, null, NOW(), NOW(), 'DTF-PO-500', 'GRAMA', '{"malha": "fina", "uso": "transfer"}'),
-    ('CONSUMO', 'Frasco de Verniz UV', 'VERN-UV-250', 'Frasco de verniz UV brilhante para acabamento gráfico, com 250 ml.', null, 250, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Verniz UV Brilhante'), null, null, NOW(), NOW(), 'UV-BRILHO-250', 'MILILITRO', '{"acabamento": "brilhante", "cura": "UV"}'),
-    ('CONSUMO', 'Pacote de Papel Seda A4', 'PAP-SEDA-A4-100', 'Pacote de papel seda branco A4 com 100 folhas para proteção e acabamento.', null, 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Seda Branco A4'), null, null, NOW(), NOW(), 'SEDA-A4-100', 'FOLHA', '{"cor": "branco", "gramatura_gm2": 18}');
+-- estoque_critico: limiar mínimo de saldo para análise de risco no dashboard.
+-- Valores definidos para gerar um mix realista no ambiente de dev:
+--   CRITICO  → saldo atual <= estoque_critico  (aparece no card de alertas do dashboard)
+--   ACEITAVEL → saldo atual >  estoque_critico
+INSERT INTO produtos (tipo_produto, nome, sku, descricao, cor, unidades_por_produto, ativo, foto_principal_url, tipo_materia_prima_id, largura_cm, comprimento_cm, data_criacao, data_atualizacao, codigo_fabricante, unidade_cadastro_consumo, especificacoes, estoque_critico) VALUES
+    -- saldo físico esperado: ~4800 un  →  ACEITAVEL (4800 > 2000)
+    ('CORTE', 'Cartão de Visita Premium', 'CV-PREM-9X5', 'Cartão de visita em papel couchê 300g, laminação fosca.', 'Branco', 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Couchê 300g'), 9.0, 5.0, NOW(), NOW(), null, null, null, 2000),
+    -- saldo físico esperado: ~50 un    →  CRITICO   (50 <= 60)
+    ('CORTE', 'Banner Comercial 1,20x0,80m', 'BNR-COM-120X80', 'Banner em lona fosca 440g com bastão e corda.', 'Personalizada', 1, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Lona Fosca 440g'), 80.0, 120.0, NOW(), NOW(), null, null, null, 60),
+    -- saldo físico esperado: ~1000 un  →  CRITICO   (1000 <= 1200)
+    ('CORTE', 'Adesivo Redondo 5cm', 'ADSV-RD-5', 'Adesivo em vinil branco para uso geral, corte redondo.', 'Branco', 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 5.0, 5.0, NOW(), NOW(), null, null, null, 1200),
+    -- saldo físico esperado: 0 un      →  CRITICO   (0 <= 50)
+    ('CORTE', 'Folder A4 Dobrado', 'FLD-A4-DOB', 'Folder promocional em papel couchê 300g com dobra central.', 'Colorido', 1, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Couchê 300g'), 21.0, 29.7, NOW(), NOW(), null, null, null, 50),
+    -- saldo físico esperado: ~250 un   →  CRITICO   (250 <= 300)
+    ('CORTE', 'Rótulo para Cerveja Long Neck', 'ROT-CERV-LN', 'Rótulo para garrafas, resistente à umidade, em BOPP transparente.', 'Transparente', 50, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo BOPP Transparente'), 8.0, 7.0, NOW(), NOW(), null, null, null, 300),
+    -- saldo físico esperado: 0 un      →  CRITICO   (0 <= 100)
+    ('CORTE', 'Adesivo Holográfico 10x10cm', 'ADSV-HOLO-10', 'Adesivo com acabamento holográfico para brindes e embalagens.', 'Holográfico', 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Adesivo Vinil Branco'), 10.0, 10.0, NOW(), NOW(), null, null, null, 100),
+    -- saldo físico esperado: ~500 un   →  ACEITAVEL (500 > 400)
+    ('CORTE', 'Tag Kraft para Roupas 4x9cm', 'TAG-KFT-4X9', 'Tag em papel kraft 180g com furo para aplicação em peças de vestuário.', 'Pardo', 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Kraft 180g'), 4.0, 9.0, NOW(), NOW(), null, null, null, 400),
+    -- saldo físico esperado: ~10 un    →  CRITICO   (10 <= 15)
+    ('CONSUMO', 'Tinta Eco-Solvente Preta', 'TIN-PRE-ES-1L', 'Tinta preta para impressoras eco-solvente, frasco com 1 litro.', null, 1, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Tinta Eco-Solvente Preta'), null, null, NOW(), NOW(), 'INK-BLK-ES-1L', 'LITRO', '{"tipo_tinta": "Eco-Solvente", "cor_pantone": "Black C", "volume_ml": 1000}', 15),
+    -- saldo físico esperado: ~5 un     →  CRITICO   (5 <= 5)
+    ('CORTE', 'Fita Dupla Face 25mm x 50m', 'FITA-DF-25MM', 'Rolo de fita dupla face de alta aderência com 25 mm de largura e 50 metros de comprimento.', 'Transparente', 1, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Fita Dupla Face 25mm'), 2.5, 5000.0, NOW(), NOW(), null, null, null, 5),
+    -- saldo físico esperado: ~20 un    →  CRITICO   (20 <= 30)
+    ('CONSUMO', 'Pacote de Ilhós Nº 0', 'ILHOS-BNR-100', 'Pacote com 100 unidades de ilhós de latão número 0 para acabamento de banners.', null, 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Ilhós de Latão #0'), null, null, NOW(), NOW(), 'ILHOS-LT-0', 'UNIDADE', '{"diametro_mm": 10, "material": "Latão"}', 30),
+    -- saldo físico esperado: ~7 un     →  ACEITAVEL (7 > 5)
+    ('CONSUMO', 'Kit de Resina Epóxi', 'RES-EPX-2KG', 'Kit de resina epóxi transparente para artesanato e encapsulamento, com 2 kg.', null, 2, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Resina Epóxi Transparente'), null, null, NOW(), NOW(), 'EPX-KIT-2KG', 'QUILOGRAMA', '{"acabamento": "transparente", "uso": "artesanato"}', 5),
+    -- saldo físico esperado: ~13 un    →  CRITICO   (13 <= 20)
+    ('CONSUMO', 'Refil de Pó Adesivo', 'PO-ADT-500G', 'Refil de pó adesivo termocolante para DTF, embalagem com 500 gramas.', null, 500, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Pó Adesivo Termocolante'), null, null, NOW(), NOW(), 'DTF-PO-500', 'GRAMA', '{"malha": "fina", "uso": "transfer"}', 20),
+    -- saldo físico esperado: ~12 un    →  ACEITAVEL (12 > 10)
+    ('CONSUMO', 'Frasco de Verniz UV', 'VERN-UV-250', 'Frasco de verniz UV brilhante para acabamento gráfico, com 250 ml.', null, 250, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Verniz UV Brilhante'), null, null, NOW(), NOW(), 'UV-BRILHO-250', 'MILILITRO', '{"acabamento": "brilhante", "cura": "UV"}', 10),
+    -- saldo físico esperado: ~20 un    →  ACEITAVEL (20 > 15)
+    ('CONSUMO', 'Pacote de Papel Seda A4', 'PAP-SEDA-A4-100', 'Pacote de papel seda branco A4 com 100 folhas para proteção e acabamento.', null, 100, true, '', (SELECT id FROM tipos_materia_prima WHERE nome = 'Papel Seda Branco A4'), null, null, NOW(), NOW(), 'SEDA-A4-100', 'FOLHA', '{"cor": "branco", "gramatura_gm2": 18}', 15);
 
 -- ETAPA 4: INSERÇÃO DE DADOS DEPENDENTES (Nível 2)
 -- Estas tabelas dependem dos dados inseridos nas Etapas 2 e 3.
