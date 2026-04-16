@@ -12,6 +12,7 @@ interface DashboardQuickAction {
   label: string;
   icon: string;
   route: string;
+  queryParams?: Record<string, string>;
 }
 
 interface DashboardAlertItem {
@@ -24,6 +25,7 @@ interface DashboardAlertItem {
   helperText: string;
   actionLabel: string;
   route: string;
+  queryParams?: Record<string, string>;
   tone: 'warning' | 'critical';
 }
 
@@ -44,9 +46,9 @@ export class DashboardPage {
   private readonly stockService = inject(StockService);
 
   protected readonly quickActions: DashboardQuickAction[] = [
-    { label: 'Nova venda', icon: 'point_of_sale', route: '/vendas' },
-    { label: 'Matérias-primas', icon: 'inventory_2', route: '/tipos-materia-prima' },
-    { label: 'Nova produção', icon: 'precision_manufacturing', route: '/ordens-de-producao' },
+    { label: 'Nova venda', icon: 'point_of_sale', route: '/vendas', queryParams: { action: 'create' } },
+    { label: 'Novo lote', icon: 'inventory_2', route: '/lotes-materia-prima', queryParams: { action: 'create' } },
+    { label: 'Nova produção', icon: 'precision_manufacturing', route: '/ordens-de-producao', queryParams: { action: 'create' } },
     { label: 'Ajustes', icon: 'tune', route: '/estoques' }
   ];
 
@@ -113,6 +115,7 @@ export class DashboardPage {
         : 'Saldo no limite crítico. Avalie nova produção.',
       actionLabel: 'Adicionar saldo em produto',
       route: '/ordens-de-producao',
+      queryParams: { action: 'create' },
       tone: item.statusAnalise === 'CRITICO' ? 'critical' : 'warning'
     };
   }
@@ -137,6 +140,7 @@ export class DashboardPage {
         : 'Saldo no limite crítico. Avalie reposição imediata.',
       actionLabel: 'Adicionar lote de matéria-prima',
       route: '/lotes-materia-prima',
+      queryParams: { action: 'create' },
       tone: item.statusAnalise === 'CRITICO' ? 'critical' : 'warning'
     };
   }

@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { catchError, lastValueFrom, of } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
 
 import { BaseTable, TableColumn } from '../../../../shared/components/base-table/base-table';
 import { BaseList } from '../../../../shared/components/base-list/base-list';
@@ -38,6 +39,7 @@ import { ProductionOrderForm, ProductionOrderFormData } from '../production-orde
 export class ProductionList extends BaseList<ProductionOrder> implements AfterViewInit {
   private readonly productionService = inject(ProductionService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly route = inject(ActivatedRoute);
 
   private static readonly Texts = {
     deleteConfirmTitle: 'Confirmar Exclusão',
@@ -91,6 +93,10 @@ export class ProductionList extends BaseList<ProductionOrder> implements AfterVi
       { key: 'acoes', header: 'Ações', sortable: false, className: 'col-actions col-actions-main', widthPx: 150, cellTemplate: this.acoesTemplate },
     ];
     this.cdr.detectChanges();
+
+    if (this.route.snapshot.queryParamMap.get('action') === 'create') {
+      this.onCreate();
+    }
   }
 
   override loadItems(): void {

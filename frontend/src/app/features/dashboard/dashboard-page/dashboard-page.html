@@ -19,7 +19,7 @@
 
         <div class="dashboard-quick-actions__list">
           @for (action of quickActions; track action.label) {
-            <a class="dashboard-quick-actions__item" [routerLink]="action.route">
+            <a class="dashboard-quick-actions__item" [routerLink]="action.route" [queryParams]="action.queryParams">
               <mat-icon>{{ action.icon }}</mat-icon>
               <strong>{{ action.label }}</strong>
             </a>
@@ -46,7 +46,7 @@
                   <span>Atual: {{ item.currentAmount | number:'1.0-0' }} {{ item.unitLabel }} / Mínimo: {{ item.minimumAmount | number:'1.0-0' }} {{ item.unitLabel }}</span>
                 </div>
 
-                <a class="dashboard-alert-item__action" [routerLink]="item.route">{{ item.actionLabel }}</a>
+                <a class="dashboard-alert-item__action" [routerLink]="item.route" [queryParams]="item.queryParams">{{ item.actionLabel }}</a>
               </div>
 
               <div class="dashboard-alert-item__bar">
@@ -88,7 +88,7 @@
                   <span>Saldo: {{ item.currentAmount | number:'1.0-4' }} {{ item.unitLabel }} / Mínimo: {{ item.minimumAmount | number:'1.0-4' }} {{ item.unitLabel }}</span>
                 </div>
 
-                <a class="dashboard-alert-item__action" [routerLink]="item.route">{{ item.actionLabel }}</a>
+                <a class="dashboard-alert-item__action" [routerLink]="item.route" [queryParams]="item.queryParams">{{ item.actionLabel }}</a>
               </div>
 
               <div class="dashboard-alert-item__bar">
