@@ -23,7 +23,7 @@ Permissões recomendadas:
 
 Use o esqueleto do projeto como base:
 
-- [Arquivo de ambiente de produção](/home/viniciusdev/dcriar/dcriar-sistema-inventario/.env.prod)
+- [Arquivo de ambiente de produção](.env.prod.example)
 
 O arquivo real deve ficar em:
 

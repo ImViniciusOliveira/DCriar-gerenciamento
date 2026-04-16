@@ -35,7 +35,7 @@ cp /caminho/do/esqueleto/.env.dev /caminho/onde/o/arquivo/de/ambiente/.env.dev
 
 Use o conteúdo do arquivo de esqueleto como base:
 
-- [Arquivo de ambiente de desenvolvimento](/home/viniciusdev/dcriar/dcriar-sistema-inventario/.env.dev)
+- [Arquivo de ambiente de desenvolvimento](.env.dev.example)
 
 ## Subir Só A Infraestrutura
 
