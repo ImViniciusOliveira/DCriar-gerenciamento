@@ -6,6 +6,8 @@ spring:
   config:
     activate:
       on-profile: prod
+  jackson:
+    time-zone: America/Sao_Paulo
 
   docker:
     compose:
@@ -20,6 +22,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: America/Sao_Paulo
     show-sql: false
     open-in-view: false
 
@@ -47,6 +53,7 @@ cors:
   allowed-origin: ${CORS_ALLOWED_ORIGIN}
 
 app:
+  time-zone: America/Sao_Paulo
   security:
     data-encryption:
       key: ${DATA_ENCRYPTION_KEY}

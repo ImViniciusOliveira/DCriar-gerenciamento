@@ -4,6 +4,8 @@ spring:
   config:
     activate:
       on-profile: local
+  jackson:
+    time-zone: America/Sao_Paulo
 
   # Explicitamente desliga a integração automática (o EnvironmentPostProcessor
   # respeitará essa propriedade caso o profile `local` seja usado na IDE).
@@ -31,6 +33,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          time_zone: America/Sao_Paulo
     show-sql: false
     open-in-view: false
 
@@ -79,6 +83,7 @@ cors:
   allowed-origin: ${CORS_ALLOWED_ORIGIN}
 
 app:
+  time-zone: America/Sao_Paulo
   security:
     data-encryption:
       key: ${DATA_ENCRYPTION_KEY}

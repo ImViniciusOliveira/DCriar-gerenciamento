@@ -2,6 +2,7 @@
 -- Sendo uma migração REPETÍVEL (R__), o Flyway a executará sempre que o seu conteúdo for alterado.
 -- Esta abordagem usa subqueries para buscar chaves estrangeiras, eliminando a necessidade de IDs manuais e
 -- resolvendo permanentemente problemas de sincronização de sequência do PostgreSQL.
+SET TIME ZONE 'America/Sao_Paulo';
 
 -- ETAPA 1: LIMPEZA COMPLETA DAS TABELAS
 -- A limpeza é feita em ordem de dependência reversa para respeitar as constraints de chave estrangeira.
@@ -168,12 +169,89 @@ WHERE FALSE;
 -- - por isso, aqui populamos apenas os campos de cliente que permanecem em claro
 -- - campos criptografados em repouso (nome_completo, endereco, numero, bairro, cep, cpf, observacao)
 --   devem continuar nulos nesta carga repetível
-INSERT INTO vendas (data_criacao, data_atualizacao, canal_venda_id, valor_total, apelido, cidade, estado) VALUES
-    (NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 99.90, 'Cliente Premium', 'Sao Paulo', 'Sao Paulo'),
-    (NOW() - INTERVAL '12 hour', NOW() - INTERVAL '12 hour', (SELECT id FROM canais_venda WHERE nome = 'Equipe de Vendas'), 170.00, 'Equipe Alpha', 'Campinas', 'Sao Paulo'),
-    (NOW(), NOW(), (SELECT id FROM canais_venda WHERE nome = 'Shopee'), 75.00, 'Shopee Julia', 'Curitiba', 'Parana'),
-    (NOW() - INTERVAL '10 hour', NOW() - INTERVAL '10 hour', (SELECT id FROM canais_venda WHERE nome = 'Loja Física'), 189.90, 'Cliente Balcao', 'Belo Horizonte', 'Minas Gerais'),
-    (NOW() - INTERVAL '8 hour', NOW() - INTERVAL '8 hour', (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'), 159.80, 'Studio DTF', 'Rio de Janeiro', 'Rio de Janeiro');
+-- Estratégia:
+-- - manter dados em escala plausível para um pequeno negócio gráfico
+-- - cobrir até 12 meses para testes do dashboard e da futura tela analítica
+-- - garantir 3 vendas no dia atual (manhã, tarde e noite) para o recorte "Hoje"
+WITH vendas_seed (apelido, cidade, estado, pais, canal_nome, data_criacao) AS (
+    VALUES
+        ('Studio Aurora (DEV)', 'Sao Paulo', 'Sao Paulo', 'Brasil', 'Site Próprio', date_trunc('month', NOW()) - INTERVAL '11 month' + INTERVAL '4 day 10 hour'),
+        ('Serra Azul Banners (DEV)', 'Campinas', 'Sao Paulo', 'Brasil', 'Equipe de Vendas', date_trunc('month', NOW()) - INTERVAL '10 month' + INTERVAL '8 day 15 hour'),
+        ('Cervejaria Norte (DEV)', 'Recife', 'Pernambuco', 'Brasil', 'Site Próprio', date_trunc('month', NOW()) - INTERVAL '9 month' + INTERVAL '12 day 16 hour'),
+        ('Loja Primavera (DEV)', 'Curitiba', 'Parana', 'Brasil', 'Mercado Livre', date_trunc('month', NOW()) - INTERVAL '8 month' + INTERVAL '6 day 14 hour'),
+        ('Brinde Criativo (DEV)', 'Goiania', 'Goias', 'Brasil', 'Site Próprio', date_trunc('month', NOW()) - INTERVAL '7 month' + INTERVAL '10 day 11 hour'),
+        ('Casa dos Eventos (DEV)', 'Ribeirao Preto', 'Sao Paulo', 'Brasil', 'Equipe de Vendas', date_trunc('month', NOW()) - INTERVAL '6 month' + INTERVAL '18 day 9 hour'),
+        ('Oficina Gráfica 77 (DEV)', 'Belo Horizonte', 'Minas Gerais', 'Brasil', 'Loja Física', date_trunc('month', NOW()) - INTERVAL '6 month' + INTERVAL '24 day 17 hour'),
+        ('Atelie Papel & Cor (DEV)', 'Sao Paulo', 'Sao Paulo', 'Brasil', 'Site Próprio', date_trunc('month', NOW()) - INTERVAL '5 month' + INTERVAL '5 day 13 hour'),
+        ('Boutique da Lona (DEV)', 'Porto Alegre', 'Rio Grande do Sul', 'Brasil', 'Mercado Livre', date_trunc('month', NOW()) - INTERVAL '5 month' + INTERVAL '21 day 18 hour'),
+        ('Ink Lab Centro (DEV)', 'Rio de Janeiro', 'Rio de Janeiro', 'Brasil', 'Site Próprio', date_trunc('month', NOW()) - INTERVAL '4 month' + INTERVAL '9 day 10 hour'),
+        ('Rótulos Vale Sul (DEV)', 'Joinville', 'Santa Catarina', 'Brasil', 'Shopee', date_trunc('month', NOW()) - INTERVAL '4 month' + INTERVAL '19 day 20 hour'),
+        ('Papelaria Horizonte (DEV)', 'Salvador', 'Bahia', 'Brasil', 'Site Próprio', date_trunc('month', NOW()) - INTERVAL '3 month' + INTERVAL '4 day 11 hour'),
+        ('Studio Craft Minas (DEV)', 'Belo Horizonte', 'Minas Gerais', 'Brasil', 'Loja Física', date_trunc('month', NOW()) - INTERVAL '3 month' + INTERVAL '15 day 16 hour'),
+        ('Loja do Transfer (DEV)', 'Fortaleza', 'Ceara', 'Brasil', 'Site Próprio', date_trunc('month', NOW()) - INTERVAL '2 month' + INTERVAL '7 day 14 hour'),
+        ('Embalagem Certa (DEV)', 'Londrina', 'Parana', 'Brasil', 'Mercado Livre', date_trunc('month', NOW()) - INTERVAL '2 month' + INTERVAL '22 day 13 hour'),
+        ('Ponto UV Express (DEV)', 'Sao Paulo', 'Sao Paulo', 'Brasil', 'Site Próprio', date_trunc('month', NOW()) - INTERVAL '1 month' + INTERVAL '3 day 10 hour'),
+        ('Balcão Campinas (DEV)', 'Campinas', 'Sao Paulo', 'Brasil', 'Shopee', date_trunc('month', NOW()) - INTERVAL '1 month' + INTERVAL '11 day 19 hour'),
+        ('Cliente Centro Sul (DEV)', 'Belo Horizonte', 'Minas Gerais', 'Brasil', 'Loja Física', date_trunc('day', NOW()) - INTERVAL '27 day' + INTERVAL '15 hour'),
+        ('Rótulos da Serra (DEV)', 'Caxias do Sul', 'Rio Grande do Sul', 'Brasil', 'Mercado Livre', date_trunc('day', NOW()) - INTERVAL '18 day' + INTERVAL '13 hour'),
+        ('Verniz Rápido (DEV)', 'Sao Paulo', 'Sao Paulo', 'Brasil', 'Site Próprio', date_trunc('day', NOW()) - INTERVAL '12 day' + INTERVAL '11 hour'),
+        ('Equipe Expo Norte (DEV)', 'Brasilia', 'Distrito Federal', 'Brasil', 'Equipe de Vendas', date_trunc('day', NOW()) - INTERVAL '6 day' + INTERVAL '9 hour'),
+        ('Atacado Embala Mais (DEV)', 'Belo Horizonte', 'Minas Gerais', 'Brasil', 'Loja Física', date_trunc('day', NOW()) - INTERVAL '5 day' + INTERVAL '16 hour'),
+        ('Transfer Lab Rio (DEV)', 'Rio de Janeiro', 'Rio de Janeiro', 'Brasil', 'Site Próprio', date_trunc('day', NOW()) - INTERVAL '3 day' + INTERVAL '13 hour'),
+        ('Papelaria do Porto (DEV)', 'Santos', 'Sao Paulo', 'Brasil', 'Mercado Livre', date_trunc('day', NOW()) - INTERVAL '2 day' + INTERVAL '10 hour'),
+        ('Cliente Augusta (DEV)', 'Sao Paulo', 'Sao Paulo', 'Brasil', 'Site Próprio', date_trunc('day', NOW()) + INTERVAL '9 hour 15 minute'),
+        ('Balcão Savassi (DEV)', 'Belo Horizonte', 'Minas Gerais', 'Brasil', 'Loja Física', date_trunc('day', NOW()) + INTERVAL '14 hour 20 minute'),
+        ('Flash Etiquetas (DEV)', 'Curitiba', 'Parana', 'Brasil', 'Shopee', date_trunc('day', NOW()) + INTERVAL '20 hour 10 minute')
+),
+itens_seed (venda_apelido, produto_sku, quantidade, preco_original, preco_unitario, tipo_preco_aplicado, motivo_alteracao_preco) AS (
+    VALUES
+        ('Studio Aurora (DEV)', 'CV-PREM-9X5', 4, 120.00, 110.00, 'PRECO_ALTERADO', 'Pedido corporativo recorrente'),
+        ('Serra Azul Banners (DEV)', 'BNR-COM-120X80', 2, 85.00, 85.00, 'PRECO_PADRAO', NULL),
+        ('Cervejaria Norte (DEV)', 'ROT-CERV-LN', 3, 60.00, 59.00, 'PRECO_ALTERADO', 'Tabela especial para lote contínuo'),
+        ('Loja Primavera (DEV)', 'ADSV-RD-5', 4, 45.00, 44.00, 'PRECO_ALTERADO', 'Campanha marketplace'),
+        ('Brinde Criativo (DEV)', 'TAG-KFT-4X9', 5, 30.00, 29.00, 'PRECO_ALTERADO', 'Pacote promocional'),
+        ('Casa dos Eventos (DEV)', 'BNR-COM-120X80', 3, 85.00, 85.00, 'PRECO_PADRAO', NULL),
+        ('Oficina Gráfica 77 (DEV)', 'TIN-PRE-ES-1L', 1, 350.00, 350.00, 'PRECO_PADRAO', NULL),
+        ('Atelie Papel & Cor (DEV)', 'CV-PREM-9X5', 3, 120.00, 116.00, 'PRECO_ALTERADO', 'Fechamento de pacote'),
+        ('Boutique da Lona (DEV)', 'FITA-DF-25MM', 2, 75.00, 73.00, 'PRECO_ALTERADO', 'Negociação de volume'),
+        ('Ink Lab Centro (DEV)', 'PO-ADT-500G', 3, 79.90, 78.00, 'PRECO_ALTERADO', 'Condição para recompra'),
+        ('Rótulos Vale Sul (DEV)', 'ADSV-RD-5', 5, 45.00, 43.00, 'PRECO_ALTERADO', 'Oferta sazonal da Shopee'),
+        ('Papelaria Horizonte (DEV)', 'PAP-SEDA-A4-100', 4, 35.00, 34.00, 'PRECO_ALTERADO', 'Kit de papelaria'),
+        ('Studio Craft Minas (DEV)', 'RES-EPX-2KG', 1, 189.90, 189.90, 'PRECO_PADRAO', NULL),
+        ('Loja do Transfer (DEV)', 'VERN-UV-250', 4, 45.00, 44.00, 'PRECO_ALTERADO', 'Desconto para cliente fiel'),
+        ('Embalagem Certa (DEV)', 'TAG-KFT-4X9', 4, 30.00, 30.00, 'PRECO_PADRAO', NULL),
+        ('Ponto UV Express (DEV)', 'CV-PREM-9X5', 2, 120.00, 118.00, 'PRECO_ALTERADO', 'Pedido de recompra mensal'),
+        ('Balcão Campinas (DEV)', 'ADSV-RD-5', 4, 45.00, 44.00, 'PRECO_ALTERADO', 'Ação relâmpago do canal'),
+        ('Cliente Centro Sul (DEV)', 'PAP-SEDA-A4-100', 3, 35.00, 35.00, 'PRECO_PADRAO', NULL),
+        ('Rótulos da Serra (DEV)', 'ROT-CERV-LN', 2, 60.00, 60.00, 'PRECO_PADRAO', NULL),
+        ('Verniz Rápido (DEV)', 'VERN-UV-250', 3, 45.00, 45.00, 'PRECO_PADRAO', NULL),
+        ('Equipe Expo Norte (DEV)', 'BNR-COM-120X80', 2, 85.00, 85.00, 'PRECO_PADRAO', NULL),
+        ('Atacado Embala Mais (DEV)', 'FITA-DF-25MM', 1, 75.00, 75.00, 'PRECO_PADRAO', NULL),
+        ('Transfer Lab Rio (DEV)', 'PO-ADT-500G', 2, 79.90, 79.90, 'PRECO_PADRAO', NULL),
+        ('Papelaria do Porto (DEV)', 'TAG-KFT-4X9', 4, 30.00, 30.00, 'PRECO_PADRAO', NULL),
+        ('Cliente Augusta (DEV)', 'CV-PREM-9X5', 2, 120.00, 112.00, 'PRECO_ALTERADO', 'Cupom de fidelidade'),
+        ('Balcão Savassi (DEV)', 'RES-EPX-2KG', 1, 189.90, 189.90, 'PRECO_PADRAO', NULL),
+        ('Flash Etiquetas (DEV)', 'ADSV-RD-5', 2, 45.00, 43.50, 'PRECO_ALTERADO', 'Oferta noturna do canal')
+),
+totais_seed AS (
+    SELECT
+        venda_apelido,
+        ROUND(SUM((quantidade::numeric * preco_unitario)::numeric), 2) AS valor_total
+    FROM itens_seed
+    GROUP BY venda_apelido
+)
+INSERT INTO vendas (data_criacao, data_atualizacao, canal_venda_id, valor_total, apelido, pais, cidade, estado)
+SELECT
+    vendas_seed.data_criacao,
+    vendas_seed.data_criacao,
+    (SELECT id FROM canais_venda WHERE nome = vendas_seed.canal_nome),
+    totais_seed.valor_total,
+    vendas_seed.apelido,
+    vendas_seed.pais,
+    vendas_seed.cidade,
+    vendas_seed.estado
+FROM vendas_seed
+JOIN totais_seed ON totais_seed.venda_apelido = vendas_seed.apelido;
 
 -- ETAPA 6: INSERÇÃO DE DADOS DE RELACIONAMENTO E HISTÓRICO (Nível Final)
 -- Estas são as tabelas de junção e logs que dependem de todas as outras entidades.
@@ -194,13 +272,49 @@ INSERT INTO cortes_realizados (ordem_de_producao_id, largura_cm, comprimento_cm,
     ((SELECT id FROM ordens_de_producao WHERE motivo = 'ESTOQUE-PAPEL-SEDA-112'), 21.0, 29.7, 20, 'PRODUTO', NULL);
 
 -- Itens de Venda (dependem de Vendas e Produtos)
-INSERT INTO itens_venda (venda_id, produto_id, quantidade, preco_comercial_original, preco_unitario, preco_total, tipo_preco_aplicado, motivo_alteracao_preco) VALUES
-    ((SELECT id FROM vendas WHERE valor_total = 99.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio')), (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'), 1, 120.00, 99.90, 99.90, 'PRECO_ALTERADO', 'Cliente recorrente'),
-    ((SELECT id FROM vendas WHERE valor_total = 170.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Equipe de Vendas')), (SELECT id FROM produtos WHERE sku = 'BNR-COM-120X80'), 2, 85.00, 85.00, 170.00, 'PRECO_PADRAO', NULL),
-    ((SELECT id FROM vendas WHERE valor_total = 75.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Shopee')), (SELECT id FROM produtos WHERE sku = 'ADSV-RD-5'), 1, 45.00, 45.00, 45.00, 'PRECO_PADRAO', NULL),
-    ((SELECT id FROM vendas WHERE valor_total = 75.00 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Shopee')), (SELECT id FROM produtos WHERE sku = 'TAG-KFT-4X9'), 1, 30.00, 30.00, 30.00, 'PRECO_PADRAO', NULL),
-    ((SELECT id FROM vendas WHERE valor_total = 189.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Loja Física')), (SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'), 1, 189.90, 189.90, 189.90, 'PRECO_PADRAO', NULL),
-    ((SELECT id FROM vendas WHERE valor_total = 159.80 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio')), (SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'), 2, 79.90, 79.90, 159.80, 'PRECO_PADRAO', NULL);
+WITH itens_seed (venda_apelido, produto_sku, quantidade, preco_original, preco_unitario, tipo_preco_aplicado, motivo_alteracao_preco) AS (
+    VALUES
+        ('Studio Aurora (DEV)', 'CV-PREM-9X5', 4, 120.00, 110.00, 'PRECO_ALTERADO', 'Pedido corporativo recorrente'),
+        ('Serra Azul Banners (DEV)', 'BNR-COM-120X80', 2, 85.00, 85.00, 'PRECO_PADRAO', NULL),
+        ('Cervejaria Norte (DEV)', 'ROT-CERV-LN', 3, 60.00, 59.00, 'PRECO_ALTERADO', 'Tabela especial para lote contínuo'),
+        ('Loja Primavera (DEV)', 'ADSV-RD-5', 4, 45.00, 44.00, 'PRECO_ALTERADO', 'Campanha marketplace'),
+        ('Brinde Criativo (DEV)', 'TAG-KFT-4X9', 5, 30.00, 29.00, 'PRECO_ALTERADO', 'Pacote promocional'),
+        ('Casa dos Eventos (DEV)', 'BNR-COM-120X80', 3, 85.00, 85.00, 'PRECO_PADRAO', NULL),
+        ('Oficina Gráfica 77 (DEV)', 'TIN-PRE-ES-1L', 1, 350.00, 350.00, 'PRECO_PADRAO', NULL),
+        ('Atelie Papel & Cor (DEV)', 'CV-PREM-9X5', 3, 120.00, 116.00, 'PRECO_ALTERADO', 'Fechamento de pacote'),
+        ('Boutique da Lona (DEV)', 'FITA-DF-25MM', 2, 75.00, 73.00, 'PRECO_ALTERADO', 'Negociação de volume'),
+        ('Ink Lab Centro (DEV)', 'PO-ADT-500G', 3, 79.90, 78.00, 'PRECO_ALTERADO', 'Condição para recompra'),
+        ('Rótulos Vale Sul (DEV)', 'ADSV-RD-5', 5, 45.00, 43.00, 'PRECO_ALTERADO', 'Oferta sazonal da Shopee'),
+        ('Papelaria Horizonte (DEV)', 'PAP-SEDA-A4-100', 4, 35.00, 34.00, 'PRECO_ALTERADO', 'Kit de papelaria'),
+        ('Studio Craft Minas (DEV)', 'RES-EPX-2KG', 1, 189.90, 189.90, 'PRECO_PADRAO', NULL),
+        ('Loja do Transfer (DEV)', 'VERN-UV-250', 4, 45.00, 44.00, 'PRECO_ALTERADO', 'Desconto para cliente fiel'),
+        ('Embalagem Certa (DEV)', 'TAG-KFT-4X9', 4, 30.00, 30.00, 'PRECO_PADRAO', NULL),
+        ('Ponto UV Express (DEV)', 'CV-PREM-9X5', 2, 120.00, 118.00, 'PRECO_ALTERADO', 'Pedido de recompra mensal'),
+        ('Balcão Campinas (DEV)', 'ADSV-RD-5', 4, 45.00, 44.00, 'PRECO_ALTERADO', 'Ação relâmpago do canal'),
+        ('Cliente Centro Sul (DEV)', 'PAP-SEDA-A4-100', 3, 35.00, 35.00, 'PRECO_PADRAO', NULL),
+        ('Rótulos da Serra (DEV)', 'ROT-CERV-LN', 2, 60.00, 60.00, 'PRECO_PADRAO', NULL),
+        ('Verniz Rápido (DEV)', 'VERN-UV-250', 3, 45.00, 45.00, 'PRECO_PADRAO', NULL),
+        ('Equipe Expo Norte (DEV)', 'BNR-COM-120X80', 2, 85.00, 85.00, 'PRECO_PADRAO', NULL),
+        ('Atacado Embala Mais (DEV)', 'FITA-DF-25MM', 1, 75.00, 75.00, 'PRECO_PADRAO', NULL),
+        ('Transfer Lab Rio (DEV)', 'PO-ADT-500G', 2, 79.90, 79.90, 'PRECO_PADRAO', NULL),
+        ('Papelaria do Porto (DEV)', 'TAG-KFT-4X9', 4, 30.00, 30.00, 'PRECO_PADRAO', NULL),
+        ('Cliente Augusta (DEV)', 'CV-PREM-9X5', 2, 120.00, 112.00, 'PRECO_ALTERADO', 'Cupom de fidelidade'),
+        ('Balcão Savassi (DEV)', 'RES-EPX-2KG', 1, 189.90, 189.90, 'PRECO_PADRAO', NULL),
+        ('Flash Etiquetas (DEV)', 'ADSV-RD-5', 2, 45.00, 43.50, 'PRECO_ALTERADO', 'Oferta noturna do canal')
+)
+INSERT INTO itens_venda (venda_id, produto_id, quantidade, preco_comercial_original, preco_unitario, preco_total, tipo_preco_aplicado, motivo_alteracao_preco)
+SELECT
+    vendas.id,
+    produtos.id,
+    itens_seed.quantidade,
+    itens_seed.preco_original,
+    itens_seed.preco_unitario,
+    ROUND((itens_seed.quantidade::numeric * itens_seed.preco_unitario)::numeric, 2),
+    itens_seed.tipo_preco_aplicado,
+    itens_seed.motivo_alteracao_preco
+FROM itens_seed
+JOIN vendas ON vendas.apelido = itens_seed.venda_apelido
+JOIN produtos ON produtos.sku = itens_seed.produto_sku;
 
 -- Histórico de Movimentações de Estoque de Produto (dependem de Produtos, Ordens de Produção e Vendas)
 -- Observação:
@@ -353,43 +467,26 @@ INSERT INTO movimentacoes_estoque_produto (
         (SELECT id FROM ordens_de_producao WHERE motivo = 'ESTOQUE-PAPEL-SEDA-112'),
         (SELECT id FROM ordens_de_producao WHERE motivo = 'ESTOQUE-PAPEL-SEDA-112'),
         NULL
-    ),
-    (
-        (SELECT id FROM produtos WHERE sku = 'CV-PREM-9X5'),
-        (SELECT nome FROM produtos WHERE sku = 'CV-PREM-9X5'),
-        (SELECT sku FROM produtos WHERE sku = 'CV-PREM-9X5'),
-        NOW() - INTERVAL '1 hour',
-        'SAIDA_VENDA',
-        -200,
-        CONCAT('Venda #', (SELECT id FROM vendas WHERE valor_total = 99.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'))),
-        NULL,
-        NULL,
-        (SELECT id FROM vendas WHERE valor_total = 99.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'))
-    ),
-    (
-        (SELECT id FROM produtos WHERE sku = 'RES-EPX-2KG'),
-        (SELECT nome FROM produtos WHERE sku = 'RES-EPX-2KG'),
-        (SELECT sku FROM produtos WHERE sku = 'RES-EPX-2KG'),
-        NOW() - INTERVAL '10 hour',
-        'SAIDA_VENDA',
-        -1,
-        CONCAT('Venda #', (SELECT id FROM vendas WHERE valor_total = 189.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Loja Física'))),
-        NULL,
-        NULL,
-        (SELECT id FROM vendas WHERE valor_total = 189.90 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Loja Física'))
-    ),
-    (
-        (SELECT id FROM produtos WHERE sku = 'PO-ADT-500G'),
-        (SELECT nome FROM produtos WHERE sku = 'PO-ADT-500G'),
-        (SELECT sku FROM produtos WHERE sku = 'PO-ADT-500G'),
-        NOW() - INTERVAL '8 hour',
-        'SAIDA_VENDA',
-        -2,
-        CONCAT('Venda #', (SELECT id FROM vendas WHERE valor_total = 159.80 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'))),
-        NULL,
-        NULL,
-        (SELECT id FROM vendas WHERE valor_total = 159.80 AND canal_venda_id = (SELECT id FROM canais_venda WHERE nome = 'Site Próprio'))
     );
+
+INSERT INTO movimentacoes_estoque_produto (
+    produto_id, produto_nome_snapshot, produto_sku_snapshot, data, tipo, quantidade, motivo, ordem_producao_id, ordem_producao_origem_id, venda_origem_id
+)
+SELECT
+    produtos.id,
+    produtos.nome,
+    produtos.sku,
+    vendas.data_criacao,
+    'SAIDA_VENDA',
+    -itens_venda.quantidade,
+    CONCAT('Venda #', vendas.id),
+    NULL,
+    NULL,
+    vendas.id
+FROM itens_venda
+JOIN vendas ON vendas.id = itens_venda.venda_id
+JOIN produtos ON produtos.id = itens_venda.produto_id
+WHERE vendas.apelido LIKE '%(DEV)';
 
 -- Histórico de Movimentações de Estoque de Lote (dependem de Lotes e Ordens de Produção)
 INSERT INTO movimentacoes_estoque_lote (lote_id, ordem_producao_id, data, tipo, quantidade, motivo) VALUES
