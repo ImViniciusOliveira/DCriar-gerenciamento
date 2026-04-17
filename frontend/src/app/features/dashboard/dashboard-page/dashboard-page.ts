@@ -191,13 +191,13 @@ export class DashboardPage {
         label: 'Faturamento total',
         value: snapshot.revenueTotal,
         type: 'currency',
-        helper: 'Receita do período selecionado'
+        helper: ''
       },
       {
         label: 'Total de vendas',
         value: snapshot.orderCount,
         type: 'number',
-        helper: 'Pedidos fechados no período'
+        helper: ''
       },
       {
         label: 'Canal líder',

@@ -214,6 +214,7 @@
   @include fl.std-border-mixin;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 6px;
   min-height: 108px;
   padding: 14px 16px;
@@ -225,7 +226,7 @@
   }
 
   span {
-    font-size: 0.8rem;
+    font-size: 1rem;
   }
 
   strong {
