@@ -4,14 +4,204 @@
       <div class="dashboard-card__header">
         <div class="dashboard-card__title">
           <span class="dashboard-card__eyebrow">Análise de vendas</span>
-          <h3>works</h3>
+          <h3>Resumo executivo do período</h3>
+          <p>Foco em faturamento, volume de pedidos, canal líder e produtos com maior receita.</p>
+        </div>
+
+        <div class="dashboard-sales-controls">
+          <div class="dashboard-period-selector" role="tablist" aria-label="Período da análise de vendas">
+            @for (period of periodOptions; track period.key) {
+              <button
+                mat-stroked-button
+                type="button"
+                class="dashboard-period-selector__button"
+                [class.dashboard-period-selector__button--active]="isSelectedPeriod(period.key)"
+                (click)="setSelectedPeriod(period.key)">
+                {{ period.label }}
+              </button>
+            }
+          </div>
+
+          <button
+            mat-stroked-button
+            type="button"
+            class="dashboard-period-selector__button dashboard-period-selector__button--calendar"
+            [class.dashboard-period-selector__button--active]="isCustomRangeSelected() || customRangeOpen()"
+            (click)="toggleCustomRange()">
+            <mat-icon>calendar_month</mat-icon>
+            {{ customRangeLabel() }}
+          </button>
         </div>
       </div>
 
-      <div class="dashboard-card__body">works</div>
+      @if (customRangeOpen()) {
+        <div class="dashboard-custom-range">
+          <div class="dashboard-custom-range__fields">
+            <label class="dashboard-date-field">
+              <span>Data inicial</span>
+              <input
+                type="date"
+                [value]="customStartDate()"
+                (input)="setCustomStartDate($any($event.target).value)">
+            </label>
+
+            <label class="dashboard-date-field">
+              <span>Data final</span>
+              <input
+                type="date"
+                [value]="customEndDate()"
+                (input)="setCustomEndDate($any($event.target).value)">
+            </label>
+          </div>
+
+          <div class="dashboard-custom-range__footer">
+            <small>Escolha um intervalo de até 366 dias.</small>
+
+            <div class="dashboard-custom-range__actions">
+              <button mat-button type="button" (click)="clearCustomRange()">Limpar</button>
+              <button mat-raised-button color="primary" type="button" [disabled]="!!customRangeError()" (click)="applyCustomRange()">
+                Aplicar período
+              </button>
+            </div>
+          </div>
+
+          @if (customRangeError()) {
+            <div class="dashboard-custom-range__error">{{ customRangeError() }}</div>
+          }
+        </div>
+      }
+
+      @if (isSalesLoading()) {
+        <div class="dashboard-sales-state">
+          <mat-icon>hourglass_top</mat-icon>
+          <div>
+            <strong>Carregando análise de vendas</strong>
+            <span>Buscando os indicadores mais importantes do período selecionado.</span>
+          </div>
+        </div>
+      } @else if (hasSalesError()) {
+        <div class="dashboard-sales-state dashboard-sales-state--error">
+          <mat-icon>error</mat-icon>
+          <div>
+            <strong>Falha ao carregar a análise</strong>
+            <span>{{ salesErrorMessage() }}</span>
+          </div>
+        </div>
+      } @else {
+        <div class="dashboard-kpi-grid">
+          @for (kpi of salesKpis(); track kpi.label) {
+            <div class="dashboard-kpi-card" [class.dashboard-kpi-card--text]="kpi.type === 'text'">
+              <span>{{ kpi.label }}</span>
+              <strong>
+                @if (kpi.type === 'currency') {
+                  {{ kpi.value | currency:'BRL' }}
+                } @else if (kpi.type === 'text') {
+                  {{ kpi.value }}
+                } @else {
+                  {{ kpi.value | number:'1.0-0' }}
+                }
+              </strong>
+              <small>{{ kpi.helper }}</small>
+            </div>
+          }
+        </div>
+
+        @if (hasSalesData()) {
+          <div class="dashboard-sales-grid">
+            <section class="dashboard-sales-chart">
+              <div class="dashboard-sales-chart__header">
+                <h4>{{ salesSnapshot().trendLabel }}</h4>
+
+                @if (salesSnapshot().comparisonDeltaPercent !== null) {
+                  <div
+                    class="dashboard-trend-badge"
+                    [class.dashboard-trend-badge--negative]="!isPositiveDelta(salesSnapshot().comparisonDeltaPercent)">
+                    <mat-icon>
+                      {{ isPositiveDelta(salesSnapshot().comparisonDeltaPercent) ? 'trending_up' : 'trending_down' }}
+                    </mat-icon>
+                    {{ salesSnapshot().comparisonDeltaPercent | number:'1.1-1' }}%
+                  </div>
+                } @else {
+                  <div class="dashboard-trend-badge dashboard-trend-badge--muted">
+                    <mat-icon>remove</mat-icon>
+                    Sem base comparativa
+                  </div>
+                }
+              </div>
+
+              <div class="dashboard-bars" [style.grid-template-columns]="chartGridTemplate()">
+                @for (point of salesSeries(); track point.label + '-' + $index) {
+                  <div
+                    class="dashboard-bars__item"
+                    [attr.title]="point.label + ' • ' + (point.revenue | currency:'BRL') + ' • ' + point.orderCount + ' pedidos'">
+                    <span class="dashboard-bars__value">{{ point.revenue | currency:'BRL':'symbol':'1.0-0' }}</span>
+                    <div class="dashboard-bars__track">
+                      <div class="dashboard-bars__bar" [style.height.%]="point.revenuePercent"></div>
+                    </div>
+                    <span class="dashboard-bars__label">{{ point.label }}</span>
+                    @if (point.helperLabel) {
+                      <span class="dashboard-bars__helper">{{ point.helperLabel }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            </section>
+
+            <section class="dashboard-top-products">
+              <div class="dashboard-top-products__header">
+                <h4>Top 5 produtos vendidos</h4>
+                <a mat-button routerLink="/vendas">Ver vendas</a>
+              </div>
+
+              @if (hasTopProducts()) {
+                <div class="dashboard-top-products__list">
+                  @for (product of topProducts(); track product.productId) {
+                    <div class="dashboard-top-products__item">
+                      <div class="dashboard-top-products__rank">
+                        {{ $index + 1 }}
+                      </div>
+
+                      <div class="dashboard-top-products__content">
+                        <strong>{{ product.name }}</strong>
+                        <span>{{ product.sku }} • {{ product.unitsSold | number:'1.0-0' }} unidades</span>
+                      </div>
+
+                      <div class="dashboard-top-products__revenue">
+                        {{ product.revenue | currency:'BRL' }}
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="dashboard-empty-state dashboard-empty-state--positive">
+                  <div class="dashboard-empty-state__icon">
+                    <mat-icon>insights</mat-icon>
+                  </div>
+
+                  <div class="dashboard-empty-state__content">
+                    <strong>Nenhum produto destacado</strong>
+                    <span>Assim que houver vendas no período, os itens com maior receita aparecerão aqui.</span>
+                  </div>
+                </div>
+              }
+            </section>
+          </div>
+        } @else {
+          <div class="dashboard-empty-state dashboard-empty-state--positive">
+            <div class="dashboard-empty-state__icon">
+              <mat-icon>query_stats</mat-icon>
+            </div>
+
+            <div class="dashboard-empty-state__content">
+              <strong>{{ salesEmptyState.title }}</strong>
+              <span>{{ salesEmptyState.description }}</span>
+            </div>
+          </div>
+        }
+      }
     </article>
 
-    <aside class="dashboard-card dashboard-card--actions">
+    <aside class="dashboard-card dashboard-card--operations">
       <div class="dashboard-quick-actions">
         <div class="dashboard-quick-actions__header">
           <h4>Ações rápidas</h4>
