@@ -183,6 +183,7 @@ public class VendaAnaliseServiceImpl implements VendaAnaliseService {
     // region Série temporal
 
     private enum AgrupamentoPeriodo {
+        TURNO("Receita por período do dia"),
         DIA("Receita diária"),
         SEMANA("Receita semanal"),
         MES("Receita mensal");
@@ -195,6 +196,9 @@ public class VendaAnaliseServiceImpl implements VendaAnaliseService {
     }
 
     private AgrupamentoPeriodo resolverAgrupamento(long dias) {
+        if (dias == 1) {
+            return AgrupamentoPeriodo.TURNO;
+        }
         if (dias <= 7) {
             return AgrupamentoPeriodo.DIA;
         }
@@ -211,10 +215,52 @@ public class VendaAnaliseServiceImpl implements VendaAnaliseService {
             AgrupamentoPeriodo agrupamento
     ) {
         return switch (agrupamento) {
+            case TURNO -> agruparPorTurno(raw);
             case DIA -> agruparPorDia(raw, dataInicio, dataFim);
             case SEMANA -> agruparPorSemana(raw, dataInicio, dataFim);
             case MES -> agruparPorMes(raw, dataInicio, dataFim);
         };
+    }
+
+    private List<VendaAnaliseSerieItemResponseDTO> agruparPorTurno(List<Object[]> raw) {
+        Map<String, BigDecimal[]> buckets = new LinkedHashMap<>();
+        Map<String, String> helperLabels = new LinkedHashMap<>();
+
+        buckets.put("Manhã", new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+        buckets.put("Tarde", new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+        buckets.put("Noite", new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+
+        helperLabels.put("Manhã", "00:00 a 11:59");
+        helperLabels.put("Tarde", "12:00 a 17:59");
+        helperLabels.put("Noite", "18:00 a 23:59");
+
+        for (Object[] row : raw) {
+            LocalDateTime dataCriacao = (LocalDateTime) row[0];
+            String bucketKey = resolverTurno(dataCriacao.getHour());
+            BigDecimal[] bucket = buckets.get(bucketKey);
+
+            bucket[0] = bucket[0].add(row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO);
+            bucket[1] = bucket[1].add(BigDecimal.ONE);
+        }
+
+        List<VendaAnaliseSerieItemResponseDTO> serie = new ArrayList<>();
+        buckets.forEach((label, bucket) -> serie.add(VendaAnaliseSerieItemResponseDTO.builder()
+                .label(label)
+                .helperLabel(helperLabels.get(label))
+                .receita(bucket[0])
+                .totalPedidos(bucket[1].longValue())
+                .build()));
+        return serie;
+    }
+
+    private String resolverTurno(int hora) {
+        if (hora < 12) {
+            return "Manhã";
+        }
+        if (hora < 18) {
+            return "Tarde";
+        }
+        return "Noite";
     }
 
     private List<VendaAnaliseSerieItemResponseDTO> agruparPorDia(List<Object[]> raw, LocalDate dataInicio, LocalDate dataFim) {
