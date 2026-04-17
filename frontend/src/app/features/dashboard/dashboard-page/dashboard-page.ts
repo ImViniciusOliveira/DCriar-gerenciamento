@@ -222,6 +222,39 @@ export class DashboardPage {
     tone: 'positive'
   };
 
+  protected readonly formattedComparison = computed(() => {
+    const snapshot = this.salesSnapshot();
+    const delta = snapshot.comparisonDeltaPercent;
+
+    if (delta === null) {
+      return {
+        text: 'Sem base comparativa',
+        tooltip: 'Não há dados no período anterior para comparação.'
+      };
+    }
+
+    const revenueCurrent = snapshot.revenueTotal;
+    const revenuePrevious = snapshot.revenuePeriodAnterior;
+
+    if (delta < 0) {
+      const tooltip = `Período atual: ${revenueCurrent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Período anterior: ${revenuePrevious.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+      if (delta === -100) {
+        return { text: '0x', tooltip };
+      }
+      return { text: `${delta.toFixed(1)}%`, tooltip };
+    }
+
+    if (delta <= 100) {
+      const tooltip = `Período atual: ${revenueCurrent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Período anterior: ${revenuePrevious.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+      return { text: `+${delta.toFixed(1)}%`, tooltip };
+    }
+
+    // delta > 100
+    const multiplier = revenueCurrent / revenuePrevious;
+    const tooltip = `Período atual: ${revenueCurrent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Período anterior: ${revenuePrevious.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+    return { text: `${multiplier.toFixed(1)}x mais`, tooltip };
+  });
+
   private readonly productStockAnalysisResult = toSignal(
     this.stockService.searchProductStockAnalysis({
       page: 0,

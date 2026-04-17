@@ -30,6 +30,7 @@ export interface DashboardTopProduct {
 export interface DashboardSalesSummary {
   revenueTotal: number;
   orderCount: number;
+  revenuePeriodAnterior: number;
   leadingChannelName: string;
   leadingChannelHelper: string;
   comparisonDeltaPercent: number | null;
@@ -97,6 +98,7 @@ export const DASHBOARD_PERIOD_OPTIONS: DashboardPeriodOption[] = [
 export const EMPTY_DASHBOARD_SALES_SUMMARY: DashboardSalesSummary = {
   revenueTotal: 0,
   orderCount: 0,
+  revenuePeriodAnterior: 0,
   leadingChannelName: 'Sem vendas',
   leadingChannelHelper: 'Nenhuma venda no período selecionado.',
   comparisonDeltaPercent: null,

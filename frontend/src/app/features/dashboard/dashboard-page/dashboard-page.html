@@ -115,16 +115,19 @@
                 @if (salesSnapshot().comparisonDeltaPercent !== null) {
                   <div
                     class="dashboard-trend-badge"
-                    [class.dashboard-trend-badge--negative]="!isPositiveDelta(salesSnapshot().comparisonDeltaPercent)">
+                    [class.dashboard-trend-badge--negative]="!isPositiveDelta(salesSnapshot().comparisonDeltaPercent)"
+                    [title]="formattedComparison().tooltip">
                     <mat-icon>
                       {{ isPositiveDelta(salesSnapshot().comparisonDeltaPercent) ? 'trending_up' : 'trending_down' }}
                     </mat-icon>
-                    {{ salesSnapshot().comparisonDeltaPercent | number:'1.1-1' }}%
+                    {{ formattedComparison().text }}
                   </div>
                 } @else {
-                  <div class="dashboard-trend-badge dashboard-trend-badge--muted">
+                  <div
+                    class="dashboard-trend-badge dashboard-trend-badge--muted"
+                    [title]="formattedComparison().tooltip">
                     <mat-icon>remove</mat-icon>
-                    Sem base comparativa
+                    {{ formattedComparison().text }}
                   </div>
                 }
               </div>

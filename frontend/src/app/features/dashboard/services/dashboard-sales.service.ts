@@ -60,6 +60,7 @@ export class DashboardSalesService {
         return {
           revenueTotal: totals.receita ?? 0,
           orderCount: totals.totalPedidos ?? 0,
+          revenuePeriodAnterior: totals.receitaPeriodoAnterior ?? 0,
           leadingChannelName: firstChannel?.nomeCanal ?? 'Sem vendas',
           leadingChannelHelper: firstChannel
             ? `${firstChannel.totalPedidos ?? 0} pedido(s) no período`
