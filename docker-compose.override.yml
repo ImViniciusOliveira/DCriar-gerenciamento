@@ -13,6 +13,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-dev:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JAVA_TOOL_OPTIONS: -Duser.timezone=America/Sao_Paulo
+      TZ: America/Sao_Paulo
       MINIO_URL: http://minio-dev:9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
