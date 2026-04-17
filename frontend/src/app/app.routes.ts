@@ -15,11 +15,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'teste-dashboard',
-    redirectTo: 'dashboard',
-    pathMatch: 'full',
-  },
-  {
     path: 'produtos',
     title: 'D-Criar | Produtos',
     loadComponent: () =>

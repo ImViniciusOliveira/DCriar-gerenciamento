@@ -4,8 +4,7 @@
       <div class="dashboard-card__header">
         <div class="dashboard-card__title">
           <span class="dashboard-card__eyebrow">Análise de vendas</span>
-          <h3>Resumo executivo do período</h3>
-          <p>Foco em faturamento, volume de pedidos, canal líder e produtos com maior receita.</p>
+          <h3>{{ summaryTitle() }}</h3>
         </div>
 
         <div class="dashboard-sales-controls">
@@ -42,7 +41,9 @@
               <input
                 type="date"
                 [value]="customStartDate()"
-                (input)="setCustomStartDate($any($event.target).value)">
+                (input)="setCustomStartDate($any($event.target).value)"
+                [min]="minDateForCustomRange"
+                [max]="maxDateForCustomRange">
             </label>
 
             <label class="dashboard-date-field">
@@ -50,7 +51,9 @@
               <input
                 type="date"
                 [value]="customEndDate()"
-                (input)="setCustomEndDate($any($event.target).value)">
+                (input)="setCustomEndDate($any($event.target).value)"
+                [min]="minDateForCustomRange"
+                [max]="maxDateForCustomRange">
             </label>
           </div>
 

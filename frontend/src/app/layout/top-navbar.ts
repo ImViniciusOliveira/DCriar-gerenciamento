@@ -35,7 +35,6 @@ export class TopNavbar {
   // Define a ordem desejada dos links de navegação na barra.
   private readonly navOrder: string[] = [
     'dashboard',
-    'teste-dashboard',
     'produtos',
     'lotes-materia-prima',
     'ordens-de-producao',
@@ -46,7 +45,6 @@ export class TopNavbar {
   // Mapeia as chaves dos endpoints para objetos NavLink com labels e ícones.
   private readonly navLinksMap: Record<string, NavLink> = {
     'dashboard': { path: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-    'teste-dashboard': { path: 'teste-dashboard', label: 'Teste Dashboard', icon: 'science' },
     'produtos': { path: 'produtos', label: 'Produtos', icon: 'inventory_2' },
     'lotes-materia-prima': { path: 'lotes-materia-prima', label: 'Lotes', icon: 'view_in_ar' },
     'ordens-de-producao': { path: 'ordens-de-producao', label: 'Ordens de Produção', icon: 'content_cut' },
@@ -66,7 +64,7 @@ export class TopNavbar {
     const endpointLinks = endpoints?._links ?? {};
 
     return this.navOrder
-      .filter(key => key === 'teste-dashboard' || key in endpointLinks)
+      .filter(key => key in endpointLinks)
       .map(key => this.navLinksMap[key]);
   });
 }

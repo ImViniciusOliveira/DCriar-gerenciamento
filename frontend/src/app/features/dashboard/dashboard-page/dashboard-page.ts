@@ -103,6 +103,13 @@ export class DashboardPage {
   protected readonly customEndDate = signal('');
   protected readonly appliedRange = signal<DashboardDateRange>(this.buildPresetRange('30d'));
 
+  protected readonly maxDateForCustomRange = this.formatDateInput(new Date());
+  protected readonly minDateForCustomRange = (() => {
+    const minDate = new Date();
+    minDate.setFullYear(minDate.getFullYear() - 1);
+    return this.formatDateInput(minDate);
+  })();
+
   protected readonly customRangeError = computed(() => {
     const startValue = this.customStartDate();
     const endValue = this.customEndDate();
@@ -200,6 +207,60 @@ export class DashboardPage {
       }
     ];
   });
+
+  protected readonly summaryTitle = computed(() => {
+    const period = this.selectedPeriod();
+    if (period === 'custom') {
+      return 'Resumo do período personalizado';
+    }
+
+    const option = this.periodOptions.find(p => p.key === period);
+    if (!option) {
+      return 'Resumo do período';
+    }
+
+    // Transforma 'Hoje' em 'de hoje', '7 dias' em 'da semana', etc.
+    const periodName = option.label
+      .replace('Hoje', 'de hoje')
+      .replace('7 dias', 'da semana')
+      .replace('30 dias', 'do mês')
+      .replace('3 meses', 'do trimestre')
+      .replace('6 meses', 'do semestre');
+
+    return `Resumo ${periodName}`;
+  });
+
+  protected readonly formattedComparison = computed(() => {
+    const snapshot = this.salesSnapshot();
+    const delta = snapshot.comparisonDeltaPercent;
+
+    if (delta === null) {
+      return {
+        text: 'Sem base comparativa',
+        tooltip: 'Não há dados no período anterior para comparação.'
+      };
+    }
+
+    const revenueCurrent = snapshot.revenueTotal;
+    const revenuePrevious = snapshot.revenuePeriodAnterior;
+    const tooltip = `Período atual: ${revenueCurrent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Período anterior: ${revenuePrevious.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+
+    if (delta < 0) {
+      if (delta === -100) {
+        return { text: '0x', tooltip };
+      }
+      return { text: `${delta.toFixed(1)}% menos que o período anterior`, tooltip };
+    }
+
+    if (delta <= 100) {
+      return { text: `+${delta.toFixed(1)}% mais que o período anterior`, tooltip };
+    }
+
+    // delta > 100
+    const multiplier = revenueCurrent / revenuePrevious;
+    return { text: `${multiplier.toFixed(1)}x mais que período anterior`, tooltip };
+  });
+
   protected readonly salesSeries = computed<DashboardSalesSeriesViewModel[]>(() => {
     const points = this.salesSnapshot().series;
     const maxRevenue = Math.max(...points.map(point => point.revenue), 0);
@@ -221,39 +282,6 @@ export class DashboardPage {
     description: 'Ajuste o intervalo para visualizar faturamento, pedidos e produtos líderes.',
     tone: 'positive'
   };
-
-  protected readonly formattedComparison = computed(() => {
-    const snapshot = this.salesSnapshot();
-    const delta = snapshot.comparisonDeltaPercent;
-
-    if (delta === null) {
-      return {
-        text: 'Sem base comparativa',
-        tooltip: 'Não há dados no período anterior para comparação.'
-      };
-    }
-
-    const revenueCurrent = snapshot.revenueTotal;
-    const revenuePrevious = snapshot.revenuePeriodAnterior;
-
-    if (delta < 0) {
-      const tooltip = `Período atual: ${revenueCurrent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Período anterior: ${revenuePrevious.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
-      if (delta === -100) {
-        return { text: '0x', tooltip };
-      }
-      return { text: `${delta.toFixed(1)}%`, tooltip };
-    }
-
-    if (delta <= 100) {
-      const tooltip = `Período atual: ${revenueCurrent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Período anterior: ${revenuePrevious.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
-      return { text: `+${delta.toFixed(1)}%`, tooltip };
-    }
-
-    // delta > 100
-    const multiplier = revenueCurrent / revenuePrevious;
-    const tooltip = `Período atual: ${revenueCurrent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Período anterior: ${revenuePrevious.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
-    return { text: `${multiplier.toFixed(1)}x mais`, tooltip };
-  });
 
   private readonly productStockAnalysisResult = toSignal(
     this.stockService.searchProductStockAnalysis({
@@ -315,9 +343,9 @@ export class DashboardPage {
 
   protected toggleCustomRange(): void {
     if (!this.customRangeOpen()) {
-      const range = this.appliedRange();
-      this.customStartDate.set(range.dataInicio);
-      this.customEndDate.set(range.dataFim);
+      const today = this.formatDateInput(new Date());
+      this.customStartDate.set(today);
+      this.customEndDate.set(today);
     }
 
     this.customRangeOpen.update(current => !current);
